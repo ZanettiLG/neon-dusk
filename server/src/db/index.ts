@@ -13,4 +13,7 @@ export const client = postgres(env.DATABASE_URL, {
 
 export const db = drizzle({ client });
 
+/** Transaction client type — the callback argument of `db.transaction`. */
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 export * as schema from "./schema";

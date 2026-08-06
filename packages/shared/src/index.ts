@@ -154,3 +154,18 @@ export interface AuthResponse {
   user: User;
   character: Character | null;
 }
+
+// --- Lucky Chip (Feature ND-008) --------------------------------------------
+// ND-008: disposable test minigame. D20 roll, >=11 wins 2x bet.
+// Balance mock (1000 seed) — replaced by real economy in ND-010.
+
+export interface LuckyChipRequest {
+  bet: number;
+}
+
+export interface LuckyChipResponse {
+  roll: number;
+  won: boolean;
+  payout: number;
+  balance: number;
+}

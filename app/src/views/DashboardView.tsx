@@ -4,6 +4,7 @@ import type { AttributeKey } from "@neon-dusk/shared";
 import { ATTRIBUTE_KEYS, BASE_ATTRIBUTES, SOFT_CAP } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
 import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS } from "@/lib/labels";
+import LuckyChipWidget from "@/components/LuckyChipWidget";
 
 /**
  * Runner dashboard: character card, NIL bar with live regen countdown,
@@ -178,6 +179,9 @@ export default function DashboardView() {
               ))}
             </div>
           </div>
+
+          {/* Lucky Chip (ND-008) — disposable test minigame */}
+          <LuckyChipWidget />
 
           <p className="text-nd-text-secondary text-xs font-data">
             // Sistemas de gig, chrome e street cred chegam na próxima fase do grid.
