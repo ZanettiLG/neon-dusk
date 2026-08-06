@@ -88,6 +88,13 @@ jobs:
             set -e
             cd /opt/neon-dusk
 
+            # Capture the currently-running images BEFORE pulling, so a failed
+            # smoke test can roll back to them. Image IDs, not tags — the pull
+            # overwrites the `latest` tag, so the tag alone cannot identify the
+            # previous build. Empty on first deploy (no containers yet).
+            PREVIOUS_SERVER_IMAGE=$(docker inspect --format '{{.Image}}' neondusk-server 2>/dev/null || true)
+            PREVIOUS_APP_IMAGE=$(docker inspect --format '{{.Image}}' neondusk-app 2>/dev/null || true)
+
             # Bring up infra first; server waits for postgres/redis health
             docker compose --env-file .env.production -f docker-compose.prod.yml up -d --wait postgres redis
 
@@ -104,9 +111,6 @@ jobs:
             # Replace changed containers
             docker compose --env-file .env.production -f docker-compose.prod.yml up -d --remove-orphans
 
-            # Clean up old unused images (keep last 24h for quick rollback)
-            docker image prune -af --filter "until=24h"
-
             # Smoke test with retry loop (ponytail: 20s max, nginx startup is <3s but VPS can be slow)
             APP_OK=false
             for i in $(seq 1 10); do
@@ -119,7 +123,6 @@ jobs:
             done
             if [ "$APP_OK" != "true" ]; then
               echo "ERROR: app not responding after 20s"
-              exit 1
             fi
 
             API_OK=false
@@ -133,5 +136,23 @@ jobs:
             done
             if [ "$API_OK" != "true" ]; then
               echo "ERROR: API not responding after 20s"
+            fi
+
+            # Fail loudly and roll back to the previously-running images if
+            # either smoke test never succeeded (docker tag accepts image IDs).
+            if [ "$APP_OK" != "true" ] || [ "$API_OK" != "true" ]; then
+              echo "ERROR: smoke test failed (app=$APP_OK api=$API_OK) — rolling back"
+              if [ -n "$PREVIOUS_SERVER_IMAGE" ]; then
+                docker tag "$PREVIOUS_SERVER_IMAGE" ghcr.io/zan-ia/neon-dusk-server:latest
+              fi
+              if [ -n "$PREVIOUS_APP_IMAGE" ]; then
+                docker tag "$PREVIOUS_APP_IMAGE" ghcr.io/zan-ia/neon-dusk-app:latest
+              fi
+              docker compose --env-file .env.production -f docker-compose.prod.yml up -d
               exit 1
             fi
+
+            # Clean up old unused images (keep last 24h for quick rollback).
+            # Runs AFTER the smoke test so a rollback still has the previous
+            # images available.
+            docker image prune -af --filter "until=24h"
