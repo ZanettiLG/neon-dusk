@@ -101,6 +101,50 @@ export interface CreateCharacterRequest {
   attributes: Attributes;
 }
 
+// --- NIL (Feature #2) --------------------------------------------------------
+// Energy system: regens +1 every 5 minutes, capped at max. Syn-café consumable
+// restores 20 instantly with a 1h cooldown (see 03-mecanicas-core.md §1).
+
+/** Base NIL cap for a new character (chrome raises it later). */
+export const NIL_MAX_BASE = 100;
+/** Passive regen cadence: 1 point per 5 minutes. */
+export const NIL_REGEN_INTERVAL_MS = 5 * 60 * 1000;
+/** NIL points restored per regen tick. */
+export const NIL_REGEN_RATE = 1;
+/** NIL restored by one syn-café. */
+export const NIL_SYN_CAFE_AMOUNT = 20;
+/** Syn-café cooldown, in seconds. */
+export const NIL_SYN_CAFE_COOLDOWN_S = 60 * 60;
+
+/** Live NIL readout (regen applied lazily, never written on GET). */
+export interface NilStatus {
+  current: number;
+  max: number;
+  /** Seconds until the next regen tick (0 when full). */
+  nextTickSeconds: number;
+  /** True when `current` is below `max` (regen pending). */
+  regenerating: boolean;
+  /** ISO timestamp of the last persisted NIL snapshot. */
+  updatedAt: string;
+}
+
+export interface NilConsumeRequest {
+  amount: number;
+}
+
+export interface NilConsumeResponse {
+  consumed: number;
+  /** NIL left after the deduction. */
+  remaining: number;
+  status: NilStatus;
+}
+
+export interface NilStimResponse {
+  /** NIL actually restored (0 when already full). */
+  added: number;
+  status: NilStatus;
+}
+
 // --- Responses ---------------------------------------------------------------
 
 /** POST /api/auth/register|login|refresh response. */

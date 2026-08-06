@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import type { AttributeKey } from "@neon-dusk/shared";
 import { ATTRIBUTE_KEYS, BASE_ATTRIBUTES, SOFT_CAP } from "@neon-dusk/shared";
@@ -18,6 +18,54 @@ const attributeHighlight = (key: AttributeKey) =>
     : (character.value?.[key] ?? 0) > BASE_ATTRIBUTES
       ? "text-nd-cyan"
       : "text-nd-text";
+
+// --- NIL (Feature #2) — bar color by charge + regen countdown ----------------
+
+const nilBarColor = computed(() => {
+  const p = auth.nilPercent;
+  if (p < 20) return "bg-nd-magenta";
+  if (p < 50) return "bg-nd-gold";
+  return "bg-nd-cyan";
+});
+
+const countdown = ref(0);
+let countdownTimer: ReturnType<typeof setInterval> | null = null;
+
+function formatCountdown(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function syncCountdown(): void {
+  countdown.value = auth.nilStatus?.nextTickSeconds ?? 0;
+}
+
+async function onUseStim() {
+  try {
+    await auth.useStim();
+    syncCountdown();
+  } catch {
+    // error already surfaced through auth.nilError
+  }
+}
+
+onMounted(async () => {
+  await auth.fetchNil();
+  syncCountdown();
+  countdownTimer = setInterval(() => {
+    if (countdown.value > 0) countdown.value -= 1;
+    // Regen tick landed — refresh to display the accrued NIL.
+    if (countdown.value === 0 && auth.nilStatus?.regenerating) {
+      void auth.fetchNil();
+      syncCountdown();
+    }
+  }, 1000);
+});
+
+onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
+});
 
 async function onLogout() {
   await auth.logout();
@@ -52,6 +100,41 @@ async function onLogout() {
           >
             ROUND 1 // ATIVO
           </span>
+        </div>
+
+        <!-- NIL — neural load bar (Feature #2) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <span class="font-data text-xs uppercase tracking-widest text-nd-text-secondary">
+                NIL // CARGA NEURAL
+              </span>
+              <span class="font-data text-sm text-nd-text">
+                {{ auth.nilStatus?.current ?? 0 }} / {{ auth.nilStatus?.max ?? 0 }}
+              </span>
+            </div>
+            <button
+              class="btn-neon text-xs px-3 py-1"
+              :disabled="auth.nilLoading || !auth.nilStatus?.regenerating"
+              @click="onUseStim"
+            >
+              SYN-CAFÉ
+            </button>
+          </div>
+          <div class="h-2 w-full bg-nd-bg overflow-hidden rounded-full border border-nd-cyan/20">
+            <div
+              class="h-full rounded-full transition-all duration-500"
+              :class="nilBarColor"
+              :style="{ width: `${auth.nilPercent}%` }"
+            ></div>
+          </div>
+          <div class="flex items-center justify-between gap-3 text-xs font-data">
+            <span v-if="auth.nilStatus?.regenerating" class="text-nd-text-secondary">
+              Próximo +1 em {{ formatCountdown(countdown) }}
+            </span>
+            <span v-else class="text-nd-cyan">NIL CHEIO</span>
+            <span v-if="auth.nilError" class="text-nd-magenta text-right">{{ auth.nilError }}</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
