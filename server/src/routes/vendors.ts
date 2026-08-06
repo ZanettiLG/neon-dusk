@@ -15,6 +15,10 @@ import {
 // atomically inside the economy service's transaction.
 
 export async function vendorRoutes(app: FastifyInstance) {
+  // Route params are UUIDs — invalid ids must fail validation before reaching
+  // the DB (PostgreSQL would surface an unhandled uuid cast error).
+  const paramsSchema = z.object({ id: z.string().uuid() });
+
   // GET /api/vendors
   app.get("/vendors", { preHandler: [authenticate] }, async () => {
     return listVendors();
@@ -22,13 +26,13 @@ export async function vendorRoutes(app: FastifyInstance) {
 
   // GET /api/vendors/:id
   app.get("/vendors/:id", { preHandler: [authenticate] }, async (request) => {
-    const { id } = request.params as { id: string };
+    const { id } = paramsSchema.parse(request.params);
     return getVendor(id) as Promise<VendorWithInventory>;
   });
 
   // POST /api/vendors/:id/buy
   app.post("/vendors/:id/buy", { preHandler: [authenticate] }, async (request) => {
-    const { id: vendorId } = request.params as { id: string };
+    const { id: vendorId } = paramsSchema.parse(request.params);
     const characterId = await requireCharacterId(request.user.sub);
 
     const bodySchema = z.object({

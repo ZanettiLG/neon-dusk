@@ -47,7 +47,9 @@ export async function ensureWallet(characterId: string, tx: Tx): Promise<WalletS
     };
   }
 
-  // Create wallet with seed capital
+  // Create wallet with seed capital. Concurrent requests may both reach this
+  // INSERT (SELECT-then-INSERT race); ON CONFLICT DO NOTHING makes the loser a
+  // no-op instead of a UNIQUE(character_id) violation.
   const [wallet] = await tx
     .insert(characterWallets)
     .values({
@@ -58,9 +60,32 @@ export async function ensureWallet(characterId: string, tx: Tx): Promise<WalletS
       lifetimeSpent: 0,
       version: 0,
     })
+    .onConflictDoNothing()
     .returning();
 
-  // Record seed transaction
+  if (!wallet) {
+    // A concurrent request created the wallet first — re-read it. The conflict
+    // means the row is committed, so this select is guaranteed to find it.
+    const [existing] = await tx
+      .select()
+      .from(characterWallets)
+      .where(eq(characterWallets.characterId, characterId))
+      .limit(1);
+
+    if (!existing) {
+      throw new AppError(500, "WALLET_CREATE_FAILED", "Failed to create wallet");
+    }
+    return {
+      balance: existing.balance,
+      escrow: existing.escrow,
+      lifetimeEarned: existing.lifetimeEarned,
+      lifetimeSpent: existing.lifetimeSpent,
+      version: existing.version,
+    };
+  }
+
+  // Record seed transaction (only when THIS call created the wallet, so a
+  // concurrent loser never writes a duplicate ADMIN_ADJUSTMENT entry).
   await tx.insert(transactionLog).values({
     characterId,
     type: "ADMIN_ADJUSTMENT",
@@ -153,7 +178,19 @@ export async function transfer(
             }
           : await ensureWallet(characterId, tx);
 
-        // Apply transfer via game logic
+        // Apply transfer via game logic. Escrow is committed but not spendable:
+        // check available funds (balance − escrow) BEFORE the debit so a
+        // check(escrow <= balance) violation surfaces as a clean 400, not a 500.
+        if (amount < 0) {
+          const availableFunds = wallet.balance - wallet.escrow;
+          if (Math.abs(amount) > availableFunds) {
+            throw new AppError(
+              400,
+              "INSUFFICIENT_FUNDS",
+              `Need ${Math.abs(amount)} available eddies, have ${availableFunds}`,
+            );
+          }
+        }
         const result = transferEddies(wallet, amount, { type, source, referenceType, referenceId });
 
         // Optimistic update with version check
@@ -203,9 +240,17 @@ export async function transfer(
         };
       });
     } catch (err) {
-      if (err instanceof Error && err.message === "CONCURRENCY" && attempt < MAX_RETRIES - 1) {
-        await sleep(10 * Math.pow(2, attempt));
-        continue;
+      if (err instanceof Error && err.message === "CONCURRENCY") {
+        if (attempt < MAX_RETRIES - 1) {
+          await sleep(10 * Math.pow(2, attempt));
+          continue;
+        }
+        // Retries exhausted — surface the documented client-facing error.
+        throw new AppError(
+          409,
+          "CONCURRENCY_CONFLICT",
+          "Too many concurrent operations. Try again.",
+        );
       }
       if (err instanceof Error && err.message === "Insufficient funds") {
         throw new AppError(400, "INSUFFICIENT_FUNDS", "Not enough eddies");
@@ -214,6 +259,8 @@ export async function transfer(
     }
   }
 
+  // Defensive: the loop above always returns or throws, but TS control-flow
+  // analysis cannot prove it — keep an explicit terminal throw.
   throw new AppError(409, "CONCURRENCY_CONFLICT", "Too many concurrent operations. Try again.");
 }
 

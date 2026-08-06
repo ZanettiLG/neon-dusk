@@ -1,8 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import type { AddressInfo } from "node:net";
 import { sql } from "drizzle-orm";
-import type { AuthResponse } from "@neon-dusk/shared";
+import type { AuthResponse, Role, Origin } from "@neon-dusk/shared";
 import { db } from "../db";
+import { characters, users } from "../db/schema";
 
 // supertest is incompatible with Fastify 5 + @fastify/rate-limit (crashes in
 // Fastify's internal preParsing hook runner — see test-report). Tests use a
@@ -47,9 +48,47 @@ export function authHeader(token: string): { Authorization: string } {
   return { Authorization: `Bearer ${token}` };
 }
 
-/** Wipe account data so test runs are repeatable regardless of order. */
+/** Wipe account + economy data so test runs are repeatable regardless of order. */
 export async function resetDb(): Promise<void> {
-  await db.execute(sql`TRUNCATE TABLE users, characters CASCADE`);
+  await db.execute(
+    sql`TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE`,
+  );
+}
+
+/**
+ * Insert a user + character directly into the DB (bypasses the HTTP API) and
+ * return the ids. Attribute spread sums to 22 (3 base x 5 + 7 free).
+ */
+export async function insertTestCharacter(opts?: {
+  email?: string;
+  name?: string;
+  role?: Role;
+  origin?: Origin;
+}): Promise<{ userId: string; characterId: string }> {
+  const email = opts?.email ?? `svc-${Date.now()}-${Math.random().toString(36).slice(2)}@neondusk.test`;
+  const name = opts?.name ?? `Runner-${Math.random().toString(36).slice(2, 10)}`;
+
+  const [user] = await db
+    .insert(users)
+    .values({ email, passwordHash: "test-hash" })
+    .returning({ id: users.id });
+
+  const [character] = await db
+    .insert(characters)
+    .values({
+      userId: user.id,
+      name,
+      origin: opts?.origin ?? "a_paraiso",
+      role: opts?.role ?? "solo",
+      body: 5,
+      reflexes: 4,
+      intelligence: 4,
+      technical: 4,
+      cool: 5,
+    })
+    .returning({ id: characters.id });
+
+  return { userId: user.id, characterId: character.id };
 }
 
 /** Register a fresh account and return the token pair + user. */
