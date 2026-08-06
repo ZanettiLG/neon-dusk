@@ -108,11 +108,30 @@ jobs:
             docker image prune -af --filter "until=24h"
 
             # Smoke test with retry loop (ponytail: 20s max, nginx startup is <3s but VPS can be slow)
+            APP_OK=false
             for i in $(seq 1 10); do
-              curl -sf http://localhost/ > /dev/null && echo "App OK" && break
+              if curl -sf http://localhost/ > /dev/null; then
+                echo "App OK"
+                APP_OK=true
+                break
+              fi
               sleep 2
-            done || echo "WARNING: app not responding after 20s"
+            done
+            if [ "$APP_OK" != "true" ]; then
+              echo "ERROR: app not responding after 20s"
+              exit 1
+            fi
+
+            API_OK=false
             for i in $(seq 1 10); do
-              curl -sf http://localhost/api/health > /dev/null && echo "API OK" && break
+              if curl -sf http://localhost/api/health > /dev/null; then
+                echo "API OK"
+                API_OK=true
+                break
+              fi
               sleep 2
-            done || echo "WARNING: API not responding after 20s"
+            done
+            if [ "$API_OK" != "true" ]; then
+              echo "ERROR: API not responding after 20s"
+              exit 1
+            fi
