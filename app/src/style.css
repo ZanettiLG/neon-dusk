@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-nd-bg text-nd-text font-body antialiased;
+  }
+
+  body {
+    @apply min-h-screen;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 240, 255, 0.015) 2px,
+      rgba(0, 240, 255, 0.015) 4px
+    );
+  }
+
+  ::selection {
+    @apply bg-nd-cyan/30 text-nd-cyan;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-nd-surface border border-nd-cyan/20 rounded-terminal
+           shadow-neon-cyan p-4;
+  }
+
+  .btn-neon {
+    @apply font-heading text-sm uppercase tracking-wider
+           border border-nd-cyan rounded-terminal
+           bg-nd-cyan/10 text-nd-cyan
+           hover:bg-nd-cyan/20 hover:shadow-neon-cyan
+           active:scale-95 transition-all
+           px-4 py-2;
+  }
+
+  .btn-danger {
+    @apply btn-neon border-nd-magenta text-nd-magenta
+           bg-nd-magenta/10 hover:bg-nd-magenta/20
+           hover:shadow-neon-magenta;
+  }
+}

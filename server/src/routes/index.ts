@@ -1,0 +1,12 @@
+import type { FastifyInstance } from "fastify";
+import type Redis from "ioredis";
+import { healthRoutes } from "./health";
+
+export interface ApiRoutesOptions {
+  redis: Redis;
+}
+
+// Route aggregator — register every feature route module here, prefixed with /api
+export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
+  await app.register(healthRoutes, { redis: opts.redis });
+}

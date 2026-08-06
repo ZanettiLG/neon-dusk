@@ -1,0 +1,78 @@
+# Agents Changelog — Neon Dusk
+
+Histórico de mudanças nos agentes de desenvolvimento.
+
+## 2026-08-05 — Criação Inicial (7 agentes)
+
+### dev-orchestrator
+- **Modelo**: deepseek-v4-pro, temperature 0.2, thinking 16K
+- **Modo**: all (orquestrador principal)
+- **Permissões**: edit:deny, write:deny, bash:deny
+- **Função**: Coordenar pipeline de feature (6 passos). Gate de qualidade: score ≥ 4.5
+- **Skills**: neon-dusk-design, continual-harness-dev
+
+### architect
+- **Modelo**: deepseek-v4-pro, temperature 0.1, thinking 32K
+- **Modo**: subagent, hidden
+- **Permissões**: edit:deny, bash:deny, write:allow
+- **Função**: Design técnico (schema, API, arquitetura). 10 checks de self-review
+- **Skills**: neon-dusk-design, nodejs-patterns, sql-design
+
+### developer
+- **Modelo**: deepseek-v4-flash, temperature 0.3, thinking 16K
+- **Modo**: subagent, hidden
+- **Permissões**: edit:allow, write:allow, bash:allow
+- **Função**: Implementação full-stack. 15 checks de self-review
+- **Skills**: neon-dusk-design, nodejs-patterns, vue-patterns, sql-design
+
+### test-writer
+- **Modelo**: deepseek-v4-flash, temperature 0.1, thinking 8K
+- **Modo**: subagent, hidden
+- **Permissões**: edit:allow, write:allow, bash:allow
+- **Função**: Testes automatizados (unit, integration, e2e, db). 8 checks de self-review
+- **Skills**: testing-patterns
+
+### code-reviewer
+- **Modelo**: deepseek-v4-pro, temperature 0.1, thinking 32K
+- **Modo**: subagent, hidden
+- **Permissões**: edit:deny, bash:deny (read-only)
+- **Função**: Revisão de qualidade (6 critérios). Ações corretivas específicas
+- **Skills**: neon-dusk-design, nodejs-patterns, vue-patterns, sql-design
+
+### db-designer
+- **Modelo**: deepseek-v4-pro, temperature 0.1, thinking 16K
+- **Modo**: subagent, hidden
+- **Permissões**: edit:deny, bash:deny, write:allow
+- **Função**: Schema design PostgreSQL (migrations, índices, constraints)
+- **Skills**: sql-design, game-economy
+
+### game-logic-dev
+- **Modelo**: deepseek-v4-pro, temperature 0.2, thinking 16K
+- **Modo**: subagent, hidden
+- **Permissões**: edit:allow, write:allow, bash:allow
+- **Função**: Mecânicas de jogo (fórmulas, economia, balanceamento). 8 checks de self-review
+- **Skills**: game-economy, neon-dusk-design
+
+## 2026-08-06 — Refinamento pós Project Bootstrap
+
+### Trigger
+Pipeline Feature 0 (Project Bootstrap) executado end-to-end. Review encontrou 6 warnings + 1 design bug de versão (rate-limit v9 vs Fastify 5). Análise de padrões de falha para prevenir recorrência.
+
+### Changes
+
+#### developer
+- Self-review expandido de 15→18 checks:
+  - #16: `process.env` só em `env.ts` (validado por Zod); demais arquivos usam módulo `env`
+  - #17: Frontend usa `api` client (`@/api/client`), nunca `fetch` raw
+  - #18: Tipos de API response em `packages/shared/`, não duplicados
+
+#### test-writer
+- Self-check expandido de 8→9 itens:
+  - Portas/URLs de infraestrutura derivados de `setup.ts` ou `process.env`, nunca hardcoded
+
+#### architect
+- Self-check expandido de 10→11 itens:
+  - Dependências com versão compatível com a stack alvo (verificar peer deps)
+
+### Impact
+Previne recorrência de W1 (non-null env), W2 (raw process.env), W3 (fetch raw), W4 (tipos duplicados), W7 (porta hardcoded) e rate-limit version bug em features futuras.

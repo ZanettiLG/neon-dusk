@@ -1,0 +1,36 @@
+{
+  "name": "neon-dusk",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "server",
+    "app",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w app\"",
+    "dev:server": "npm run dev -w server",
+    "dev:app": "npm run dev -w app",
+    "build": "npm run build -w server && npm run build -w app",
+    "test": "npm run test -w server && npm run test -w app",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w app",
+    "db:generate": "npm run db:generate -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:studio": "npm run db:studio -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "@eslint/js": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
