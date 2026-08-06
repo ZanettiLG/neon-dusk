@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
+import jwt from "@fastify/jwt";
 import { type Env } from "./env";
 import { apiRoutes } from "./routes";
 import { errorHandler } from "./middleware/error-handler";
@@ -48,6 +49,12 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
       message: `Too many requests. Retry after ${Math.ceil(context.ttl / 1000)}s.`,
       retryAfter: Math.ceil(context.ttl / 1000),
     }),
+  });
+
+  // JWT — access token signing/verification (HS256, 15m TTL set per token)
+  await app.register(jwt, {
+    secret: env.JWT_SECRET,
+    sign: { expiresIn: "15m" },
   });
 
   // Global error handler

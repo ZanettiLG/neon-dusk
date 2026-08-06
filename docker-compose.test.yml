@@ -1,0 +1,30 @@
+# Isolated test stack — ports match server/src/__tests__/setup.ts.
+# The app under test must never share the dev database (5432/6379).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: neondusk-db-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: neondusk
+      POSTGRES_PASSWORD: neondusk_dev
+      POSTGRES_DB: neondusk
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neondusk -d neondusk"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: neondusk-cache-test
+    restart: unless-stopped
+    ports:
+      - "56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

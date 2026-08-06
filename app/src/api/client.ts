@@ -3,6 +3,15 @@ const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || "";
 // Abort requests that hang longer than this (e.g. a dead API with no RST).
 const REQUEST_TIMEOUT_MS = 5000;
 
+// Access token for the Authorization header. Set by the auth store whenever
+// tokens change; kept here so this module has no hard dependency on Pinia.
+let accessToken: string | null = null;
+
+/** Update the bearer token used by the api client (call from the auth store). */
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -15,11 +24,33 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+// Single in-flight refresh so concurrent 401s trigger one refresh call.
+let refreshInFlight: Promise<boolean> | null = null;
+
+/**
+ * Ask the auth store to rotate the refresh token. Returns true when a new
+ * access token was issued (the caller should retry the original request).
+ */
+async function refreshAccessToken(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      const { useAuthStore } = await import("@/stores/auth");
+      return useAuthStore().refresh();
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
+
+async function request<T>(method: string, path: string, body?: unknown, isRetry = false): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -35,6 +66,14 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
     // Some error responses carry no JSON body; treat that as an opaque failure.
     const data: unknown = await response.json().catch(() => null);
+
+    // Access token expired: try one refresh + retry before giving up.
+    if (response.status === 401 && !isRetry && accessToken) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        return request<T>(method, path, body, true);
+      }
+    }
 
     if (!response.ok) {
       const errBody = data as { error?: string; message?: string; details?: unknown } | null;

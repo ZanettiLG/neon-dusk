@@ -34,7 +34,7 @@ Escrever testes automatizados para features implementadas. Garantir cobertura de
 - [ ] Testes de rate limiting (429)
 - [ ] Testes de autorização (401/403)
 - [ ] Testes de validação de input (400 com mensagem de erro)
-- [ ] Testes de concorrência (se aplicável: race conditions em economia)
+- [ ] Testes de concorrência (se aplicável: race conditions em economia, refresh de tokens, sessões simultâneas)
 - [ ] Testes rodam sem dependências externas (mock ou testcontainers)
 - [ ] Seeds de teste isolados (não poluem dados de dev)
 - [ ] Portas/URLs de infraestrutura derivados de `setup.ts` ou `process.env`, nunca hardcoded
