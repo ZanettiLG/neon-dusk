@@ -79,6 +79,7 @@ export function calculateSomething(
   const roll = rng()
 
   // 4. Resultado com cap explícito
+  // ponytail: LIMIT definido pelo domínio específico (ex: maxBet, maxLevel)
   return Math.min(base * roll, LIMIT)
 }
 ```

@@ -390,6 +390,9 @@ async function debitWithRetry(playerId: string, amount: number, maxRetries = 3) 
 ```
 
 **NÃO use `pg_advisory_lock` para locking de linha** — use optimistic locking (`WHERE balance = $oldBalance`) com retry. Advisory locks são para coordenação de aplicação (ex: evitar que 2 workers processem a mesma gig), não para proteger dados.
+
+## Anti-Padrões
+
 - ❌ Testar implementação (mock interno) em vez de comportamento (input/output)
 - ❌ Testes frágeis com `setTimeout` ou datas hardcoded
 - ❌ Dependências externas não mockadas (APIs, Redis) em testes unitários
