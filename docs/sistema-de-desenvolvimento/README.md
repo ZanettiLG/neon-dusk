@@ -1,7 +1,7 @@
 # Sistema de Desenvolvimento — Neon Dusk
 
 > **Motor de desenvolvimento**: OpenCode com agentes de código, skills de domínio e pipelines de orquestração
-> **Stack alvo**: Node.js + TypeScript + PostgreSQL + Redis + Vue 3 + PWA
+> **Stack alvo**: Node.js + TypeScript + PostgreSQL + Redis + React 19 + PWA
 > **Referência**: harness do AlphaLessons (agentes, skills, comandos, orquestração)
 
 ## Visão Geral

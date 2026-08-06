@@ -1,10 +1,12 @@
+import { useAuthStore } from "@/stores/auth";
+
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || "";
 
 // Abort requests that hang longer than this (e.g. a dead API with no RST).
 const REQUEST_TIMEOUT_MS = 5000;
 
 // Access token for the Authorization header. Set by the auth store whenever
-// tokens change; kept here so this module has no hard dependency on Pinia.
+// tokens change; kept here so this module has no hard dependency on React.
 let accessToken: string | null = null;
 
 /** Update the bearer token used by the api client (call from the auth store). */
@@ -25,17 +27,14 @@ export class ApiError extends Error {
 }
 
 // Single in-flight refresh so concurrent 401s trigger one refresh call.
+// Zustand stores are singletons; getState() reads state outside React, so the
+// client → store → client cycle resolves at call time, not import time.
 let refreshInFlight: Promise<boolean> | null = null;
 
-/**
- * Ask the auth store to rotate the refresh token. Returns true when a new
- * access token was issued (the caller should retry the original request).
- */
 async function refreshAccessToken(): Promise<boolean> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
-      const { useAuthStore } = await import("@/stores/auth");
-      return useAuthStore().refresh();
+      return useAuthStore.getState().refresh();
     })().finally(() => {
       refreshInFlight = null;
     });

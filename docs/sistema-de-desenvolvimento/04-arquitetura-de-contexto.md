@@ -106,13 +106,14 @@ neon-dusk/
 │   │   ├── utils/
 │   │   ├── game-logic/           # Fórmulas de mecânicas
 │   │   └── index.ts
-│   ├── client/                   # Frontend (Vue 3)
+│   ├── client/                   # Frontend (React 19)
+│   │   ├── api/
 │   │   ├── components/
 │   │   ├── views/
-│   │   ├── stores/               # Pinia
-│   │   ├── composables/
-│   │   ├── styles/
-│   │   └── App.vue
+│   │   ├── router/
+│   │   ├── stores/               # Zustand
+│   │   ├── lib/
+│   │   └── App.tsx
 │   └── shared/                   # Tipos compartilhados
 │       └── types.ts
 ├── db/                           # Migrations e seeds
@@ -202,7 +203,7 @@ Ambiente de desenvolvimento do jogo Neon Dusk, orquestrado por agentes de códig
 ## Stack
 
 - **Backend**: Node.js + TypeScript + Fastify + PostgreSQL + Redis
-- **Frontend**: Vue 3 + Pinia + Tailwind CSS + PWA (Vite)
+- **Frontend**: React 19 + Zustand + Tailwind CSS + PWA (Vite)
 - **Testes**: Vitest + Supertest + Playwright (E2E)
 
 ## Documentação de Produto

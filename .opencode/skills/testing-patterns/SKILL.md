@@ -1,6 +1,6 @@
 ---
 name: testing-patterns
-description: Testing strategies for Neon Dusk. Covers Vitest, Supertest, Playwright, and pg-mem patterns. Use when writing automated tests or reviewing test coverage.
+description: Testing strategies for Neon Dusk. Covers Vitest, Supertest, Playwright, Testing Library (React), and pg-mem patterns. Use when writing automated tests or reviewing test coverage.
 license: MIT
 compatibility: opencode
 metadata:
@@ -153,6 +153,72 @@ Exemplos:
 - `it('should return 400 when name is empty')`
 - `it('should apply diminishing returns after 10 uses')`
 - `it('should prevent PvP when attacker level differs by >10')`
+
+## React Component Testing
+
+```typescript
+// tests/unit/components/CharacterCard.test.tsx
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
+import { CharacterCard } from '@/components/CharacterCard'
+
+describe('CharacterCard', () => {
+  it('should display character name after fetch', async () => {
+    render(
+      <MemoryRouter>
+        <CharacterCard
+          characterId="char-1"
+          onClose={vi.fn()}
+          onSaved={vi.fn()}
+        />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Street Cred:')).toBeInTheDocument()
+    })
+  })
+})
+```
+
+### Vitest + React Config
+
+```typescript
+// vitest.setup.ts
+import '@testing-library/jest-dom/vitest'
+```
+
+```typescript
+// vitest.config.ts — frontend test environment
+{
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
+  }
+}
+```
+
+### Zustand Store Testing
+
+Zustand stores can be tested without React wrappers — use `getState()`/`setState()`:
+
+```typescript
+import { useCharacterStore } from '@/stores/character'
+
+it('should add character to store', () => {
+  useCharacterStore.setState({ characters: new Map() })
+  expect(useCharacterStore.getState().characters.size).toBe(0)
+})
+```
+
+### React Router Testing
+
+Wrap components with `<MemoryRouter>` for route-aware components:
+```tsx
+render(<MemoryRouter initialEntries={['/gigs/42']}><GigPage /></MemoryRouter>)
+```
 
 ## Known Issues
 

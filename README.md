@@ -7,7 +7,7 @@ A cyberpunk RPG PWA, AI-orchestrated via OpenCode agents.
 ## Stack
 
 - **Backend**: Node.js 22 + TypeScript + Fastify + PostgreSQL (Drizzle) + Redis (ioredis)
-- **Frontend**: Vue 3 + Pinia + Tailwind CSS + PWA (Vite)
+- **Frontend**: React 19 + Zustand + Tailwind CSS + PWA (Vite)
 - **Infra**: Docker Compose (PostgreSQL 16 + Redis 7), npm workspaces monorepo
 
 ## Getting Started
@@ -51,7 +51,7 @@ Verify: `curl http://localhost:3000/api/health` returns `{"status":"ok",...}`.
 
 ```
 ├── server/            # Fastify API (@neon-dusk/server)
-├── app/               # Vue 3 PWA (@neon-dusk/app)
+├── app/               # React 19 PWA (@neon-dusk/app)
 └── packages/shared/   # Shared types scaffold (@neon-dusk/shared)
 ```
 

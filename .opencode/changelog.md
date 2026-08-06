@@ -2,6 +2,13 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-06
+### N3: Frontend Migration Vue 3 → React 19
+- Epic #5: Complete frontend rewrite from Vue 3 to React 19
+- Stack: React 19 + Zustand 5 + React Router 7 + Tailwind 3 + Vite 6
+- Zero backend changes. Zero shared package changes.
+- See: https://github.com/zan-ia/neon-dusk/issues/5
+
 ## 2026-08-05 — Criação Inicial
 
 ### Trigger
@@ -9,7 +16,7 @@ Setup do projeto Neon Dusk. Criação do sistema de agentes de código para dese
 
 ### Changes
 - Criados 7 agentes core: `dev-orchestrator`, `architect`, `developer`, `test-writer`, `code-reviewer`, `db-designer`, `game-logic-dev`
-- Criadas 8 skills: `neon-dusk-design`, `game-economy`, `cyberpunk-lore`, `nodejs-patterns`, `sql-design`, `vue-patterns`, `testing-patterns`, `continual-harness-dev`
+- Criadas 8 skills: `neon-dusk-design`, `game-economy`, `cyberpunk-lore`, `nodejs-patterns`, `sql-design`, `react-patterns`, `testing-patterns`, `continual-harness-dev`
 - Criados 8 comandos: `dev-feature`, `dev-review`, `dev-refactor`, `dev-debug`, `dev-research`, `dev-lore`, `dev-schema`, `refine-dev-harness`
 - Criados arquivos de configuração: `opencode.json`, `AGENTS.md`, `.opencode/AGENTS.md`
 
@@ -18,7 +25,7 @@ Setup do projeto Neon Dusk. Criação do sistema de agentes de código para dese
 - **Model tiering**: Pro (estratégia), Flash (volume), Opus (decisões)
 - **Quality gate**: score ≥ 4.5 (menor nota entre 6 critérios)
 - **Handoff por arquivo**: outputs grandes em `.handoff/nd-<run_id>/`
-- **Stack alvo**: Node.js + TypeScript + Fastify + PostgreSQL + Redis + Vue 3 + PWA
+- **Stack alvo**: Node.js + TypeScript + Fastify + PostgreSQL + Redis + React 19 + PWA
 
 ### Impact
 Harness de desenvolvimento completo. Projeto pode iniciar implementação via comandos `/dev-*`.

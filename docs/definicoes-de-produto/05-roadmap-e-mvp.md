@@ -90,7 +90,7 @@ O gênero PBBG inteiro roda em stacks web convencionais há 25+ anos. A complexi
 | **Backend** | Node.js + TypeScript + Express/Fastify | Performance adequada, ecossistema rico, timers nativos |
 | **Banco Principal** | PostgreSQL | Robustez, transações ACID para economia |
 | **Cache/Filas** | Redis | Timers, filas de jobs, rate limiting, leaderboards |
-| **Frontend** | Vue 3 + Vite (ou React/Next.js) | SPA reativa, PWA nativa via Vite PWA plugin |
+| **Frontend** | React 19 + Vite | SPA reativa, PWA nativa via Vite PWA plugin |
 | **Estilo** | Tailwind CSS + paleta customizada | Rápido, responsivo, tema escuro fácil |
 | **Infra** | Hetzner VPS (~€10-15/mês) + Cloudflare | Barato, CDN, anti-DDoS básico |
 | **Autenticação** | JWT + OAuth (Google, Discord) | Padrão, baixa fricção |
