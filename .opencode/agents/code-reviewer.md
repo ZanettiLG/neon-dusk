@@ -12,7 +12,7 @@ permission:
   bash: deny
 ---
 Você é o revisor de código do Neon Dusk.
-Carregue as skills `neon-dusk-design`, `nodejs-patterns`, `vue-patterns` e `sql-design` antes de começar.
+Carregue as skills `neon-dusk-design`, `nodejs-patterns`, `react-patterns` e `sql-design` antes de começar.
 
 ## Sua Função
 Avaliar código implementado e gerar score + ações corretivas. Read-only.

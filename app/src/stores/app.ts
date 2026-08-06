@@ -1,37 +1,34 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import type { HealthResponse } from "@neon-dusk/shared";
+import { create } from "zustand";
 import { api } from "@/api/client";
+import type { HealthResponse } from "@neon-dusk/shared";
 
-export const useAppStore = defineStore("app", () => {
-  const health = ref<HealthResponse | null>(null);
-  const healthError = ref<string | null>(null);
-  const healthLoading = ref(false);
+interface AppState {
+  health: HealthResponse | null;
+  healthError: string | null;
+  healthLoading: boolean;
+  checkHealth: () => Promise<void>;
+}
 
-  const isHealthy = computed(() => health.value?.status === "ok");
-  const dbConnected = computed(() => health.value?.services.database === "connected");
-  const redisConnected = computed(() => health.value?.services.redis === "connected");
+/**
+ * Global app store (Zustand singleton) — backend health status. Ephemeral,
+ * not persisted. Selectors used by components:
+ * - isHealthy = health?.status === "ok"
+ * - dbConnected = health?.services.database === "connected"
+ * - redisConnected = health?.services.redis === "connected"
+ */
+export const useAppStore = create<AppState>((set) => ({
+  health: null,
+  healthError: null,
+  healthLoading: false,
 
-  async function checkHealth() {
-    healthLoading.value = true;
-    healthError.value = null;
-
+  checkHealth: async () => {
+    set({ healthLoading: true, healthError: null });
     try {
-      health.value = await api.get<HealthResponse>("/api/health");
+      set({ health: await api.get<HealthResponse>("/api/health") });
     } catch (err) {
-      healthError.value = err instanceof Error ? err.message : "Connection failed";
+      set({ healthError: err instanceof Error ? err.message : "Connection failed" });
     } finally {
-      healthLoading.value = false;
+      set({ healthLoading: false });
     }
-  }
-
-  return {
-    health,
-    healthError,
-    healthLoading,
-    isHealthy,
-    dbConnected,
-    redisConnected,
-    checkHealth,
-  };
-});
+  },
+}));

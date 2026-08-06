@@ -5,7 +5,7 @@ Development environment for the Neon Dusk game, orchestrated by OpenCode agents.
 ## Stack
 
 - **Backend**: Node.js 22 + TypeScript + Fastify + PostgreSQL + Redis
-- **Frontend**: Vue 3 + Pinia + Tailwind CSS + PWA (Vite)
+- **Frontend**: React 19 + Zustand + Tailwind CSS + PWA (Vite)
 - **Tests**: Vitest + Supertest + Playwright (E2E)
 
 ## Structure

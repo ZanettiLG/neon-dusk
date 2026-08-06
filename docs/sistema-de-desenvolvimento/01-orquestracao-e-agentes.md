@@ -110,7 +110,7 @@ Human Dev: /dev-feature "sistema de autenticação JWT"
 | **Modo** | `subagent`, hidden: true |
 | **Permissões** | edit: allow, write: allow, bash: allow (npm, git, lint) |
 | **Skills** | `neon-dusk-design`, `nodejs-patterns`, `vue-patterns`, `sql-design`, `game-economy` |
-| **Função** | Implementa features conforme design do architect. Full-stack: backend TypeScript, migrations, frontend Vue, PWA. |
+| **Função** | Implementa features conforme design do architect. Full-stack: backend TypeScript, migrations, frontend React, PWA. |
 
 **Entrada**: handoff do architect (`design.md`) + descrição da feature
 
@@ -284,7 +284,7 @@ Lógica de jogo é **matemática + design**, não volume de código. Fórmulas d
 
 ### Por que Flash para developer?
 
-A maior parte do código é **CRUD + wiring**: models, controllers, rotas, componentes Vue. Volume alto, complexidade baixa. Flash é mais rápido e barato. O reviewer (Pro) pega os erros.
+A maior parte do código é **CRUD + wiring**: models, controllers, rotas, componentes React. Volume alto, complexidade baixa. Flash é mais rápido e barato. O reviewer (Pro) pega os erros.
 
 ---
 

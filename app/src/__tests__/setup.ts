@@ -1,6 +1,8 @@
 // Shared test setup: guarantee a fetch stub exists so components/stores never
 // hit a real network during tests. Individual tests override global.fetch.
-import { vi, beforeEach } from "vitest";
+import { vi, beforeEach, afterEach } from "vitest";
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
 
 const jsonResponse = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -29,9 +31,14 @@ const localStorageMock: Storage = {
   },
 };
 
+// Stub localStorage at module scope, NOT in beforeEach: zustand's persist
+// middleware captures the storage object when the store module is first
+// imported (before any test's beforeEach runs), and jsdom 25's own
+// localStorage is method-less in this Node combo. The Map is cleared per test.
+vi.stubGlobal("localStorage", localStorageMock);
+
 beforeEach(() => {
   storage.clear();
-  vi.stubGlobal("localStorage", localStorageMock);
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue(
@@ -44,4 +51,10 @@ beforeEach(() => {
       }),
     ),
   );
+});
+
+// vitest runs with globals:false, so @testing-library/react can't auto-register
+// its afterEach cleanup. Unmount between tests to avoid leaked DOM/timers.
+afterEach(() => {
+  cleanup();
 });

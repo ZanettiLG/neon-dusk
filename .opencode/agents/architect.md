@@ -52,7 +52,7 @@ Produzir design técnico detalhado a partir de uma feature descrita. NÃO implem
 - [ ] Índices justificados para queries previstas
 - [ ] PWA-first (rotas funcionam sem JS server-side quando possível)
 - [ ] Consistente com docs de produto (verificar `definicoes-de-produto/`)
-- [ ] Dependências com versão compatível com a stack alvo (verificar peer deps do Fastify, Vue, etc.)
+- [ ] Dependências com versão compatível com a stack alvo (verificar peer deps do Fastify, React, etc.)
 - [ ] Nenhuma dependência nova não listada no `package.json`
 - [ ] Migrations são reversíveis (down migration incluída)
 - [ ] Autenticação/autorização consideradas (se aplicável)

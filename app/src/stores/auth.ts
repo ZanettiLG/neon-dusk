@@ -1,5 +1,6 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { api, ApiError, setAccessToken } from "@/api/client";
 import type {
   AuthResponse,
   Character,
@@ -11,191 +12,189 @@ import type {
   User,
   UserWithCharacter,
 } from "@neon-dusk/shared";
-import { api, ApiError, setAccessToken } from "@/api/client";
 
-// Tokens persist across reloads so a refresh keeps the session alive.
-const ACCESS_TOKEN_KEY = "nd_access_token";
-const REFRESH_TOKEN_KEY = "nd_refresh_token";
+interface AuthState {
+  // State
+  user: User | null;
+  character: Character | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  loading: boolean;
+  error: string | null;
+  nilStatus: NilStatus | null;
+  nilLoading: boolean;
+  nilError: string | null;
 
-export const useAuthStore = defineStore("auth", () => {
-  const user = ref<User | null>(null);
-  const character = ref<Character | null>(null);
-  const accessToken = ref<string | null>(null);
-  const refreshToken = ref<string | null>(null);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
+  // Actions
+  applyAuth: (res: AuthResponse) => void;
+  clearAuth: () => void;
+  login: (input: LoginRequest) => Promise<void>;
+  register: (input: RegisterRequest) => Promise<void>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<boolean>;
+  fetchMe: () => Promise<void>;
+  bootstrap: () => Promise<void>;
+  createCharacter: (input: CreateCharacterRequest) => Promise<Character>;
+  fetchNil: () => Promise<void>;
+  useStim: () => Promise<NilStimResponse>;
+}
 
-  const isAuthenticated = computed(() => accessToken.value !== null);
-  const hasCharacter = computed(() => character.value !== null);
-  const needsCharacter = computed(() => isAuthenticated.value && !hasCharacter.value);
+/**
+ * Global auth store (Zustand singleton). Tokens persist across reloads via the
+ * persist middleware (partialized to tokens only) so a refresh keeps the
+ * session alive; user/character are re-fetched on bootstrap.
+ *
+ * Selectors used by components (no getters in Zustand):
+ * - isAuthenticated = !!accessToken
+ * - hasCharacter = !!character
+ * - needsCharacter = !!accessToken && !character
+ * - nilPercent = nilStatus && nilStatus.max > 0
+ *     ? Math.round((nilStatus.current / nilStatus.max) * 100) : 0
+ */
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      character: null,
+      accessToken: null,
+      refreshToken: null,
+      loading: false,
+      error: null,
+      nilStatus: null,
+      nilLoading: false,
+      nilError: null,
 
-  // NIL (Feature #2) — energy readout; fetchNil is read-only (regen applied
-  // server-side, never persisted by GET). useStim drinks a syn-café (+20).
-  const nilStatus = ref<NilStatus | null>(null);
-  const nilLoading = ref(false);
-  const nilError = ref<string | null>(null);
+      applyAuth: (res) => {
+        set({
+          user: res.user,
+          character: res.character,
+          accessToken: res.accessToken,
+          refreshToken: res.refreshToken,
+        });
+        setAccessToken(res.accessToken);
+      },
 
-  const nilPercent = computed(() => {
-    if (!nilStatus.value || nilStatus.value.max <= 0) return 0;
-    return Math.round((nilStatus.value.current / nilStatus.value.max) * 100);
-  });
+      clearAuth: () => {
+        set({
+          user: null,
+          character: null,
+          accessToken: null,
+          refreshToken: null,
+          nilStatus: null,
+          nilError: null,
+        });
+        setAccessToken(null);
+        useAuthStore.persist.clearStorage();
+      },
 
-  function applyAuth(res: AuthResponse): void {
-    accessToken.value = res.accessToken;
-    refreshToken.value = res.refreshToken;
-    user.value = res.user;
-    character.value = res.character;
-    setAccessToken(res.accessToken);
-    localStorage.setItem(ACCESS_TOKEN_KEY, res.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
-  }
+      login: async (input) => {
+        set({ loading: true, error: null });
+        try {
+          get().applyAuth(await api.post<AuthResponse>("/api/auth/login", input));
+        } catch (err) {
+          set({ error: err instanceof Error ? err.message : "Falha na conexão" });
+          throw err;
+        } finally {
+          set({ loading: false });
+        }
+      },
 
-  function clearAuth(): void {
-    accessToken.value = null;
-    refreshToken.value = null;
-    user.value = null;
-    character.value = null;
-    nilStatus.value = null;
-    nilError.value = null;
-    setAccessToken(null);
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-  }
+      register: async (input) => {
+        set({ loading: true, error: null });
+        try {
+          get().applyAuth(await api.post<AuthResponse>("/api/auth/register", input));
+        } catch (err) {
+          set({ error: err instanceof Error ? err.message : "Falha na conexão" });
+          throw err;
+        } finally {
+          set({ loading: false });
+        }
+      },
 
-  async function login(input: LoginRequest): Promise<void> {
-    loading.value = true;
-    error.value = null;
-    try {
-      applyAuth(await api.post<AuthResponse>("/api/auth/login", input));
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : "Falha na conexão";
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  }
+      logout: async () => {
+        const rt = get().refreshToken;
+        try {
+          // Revoke server-side; ignore failures so local logout always completes.
+          if (rt) await api.post("/api/auth/logout", { refreshToken: rt });
+        } catch {
+          // no-op: session is being torn down anyway
+        } finally {
+          get().clearAuth();
+        }
+      },
 
-  async function register(input: RegisterRequest): Promise<void> {
-    loading.value = true;
-    error.value = null;
-    try {
-      applyAuth(await api.post<AuthResponse>("/api/auth/register", input));
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : "Falha na conexão";
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  }
+      /** Rotate tokens. Returns false (and clears state) when the session is dead. */
+      refresh: async () => {
+        const rt = get().refreshToken;
+        if (!rt) return false;
+        try {
+          get().applyAuth(await api.post<AuthResponse>("/api/auth/refresh", { refreshToken: rt }));
+          return true;
+        } catch {
+          get().clearAuth();
+          return false;
+        }
+      },
 
-  async function logout(): Promise<void> {
-    const rt = refreshToken.value;
-    try {
-      // Revoke server-side; ignore failures so local logout always completes.
-      if (rt) await api.post("/api/auth/logout", { refreshToken: rt });
-    } catch {
-      // no-op: session is being torn down anyway
-    } finally {
-      clearAuth();
-    }
-  }
+      fetchMe: async () => {
+        const res = await api.get<UserWithCharacter>("/api/auth/me");
+        set({ user: res.user, character: res.character });
+      },
 
-  /** Rotate tokens. Returns false (and clears state) when the session is dead. */
-  async function refresh(): Promise<boolean> {
-    const rt = refreshToken.value ?? localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (!rt) return false;
-    try {
-      applyAuth(await api.post<AuthResponse>("/api/auth/refresh", { refreshToken: rt }));
-      return true;
-    } catch {
-      clearAuth();
-      return false;
-    }
-  }
+      /** Restore tokens from localStorage and refresh the session on app start. */
+      bootstrap: async () => {
+        const { accessToken: at, refreshToken: rt } = get();
+        if (!at || !rt) return;
 
-  async function fetchMe(): Promise<void> {
-    const res = await api.get<UserWithCharacter>("/api/auth/me");
-    user.value = res.user;
-    character.value = res.character;
-  }
+        setAccessToken(at);
 
-  /** Restore tokens from localStorage and refresh the session on app start. */
-  async function bootstrap(): Promise<void> {
-    const at = localStorage.getItem(ACCESS_TOKEN_KEY);
-    const rt = localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (!at || !rt) return;
+        try {
+          await get().fetchMe();
+        } catch (err) {
+          // Only drop the session on auth failures (401); keep tokens on network errors.
+          if (err instanceof ApiError && err.status === 401) get().clearAuth();
+        }
+      },
 
-    accessToken.value = at;
-    refreshToken.value = rt;
-    setAccessToken(at);
+      createCharacter: async (input) => {
+        // POST /api/characters returns the Character directly (see server route).
+        const created = await api.post<Character>("/api/characters", input);
+        set({ character: created });
+        return created;
+      },
 
-    try {
-      await fetchMe();
-    } catch (err) {
-      // Only drop the session on auth failures (401); keep tokens on network errors.
-      if (err instanceof ApiError && err.status === 401) clearAuth();
-    }
-  }
+      /** Fetch the live NIL readout (regen computed server-side, never writes). */
+      fetchNil: async () => {
+        if (!get().character) return;
+        set({ nilLoading: true, nilError: null });
+        try {
+          set({ nilStatus: await api.get<NilStatus>("/api/characters/me/nil") });
+        } catch (err) {
+          set({ nilError: err instanceof Error ? err.message : "Falha ao carregar NIL" });
+        } finally {
+          set({ nilLoading: false });
+        }
+      },
 
-  async function createCharacter(input: CreateCharacterRequest): Promise<Character> {
-    // POST /api/characters returns the Character directly (see server route).
-    const created = await api.post<Character>("/api/characters", input);
-    character.value = created;
-    return created;
-  }
-
-  /** Fetch the live NIL readout (regen computed server-side, never writes). */
-  async function fetchNil(): Promise<void> {
-    if (!character.value) return;
-    nilLoading.value = true;
-    nilError.value = null;
-    try {
-      nilStatus.value = await api.get<NilStatus>("/api/characters/me/nil");
-    } catch (err) {
-      nilError.value = err instanceof Error ? err.message : "Falha ao carregar NIL";
-    } finally {
-      nilLoading.value = false;
-    }
-  }
-
-  /** Drink a syn-café: +20 NIL with a 1h cooldown. Throws on cooldown/full. */
-  async function useStim(): Promise<NilStimResponse> {
-    nilLoading.value = true;
-    nilError.value = null;
-    try {
-      const res = await api.post<NilStimResponse>("/api/characters/me/nil/use-stim", {});
-      nilStatus.value = res.status;
-      return res;
-    } catch (err) {
-      nilError.value = err instanceof Error ? err.message : "Falha ao usar syn-café";
-      throw err;
-    } finally {
-      nilLoading.value = false;
-    }
-  }
-
-  return {
-    user,
-    character,
-    accessToken,
-    refreshToken,
-    loading,
-    error,
-    isAuthenticated,
-    hasCharacter,
-    needsCharacter,
-    nilStatus,
-    nilLoading,
-    nilError,
-    nilPercent,
-    login,
-    register,
-    logout,
-    refresh,
-    fetchMe,
-    bootstrap,
-    createCharacter,
-    fetchNil,
-    useStim,
-  };
-});
+      /** Drink a syn-café: +20 NIL with a 1h cooldown. Throws on cooldown/full. */
+      useStim: async () => {
+        set({ nilLoading: true, nilError: null });
+        try {
+          const res = await api.post<NilStimResponse>("/api/characters/me/nil/use-stim", {});
+          set({ nilStatus: res.status });
+          return res;
+        } catch (err) {
+          set({ nilError: err instanceof Error ? err.message : "Falha ao usar syn-café" });
+          throw err;
+        } finally {
+          set({ nilLoading: false });
+        }
+      },
+    }),
+    {
+      name: "nd_auth",
+      // Only tokens persist — user/character are re-fetched on bootstrap.
+      partialize: (s) => ({ accessToken: s.accessToken, refreshToken: s.refreshToken }),
+    },
+  ),
+);

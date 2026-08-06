@@ -2,7 +2,39 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
-## 2026-08-05 — Criação Inicial (7 agentes)
+## 2026-08-06 — N3: Migração Vue 3 → React 19 (Harness)
+
+### Trigger
+Issue #12 — migração do harness de desenvolvimento do ecossistema Vue para React, complementando o Epic #5 (frontend rewrite).
+
+### Changes
+
+#### react-patterns (NOVO, substitui vue-patterns)
+- Skill renomeada: `vue-patterns` → `react-patterns`
+- Stack: React 19 + Zustand 5 + React Router v7 + Tailwind CSS + vite-plugin-pwa
+- Cobre: hooks, TSX, Zustand stores (devtools, persist, getState), React Router (createBrowserRouter, lazy routes, guards), Testing Library, Tailwind + React conventions
+
+#### testing-patterns (atualizado)
+- Adicionada seção "React Component Testing" com: Testing Library (render, screen, waitFor), MemoryRouter, Zustand store testing (getState/setState), Vitest + jsdom config
+
+#### developer (atualizado)
+- `vue-patterns` → `react-patterns`
+- Stack: Vue 3 + Composition API → React 19 + hooks + Zustand 5
+- Descrição no frontmatter atualizada
+
+#### architect (atualizado)
+- Self-check: "peer deps do Fastify, Vue" → "peer deps do Fastify, React"
+
+#### code-reviewer (atualizado)
+- `vue-patterns` → `react-patterns`
+
+#### pr-reviewer (atualizado)
+- `vue-patterns` → `react-patterns`
+
+### Impact
+Harness alinhado com a stack React definida no Epic #5. Skills framework-specific (react-patterns) substituem Vue sem afetar skills agnósticas (game-economy, cyberpunk-lore, sql-design, etc.).
+
+---
 
 ### dev-orchestrator
 - **Modelo**: deepseek-v4-pro, temperature 0.2, thinking 16K
@@ -23,7 +55,7 @@ Histórico de mudanças nos agentes de desenvolvimento.
 - **Modo**: subagent, hidden
 - **Permissões**: edit:allow, write:allow, bash:allow
 - **Função**: Implementação full-stack. 15 checks de self-review
-- **Skills**: neon-dusk-design, nodejs-patterns, vue-patterns, sql-design
+- **Skills**: neon-dusk-design, nodejs-patterns, react-patterns, sql-design
 
 ### test-writer
 - **Modelo**: deepseek-v4-flash, temperature 0.1, thinking 8K
@@ -37,7 +69,7 @@ Histórico de mudanças nos agentes de desenvolvimento.
 - **Modo**: subagent, hidden
 - **Permissões**: edit:deny, bash:deny (read-only)
 - **Função**: Revisão de qualidade (6 critérios). Ações corretivas específicas
-- **Skills**: neon-dusk-design, nodejs-patterns, vue-patterns, sql-design
+- **Skills**: neon-dusk-design, nodejs-patterns, react-patterns, sql-design
 
 ### db-designer
 - **Modelo**: deepseek-v4-pro, temperature 0.1, thinking 16K
@@ -65,7 +97,7 @@ Handoffs em arquivos `.handoff/*.md` não escalavam. Necessidade de revisor QA/D
 - **Modo**: subagent, hidden
 - **Permissões**: bash:allow, read:allow, write:deny, edit:deny
 - **Função**: Auditar PRs com 6 dimensões (código, testes, segurança, design, performance, docs). Score ≥ 4.5 aprova. Spawna github-ops para comentar no PR.
-- **Skills**: neon-dusk-design, nodejs-patterns, vue-patterns, sql-design, testing-patterns, github-workflow
+- **Skills**: neon-dusk-design, nodejs-patterns, react-patterns, sql-design, testing-patterns, github-workflow
 
 #### github-ops (refatorado)
 - Expandido com: `comment-on-issue`, `update-issue-body`, `create-sub-issue`, `update-issue-labels`, `approve-pr`, `request-changes`

@@ -11,7 +11,7 @@ Comandos são entry points acionados pelo dev humano. Cada comando dispara um pi
 **Uso**:
 ```
 /dev-feature "Sistema de autenticação JWT com refresh tokens"
-/dev-feature "Página de criação de personagem (frontend Vue)"
+/dev-feature "Página de criação de personagem (frontend React)"
 /dev-feature "Sistema de Street Cred e thresholds" --game-logic
 ```
 
@@ -156,7 +156,7 @@ Humano: /dev-feature "Sistema de criação de personagem com 5 atributos e escol
   │   ├── Lê design.md
   │   ├── Carrega nodejs-patterns, sql-design
   │   ├── Implementa: models/character.ts, routes/character.ts, migrations/001_create_characters.ts
-  │   ├── Implementa: components/CharacterCreation.vue, stores/character.ts
+  │   ├── Implementa: components/CharacterCreation.tsx, stores/character.ts
   │   ├── Roda linter, type-check
   │   └── Self-review 15 checks → handoff code
   │

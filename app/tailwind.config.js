@@ -2,7 +2,7 @@
 import forms from "@tailwindcss/forms";
 
 export default {
-  content: ["./index.html", "./src/**/*.{vue,ts,js}"],
+  content: ["./index.html", "./src/**/*.{tsx,ts,js}"],
   darkMode: "class",
   theme: {
     extend: {
