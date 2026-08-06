@@ -26,6 +26,8 @@ Avaliar código implementado e gerar score + ações corretivas. Read-only.
 
 ### 1. Correção
 O código implementa exatamente o que o design especifica? Bugs óbvios? Edge cases cobertos?
+- **Economy operations**: optimistic locking (`WHERE balance = balanceBefore`) em UPDATEs de saldo/recursos; atomicidade entre débito e crédito (transaction ou CTE); audit trail (transaction_log com snapshot antes/depois)
+- **Money conservation**: `Σ(deltas) = 0` verificável — soma de todos os débitos e créditos no escopo da operação deve zerar (faucets = sinks local)
 
 ### 2. Segurança
 SQL injection? XSS? CSRF? Auth bypass? Secrets expostos? Input validation?
@@ -41,6 +43,8 @@ Segue padrões do projeto? Nomeação? Estrutura de arquivos? Stack definida?
 
 ### 6. Cobertura de Testes
 Testes cobrem casos críticos? Testes passam? Edge cases testados?
+- **Concurrency test quality**: `Promise.all` sozinho não verifica lock — teste deve validar que operações conflitantes serializam (ex: assert que apenas 1 transação vence, demais retry/rejeitam); usar `pg_advisory_lock` ou optimistic locking com retry verificável
+- **RNG determinístico**: testes de game logic usam seed fixa (`mulberry32(42)`) — outputs devem ser reproduzíveis; nunca usar `Math.random()` em código testável
 
 ## Score de Decisão
 **MENOR nota** entre os 6 critérios (não a média).
