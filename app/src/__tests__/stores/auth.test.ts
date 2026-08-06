@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 import { ApiError, setAccessToken } from "@/api/client";
-import type { AuthResponse, Character, User, UserWithCharacter } from "@neon-dusk/shared";
+import type { AuthResponse, Character, NilStatus, User, UserWithCharacter } from "@neon-dusk/shared";
 
 // Unit tests for the auth store — the network is stubbed at the fetch
 // boundary (the store + api client run for real, only fetch is mocked).
@@ -248,5 +248,139 @@ describe("useAuthStore", () => {
     store.character = character;
     expect(store.hasCharacter).toBe(true);
     expect(store.needsCharacter).toBe(false);
+  });
+});
+
+// --- NIL (Feature #2) ---------------------------------------------------------
+
+describe("useAuthStore — NIL", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    setAccessToken(null);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    setAccessToken(null);
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  function nilStatus(partial: Partial<NilStatus> = {}): NilStatus {
+    return {
+      current: 100,
+      max: 100,
+      nextTickSeconds: 0,
+      regenerating: false,
+      updatedAt: "2026-08-06T12:00:00.000Z",
+      ...partial,
+    };
+  }
+
+  it("should compute nilPercent as 0 when no readout exists", () => {
+    const store = useAuthStore();
+    expect(store.nilPercent).toBe(0);
+  });
+
+  it("should compute nilPercent as 0 when max is not positive", () => {
+    const store = useAuthStore();
+    store.$patch({ nilStatus: nilStatus({ current: 50, max: 0 }) });
+    expect(store.nilPercent).toBe(0);
+  });
+
+  it("should compute nilPercent at 0%, 50% and 100% boundaries", () => {
+    const store = useAuthStore();
+    store.$patch({ nilStatus: nilStatus({ current: 0, max: 100 }) });
+    expect(store.nilPercent).toBe(0);
+
+    store.$patch({ nilStatus: nilStatus({ current: 50, max: 100 }) });
+    expect(store.nilPercent).toBe(50);
+
+    store.$patch({ nilStatus: nilStatus({ current: 100, max: 100 }) });
+    expect(store.nilPercent).toBe(100);
+  });
+
+  it("should round partial NIL to a whole percentage (e.g. 66.67 → 67)", () => {
+    const store = useAuthStore();
+    store.$patch({ nilStatus: nilStatus({ current: 2, max: 3 }) });
+    expect(store.nilPercent).toBe(67);
+  });
+
+  it("should fetch the live readout from /api/characters/me/nil", async () => {
+    const store = useAuthStore();
+    store.character = character;
+    const readout = nilStatus({ current: 70, max: 100, nextTickSeconds: 300, regenerating: true });
+    const fetchMock = mockFetch(readout);
+
+    await store.fetchNil();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/characters/me/nil",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(store.nilStatus).toEqual(readout);
+    expect(store.nilLoading).toBe(false);
+  });
+
+  it("should skip the fetch when the user has no character", async () => {
+    const store = useAuthStore();
+    const fetchMock = mockFetch(nilStatus());
+
+    await store.fetchNil();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(store.nilStatus).toBeNull();
+  });
+
+  it("should surface a fetch error through nilError without throwing", async () => {
+    const store = useAuthStore();
+    store.character = character;
+    mockFetch({ error: "CHARACTER_NOT_FOUND", message: "No character found" }, 404);
+
+    await store.fetchNil();
+
+    expect(store.nilStatus).toBeNull();
+    expect(store.nilError).toBe("No character found");
+  });
+
+  it("should apply the restored readout after a successful useStim", async () => {
+    const store = useAuthStore();
+    store.character = character;
+    const full = nilStatus({ current: 100, nextTickSeconds: 0, regenerating: false });
+    mockFetch({ added: 20, status: full });
+
+    const res = await store.useStim();
+
+    expect(res.added).toBe(20);
+    expect(store.nilStatus).toEqual(full);
+    expect(store.nilError).toBeNull();
+  });
+
+  it("should surface a cooldown error and reject when useStim is on cooldown", async () => {
+    const store = useAuthStore();
+    store.character = character;
+    mockFetch(
+      { error: "NIL_STIM_COOLDOWN", message: "Syn-café is still on cooldown", details: { retryAfterSeconds: 3599 } },
+      400,
+    );
+
+    await expect(store.useStim()).rejects.toBeInstanceOf(ApiError);
+
+    expect(store.nilError).toBe("Syn-café is still on cooldown");
+    expect(store.nilStatus).toBeNull();
+  });
+
+  it("should clear the NIL readout on logout", async () => {
+    const store = useAuthStore();
+    store.character = character;
+    mockFetch(nilStatus({ current: 70, regenerating: true }));
+    await store.fetchNil();
+    expect(store.nilStatus).not.toBeNull();
+
+    mockFetch(null, 204);
+    await store.logout();
+
+    expect(store.nilStatus).toBeNull();
+    expect(store.nilError).toBeNull();
   });
 });

@@ -17,10 +17,16 @@ export async function checkRateLimit(
   windowMs: number,
 ): Promise<void> {
   const counterKey = `auth:rl:${key}`;
-  const count = await redis.incr(counterKey);
-  if (count === 1) {
-    await redis.expire(counterKey, Math.ceil(windowMs / 1000));
+
+  // Atomic INCR + EXPIRE in one multi: two concurrent calls can't both see
+  // count === 1 and race the TTL (one of them would leave the key without an
+  // expiry, pinning the counter forever).
+  const results = await redis.multi().incr(counterKey).expire(counterKey, Math.ceil(windowMs / 1000)).exec();
+  if (results === null) {
+    throw new AppError(500, "RATE_LIMIT_ERROR", "Rate limiter unavailable");
   }
+  const count = results[0][1] as number;
+
   if (count > max) {
     throw new AppError(429, "RATE_LIMITED", "Too many attempts. Try again later.");
   }

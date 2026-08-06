@@ -14,6 +14,7 @@ import { sql } from "drizzle-orm";
 // Neon Dusk — Database Schema
 // ============================================================================
 // Feature #1: users + characters (account & character creation).
+// Feature #2: NIL columns on characters (energy + passive regen).
 // Drizzle tracks applied migrations automatically via the
 // `__drizzle_migrations` table. No manual tracking table needed.
 
@@ -70,6 +71,11 @@ export const characters = pgTable(
     intelligence: integer("intelligence").notNull().default(3),
     technical: integer("technical").notNull().default(3),
     cool: integer("cool").notNull().default(3),
+    // NIL (Feature #2): neural load — regens +1 every 5 min. `nil_updated_at`
+    // is the last persisted snapshot; regen is applied lazily on read.
+    nil: integer("nil").notNull().default(100),
+    maxNil: integer("max_nil").notNull().default(100),
+    nilUpdatedAt: timestamp("nil_updated_at").notNull().defaultNow(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -86,5 +92,8 @@ export const characters = pgTable(
       "characters_attrs_total",
       sql`${table.body} + ${table.reflexes} + ${table.intelligence} + ${table.technical} + ${table.cool} = 22`,
     ),
+    // NIL integrity: never negative, never above max, max always positive.
+    check("characters_nil_range", sql`${table.nil} >= 0 and ${table.nil} <= ${table.maxNil}`),
+    check("characters_max_nil_positive", sql`${table.maxNil} > 0`),
   ],
 );

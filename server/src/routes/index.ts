@@ -12,5 +12,5 @@ export interface ApiRoutesOptions {
 export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(healthRoutes, { redis: opts.redis });
   await app.register(authRoutes, { redis: opts.redis });
-  await app.register(characterRoutes);
+  await app.register(characterRoutes, { redis: opts.redis });
 }
