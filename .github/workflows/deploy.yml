@@ -1,0 +1,118 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '22'
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}
+
+permissions:
+  contents: read
+  packages: write
+
+# Ensure only one deploy runs at a time — prevents race conditions
+# when two pushes to main complete CI simultaneously.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    name: Build and Push Images
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: server
+            dockerfile: server/Dockerfile
+            image: neon-dusk-server
+          - component: app
+            dockerfile: app/Dockerfile
+            image: neon-dusk-app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}
+          tags: |
+            # Immutable tag per commit — enables manual rollback
+            type=sha,format=long
+            # Rolling tag — what `docker compose pull` resolves on the VPS
+            type=raw,value=latest
+
+      - name: Build and push ${{ matrix.component }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to VPS
+    needs: [build-and-push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/neon-dusk
+
+            # Bring up infra first; server waits for postgres/redis health
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --wait postgres redis
+
+            # Pull new images FIRST so the migration run uses the new image
+            # with any new migration files baked in.
+            docker compose --env-file .env.production -f docker-compose.prod.yml pull
+
+            # Run migrations (idempotent — safe on every deploy).
+            # workdir /app/server so drizzle's ./migrations folder resolves;
+            # tsx is hoisted to /app/node_modules in the image.
+            docker compose --env-file .env.production -f docker-compose.prod.yml run --rm --no-deps \
+              --workdir /app/server server /app/node_modules/.bin/tsx /app/server/src/db/migrate.ts
+
+            # Replace changed containers
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --remove-orphans
+
+            # Clean up old unused images (keep last 24h for quick rollback)
+            docker image prune -af --filter "until=24h"
+
+            # Smoke test with retry loop (ponytail: 20s max, nginx startup is <3s but VPS can be slow)
+            for i in $(seq 1 10); do
+              curl -sf http://localhost/ > /dev/null && echo "App OK" && break
+              sleep 2
+            done || echo "WARNING: app not responding after 20s"
+            for i in $(seq 1 10); do
+              curl -sf http://localhost/api/health > /dev/null && echo "API OK" && break
+              sleep 2
+            done || echo "WARNING: API not responding after 20s"
