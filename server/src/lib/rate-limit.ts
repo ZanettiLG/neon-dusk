@@ -1,0 +1,27 @@
+import type Redis from "ioredis";
+import { AppError } from "../middleware/error-handler";
+
+// Neon Dusk — Custom Redis-backed rate limiting
+// ============================================================================
+// The global @fastify/rate-limit guards every route by IP; these counters add
+// per-resource limits (e.g. 5 logins/min, 3 registrations/min per email).
+
+/**
+ * Enforce a per-key rate limit using a Redis INCR + EXPIRE counter.
+ * Throws AppError(429) when the limit is exceeded within the window.
+ */
+export async function checkRateLimit(
+  redis: Redis,
+  key: string,
+  max: number,
+  windowMs: number,
+): Promise<void> {
+  const counterKey = `auth:rl:${key}`;
+  const count = await redis.incr(counterKey);
+  if (count === 1) {
+    await redis.expire(counterKey, Math.ceil(windowMs / 1000));
+  }
+  if (count > max) {
+    throw new AppError(429, "RATE_LIMITED", "Too many attempts. Try again later.");
+  }
+}

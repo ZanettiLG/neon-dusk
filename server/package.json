@@ -16,7 +16,10 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.0",
+    "@fastify/jwt": "^10.2.1",
     "@fastify/rate-limit": "^10.0.0",
+    "@neon-dusk/shared": "^0.1.0",
+    "bcrypt": "^6.0.0",
     "dotenv": "^16.4.0",
     "drizzle-orm": "^0.39.0",
     "fastify": "^5.0.0",
@@ -27,6 +30,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^22.0.0",
     "@types/supertest": "^6.0.0",
     "drizzle-kit": "^0.30.0",

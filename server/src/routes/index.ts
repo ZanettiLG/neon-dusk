@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
 import { healthRoutes } from "./health";
+import { authRoutes } from "./auth";
+import { characterRoutes } from "./characters";
 
 export interface ApiRoutesOptions {
   redis: Redis;
@@ -9,4 +11,6 @@ export interface ApiRoutesOptions {
 // Route aggregator — register every feature route module here, prefixed with /api
 export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(healthRoutes, { redis: opts.redis });
+  await app.register(authRoutes, { redis: opts.redis });
+  await app.register(characterRoutes);
 }

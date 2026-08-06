@@ -13,6 +13,7 @@ function unsetEnvKeys() {
       key.startsWith("DATABASE_URL") ||
       key.startsWith("REDIS_URL") ||
       key.startsWith("RATE_LIMIT") ||
+      key.startsWith("JWT") ||
       key.startsWith("CORS_ORIGIN")
     ) {
       delete process.env[key];
@@ -24,6 +25,9 @@ describe("env schema", () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
     unsetEnvKeys();
+    // JWT secrets are required (no defaults) — provide them for parse-based tests.
+    process.env.JWT_SECRET = "x".repeat(32);
+    process.env.JWT_REFRESH_SECRET = "x".repeat(32);
   });
 
   it("should apply default values when env vars are missing", () => {

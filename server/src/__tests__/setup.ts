@@ -9,3 +9,5 @@ process.env.REDIS_URL = "redis://localhost:56379/0";
 process.env.RATE_LIMIT_MAX = "100";
 process.env.RATE_LIMIT_WINDOW_MS = "60000";
 process.env.CORS_ORIGIN = "http://localhost:5173";
+process.env.JWT_SECRET = "test-jwt-secret-that-is-at-least-32-characters-long";
+process.env.JWT_REFRESH_SECRET = "test-refresh-secret-that-is-at-least-32-chars-long";

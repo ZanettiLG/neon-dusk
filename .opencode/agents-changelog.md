@@ -107,3 +107,23 @@ Pipeline Feature 0 (Project Bootstrap) executado end-to-end. Review encontrou 6 
 
 ### Impact
 Previne recorrência de W1 (non-null env), W2 (raw process.env), W3 (fetch raw), W4 (tipos duplicados), W7 (porta hardcoded) e rate-limit version bug em features futuras.
+
+## 2026-08-06 — Refinamento pós Feature #1 (Conta + Personagem)
+
+### Trigger
+Feature #1 passou com score 4.5/5.0 após 1 ciclo de correção (inicial: 4.0, security 4.0). Code-reviewer identificou 3 padrões de falha:
+- **Issue #3**: `toPublicCharacter()` criada em 2 lugares (duplicação de código)
+- **Issue #4**: Zod schema de senha sem constraints de complexidade (validação incompleta)
+- **Issue #5**: Teste de refresh concorrente ausente (cobertura de concorrência limitada a economia)
+
+### Changes
+
+#### developer
+- Check #5 refinado: `Validação de input (Zod schema)` → `Zod schema com constraints reais: complexidade de senha, ranges, formatos`
+- Novo check #19: DRY interno — funções utilitárias, tipos e constantes não duplicados dentro da própria feature (extrair para lib/ ou utils/ compartilhado)
+
+#### test-writer
+- Check #5 ampliado: `race conditions em economia` → `race conditions em economia, refresh de tokens, sessões simultâneas`
+
+### Impact
+Previne duplicação de utilitários, validação Zod incompleta e gaps de cobertura de concorrência não-econômica em features futuras.

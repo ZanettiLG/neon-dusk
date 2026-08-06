@@ -31,12 +31,12 @@ Handoff do architect (`design.md`) + descrição da feature.
 7. Self-review (15 checks)
 8. Handoff do código implementado
 
-## Self-Review (18 checks)
+## Self-Review (19 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex/Drizzle; nunca string interpolation)
 - [ ] Redis operations com TTL definido
 - [ ] Tratamento de erro em TODAS as rotas (try/catch + error middleware)
-- [ ] Validação de input (Zod schema)
+- [ ] Validação de input (Zod schema com constraints reais: complexidade de senha, ranges, formatos)
 - [ ] Consistência de nomeação: camelCase JS/TS, snake_case SQL, kebab-case arquivos
 - [ ] Nenhum segredo hardcoded (usa `process.env` ou `env.ts`)
 - [ ] CORS configurado corretamente
@@ -50,6 +50,7 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] `process.env` só usado em `env.ts` (validado por Zod); demais arquivos usam o módulo `env`
 - [ ] Frontend usa `api` client (`@/api/client`) — nunca `fetch` raw
 - [ ] Tipos de API response em `packages/shared/`, não duplicados entre server/app
+- [ ] DRY interno: funções utilitárias, tipos e constantes não duplicados dentro da própria feature (extrair para lib/ ou utils/ compartilhado)
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino
