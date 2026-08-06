@@ -152,7 +152,8 @@ jobs:
               exit 1
             fi
 
-            # Clean up old unused images (keep last 24h for quick rollback).
-            # Runs AFTER the smoke test so a rollback still has the previous
-            # images available.
+            # Clean up old unused images. Safe to prune without scoping: the
+            # VPS runs only Neon Dusk containers, so nothing else can be
+            # removed (keep last 24h for quick rollback). Runs AFTER the smoke
+            # test so a rollback still has the previous images available.
             docker image prune -af --filter "until=24h"
