@@ -62,6 +62,13 @@ services:
       - "80:80"
     depends_on:
       - server
+    healthcheck:
+      # busybox wget (nginx:alpine) — no --spider, so fetch and discard
+      test: ["CMD-SHELL", "wget -q -O- http://localhost/ > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - neondusk
 
