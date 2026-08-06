@@ -47,13 +47,15 @@ Orquestradores delegam. Workers executam. Nenhum agente spawna outro do mesmo ti
 
 | Agente | Pode spawnar | NUNCA spawnar |
 |---|---|---|
-| `dev-orchestrator` | architect, developer, test-writer, code-reviewer, db-designer, game-logic-dev, harness-engineer, deep-researcher, decision-agent | dev-orchestrator |
+| `dev-orchestrator` | architect, developer, test-writer, code-reviewer, db-designer, game-logic-dev, harness-engineer, deep-researcher, decision-agent, github-ops, pr-reviewer | dev-orchestrator |
 | `architect` | db-designer, deep-researcher | architect, developer |
 | `developer` | general (tarefas triviais) | developer, architect |
 | `game-logic-dev` | general (test only) | game-logic-dev |
 | `code-reviewer` | NENHUM | qualquer |
 | `test-writer` | NENHUM | qualquer |
 | `harness-engineer` | general (verificação) | harness-engineer |
+| `github-ops` | NENHUM | github-ops |
+| `pr-reviewer` | github-ops (para comentar/aprovar) | pr-reviewer |
 
 ## Modificação do Harness
 

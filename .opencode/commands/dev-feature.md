@@ -27,18 +27,22 @@ Pipeline completo de desenvolvimento de feature: design → implementação → 
 | `--db-only` | Usa `db-designer` diretamente |
 | `--design-only` | Para no passo 1, produz apenas design doc |
 | `--skip-tests` | Pula testes (MVP rápido, não recomendado) |
+| `--github` | Integração completa com GitHub: cria issue, branch e PR |
 
 ## Workflow
 
 ```
 build agent (entrada fina)
   └── task(dev-orchestrator, $ARGUMENTS)
+       ├── [--github] github-ops → criar issue + branch
        ├── architect → design técnico
        ├── developer → implementação
        ├── test-writer → testes
        ├── code-reviewer → qualidade
        ├── [se score < 4.5] → corrigir
-       └── [se score < 5.0] → harness-engineer → refinar
+       ├── [se score < 5.0] → harness-engineer → refinar
+       ├── [--github] github-ops → criar PR
+       └── [--github] pr-reviewer → auditar PR (QA/DevOps/Tech Lead)
 ```
 
 ## Regras
