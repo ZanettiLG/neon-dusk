@@ -2,7 +2,61 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
-## 2026-08-06 — N1: Prevenção de Handoff Cycles (Post-Mortem Issue #4)
+## 2026-08-06 — N2: Game Mechanics Harness Refinement (ND-008 / ND-060)
+
+### Trigger
+Feature ND-008 (Lucky Chip — minigame de cassino) expôs 3 gaps no harness ao lidar com mecânicas de jogo. Ciclo 1 teve score 2/5 (code-reviewer não detectou race condition em operações de economia, teste de concorrência era no-op, RNG não determinístico nos testes). Ciclo 2 aplicou correções no código e chegou a 5/5. Aprendizados formalizados como refinamento N2 (score < 4.0 no ciclo 1).
+
+### Changes
+
+#### code-reviewer (atualizado)
+- Critério #1 (Correção) expandido com sub-checks específicos para game economy:
+  - Economy operations: optimistic locking (`WHERE balance = balanceBefore`), atomicidade entre débito/crédito, audit trail
+  - Money conservation: `Σ(deltas) = 0` verificável no escopo da operação
+- Critério #6 (Cobertura de Testes) expandido:
+  - Concurrency test quality: `Promise.all` sozinho não verifica lock — validar que conflitos serializam (apenas 1 transação vence, demais retry/rejeitam)
+  - RNG determinístico: testes devem usar seed fixa, outputs reproduzíveis
+
+#### game-logic-dev (atualizado)
+- Self-check expandido de 8→10 itens:
+  - #9: Input validation — `Number.isSafeInteger`, bounds checking explícito, divisão por zero
+  - #10: RNG injetável — `(rng: () => number)` como parâmetro, nunca `Math.random()` direto
+- Nova seção "Templates e Padrões":
+  - Template de função pura: JSDoc com `@param` bounds, `@returns` invariants, `@edgecases`
+  - Padrão de RNG injetável: injeção obrigatória, seedable para teste, crypto para produção
+  - Validação obrigatória de input: safe integer, bounds, divisão por zero, cap de overflow
+
+#### testing-patterns (atualizado)
+- Nova seção "Game Testing" com 4 sub-padrões:
+  - RNG Seed Control: `mulberry32` seedable, outputs determinísticos, seed diferente = output diferente
+  - Timer Mocking: `vi.useFakeTimers()` + `vi.advanceTimersByTime()` para NIL regen, cooldowns, durations
+  - Economy Integrity: padrão `expect(Σ(payouts) − Σ(bets)).toBe(0)` para money conservation
+  - Concurrency: optimistic locking com retry verificável (não só `Promise.all`); nota sobre quando NÃO usar `pg_advisory_lock`
+
+### Impact
+Previne recorrência de 3 categorias de falha que causaram score 2/5 no ciclo 1 do ND-008: race condition não detectada em operações de economia, teste de concorrência falso-positivo, e RNG não determinístico em testes. Score subiu para 5/5 no ciclo 2 após correções manuais — com o harness refinado, futuras features de jogo serão avaliadas corretamente desde o ciclo 1.
+
+---
+
+## 2026-08-06 — N1: CI/CD Pipeline Review Feedback (Feature ND-005)
+
+### Trigger
+Feature ND-005 (CI/CD Pipeline) passou por 3 review cycles (score: 3.0 → 4.0 → 4.5). Code-reviewer identificou 3 padrões de falha recorrentes em infraestrutura como código:
+
+1. **Docker image ordering**: `docker compose run migrate` antes de `docker compose pull` — migrações rodam em imagem cacheada antiga (review #04, critical issue #1)
+2. **workflow_run checkout footgun**: `actions/checkout@v4` sem `ref: head_sha` com trigger `workflow_run` — checkout usa default branch HEAD em vez do commit que disparou o CI (review #06, new issue)
+3. **Healthcheck ausente em serviço Docker**: Design deferiu healthcheck, mas endpoint `/api/health` já existia — developer deveria ter identificado a oportunidade (review #04, warning #5)
+
+### Changes
+
+#### developer
+- Self-review expandido de 20→23 checks:
+  - #21: Docker operations ordered correctly — pull before run, up after pull (deploy scripts)
+  - #22: Workflow triggers that checkout code use correct ref — `workflow_run` needs explicit `ref: ${{ github.event.workflow_run.head_sha }}`, `push`/`pull_request` use default
+  - #23: Every Docker service has a healthcheck if a health endpoint exists (check `/api/health`, `/health`, or similar before writing compose)
+
+### Impact
+Previne recorrência de: migração em imagem errada (crítico), checkout de commit errado em deploy (médio), containers sem restart automático por falta de healthcheck (baixo). Checks N1 são baratos de executar — verificação manual de diff/yaml antes do handoff.
 
 ### Trigger
 Post-mortem da issue #4 identificou 53% de subagent calls (8/15) como rework cycles:

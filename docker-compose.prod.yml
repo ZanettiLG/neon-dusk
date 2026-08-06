@@ -1,0 +1,83 @@
+# Production stack — /opt/neon-dusk/docker-compose.prod.yml on the VPS.
+# Secrets come from .env.production (env_file for containers, --env-file for
+# compose variable interpolation, e.g. IMAGE_TAG for rollback).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: neondusk-db
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - neondusk
+
+  redis:
+    image: redis:7-alpine
+    container_name: neondusk-cache
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - neondusk
+
+  server:
+    image: ghcr.io/zan-ia/neon-dusk-server:${IMAGE_TAG:-latest}
+    container_name: neondusk-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env.production
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - neondusk
+    # No host ports — only reachable via the internal network (nginx proxies /api)
+
+  app:
+    image: ghcr.io/zan-ia/neon-dusk-app:${IMAGE_TAG:-latest}
+    container_name: neondusk-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    healthcheck:
+      # busybox wget (nginx:alpine) — no --spider, so fetch and discard
+      test: ["CMD-SHELL", "wget -q -O- http://localhost/ > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - neondusk
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+
+networks:
+  neondusk:
+    driver: bridge

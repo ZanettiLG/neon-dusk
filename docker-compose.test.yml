@@ -1,10 +1,11 @@
 # Isolated test stack — ports match server/src/__tests__/setup.ts.
 # The app under test must never share the dev database (5432/6379).
+# restart: "no" — CI containers are ephemeral; never auto-restart on failure.
 services:
   postgres:
     image: postgres:16-alpine
     container_name: neondusk-db-test
-    restart: unless-stopped
+    restart: "no"
     environment:
       POSTGRES_USER: neondusk
       POSTGRES_PASSWORD: neondusk_dev
@@ -20,7 +21,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: neondusk-cache-test
-    restart: unless-stopped
+    restart: "no"
     ports:
       - "56379:6379"
     healthcheck:

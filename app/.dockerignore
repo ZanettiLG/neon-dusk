@@ -1,0 +1,9 @@
+# Applies only when the build context is ./app (the current deploy workflow
+# builds from the repo root — context: . — with file: app/Dockerfile, so this
+# file is inert until the context changes).
+node_modules
+dist
+coverage
+src/__tests__
+.env
+dev-dist
