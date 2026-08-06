@@ -10,10 +10,12 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 
-# Workspace manifests needed by npm ci (app/package.json intentionally omitted —
-# `npm ci --omit=dev` resolves workspaces from the lockfile without it).
+# Workspace manifests needed by npm ci — all workspaces referenced by the
+# lockfile (server, app, packages/*) must have their package.json present,
+# otherwise the workspace install resolves incorrectly or fails.
 COPY package.json package-lock.json ./
 COPY server/package.json ./server/
+COPY app/package.json ./app/
 COPY packages/shared/package.json ./packages/shared/
 
 RUN npm ci --omit=dev
