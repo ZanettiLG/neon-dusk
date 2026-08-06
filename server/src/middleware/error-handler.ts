@@ -2,6 +2,17 @@ import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { env } from "../env";
 
+function isRedisError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  // ioredis MaxRetriesPerRequestError — thrown when maxRetriesPerRequest exhausted
+  if (err.name === "MaxRetriesPerRequestError") return true;
+  // ioredis ReplyError — thrown on command-level errors, has .command property
+  if ("command" in err) return true;
+  // ioredis with enableOfflineQueue:false rejects while disconnected with this message
+  if (err.message.startsWith("Stream isn't writeable")) return true;
+  return false;
+}
+
 export class AppError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -53,6 +64,15 @@ export function errorHandler(
       error: "RATE_LIMITED",
       message: error.message,
       ...(payload !== undefined ? { retryAfter: payload } : {}),
+    });
+  }
+
+  // Redis unavailable — map ioredis connection/command errors to 503
+  if (isRedisError(error)) {
+    request.log.error({ err: error }, "Redis unavailable");
+    return reply.status(503).send({
+      error: "SERVICE_UNAVAILABLE",
+      message: "Serviço temporariamente indisponível. Tente novamente.",
     });
   }
 
