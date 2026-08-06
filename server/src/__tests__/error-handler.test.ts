@@ -79,6 +79,46 @@ describe("errorHandler", () => {
     });
   });
 
+  it("should map ioredis MaxRetriesPerRequestError to 503 SERVICE_UNAVAILABLE", () => {
+    const reply = mockReply();
+    const err = new Error("Connection is closed");
+    err.name = "MaxRetriesPerRequestError";
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.status).toHaveBeenCalledWith(503);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "SERVICE_UNAVAILABLE",
+      message: "Serviço temporariamente indisponível. Tente novamente.",
+    });
+  });
+
+  it("should map ioredis ReplyError (with .command) to 503 SERVICE_UNAVAILABLE", () => {
+    const reply = mockReply();
+    const err = Object.assign(new Error("ERR unknown command"), { command: "INCR" });
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.status).toHaveBeenCalledWith(503);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "SERVICE_UNAVAILABLE",
+      message: "Serviço temporariamente indisponível. Tente novamente.",
+    });
+  });
+
+  it("should map 'Stream isn't writeable' error to 503", () => {
+    const reply = mockReply();
+    const err = new Error("Stream isn't writeable and enableOfflineQueue options is false");
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.status).toHaveBeenCalledWith(503);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "SERVICE_UNAVAILABLE",
+      message: "Serviço temporariamente indisponível. Tente novamente.",
+    });
+  });
+
   it("should return 500 INTERNAL_ERROR for unknown errors in non-production", () => {
     const reply = mockReply();
     errorHandler(new Error("boom"), mockRequest, reply);
