@@ -2,6 +2,34 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-06 — N1: Prevenção de Handoff Cycles (Post-Mortem Issue #4)
+
+### Trigger
+Post-mortem da issue #4 identificou 53% de subagent calls (8/15) como rework cycles:
+1. Developer não rodava `vitest run` → regressão não detectada antes do test-writer
+2. Architect não enumerava todos os error types → `isRedisError` incompleto
+3. Orchestrator não detectava resposta vazia de subagent
+4. Test-writer não verificava se o endpoint exercita o código-alvo
+
+### Changes
+
+#### developer
+- Check #20 adicionado: `npx vitest run` passa com zero regressões antes do handoff
+
+#### architect
+- Check #12 adicionado: todos os tipos de erro de dependências externas (Redis, PostgreSQL, APIs) enumerados exaustivamente
+
+#### dev-orchestrator
+- Nova seção "Validação de Handoff": verifica `task_result` vazio/undefined após cada `task()`, re-executa uma vez, reporta erro no JSON se falhar novamente
+
+#### test-writer
+- Check #10 adicionado: verificar que testes exercitam o código-alvo (endpoint/rota não captura erro internamente antes do handler/middleware)
+
+### Impact
+Previne 4 categorias de rework cycle que representaram 53% de desperdício no pipeline da issue #4. Cada check N1 é barato de executar e evita 1-3 ciclos de correção.
+
+---
+
 ## 2026-08-06 — N3: Migração Vue 3 → React 19 (Harness)
 
 ### Trigger

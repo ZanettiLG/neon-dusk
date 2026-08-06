@@ -76,6 +76,13 @@ Você é um orquestrador puro — **NUNCA executa trabalho que um subagent pode 
 
 **Handoffs**: Subagents escrevem handoffs temporários em `.handoff/<run_id>/` (ponte entre passos do pipeline). Com `--github`, você posta cada handoff como comentário na issue (via `github-ops`) e descarta os arquivos ao final — o GitHub é o registro canônico. Sem `--github`, a saída JSON deste orquestrador é o handoff.
 
+## Validação de Handoff
+
+Após cada `task()`, verifique se o `task_result` está vazio ou é `undefined`. Se estiver:
+1. Logue um warning: "Subagente `<nome>` retornou vazio. Re-executando."
+2. Re-execute a mesma `task()` com o mesmo prompt uma única vez.
+3. Se falhar novamente, reporte no JSON de saída como `error: "Subagente <nome> falhou em responder após 2 tentativas"`.
+
 ### Passo 0: GitHub Setup (apenas com `--github`)
 1. `task(github-ops, { action: "create-issue", title, body, labels: ["feature", "in-progress"], run_id })` → `issue_number`, `issue_url`
 2. `task(github-ops, { action: "create-branch", issue_number, slug })` → `branch`

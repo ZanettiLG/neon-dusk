@@ -44,7 +44,7 @@ Produzir design técnico detalhado a partir de uma feature descrita. NÃO implem
 - Estimativa de complexidade (baixa/média/alta)
 - Lista de arquivos existentes afetados
 
-## Self-Check (11 itens)
+## Self-Check (12 itens)
 - [ ] Schema usa tipos corretos (UUID PKs, timestamps, enums nativos)
 - [ ] APIs seguem REST (ou justifica desvio documentado)
 - [ ] Nenhuma feature Fase 2+ referenciada sem justificativa explícita
@@ -56,6 +56,7 @@ Produzir design técnico detalhado a partir de uma feature descrita. NÃO implem
 - [ ] Nenhuma dependência nova não listada no `package.json`
 - [ ] Migrations são reversíveis (down migration incluída)
 - [ ] Autenticação/autorização consideradas (se aplicável)
+- [ ] Todos os tipos de erro de dependências externas (Redis, PostgreSQL, APIs) foram enumerados — consultar type definitions, documentação ou código fonte da lib para listar exaustivamente os erros possíveis
 
 ## Regras
 - NUNCA spawnar `architect` ou `developer`
