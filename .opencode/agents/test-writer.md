@@ -29,7 +29,7 @@ Escrever testes automatizados para features implementadas. Garantir cobertura de
 - **E2E** (Playwright): fluxos críticos (login → criar personagem → primeiro gig)
 - **Database** (pg-mem): migrations, queries isoladas
 
-## Self-Check (9 itens)
+## Self-Check (10 itens)
 - [ ] Cobertura de happy path E error paths
 - [ ] Testes de rate limiting (429)
 - [ ] Testes de autorização (401/403)
@@ -39,6 +39,7 @@ Escrever testes automatizados para features implementadas. Garantir cobertura de
 - [ ] Seeds de teste isolados (não poluem dados de dev)
 - [ ] Portas/URLs de infraestrutura derivados de `setup.ts` ou `process.env`, nunca hardcoded
 - [ ] `npm test` passa com zero failures
+- [ ] Testes exercitam o código-alvo: verificar que o endpoint/rota/método/função escolhido NÃO captura o erro internamente antes do handler/middleware que se quer testar (ex: health endpoint tem try/catch próprio que engole erros antes do error handler global)
 
 ## Regras
 - NUNCA spawnar `test-writer`

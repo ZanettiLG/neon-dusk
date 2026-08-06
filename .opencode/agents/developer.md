@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (15 checks)
+7. Self-review (20 checks)
 8. Handoff do código implementado
 
-## Self-Review (19 checks)
+## Self-Review (20 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex/Drizzle; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -51,6 +51,7 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Frontend usa `api` client (`@/api/client`) — nunca `fetch` raw
 - [ ] Tipos de API response em `packages/shared/`, não duplicados entre server/app
 - [ ] DRY interno: funções utilitárias, tipos e constantes não duplicados dentro da própria feature (extrair para lib/ ou utils/ compartilhado)
+- [ ] `npx vitest run` passa com zero regressões antes do handoff (qualquer teste que passava antes deve continuar passando)
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino
