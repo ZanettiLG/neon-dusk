@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -95,5 +96,40 @@ export const characters = pgTable(
     // NIL integrity: never negative, never above max, max always positive.
     check("characters_nil_range", sql`${table.nil} >= 0 and ${table.nil} <= ${table.maxNil}`),
     check("characters_max_nil_positive", sql`${table.maxNil} > 0`),
+  ],
+);
+
+// --- Lucky Chip (ND-008: disposable test minigame) ---------------------------
+// Mock economy for the d20 minigame. Replaced by the real economy in ND-010.
+
+export const characterEddieBalances = pgTable(
+  "character_eddie_balances",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    characterId: uuid("character_id").notNull().unique(),
+    amount: integer("amount").notNull().default(1000),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check("character_eddie_balances_amount_non_negative", sql`${table.amount} >= 0`),
+  ],
+);
+
+export const luckyChipBets = pgTable(
+  "lucky_chip_bets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    characterId: uuid("character_id").notNull(),
+    betAmount: integer("bet_amount").notNull(),
+    rollResult: integer("roll_result").notNull(),
+    payout: integer("payout").notNull().default(0),
+    balanceBefore: integer("balance_before").notNull(),
+    balanceAfter: integer("balance_after").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_lucky_chip_bets_character").on(table.characterId),
+    index("idx_lucky_chip_bets_created_at").on(table.createdAt.desc()),
   ],
 );

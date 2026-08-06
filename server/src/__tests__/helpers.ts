@@ -49,7 +49,11 @@ export function authHeader(token: string): { Authorization: string } {
 
 /** Wipe account data so test runs are repeatable regardless of order. */
 export async function resetDb(): Promise<void> {
-  await db.execute(sql`TRUNCATE TABLE users, characters CASCADE`);
+  // Lucky Chip tables (ND-008) have no FK to characters (disposable feature),
+  // so CASCADE from `characters` doesn't reach them — truncate explicitly.
+  await db.execute(
+    sql`TRUNCATE TABLE users, characters, character_eddie_balances, lucky_chip_bets CASCADE`,
+  );
 }
 
 /** Register a fresh account and return the token pair + user. */
