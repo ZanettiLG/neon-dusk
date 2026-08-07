@@ -42,6 +42,8 @@ const character: Character = {
   intelligence: 3,
   technical: 3,
   cool: 3,
+  streetCred: 0,
+  maxStreetCredAchieved: 0,
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
 };

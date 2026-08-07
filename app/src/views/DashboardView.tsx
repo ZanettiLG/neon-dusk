@@ -5,6 +5,7 @@ import { ATTRIBUTE_KEYS, BASE_ATTRIBUTES, SOFT_CAP } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
 import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS } from "@/lib/labels";
 import { formatCountdown } from "@/lib/format";
+import Leaderboard from "@/components/Leaderboard";
 
 /**
  * Runner dashboard: character card, NIL bar with live regen countdown,
@@ -179,6 +180,8 @@ export default function DashboardView() {
               ▸ Quadro de gigs — Cupim, o Porteiro
             </Link>
           </p>
+
+          <Leaderboard />
         </>
       ) : (
         <div className="card text-center space-y-3">

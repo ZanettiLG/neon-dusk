@@ -17,6 +17,8 @@ export function toPublicCharacter(row: typeof characters.$inferSelect): Characte
     intelligence: row.intelligence,
     technical: row.technical,
     cool: row.cool,
+    streetCred: row.streetCred,
+    maxStreetCredAchieved: row.maxStreetCredAchieved,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
