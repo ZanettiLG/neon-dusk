@@ -1,96 +1,85 @@
-import { collectDefaultMetrics, Counter, Gauge, Registry } from "prom-client";
-import type Redis from "ioredis";
+import { Counter, Gauge, Registry } from "prom-client";
+import Redis from "ioredis";
 import { env } from "../env";
-import { createRedisClient } from "../lib/redis";
 
-// Neon Dusk — Prometheus metrics (singleton)
+// Neon Dusk — Prometheus metrics (ND-007)
 // ============================================================================
-// One registry, shared by the whole process. Counters are incremented by the
-// features that produce the underlying events (gigs, economy, PVP) via the
-// exports below; the /metrics route (routes/metrics.ts) exposes the registry
-// to Prometheus.
+// Process-local singleton registry. A custom Registry (not prom-client's
+// default) keeps test files isolated: vitest's singleFork re-evaluates this
+// module per file, and the default registry is a process singleton that would
+// collide ("metric already registered"). Counters are incremented by
+// `instrument()`; the /metrics route exposes the registry to Prometheus.
 
 const registry = new Registry();
 
-// Optional Node.js runtime metrics (event loop lag, heap, etc.) — off by
-// default; enable with PROMETHEUS_COLLECT_DEFAULTS=true.
-if (env.PROMETHEUS_COLLECT_DEFAULTS === "true") {
-  collectDefaultMetrics({ register: registry });
-}
-
-/** Total NIL consumed by players (per character). */
+/** NIL energy consumed. */
 export const nilSpentTotal = new Counter({
   name: "neondusk_nil_spent_total",
-  help: "Total NIL consumed by players",
+  help: "Total NIL consumed",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });
 
-/** Total eddies earned by players (per character). */
+/** Eddies earned (gig payouts, PVP rewards, loot). */
 export const eddiesEarnedTotal = new Counter({
   name: "neondusk_eddies_earned_total",
-  help: "Total eddies earned by players",
+  help: "Total eddies earned",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });
 
-/** Total eddies spent by players (per character). */
+/** Eddies spent (vendor purchases, fees). */
 export const eddiesSpentTotal = new Counter({
   name: "neondusk_eddies_spent_total",
-  help: "Total eddies spent by players",
+  help: "Total eddies spent",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });
 
-/** Total gigs completed by players (per character). */
+/** Gigs completed successfully. */
 export const gigsCompletedTotal = new Counter({
   name: "neondusk_gigs_completed_total",
-  help: "Total gigs completed by players",
+  help: "Total gigs completed",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });
 
-/** Total PVP attacks launched by players (per character). */
+/** PVP attacks launched. */
 export const pvpAttacksTotal = new Counter({
   name: "neondusk_pvp_attacks_total",
-  help: "Total PVP attacks launched by players",
+  help: "Total PVP attacks",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });
 
-// Redis client used only for the active-character gauge. Created lazily on the
-// first scrape so a metrics module import never opens a connection.
-let activeRedis: Redis | null | undefined;
-
-function getActiveRedis(): Redis | null {
-  if (activeRedis === undefined) {
-    activeRedis = createRedisClient(env.REDIS_URL);
-  }
-  return activeRedis;
-}
-
-/** Unique players active in the last 24h — derived from `auth:active:*` keys. */
+/**
+ * Active characters in the last 24h — counts `auth:active:*` keys via SCAN.
+ * Best-effort: a Redis failure resolves to 0 so a scrape never crashes.
+ */
 export const activeCharacters = new Gauge({
   name: "neondusk_active_characters",
-  help: "Unique players active in the last 24 hours",
+  help: "Active characters in the last 24h",
   async collect() {
-    let count = 0;
+    // A fresh connection per scrape keeps this lazy (no connection at import
+    // time) and bounded (disposed as soon as the count is read).
+    // ponytail: per-scrape connection; reuse a shared pool if scrapes get hot.
+    const redis = new Redis(env.REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: 1 });
     try {
-      const redis = getActiveRedis();
-      if (redis) {
-        // SCAN (not KEYS) — O(N) per call but safe on a busy server; runs
-        // once per scrape (15s), so the cost is bounded.
-        const stream = redis.scanStream({ match: "auth:active:*", count: 1000 });
-        for await (const keys of stream) {
-          count += Array.isArray(keys) ? keys.length : 0;
-        }
-      }
+      await redis.connect();
+      let count = 0;
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await redis.scan(cursor, "MATCH", "auth:active:*", "COUNT", 1000);
+        count += keys.length;
+        cursor = nextCursor;
+      } while (cursor !== "0");
+      this.set(count);
     } catch {
-      // Redis down → report 0 rather than failing the whole scrape.
+      // Redis down — report 0 rather than fail the scrape (best-effort).
       this.set(0);
-      return;
+    } finally {
+      redis.disconnect();
     }
-    this.set(count);
   },
   registers: [registry],
 });

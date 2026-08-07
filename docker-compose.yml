@@ -43,6 +43,8 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    command:
+      - "--storage.tsdb.retention.time=15d"
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

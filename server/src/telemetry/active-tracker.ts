@@ -1,6 +1,6 @@
 import type Redis from "ioredis";
 
-// Neon Dusk — Active user tracking
+// Neon Dusk — Active user tracking (ND-007)
 // ============================================================================
 // `auth:active:{userId}` keys mark a user as active for 24h. The key is
 // re-set on every authenticated request, so it stays alive while the player

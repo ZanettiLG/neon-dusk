@@ -1,15 +1,8 @@
-# ND-007: Grafana dashboard provisioning — auto-loads every JSON dashboard
-# dropped into this directory.
 apiVersion: 1
 
 providers:
   - name: "Neon Dusk"
-    orgId: 1
-    folder: "Neon Dusk"
+    folder: ""
     type: file
-    disableDeletion: false
-    updateIntervalSeconds: 30
-    allowUiUpdates: true
     options:
       path: /etc/grafana/provisioning/dashboards
-      foldersFromFilesStructure: false

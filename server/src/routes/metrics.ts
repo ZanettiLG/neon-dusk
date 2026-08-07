@@ -1,13 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { getMetrics } from "../telemetry/metrics";
 
-// Neon Dusk — Prometheus scrape endpoint
+// Neon Dusk — Prometheus scrape endpoint (ND-007)
 // ============================================================================
-// GET /metrics (root-level, NOT under /api): exposes the telemetry registry in
-// Prometheus text format. Unauthenticated — Prometheus scrapes it directly
-// (see prometheus/prometheus.yml).
+// Exposes the telemetry registry in text/plain exposition format.
+// Public (no auth) — Prometheus scrapes it directly.
 
-export async function prometheusRoutes(app: FastifyInstance) {
+export async function metricsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/metrics", async (_request, reply) => {
     const metrics = await getMetrics();
     return reply.type("text/plain").send(metrics);
