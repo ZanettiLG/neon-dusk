@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import type {
   ChromeDefinition,
   ChromeInstallResponse,
@@ -33,9 +33,10 @@ import { ensureWallet } from "./economy-service";
 // ============================================================================
 // Install is a single PostgreSQL transaction: vendor stock check → wallet
 // debit (optimistic lock, same pattern as buyFromVendor) → audit entry →
-// implant insert → atomic humanity decrement. Humanity is decremented in SQL
-// (`humanity - cost >= 0` guard) so concurrent installs can never drop it
-// below 0 through a read-modify-write race.
+// implant insert → atomic humanity decrement. The UPDATE's WHERE guard
+// (`humanity >= cost`) re-validates the cost against the row's current
+// humanity at write time, so concurrent installs that both read the same
+// value can never overwrite each other's deduction.
 
 /** DB row → API shape (strips isActive/createdAt internals). */
 function toPublicDefinition(row: typeof chromeDefinitions.$inferSelect): ChromeDefinition {
@@ -208,7 +209,12 @@ export async function installChrome(
     await tx
       .update(characters)
       .set({ humanity: effectiveHumanity, updatedAt: new Date() })
-      .where(eq(characters.id, characterId));
+      .where(
+        and(
+          eq(characters.id, characterId),
+          gte(characters.humanity, definition.humanityCost),
+        ),
+      );
 
     return {
       installedChrome: {
