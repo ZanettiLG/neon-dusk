@@ -459,3 +459,39 @@ export const heat = pgTable(
     index("idx_heat_character").on(table.characterId),
   ],
 );
+
+// --- PvP Combat (Feature ND-014) ---------------------------------------------
+// Append-only combat log. winner_id is intentionally FK-less (derived from
+// attacker/defender); loot_amount is the eddies stolen from the loser.
+
+export const pvpCombats = pgTable(
+  "pvp_combats",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    attackerId: uuid("attacker_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    defenderId: uuid("defender_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    attackerPower: integer("attacker_power").notNull(),
+    defenderPower: integer("defender_power").notNull(),
+    winnerId: uuid("winner_id").notNull(),
+    lootAmount: integer("loot_amount").notNull().default(0),
+    grieferPenalty: boolean("griefer_penalty").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    check(
+      "pvp_combats_loot_amount_non_negative",
+      sql`${table.lootAmount} >= 0`,
+    ),
+    index("idx_pvp_combats_attacker").on(table.attackerId, desc(table.createdAt)),
+    index("idx_pvp_combats_defender").on(table.defenderId, desc(table.createdAt)),
+    index("idx_pvp_combats_attacker_defender").on(
+      table.attackerId,
+      table.defenderId,
+      desc(table.createdAt),
+    ),
+  ],
+);

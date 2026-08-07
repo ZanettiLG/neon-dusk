@@ -551,3 +551,64 @@ export interface AwardSCResponse {
   gained: number;
   maxAchieved: number;
 }
+
+// ─── PvP (ND-014) ───────────────────────────────────────────────────────────
+// Player-vs-player combat: 20 NIL per attack, ±10 power bracket, weekly grief
+// limit and daily defeat cap (04-sistemas-e-progressao.md §6).
+
+/** POST /api/pvp/attack request body. */
+export interface PvpAttackRequest {
+  targetId: string;
+}
+
+/** POST /api/pvp/attack response — always from the attacker's perspective. */
+export interface PvpCombatResult {
+  combatId: string;
+  won: boolean;
+  attackerPower: number;
+  defenderPower: number;
+  lootAmount: number;
+  /** Attacker's street cred change (positive on win, negative on loss). */
+  streetCredChange: number;
+  /** Attacker's street cred after the fight. */
+  newStreetCred: number;
+  /** Attacker's wallet balance after the fight. */
+  newBalance: number;
+}
+
+/** One row of the GET /api/pvp/attackable list. */
+export interface PvpTarget {
+  characterId: string;
+  name: string;
+  streetCred: number;
+  /** Full effective combat power (body + reflexes + chrome). */
+  power: number;
+  noobShield: boolean;
+  weeklyAttacksReceived: number;
+}
+
+/** GET /api/pvp/attackable response. */
+export interface PvpAttackableResponse {
+  targets: PvpTarget[];
+}
+
+/** One row of the GET /api/pvp/history list. */
+export interface PvpCombatRecord {
+  id: string;
+  attackerName: string;
+  defenderName: string;
+  attackerPower: number;
+  defenderPower: number;
+  winnerId: string;
+  /** True when the calling character was the winner. */
+  won: boolean;
+  lootAmount: number;
+  grieferPenalty: boolean;
+  createdAt: string;
+}
+
+/** GET /api/pvp/history response (cursor-paginated by createdAt). */
+export interface PvpHistoryResponse {
+  combats: PvpCombatRecord[];
+  nextCursor: string | null;
+}
