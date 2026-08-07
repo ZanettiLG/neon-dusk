@@ -1,6 +1,7 @@
 import { env } from "./env";
 import { buildApp } from "./app";
 import { seedGigTemplates } from "./services/gig-service";
+import { startRoundCheckCron } from "./cron/round-check";
 
 async function main() {
   const app = await buildApp({ env });
@@ -28,6 +29,8 @@ async function main() {
   try {
     await app.listen({ port: env.PORT, host: env.HOST });
     app.log.info(`NEON//DUSK running at http://${env.HOST}:${env.PORT}`);
+    // ND-017: hourly round-expiry check (single-instance MVP, ADR-4).
+    startRoundCheckCron(app);
   } catch (err) {
     app.log.error(err);
     process.exit(1);

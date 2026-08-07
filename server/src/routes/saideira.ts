@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
 import { z } from "zod";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type {
   SaideiraHubInfo,
@@ -9,6 +9,7 @@ import type {
   ChatHistoryResponse,
   LegendsResponse,
   CrewLeaderboardResponse,
+  NameDrinkResponse,
 } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { AppError } from "../middleware/error-handler";
@@ -17,7 +18,9 @@ import { escapeHtml } from "../lib/escape-html";
 import { sseAuthenticate } from "../lib/sse-auth";
 import { requireCharacterId } from "../services/economy-service";
 import { db } from "../db";
-import { characters, crewMembers, crews, legends } from "../db/schema";
+import { characters, crewMembers, crews, legends, rounds } from "../db/schema";
+import { env } from "../env";
+import { UNNAMED_DRINK } from "../game/round-reset";
 
 // Neon Dusk — Saideira Hub routes (ND-015)
 // ============================================================================
@@ -44,6 +47,15 @@ const chatSendSchema = z.object({
     .max(500, "Mensagem muito longa (máx. 500 caracteres)"),
 });
 
+// ND-017: name a Legend's drink (3-30 chars after trim).
+const nameDrinkSchema = z.object({
+  drinkName: z
+    .string()
+    .trim()
+    .min(3, "Nome da bebida muito curto")
+    .max(30, "Nome da bebida muito longo"),
+});
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -54,6 +66,7 @@ const CHAT_HISTORY_MAX = 50;
 const CHAT_RATE_LIMIT_MAX = 1; // 1 message...
 const CHAT_RATE_LIMIT_WINDOW_MS = 5_000; // ...per 5 seconds
 const SSE_KEEPALIVE_MS = 30_000;
+const DAY_MS = 86_400_000; // ROUND_DURATION_DAYS is expressed in days
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -85,20 +98,30 @@ async function countOnline(redis: Redis): Promise<number> {
 export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesOptions) {
   const { redis } = opts;
 
-  // GET /api/saideira — hub info (online count, round placeholders).
-  app.get(
-    "/saideira",
-    { preHandler: [authenticate] },
-    async (): Promise<SaideiraHubInfo> => {
-      const onlineCount = await countOnline(redis);
-      // ponytail: placeholder round data until ND-011 ships
-      return {
-        onlineCount,
-        lastReset: "2026-08-01T00:00:00.000Z",
-        currentRound: 1,
-      };
-    },
-  );
+  // GET /api/saideira — hub info (online count + real round data, ND-017).
+  app.get("/saideira", { preHandler: [authenticate] }, async (): Promise<SaideiraHubInfo> => {
+    const onlineCount = await countOnline(redis);
+
+    // Round data comes from the rounds table (ND-017): the active round's
+    // number + end time, and the last reset timestamp (most recent ended).
+    const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
+    const [active] = await db.select().from(rounds).where(eq(rounds.status, "active")).limit(1);
+    const [lastEnded] = await db
+      .select({ endedAt: rounds.endedAt })
+      .from(rounds)
+      .where(isNotNull(rounds.endedAt))
+      .orderBy(desc(rounds.roundNumber))
+      .limit(1);
+
+    return {
+      onlineCount,
+      lastReset: lastEnded?.endedAt ? lastEnded.endedAt.toISOString() : null,
+      currentRound: active?.roundNumber ?? 1,
+      roundEndsAt: active
+        ? new Date(active.startedAt.getTime() + durationMs).toISOString()
+        : new Date(Date.now() + durationMs).toISOString(),
+    };
+  });
 
   // POST /api/saideira/chat — send a message (1 msg / 5s per character).
   app.post(
@@ -235,6 +258,49 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
           crewName: r.crewName,
         })),
       };
+    },
+  );
+
+  // POST /api/legends/name-drink — name the drink of a Legend inducted this
+  // round (ND-017). Matches the caller's character name against the
+  // `__UNNAMED__` placeholder row; character names are unique per lower() so
+  // at most one unnamed row can match (ADR-5 — no schema change).
+  app.post(
+    "/legends/name-drink",
+    { preHandler: [authenticate] },
+    async (request, reply): Promise<NameDrinkResponse> => {
+      const { drinkName } = nameDrinkSchema.parse(request.body);
+      const characterId = await requireCharacterId(request.user.sub);
+
+      const [char] = await db
+        .select({ name: characters.name })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+      if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
+
+      const [legend] = await db
+        .update(legends)
+        .set({ drinkName })
+        .where(and(eq(legends.characterName, char.name), eq(legends.drinkName, UNNAMED_DRINK)))
+        .returning();
+      if (!legend) {
+        throw new AppError(
+          404,
+          "LEGEND_NOT_FOUND",
+          "Nenhuma bebida sem nome encontrada para este personagem",
+        );
+      }
+
+      return reply.status(200).send({
+        legend: {
+          id: legend.id,
+          characterName: legend.characterName,
+          drinkName: legend.drinkName,
+          achievedAt: legend.achievedAt.toISOString(),
+          crewName: legend.crewName,
+        },
+      });
     },
   );
 

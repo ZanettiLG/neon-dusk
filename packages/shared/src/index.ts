@@ -623,10 +623,12 @@ export interface PvpHistoryResponse {
 export interface SaideiraHubInfo {
   /** Active characters tracked in the last 24h (auth:active:* keys). */
   onlineCount: number;
-  /** ISO timestamp of the last round reset — placeholder until ND-011. */
-  lastReset: string;
-  /** Current round number — placeholder until ND-011. */
+  /** ISO timestamp of the last round reset — null when no reset has occurred yet. */
+  lastReset: string | null;
+  /** Current round number (ND-017 — real data from the rounds table). */
   currentRound: number;
+  /** ISO timestamp — when the current round ends. */
+  roundEndsAt: string;
 }
 
 /** One chat message (Redis list entry + SSE frame). Message is HTML-escaped. */
@@ -750,4 +752,77 @@ export interface CrewDetailResponse {
   bonuses: CrewBonus[];
   /** 1-based position in the total-SC crew ranking (null when unranked). */
   leaderboardPosition: number | null;
+}
+
+// ─── Round System (ND-017) ───────────────────────────────────────────────────
+// 14-day rounds with a full server-side reset. The DB enum only has
+// active/ended; "intermission" is derived in the API when the next round is
+// scheduled but has not started yet.
+
+/** Round lifecycle states as reported by the API. */
+export type RoundStatus = "active" | "ended" | "intermission";
+
+/** GET /api/round response — current round info with countdown. */
+export interface RoundInfoResponse {
+  roundNumber: number;
+  startedAt: string;
+  endsAt: string;
+  /** Seconds until the round ends (0 when ended or in intermission). */
+  timeRemainingSeconds: number;
+  status: RoundStatus;
+  /** ISO timestamp when the next round starts (null when a round is active). */
+  intermissionUntil: string | null;
+}
+
+/** Stats captured at round end (snapshot taken before the data wipe). */
+export interface RoundStatsSnapshot {
+  totalGigsCompleted: number;
+  totalEddiesEarned: number;
+  totalPvpFights: number;
+  totalActiveCharacters: number;
+  topCrewName: string | null;
+  topScCharacterName: string | null;
+  /** Street cred of the top-scoring character (null when no characters). */
+  topScValue: number | null;
+}
+
+/** One entry in GET /api/round/history (ended rounds only). */
+export interface RoundHistoryEntry {
+  roundNumber: number;
+  startedAt: string;
+  endedAt: string;
+  stats: RoundStatsSnapshot;
+}
+
+/** GET /api/round/history response (cursor-paginated by round_number DESC). */
+export interface RoundHistoryResponse {
+  rounds: RoundHistoryEntry[];
+  nextCursor: number | null;
+}
+
+/** POST /api/round/trigger-reset response (admin only). */
+export interface TriggerResetResponse {
+  success: true;
+  endedRound: number;
+  newRound: number;
+  legendsInducted: number;
+}
+
+// ─── Name Drink (ND-017) ─────────────────────────────────────────────────────
+
+/** POST /api/legends/name-drink request body. */
+export interface NameDrinkRequest {
+  /** 3-30 chars, trimmed. */
+  drinkName: string;
+}
+
+/** POST /api/legends/name-drink response — the named legend record. */
+export interface NameDrinkResponse {
+  legend: {
+    id: string;
+    characterName: string;
+    drinkName: string;
+    achievedAt: string;
+    crewName: string | null;
+  };
 }

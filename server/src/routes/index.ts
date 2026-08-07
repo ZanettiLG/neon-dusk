@@ -11,6 +11,7 @@ import { streetCredRoutes } from "./street-cred";
 import { pvpRoutes } from "./pvp";
 import { saideiraRoutes } from "./saideira";
 import { crewRoutes } from "./crews";
+import { roundRoutes } from "./round";
 import { adminMetricsRoutes } from "../telemetry/admin-metrics";
 
 export interface ApiRoutesOptions {
@@ -30,6 +31,7 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(pvpRoutes, { redis: opts.redis });
   await app.register(saideiraRoutes, { redis: opts.redis });
   await app.register(crewRoutes, { redis: opts.redis });
+  await app.register(roundRoutes, { redis: opts.redis });
   // Admin telemetry digest — /api/admin/metrics (x-api-key protected)
   await app.register(adminMetricsRoutes);
 }

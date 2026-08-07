@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import { sql } from "drizzle-orm";
 import type { AuthResponse, Role, Origin } from "@neon-dusk/shared";
 import { db } from "../db";
-import { characters, users } from "../db/schema";
+import { characters, rounds, users } from "../db/schema";
 
 // supertest is incompatible with Fastify 5 + @fastify/rate-limit (crashes in
 // Fastify's internal preParsing hook runner — see test-report). Tests use a
@@ -56,6 +56,17 @@ export async function resetDb(): Promise<void> {
   await db.execute(
     sql`TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE`,
   );
+}
+
+/**
+ * Reset round lifecycle state (ND-017): truncate rounds + round_stats and
+ * re-seed round 1 as active. `resetDb` deliberately does NOT touch rounds —
+ * the migration-seeded round must survive for other suites — so round tests
+ * call this instead. Legends are untouched (permanent hall of fame).
+ */
+export async function resetRounds(): Promise<void> {
+  await db.execute(sql`TRUNCATE TABLE rounds, round_stats CASCADE`);
+  await db.insert(rounds).values({ roundNumber: 1, startedAt: new Date() });
 }
 
 /**

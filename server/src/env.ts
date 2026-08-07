@@ -36,6 +36,10 @@ export const envSchema = z.object({
 
   // CORS
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
+
+  // Round System (ND-017): 14-day rounds with a 60-minute intermission.
+  ROUND_DURATION_DAYS: z.coerce.number().int().positive().default(14),
+  ROUND_INTERMISSION_MINUTES: z.coerce.number().int().positive().default(60),
 });
 
 export type Env = z.infer<typeof envSchema>;

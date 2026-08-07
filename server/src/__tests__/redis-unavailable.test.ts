@@ -18,6 +18,8 @@ describe("Redis unavailable", () => {
     ADMIN_API_KEY: process.env.ADMIN_API_KEY || "test-admin-key-that-is-at-least-32-characters-long",
     PROMETHEUS_COLLECT_DEFAULTS: "false",
     CORS_ORIGIN: "*",
+    ROUND_DURATION_DAYS: 14,
+    ROUND_INTERMISSION_MINUTES: 60,
   };
 
   let app: FastifyInstance;
