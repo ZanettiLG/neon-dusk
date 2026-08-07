@@ -612,3 +612,65 @@ export interface PvpHistoryResponse {
   combats: PvpCombatRecord[];
   nextCursor: string | null;
 }
+
+// ─── Saideira Hub (ND-015) ───────────────────────────────────────────────────
+// The bar that never closes (Babilônia). Real-time chat via SSE + Redis
+// pub/sub, permanent Legends hall of fame and the crew leaderboard (empty
+// until ND-016 ships crews).
+
+/** GET /api/saideira response — hub readout. */
+export interface SaideiraHubInfo {
+  /** Active characters tracked in the last 24h (auth:active:* keys). */
+  onlineCount: number;
+  /** ISO timestamp of the last round reset — placeholder until ND-011. */
+  lastReset: string;
+  /** Current round number — placeholder until ND-011. */
+  currentRound: number;
+}
+
+/** One chat message (Redis list entry + SSE frame). Message is HTML-escaped. */
+export interface ChatMessage {
+  id: string;
+  characterName: string;
+  /** Crew tag — null until ND-016 (crews). */
+  crewTag: string | null;
+  message: string;
+  createdAt: string;
+}
+
+/** POST /api/saideira/chat request body. */
+export interface ChatSendRequest {
+  message: string;
+}
+
+/** GET /api/saideira/chat/history response — last 50, oldest first. */
+export interface ChatHistoryResponse {
+  messages: ChatMessage[];
+}
+
+/** One drink card on the Legends menu (permanent across round resets). */
+export interface LegendEntry {
+  id: string;
+  characterName: string;
+  drinkName: string;
+  achievedAt: string;
+  crewName: string | null;
+}
+
+/** GET /api/saideira/legends response. */
+export interface LegendsResponse {
+  legends: LegendEntry[];
+}
+
+/** One row of the crew ranking — placeholder until ND-016. */
+export interface CrewLeaderboardEntry {
+  position: number;
+  crewName: string;
+  totalSC: number;
+  memberCount: number;
+}
+
+/** GET /api/saideira/leaderboard/crews response. */
+export interface CrewLeaderboardResponse {
+  crews: CrewLeaderboardEntry[];
+}

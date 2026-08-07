@@ -9,6 +9,7 @@ import { vendorRoutes } from "./vendors";
 import { gigRoutes } from "./gigs";
 import { streetCredRoutes } from "./street-cred";
 import { pvpRoutes } from "./pvp";
+import { saideiraRoutes } from "./saideira";
 import { adminMetricsRoutes } from "../telemetry/admin-metrics";
 
 export interface ApiRoutesOptions {
@@ -26,6 +27,7 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(gigRoutes);
   await app.register(streetCredRoutes, { redis: opts.redis });
   await app.register(pvpRoutes, { redis: opts.redis });
+  await app.register(saideiraRoutes, { redis: opts.redis });
   // Admin telemetry digest — /api/admin/metrics (x-api-key protected)
   await app.register(adminMetricsRoutes);
 }

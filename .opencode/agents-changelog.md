@@ -2,6 +2,48 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-07 — N1: Saideira Hub Harness Refinement (ND-015)
+
+### Trigger
+Feature ND-015 (Saideira Hub) implementada com score 4.5/5.0. Code-reviewer identificou 2 padrões de falha em pass 2 que não são detectáveis automaticamente por linter:
+
+1. **SSE/hijack async setup**: `reply.raw.writeHead()` antes de `redis.duplicate()` / `subscribe()` — se Redis falha, conexão fica half-open sem cleanup
+2. **Component test baseline**: ChatBox (renderizado condicionalmente dentro de tabs) não tinha teste de renderização mínimo
+
+### Changes
+
+#### developer
+- Self-review expandido de 25→27 checks:
+  - #26: SSE/hijack pattern — async setup entre `writeHead()` e `hijack()` em try/catch com cleanup (destroy socket, unsubscribe Redis)
+  - #27: Component test baseline — todo componente novo que renderiza condicionalmente em view deve ter "renders without error" test (Vitest + Testing Library)
+
+### Impact
+Previne recorrência de: conexões SSE half-open em falhas de Redis (risco de resource leak) e componentes sem cobertura mínima de renderização (regressões silenciosas em refactors de view).
+
+---
+
+## 2026-08-07 — N1: PvP Feature Harness Refinement (ND-014)
+
+### Trigger
+Feature ND-014 (PvP System) implementada com score 4.0/5.0. Code-reviewer identificou 2 padrões de falha recorrentes que transcendem o escopo PvP:
+1. **Escrow-awareness**: Serviços de débito (vendor purchases, gig payouts, etc.) deveriam usar `balance - escrow`, mas o padrão não está documentado no self-review
+2. **Telemetry dual-outcome**: Apenas `PVP_ATTACK` instrumentado; `PVP_DEFEAT` nunca emitido. Features com outcomes duais frequentemente instrumentam só o caminho feliz
+
+### Changes
+
+#### developer
+- Self-review expandido de 23→25 checks:
+  - #24: Débitos usam saldo disponível (`balance - escrow`), nunca `balance` bruto — aplica-se a PvP, vendor purchases, gig payouts, ou qualquer operação que reserve fundos temporariamente
+  - #25: Features com outcomes duais (win/loss, success/failure, accept/reject) emitem eventos de telemetria para TODOS os outcomes, não apenas o caminho feliz
+
+### Impact
+Previne recorrência de: débitos sobre saldo bloqueado (risco de saldo negativo quando escrow é liberado) e telemetria incompleta (dificulta diagnóstico de balanceamento e detecção de exploits). Checks N1 baratos — verificação de diff antes do handoff.
+
+### N2 Proposals (pendente confirmação)
+Ver `changelog.md` para propostas N2: expansão do critério de N+1 queries no code-reviewer e documentação do padrão de constantes game-logic/ vs service/.
+
+---
+
 ## 2026-08-06 — N2: Game Mechanics Harness Refinement (ND-008 / ND-060)
 
 ### Trigger
@@ -136,7 +178,7 @@ Harness alinhado com a stack React definida no Epic #5. Skills framework-specifi
 - **Modelo**: deepseek-v4-flash, temperature 0.3, thinking 16K
 - **Modo**: subagent, hidden
 - **Permissões**: edit:allow, write:allow, bash:allow
-- **Função**: Implementação full-stack. 15 checks de self-review
+- **Função**: Implementação full-stack. 25 checks de self-review
 - **Skills**: neon-dusk-design, nodejs-patterns, react-patterns, sql-design
 
 ### test-writer

@@ -495,3 +495,16 @@ export const pvpCombats = pgTable(
     ),
   ],
 );
+
+// --- Legends (ND-015: Saideira Hub) ------------------------------------------
+// Permanent Hall of Fame — characters who reached SC 100 in any round.
+// No FK to characters: records survive round resets (immutable achievements).
+
+export const legends = pgTable("legends", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  characterName: text("character_name").notNull(),
+  drinkName: text("drink_name").notNull(),
+  achievedAt: timestamp("achieved_at", { withTimezone: true }).defaultNow().notNull(),
+  crewName: text("crew_name"), // nullable until ND-016 (crews)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

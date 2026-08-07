@@ -2,6 +2,9 @@ import { useAuthStore } from "@/stores/auth";
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || "";
 
+/** Base URL for API calls — also used by EventSource (SSE) URLs. */
+export const API_BASE_URL = BASE_URL;
+
 // Abort requests that hang longer than this (e.g. a dead API with no RST).
 const REQUEST_TIMEOUT_MS = 5000;
 
