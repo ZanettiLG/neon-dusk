@@ -5,10 +5,10 @@ import rateLimit from "@fastify/rate-limit";
 import jwt from "@fastify/jwt";
 import { type Env } from "./env";
 import { apiRoutes } from "./routes";
-import { prometheusRoutes } from "./routes/metrics";
-import { telemetryPlugin } from "./telemetry/middleware";
 import { errorHandler } from "./middleware/error-handler";
 import { createRedisClient } from "./lib/redis";
+import telemetryPlugin from "./telemetry/middleware";
+import { metricsRoutes } from "./routes/metrics";
 
 export interface AppOptions {
   env: Env;
@@ -80,7 +80,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   // Prometheus scrape endpoint at the ROOT (not under /api) so the dockerized
   // Prometheus can reach it at host.docker.internal:3000/metrics.
-  await app.register(prometheusRoutes);
+  await app.register(metricsRoutes);
 
   // Routes — all feature routes under /api
   await app.register(apiRoutes, { prefix: "/api", redis });

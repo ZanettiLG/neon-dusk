@@ -5,7 +5,7 @@ import { db } from "../db";
 import { gameEvents } from "../db/schema";
 import { requireAdmin } from "../middleware/admin-auth";
 
-// Neon Dusk — Admin telemetry endpoint
+// Neon Dusk — Admin telemetry endpoint (ND-007)
 // ============================================================================
 // GET /api/admin/metrics (x-api-key protected): a JSON digest of recent game
 // activity for the ops dashboard. Counts come straight from the game_events
@@ -55,7 +55,7 @@ function sumFor(rows: CountRow[], types: readonly GameEventType[]): number {
 }
 
 /** Fastify plugin — registers the admin metrics route (under the /api prefix). */
-export async function telemetryAdminRoutes(app: FastifyInstance) {
+export async function adminMetricsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/admin/metrics", { preHandler: [requireAdmin] }, async () => {
     const last24h = await countEventsByType(24);
     const last1h = await countEventsByType(1);
@@ -78,6 +78,7 @@ export async function telemetryAdminRoutes(app: FastifyInstance) {
         pvpAttacks24h: sumFor(last24h, ["PVP_ATTACK"]),
       },
     };
+
     return response;
   });
 }

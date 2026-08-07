@@ -15,7 +15,7 @@ describe("Redis unavailable", () => {
     RATE_LIMIT_WINDOW_MS: 60_000,
     JWT_SECRET: "test-jwt-secret-that-is-at-least-32-characters-long",
     JWT_REFRESH_SECRET: "test-refresh-secret-that-is-at-least-32-chars-long",
-    ADMIN_API_KEY: "test-admin-key-that-is-at-least-32-characters-long",
+    ADMIN_API_KEY: process.env.ADMIN_API_KEY || "test-admin-key-that-is-at-least-32-characters-long",
     PROMETHEUS_COLLECT_DEFAULTS: "false",
     CORS_ORIGIN: "*",
   };

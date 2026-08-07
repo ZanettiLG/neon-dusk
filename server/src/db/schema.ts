@@ -283,8 +283,8 @@ export const gameEvents = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     eventType: gameEventTypeEnum("event_type").notNull(),
-    actorId: uuid("actor_id"),
-    payload: jsonb("payload").notNull().default({}),
+    actorId: uuid("actor_id"), // FK-less — never blocks deletion
+    payload: jsonb("payload").default(sql`'{}'::jsonb`).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

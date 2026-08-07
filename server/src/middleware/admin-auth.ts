@@ -1,19 +1,20 @@
 import type { FastifyRequest } from "fastify";
-import { env } from "../env";
 import { AppError } from "./error-handler";
+import { env } from "../env";
 
-// Neon Dusk — Admin API key guard
+// Neon Dusk — Admin API key middleware (ND-007)
 // ============================================================================
-// Admin endpoints (e.g. /api/admin/metrics) require the x-api-key header to
-// match ADMIN_API_KEY. Keys rotate via env; there is no in-memory key store.
+// Guards /admin/* endpoints with a static API key. The key is validated at
+// boot by env.ts (min 32 chars); comparing against the parsed env keeps the
+// secret out of the source tree.
 
 /**
- * Fastify preHandler: requires a valid admin API key in `x-api-key`.
- * Throws AppError(401) on missing or mismatched key.
+ * PreHandler: requires a valid `x-api-key` header matching ADMIN_API_KEY.
+ * Throws AppError(401) when missing or mismatched.
  */
 export async function requireAdmin(request: FastifyRequest): Promise<void> {
-  const key = request.headers["x-api-key"];
-  if (typeof key !== "string" || key !== env.ADMIN_API_KEY) {
+  const apiKey = request.headers["x-api-key"];
+  if (typeof apiKey !== "string" || apiKey !== env.ADMIN_API_KEY) {
     throw new AppError(401, "UNAUTHORIZED", "Invalid admin API key");
   }
 }

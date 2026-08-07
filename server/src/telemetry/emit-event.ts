@@ -2,7 +2,7 @@ import { db } from "../db";
 import { gameEvents } from "../db/schema";
 import type { GameEventType } from "./event-types";
 
-// Neon Dusk — Telemetry event persistence
+// Neon Dusk — Telemetry event persistence (ND-007)
 // ============================================================================
 // Single insert point for game events. Everything the telemetry layer knows
 // about a player action (gig, PVP, economy movement, NIL spend) lands in the
@@ -12,9 +12,9 @@ import type { GameEventType } from "./event-types";
 export interface EmitEventInput {
   eventType: GameEventType;
   /** The acting user/character id (nullable — not every event has an actor). */
-  actorId?: string;
+  actorId: string | null;
   /** Arbitrary event details (amounts, targets, outcomes). */
-  payload?: Record<string, unknown>;
+  payload: Record<string, unknown>;
 }
 
 /** Insert one game event row. Best-effort — callers wrap in catch(). */
