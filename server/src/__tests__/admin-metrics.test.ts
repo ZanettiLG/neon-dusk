@@ -133,4 +133,25 @@ describe("GET /api/admin/metrics (admin telemetry digest)", () => {
       pvpAttacks24h: 1,
     });
   });
+
+  it("should differentiate 1h vs 24h time windows", async () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+    await db.execute(sql`
+      INSERT INTO game_events (event_type, actor_id, payload, created_at) VALUES
+      ('EDDIES_EARNED', '11111111-1111-4111-8111-111111111111', '{"amount":100}'::jsonb, ${twoHoursAgo}::timestamp),
+      ('EDDIES_SPENT', '11111111-1111-4111-8111-111111111111', '{"amount":50}'::jsonb, ${thirtyMinAgo}::timestamp)
+    `);
+
+    const res = await adminGet("/api/admin/metrics", ADMIN_KEY);
+    expect(res.status).toBe(200);
+    const body = await json<AdminMetricsResponse>(res);
+
+    // 30-min-ago event appears in both windows; 2-hours-ago event only in 24h.
+    expect(body.events.last1h).toEqual({ EDDIES_SPENT: 1 });
+    expect(body.events.last24h).toEqual({ EDDIES_EARNED: 1, EDDIES_SPENT: 1 });
+    expect(body.economy).toMatchObject({ eddiesEarned24h: 1, eddiesSpent24h: 1 });
+    expect(body.activity.activeCharacters24h).toBe(1);
+  });
 });

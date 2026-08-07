@@ -48,6 +48,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Grafana — anonymous read-only access for dev; restrict auth in production
   grafana:
     image: grafana/grafana:11.1.0
     container_name: neondusk-grafana
