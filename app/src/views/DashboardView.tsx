@@ -4,6 +4,7 @@ import type { AttributeKey } from "@neon-dusk/shared";
 import { ATTRIBUTE_KEYS, BASE_ATTRIBUTES, SOFT_CAP } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
 import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS } from "@/lib/labels";
+import { formatCountdown } from "@/lib/format";
 
 /**
  * Runner dashboard: character card, NIL bar with live regen countdown,
@@ -42,12 +43,6 @@ export default function DashboardView() {
 
   const [countdown, setCountdown] = useState(0);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  function formatCountdown(totalSeconds: number): string {
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${String(s).padStart(2, "0")}`;
-  }
 
   function syncCountdown(): void {
     setCountdown(useAuthStore.getState().nilStatus?.nextTickSeconds ?? 0);
@@ -180,7 +175,9 @@ export default function DashboardView() {
           </div>
 
           <p className="text-nd-text-secondary text-xs font-data">
-            // Sistemas de gig, chrome e street cred chegam na próxima fase do grid.
+            <Link to="/gigs" className="text-nd-purple hover:text-nd-cyan transition-colors">
+              ▸ Quadro de gigs — Cupim, o Porteiro
+            </Link>
           </p>
         </>
       ) : (

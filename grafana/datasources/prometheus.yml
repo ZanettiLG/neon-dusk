@@ -1,0 +1,12 @@
+# ND-007: Grafana datasource provisioning.
+# UID is fixed so the dashboard JSON can reference it statically.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

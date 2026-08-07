@@ -1,4 +1,4 @@
-import type { AttributeKey, Origin, Role } from "@neon-dusk/shared";
+import type { AttributeKey, GigPhase, GigType, Origin, Role } from "@neon-dusk/shared";
 
 // Display labels (pt-BR) for game enums used across auth/character UI.
 
@@ -26,4 +26,19 @@ export const ATTRIBUTE_LABELS: Record<AttributeKey, string> = {
   intelligence: "Intelligence",
   technical: "Technical",
   cool: "Cool",
+};
+
+// Gigs (ND-011): pt-BR labels for gig types and the 5-phase loop.
+export const GIG_TYPE_LABELS: Record<GigType, string> = {
+  extraction: "Extração",
+  delivery: "Entrega",
+  sabotage: "Sabotagem",
+};
+
+export const GIG_PHASE_LABELS: Record<GigPhase, string> = {
+  meet: "Meet",
+  legwork: "Legwork",
+  execute: "Executar",
+  escape: "Fuga",
+  wrap_up: "Wrap Up",
 };

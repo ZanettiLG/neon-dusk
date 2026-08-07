@@ -1,0 +1,13 @@
+# ND-007: Prometheus scrape config for the Neon Dusk server.
+# The server runs on the host (npm run dev) bound to 0.0.0.0:3000; Docker
+# reaches it via host.docker.internal (mapped by the extra_hosts entry in
+# docker-compose.yml).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "neondusk"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:3000"]

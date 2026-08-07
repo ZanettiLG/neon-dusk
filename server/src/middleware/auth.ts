@@ -1,5 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import { AppError } from "./error-handler";
+import { trackActiveUser } from "../telemetry/active-tracker";
 
 // Neon Dusk — JWT auth middleware
 // ============================================================================
@@ -16,4 +17,10 @@ export async function authenticate(request: FastifyRequest): Promise<void> {
   } catch {
     throw new AppError(401, "UNAUTHORIZED", "Missing, invalid or expired access token");
   }
+
+  // Telemetry (ND-007): mark the user active for 24h. Fire-and-forget — a
+  // Redis hiccup must never fail an otherwise valid request.
+  void trackActiveUser(request.server.redis, request.user.sub).catch(() => {
+    // best-effort telemetry: intentionally silent
+  });
 }

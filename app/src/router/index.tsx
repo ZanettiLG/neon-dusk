@@ -11,6 +11,7 @@ const LoginView = lazy(() => import("@/views/LoginView"));
 const RegisterView = lazy(() => import("@/views/RegisterView"));
 const CharacterCreateView = lazy(() => import("@/views/CharacterCreateView"));
 const DashboardView = lazy(() => import("@/views/DashboardView"));
+const GigBoardView = lazy(() => import("@/views/GigBoardView"));
 
 function Lazy({ children }: { children: ReactNode }) {
   return (
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
             element: <RequireCharacter />,
             children: [
               { path: "dashboard", element: <Lazy><DashboardView /></Lazy> },
+              { path: "gigs", element: <Lazy><GigBoardView /></Lazy> },
             ],
           },
         ],

@@ -11,3 +11,4 @@ process.env.RATE_LIMIT_WINDOW_MS = "60000";
 process.env.CORS_ORIGIN = "http://localhost:5173";
 process.env.JWT_SECRET = "test-jwt-secret-that-is-at-least-32-characters-long";
 process.env.JWT_REFRESH_SECRET = "test-refresh-secret-that-is-at-least-32-chars-long";
+process.env.ADMIN_API_KEY = "test-admin-key-that-is-at-least-32-characters-long";

@@ -1,0 +1,191 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Faucets vs Sinks",
+      "description": "Eddies entering (faucets: gig payouts, PVP rewards) vs leaving (sinks: vendor purchases) the economy, per second.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(neondusk_eddies_earned_total[$__rate_interval]))",
+          "legendFormat": "Faucets (earned)"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(neondusk_eddies_spent_total[$__rate_interval]))",
+          "legendFormat": "Sinks (spent)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "lineWidth": 1,
+            "spanNulls": false,
+            "stacking": { "mode": "normal", "group": "economy" }
+          }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "DAC — Daily Active Characters",
+      "description": "Unique players active in the last 24h (Redis auth:active:* keys).",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(neondusk_active_characters)", "legendFormat": "DAC" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Active Characters",
+      "description": "Unique active players over time.",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(neondusk_active_characters)", "legendFormat": "Active characters" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "spanNulls": false }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Top Earners (24h)",
+      "description": "Characters with the most eddies earned in the last 24h.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (characterId) (increase(neondusk_eddies_earned_total[24h])))",
+          "legendFormat": "{{characterId}}",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "align": "auto", "filterable": true },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "characterId" },
+            "properties": [{ "id": "displayName", "value": "Character" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [{ "id": "displayName", "value": "Eddies earned (24h)" }]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "show": false },
+        "showHeader": true,
+        "sortBy": [{ "displayName": "Eddies earned (24h)", "desc": true }]
+      }
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Gigs / Hour",
+      "description": "Gigs completed per hour (summed across players).",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(neondusk_gigs_completed_total[1h]))",
+          "legendFormat": "Gigs"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "stacking": { "mode": "normal", "group": "gigs" },
+            "fillOpacity": 60,
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "orientation": "auto",
+        "showValue": "auto",
+        "tooltip": { "mode": "single" }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "NIL / Hour",
+      "description": "NIL energy consumed per hour (summed across players).",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(neondusk_nil_spent_total[1h]))",
+          "legendFormat": "NIL consumed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2, "spanNulls": false }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["neon-dusk", "telemetry"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Neon Dusk — Telemetry",
+  "uid": "neon-dusk-telemetry",
+  "version": 1,
+  "weekStart": ""
+}
