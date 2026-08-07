@@ -126,11 +126,20 @@ function toAttributes(row: typeof characters.$inferSelect): Attributes {
   };
 }
 
+/** postgres-js returns aggregate timestamps (max()) as UTC strings — normalize. */
+function toDate(v: Date | string | null): Date | null {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  // "2026-08-07 01:35:32.908572" (UTC) → ISO with Z so Date parses it as UTC.
+  return new Date(v.includes("T") ? v : `${v.replace(" ", "T")}Z`);
+}
+
 /** Seconds left on a gig cooldown (0 = ready). */
-function cooldownRemainingFor(lastAt: Date | null, cooldownMinutes: number, now: Date): number {
-  if (!lastAt) return 0;
-  if (isCooldownExpired(lastAt, cooldownMinutes, now)) return 0;
-  const msLeft = lastAt.getTime() + cooldownMinutes * 60_000 - now.getTime();
+function cooldownRemainingFor(lastAt: Date | string | null, cooldownMinutes: number, now: Date): number {
+  const last = toDate(lastAt);
+  if (!last) return 0;
+  if (isCooldownExpired(last, cooldownMinutes, now)) return 0;
+  const msLeft = last.getTime() + cooldownMinutes * 60_000 - now.getTime();
   return Math.ceil(msLeft / 1000);
 }
 
@@ -505,7 +514,7 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     const active = await queryActiveGig(tx, characterId);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "No active gig");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Active gig does not match");
-    if (active.phase !== "execute") {
+    if (!canTransition(active.phase, "escape")) {
       throw new AppError(409, "INVALID_PHASE_TRANSITION", "Escape is only available after executing");
     }
 
@@ -561,9 +570,13 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const active = await queryActiveGig(tx, characterId);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "No active gig");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Active gig does not match");
-    if (active.phase !== "wrap_up") {
+    // The wrap_up action is taken while in the escape phase (see the phase
+    // machine in game/gigs.ts: escape → wrap_up); wrap_up is terminal and the
+    // row is deleted right after, so it is never observed by the client.
+    if (active.phase !== "escape") {
       throw new AppError(409, "INVALID_PHASE_TRANSITION", "Wrap up is only available after escaping");
     }
+    const terminalPhase = canTransition("escape", "wrap_up");
 
     const [gig] = await tx.select().from(gigs).where(eq(gigs.id, active.gigId)).limit(1);
     if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig not found");
@@ -585,41 +598,47 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const heatDelta = calculateHeat(gig.heatGenerated, active.executeOutcome ?? "failure");
 
     // 1. Wallet credit — optimistic lock (same pattern as buyFromVendor).
+    // A failed execute pays 0; transferEddies rejects zero amounts, so the
+    // credit (and its audit entry) is skipped entirely on failure.
     const wallet = await ensureWallet(characterId, tx);
-    const result = transferEddies(wallet, payout, {
-      type: "GIG_PAYOUT",
-      source: `Gig concluído: ${gig.name}`,
-      referenceType: "gig",
-      referenceId: gig.id,
-    });
-    const [updatedWallet] = await tx
-      .update(characterWallets)
-      .set({
-        balance: result.wallet.balance,
-        lifetimeEarned: result.wallet.lifetimeEarned,
-        version: wallet.version + 1,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(characterWallets.characterId, characterId),
-          eq(characterWallets.version, wallet.version),
-        ),
-      )
-      .returning();
-    if (!updatedWallet) {
-      throw new AppError(409, "CONCURRENCY_CONFLICT", "Wallet changed concurrently. Try again.");
+    let newBalance = wallet.balance;
+    if (payout > 0) {
+      const result = transferEddies(wallet, payout, {
+        type: "GIG_PAYOUT",
+        source: `Gig concluído: ${gig.name}`,
+        referenceType: "gig",
+        referenceId: gig.id,
+      });
+      const [updatedWallet] = await tx
+        .update(characterWallets)
+        .set({
+          balance: result.wallet.balance,
+          lifetimeEarned: result.wallet.lifetimeEarned,
+          version: wallet.version + 1,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(characterWallets.characterId, characterId),
+            eq(characterWallets.version, wallet.version),
+          ),
+        )
+        .returning();
+      if (!updatedWallet) {
+        throw new AppError(409, "CONCURRENCY_CONFLICT", "Wallet changed concurrently. Try again.");
+      }
+      await tx.insert(transactionLog).values({
+        characterId,
+        type: "GIG_PAYOUT",
+        amount: payout,
+        balanceBefore: result.transaction.balanceBefore,
+        balanceAfter: result.transaction.balanceAfter,
+        source: result.transaction.source,
+        referenceType: "gig",
+        referenceId: gig.id,
+      });
+      newBalance = updatedWallet.balance;
     }
-    await tx.insert(transactionLog).values({
-      characterId,
-      type: "GIG_PAYOUT",
-      amount: payout,
-      balanceBefore: result.transaction.balanceBefore,
-      balanceAfter: result.transaction.balanceAfter,
-      source: result.transaction.source,
-      referenceType: "gig",
-      referenceId: gig.id,
-    });
 
     // 2. Street cred — clamp at 100 so the DB CHECK never fires; report the
     // amount actually granted.
@@ -646,7 +665,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     // 4. History entry — the phases actually visited.
     const phasesCompleted = ["meet"];
     if (active.legworkStartedAt) phasesCompleted.push("legwork");
-    phasesCompleted.push("execute", "escape", "wrap_up");
+    phasesCompleted.push("execute", "escape", terminalPhase ?? "wrap_up");
 
     await tx.insert(gigHistory).values({
       characterId,
@@ -673,7 +692,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
       payout,
       streetCredGained: scGranted,
       heatAccumulated: heatDelta,
-      newBalance: updatedWallet.balance,
+      newBalance,
     };
   });
 }
