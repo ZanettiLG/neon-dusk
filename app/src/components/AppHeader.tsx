@@ -1,6 +1,7 @@
 import StatusBar from "./StatusBar";
+import StreetCredDisplay from "./StreetCredDisplay";
 
-/** Top app bar: brand, connection status, version badge (port of AppHeader.vue). */
+/** Top app bar: brand, connection status, street cred badge, version. */
 export default function AppHeader() {
   return (
     <header className="bg-nd-surface border-b border-nd-cyan/20 px-4 py-3">
@@ -9,6 +10,7 @@ export default function AppHeader() {
           NEON<span className="text-nd-magenta">//</span>DUSK
         </h1>
         <div className="flex items-center gap-4">
+          <StreetCredDisplay />
           <StatusBar />
           <span className="text-nd-text-secondary text-xs font-data"> v0.1.0-alpha </span>
         </div>

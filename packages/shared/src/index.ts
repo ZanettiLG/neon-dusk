@@ -68,6 +68,10 @@ export interface Character extends Attributes {
   name: string;
   origin: Origin;
   role: Role;
+  /** Current street cred (0-100, may have decayed since the max). */
+  streetCred: number;
+  /** Highest street cred ever reached — the decay floor (§5). */
+  maxStreetCredAchieved: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -169,6 +173,7 @@ export const TRANSACTION_TYPES = [
   "ADMIN_ADJUSTMENT",
   "CHROME_PURCHASE",
   "CHROME_UNINSTALL",
+  "STREET_CRED_AWARD",
 ] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
@@ -500,4 +505,49 @@ export interface GigWrapupResponse {
 export interface GigHistoryResponse {
   history: GigHistoryEntry[];
   nextCursor: string | null;
+}
+
+// ─── Street Cred (ND-011.2) ─────────────────────────────────────────────────
+// Reputation score 0-100: decays -5/day after a 7-day inactivity grace, never
+// below the highest threshold reached (04-sistemas-e-progressao.md §5).
+
+/** GET /api/street-cred response — live readout with decay applied. */
+export interface StreetCredInfo {
+  score: number;
+  title: string;
+  maxAchieved: number;
+  /** The next threshold above `score` (null at Legend, score 100). */
+  nextThreshold: { score: number; title: string } | null;
+  /** Score points needed to reach `nextThreshold` (null at Legend). */
+  scToNext: number | null;
+}
+
+/** One row of the public leaderboard. */
+export interface LeaderboardEntry {
+  position: number;
+  characterName: string;
+  /** Crew affiliation — null until crews ship (MVP has no crews). */
+  crewName: string | null;
+  score: number;
+  title: string;
+}
+
+/** GET /api/street-cred/leaderboard response. */
+export interface LeaderboardResponse {
+  leaderboard: LeaderboardEntry[];
+}
+
+/** POST /api/street-cred/award request body. */
+export interface AwardSCRequest {
+  amount: number;
+  source: string;
+}
+
+/** POST /api/street-cred/award response. */
+export interface AwardSCResponse {
+  score: number;
+  title: string;
+  /** Score actually granted (clamped at the 100 cap — 0 when already there). */
+  gained: number;
+  maxAchieved: number;
 }

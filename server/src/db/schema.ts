@@ -49,6 +49,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
   "ADMIN_ADJUSTMENT",
   "CHROME_PURCHASE",
   "CHROME_UNINSTALL",
+  "STREET_CRED_AWARD",
 ]);
 
 export const vendorTypeEnum = pgEnum("vendor_type", [
@@ -130,6 +131,11 @@ export const characters = pgTable(
     // Street Cred (ND-011): reputation earned by completing gigs (0-100).
     // Gates gig tiers (T2 needs 5+) and future fixers (04-sistemas-e-progressao §5).
     streetCred: integer("street_cred").notNull().default(0),
+    // Street Cred decay (ND-011.2): `maxStreetCredAchieved` is the lifetime
+    // max and decay floor (never falls below the highest threshold reached);
+    // `lastActivityAt` is the decay clock — every gig wrap-up resets the grace.
+    maxStreetCredAchieved: integer("max_street_cred_achieved").notNull().default(0),
+    lastActivityAt: timestamp("last_activity_at", { withTimezone: true }).notNull().defaultNow(),
     // NIL (Feature #2): neural load — regens +1 every 5 min. `nil_updated_at`
     // is the last persisted snapshot; regen is applied lazily on read.
     nil: integer("nil").notNull().default(100),
@@ -163,6 +169,12 @@ export const characters = pgTable(
       "characters_street_cred_range",
       sql`${table.streetCred} >= 0 AND ${table.streetCred} <= 100`,
     ),
+    check(
+      "characters_max_street_cred_range",
+      sql`${table.maxStreetCredAchieved} >= 0 AND ${table.maxStreetCredAchieved} <= 100`,
+    ),
+    // Leaderboard reads: top-100 by reputation (ND-011.2).
+    index("idx_characters_street_cred_desc").on(desc(table.streetCred)),
   ],
 );
 

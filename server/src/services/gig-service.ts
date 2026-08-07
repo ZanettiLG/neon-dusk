@@ -641,15 +641,20 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     }
 
     // 2. Street cred — clamp at 100 so the DB CHECK never fires; report the
-    // amount actually granted.
+    // amount actually granted. Every wrap-up (success or failure) refreshes
+    // `lastActivityAt` — playing resets the 7-day decay grace. The lifetime
+    // max (decay floor) only ever grows.
     const newStreetCred = Math.min(100, character.streetCred + streetCredGained);
     const scGranted = newStreetCred - character.streetCred;
-    if (scGranted > 0) {
-      await tx
-        .update(characters)
-        .set({ streetCred: newStreetCred, updatedAt: new Date() })
-        .where(eq(characters.id, characterId));
-    }
+    await tx
+      .update(characters)
+      .set({
+        streetCred: newStreetCred,
+        maxStreetCredAchieved: sql`GREATEST(max_street_cred_achieved, ${newStreetCred})`,
+        lastActivityAt: sql`NOW()`,
+        updatedAt: new Date(),
+      })
+      .where(eq(characters.id, characterId));
 
     // 3. District heat — upsert (one row per character + district).
     if (heatDelta > 0) {
