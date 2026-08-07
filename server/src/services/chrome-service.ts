@@ -203,8 +203,9 @@ export async function installChrome(
       throw err;
     }
 
-    // Atomic humanity decrement — the WHERE guard turns a would-be negative
-    // value into a clean 400 instead of a CHECK constraint violation.
+    // Atomic humanity decrement — the WHERE guard `gte(humanity, cost)`
+    // re-validates at write time; a 0-row match silently no-ops (unreachable
+    // under normal operation via the wallet optimistic lock, defense in depth).
     const effectiveHumanity = character.humanity - definition.humanityCost;
     await tx
       .update(characters)
