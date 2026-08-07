@@ -6,7 +6,7 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { resetDb } from "./helpers";
 import { db } from "../db";
-import { characters, transactionLog } from "../db/schema";
+import { characters, crewMembers, crews, transactionLog } from "../db/schema";
 import type {
   AuthResponse,
   AwardSCResponse,
@@ -223,6 +223,51 @@ describe("ND-013 — street-cred API", () => {
     it("should be public — no auth required", async () => {
       const res = await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
       expect(res.statusCode).toBe(200);
+    });
+
+    it("should include crewName for affiliated characters (ND-016)", async () => {
+      await isolateLeaderboard();
+      const { characterId: leaderId } = await registerApiUser();
+      const { characterId: memberId } = await registerApiUser();
+      const { characterId: soloId } = await registerApiUser();
+      await db
+        .update(characters)
+        .set({ streetCred: 80, maxStreetCredAchieved: 80 })
+        .where(eq(characters.id, leaderId));
+      await db
+        .update(characters)
+        .set({ streetCred: 50, maxStreetCredAchieved: 50 })
+        .where(eq(characters.id, memberId));
+      await db
+        .update(characters)
+        .set({ streetCred: 30, maxStreetCredAchieved: 30 })
+        .where(eq(characters.id, soloId));
+
+      // Affiliate leader + member under one crew; soloId stays unaffiliated.
+      const [crew] = await db
+        .insert(crews)
+        .values({ name: "Blade Runners", tag: "BLD", leaderId })
+        .returning({ id: crews.id });
+      await db.insert(crewMembers).values([
+        { crewId: crew!.id, characterId: leaderId },
+        { crewId: crew!.id, characterId: memberId },
+      ]);
+      await db.update(characters).set({ crewId: crew!.id }).where(eq(characters.id, leaderId));
+      await db.update(characters).set({ crewId: crew!.id }).where(eq(characters.id, memberId));
+
+      const res = await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as LeaderboardResponse;
+      expect(body.leaderboard).toHaveLength(3);
+      // 80 > 50 > 30 — order preserved, crew affiliation attached per row.
+      expect(body.leaderboard.map((e) => e.score)).toEqual([80, 50, 30]);
+      const leaderEntry = body.leaderboard.find((e) => e.score === 80);
+      const memberEntry = body.leaderboard.find((e) => e.score === 50);
+      const soloEntry = body.leaderboard.find((e) => e.score === 30);
+      expect(leaderEntry?.crewName).toBe("Blade Runners");
+      expect(memberEntry?.crewName).toBe("Blade Runners");
+      expect(soloEntry?.crewName).toBeNull();
     });
   });
 

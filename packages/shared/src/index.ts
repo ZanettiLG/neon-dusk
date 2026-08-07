@@ -174,6 +174,7 @@ export const TRANSACTION_TYPES = [
   "CHROME_PURCHASE",
   "CHROME_UNINSTALL",
   "STREET_CRED_AWARD",
+  "CREW_CREATION",
 ] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
@@ -673,4 +674,80 @@ export interface CrewLeaderboardEntry {
 /** GET /api/saideira/leaderboard/crews response. */
 export interface CrewLeaderboardResponse {
   crews: CrewLeaderboardEntry[];
+}
+
+// ─── Crews (ND-016: Crews Básicas) ──────────────────────────────────────────
+// Gang social system: a leader founds a crew (5,000 eddies, SC >= 25) and
+// recruits up to 3 members (invite → join). Size unlocks cumulative bonuses
+// (see server/src/game/crews.ts). The saideira chat (ND-015) and the street
+// cred leaderboard (ND-011.2) both surface the crew affiliation.
+
+/** Maximum crew size (leader + 3 recruits). */
+export const CREW_MAX_SIZE = 4;
+/** Street Cred required to found a crew. */
+export const CREW_CREATE_SC = 25;
+/** Eddy cost to found a crew (transaction type CREW_CREATION). */
+export const CREW_CREATE_COST = 5000;
+/** Street Cred a recruit must have to be invited. */
+export const CREW_RECRUIT_SC = 10;
+
+/** A crew (gang). */
+export interface Crew {
+  id: string;
+  name: string;
+  tag: string;
+  leaderId: string;
+  createdAt: string;
+}
+
+/** One crew member (join of crew_members + characters). */
+export interface CrewMember {
+  id: string;
+  characterId: string;
+  characterName: string;
+  streetCred: number;
+  joinedAt: string;
+}
+
+/** A pending membership invite (24h TTL). */
+export interface CrewInvite {
+  id: string;
+  crewId: string;
+  characterId: string;
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** Size-based crew bonus (server/src/game/crews.ts). */
+export interface CrewBonus {
+  type: "gig_success" | "eddies" | "street_cred";
+  description: string;
+  value: number;
+}
+
+/** POST /api/crews request body. */
+export interface CreateCrewRequest {
+  name: string;
+  tag: string;
+}
+
+/** POST /api/crews response (201). */
+export interface CreateCrewResponse {
+  crew: Crew;
+  member: CrewMember;
+}
+
+/** POST /api/crews/:id/invite request body. */
+export interface CrewInviteRequest {
+  characterId: string;
+}
+
+/** GET /api/crews/:id response — crew, members, bonuses and ranking. */
+export interface CrewDetailResponse {
+  crew: Crew;
+  members: CrewMember[];
+  bonuses: CrewBonus[];
+  /** 1-based position in the total-SC crew ranking (null when unranked). */
+  leaderboardPosition: number | null;
 }

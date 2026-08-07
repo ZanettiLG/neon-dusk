@@ -50,6 +50,7 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
   "CHROME_PURCHASE",
   "CHROME_UNINSTALL",
   "STREET_CRED_AWARD",
+  "CREW_CREATION",
 ]);
 
 export const vendorTypeEnum = pgEnum("vendor_type", [
@@ -143,6 +144,12 @@ export const characters = pgTable(
     nilUpdatedAt: timestamp("nil_updated_at").notNull().defaultNow(),
     // Chrome (Feature #4): humanity drains with every implant. 0 = flatline.
     humanity: integer("humanity").notNull().default(100),
+    // Crew (ND-016): affiliation — set when a character joins a crew, null
+    // when solo. The partial unique index below guarantees one crew per char.
+    // FK omitted on purpose: `characters` and `crews` reference each other,
+    // which TS cannot infer (TS7022). The FK lives in migration 0010 and is
+    // enforced by Postgres (ON DELETE SET NULL).
+    crewId: uuid("crew_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -175,6 +182,11 @@ export const characters = pgTable(
     ),
     // Leaderboard reads: top-100 by reputation (ND-011.2).
     index("idx_characters_street_cred_desc").on(desc(table.streetCred)),
+    // Crew membership (ND-016): `characters.crew_id` mirrors crew_members so
+    // reads (chat tag, leaderboard affiliation) skip the join. It is NOT
+    // unique — every member of a crew shares the value; the one-crew-per-
+    // character rule lives in crew_members.character_id UNIQUE.
+    index("idx_characters_crew_id").on(table.crewId).where(sql`${table.crewId} IS NOT NULL`),
   ],
 );
 
@@ -508,3 +520,69 @@ export const legends = pgTable("legends", {
   crewName: text("crew_name"), // nullable until ND-016 (crews)
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// --- Crews (ND-016: Crews Básicas) -------------------------------------------
+// Gang social system: a leader founds a crew (5,000 eddies, SC >= 25) and
+// recruits up to 3 members. `crew_members.character_id` UNIQUE guarantees a
+// character is in at most one crew; the DB trigger `trg_crew_member_limit`
+// (migration 0010) enforces the 4-member cap as the last line of defense.
+
+export const crews = pgTable(
+  "crews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull().unique(),
+    tag: text("tag").notNull().unique(),
+    leaderId: uuid("leader_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    check("crews_name_length", sql`char_length(${table.name}) BETWEEN 3 AND 20`),
+    check("crews_tag_format", sql`${table.tag} ~ '^[A-Z0-9]{3}$'`),
+  ],
+);
+
+export const crewMembers = pgTable(
+  "crew_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    crewId: uuid("crew_id")
+      .notNull()
+      .references(() => crews.id, { onDelete: "cascade" }),
+    characterId: uuid("character_id")
+      .notNull()
+      .unique()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // Membership reads always filter by crew.
+    index("idx_crew_members_crew_id").on(table.crewId),
+  ],
+);
+
+export const crewInvites = pgTable(
+  "crew_invites",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    crewId: uuid("crew_id")
+      .notNull()
+      .references(() => crews.id, { onDelete: "cascade" }),
+    characterId: uuid("character_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    invitedBy: uuid("invited_by")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    // One pending invite per (crew, character) — re-invites replace expired ones.
+    uniqueIndex("crew_invites_crew_character_unique").on(table.crewId, table.characterId),
+    index("idx_crew_invites_character_id").on(table.characterId),
+    index("idx_crew_invites_crew_id").on(table.crewId),
+  ],
+);

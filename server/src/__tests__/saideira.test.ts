@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
+import { eq } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
+import { db } from "../db";
+import { characters, crewMembers, crews } from "../db/schema";
 import type {
   AuthResponse,
   SaideiraHubInfo,
@@ -126,6 +129,31 @@ describe("ND-015 — Saideira Hub API", () => {
       contentType: res.headers.get("content-type"),
       handshake: new TextDecoder().decode(value),
     };
+  }
+
+  /**
+   * Seed a crew directly in the DB (bypasses the ND-016 create flow — that is
+   * covered in crews-api.test.ts). The first member is the leader; every
+   * member gets `streetCred` and their characters.crew_id set.
+   */
+  async function seedCrew(
+    name: string,
+    tag: string,
+    members: { characterId: string; streetCred: number }[],
+  ): Promise<void> {
+    const [crew] = await db
+      .insert(crews)
+      .values({ name, tag, leaderId: members[0].characterId })
+      .returning({ id: crews.id });
+    await db.insert(crewMembers).values(
+      members.map((m) => ({ crewId: crew!.id, characterId: m.characterId })),
+    );
+    for (const m of members) {
+      await db
+        .update(characters)
+        .set({ streetCred: m.streetCred, maxStreetCredAchieved: m.streetCred, crewId: crew!.id })
+        .where(eq(characters.id, m.characterId));
+    }
   }
 
   // ─── GET /api/saideira ─────────────────────────────────────────────────────
@@ -262,6 +290,36 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(status).toBe(201);
       const msg = body as ChatMessage;
       expect(msg.message).toBe("&lt;script&gt;alert(&quot;x&quot;)&amp;&#039;");
+    });
+
+    it("should attach the crew tag (ND-016) when the character belongs to a crew", async () => {
+      const { accessToken, characterId } = await registerApiUser();
+      await seedCrew("Filhos do Fluxo", "FLX", [{ characterId, streetCred: 30 }]);
+
+      const { status, body } = await postChat(accessToken, "o Fluxo manda lembranças");
+
+      expect(status).toBe(201);
+      const msg = body as ChatMessage;
+      expect(msg.crewTag).toBe("FLX");
+
+      // The tag is persisted in the history payload too.
+      const history = await fetch(`${base()}/api/saideira/chat/history`, {
+        headers: authHeader(accessToken),
+      });
+      const historyBody = await json<ChatHistoryResponse>(history);
+      expect(historyBody.messages[0].crewTag).toBe("FLX");
+    });
+
+    it("should keep crewTag null when the character has no crew (ND-016)", async () => {
+      const { accessToken, characterId } = await registerApiUser();
+      // A crew exists — but this character is NOT a member.
+      const other = await registerApiUser();
+      await seedCrew("Filhos do Fluxo", "FLX", [{ characterId: other.characterId, streetCred: 30 }]);
+
+      const { status, body } = await postChat(accessToken, "sou um coringa");
+
+      expect(status).toBe(201);
+      expect((body as ChatMessage).crewTag).toBeNull();
     });
   });
 
@@ -409,7 +467,7 @@ describe("ND-015 — Saideira Hub API", () => {
   // ─── GET /api/saideira/leaderboard/crews ───────────────────────────────────
 
   describe("GET /api/saideira/leaderboard/crews", () => {
-    it("should return an empty crews array (placeholder until ND-016)", async () => {
+    it("should return an empty crews array when no crews exist", async () => {
       const { accessToken } = await registerApiUser();
 
       const res = await fetch(`${base()}/api/saideira/leaderboard/crews`, {
@@ -419,6 +477,65 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(res.status).toBe(200);
       const body = await json<CrewLeaderboardResponse>(res);
       expect(body.crews).toEqual([]);
+    });
+
+    it("should rank crews by total member Street Cred (ND-016)", async () => {
+      const a = await registerApiUser();
+      const b = await registerApiUser();
+      const c = await registerApiUser();
+      const d = await registerApiUser();
+      const e = await registerApiUser();
+      // Crew 1: 3 members, 60 SC → total 90 (position 1).
+      await seedCrew("Filhos do Fluxo", "FLX", [
+        { characterId: a.characterId, streetCred: 40 },
+        { characterId: b.characterId, streetCred: 30 },
+        { characterId: c.characterId, streetCred: 20 },
+      ]);
+      // Crew 2: 2 members, 100 SC → total 100 (position 1 beats crew 1's 90).
+      await seedCrew("Mãos de Ferro", "FER", [
+        { characterId: d.characterId, streetCred: 60 },
+        { characterId: e.characterId, streetCred: 40 },
+      ]);
+      const { accessToken } = await registerApiUser();
+
+      const res = await fetch(`${base()}/api/saideira/leaderboard/crews`, {
+        headers: authHeader(accessToken),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await json<CrewLeaderboardResponse>(res);
+      expect(body.crews).toHaveLength(2);
+      expect(body.crews[0]).toEqual({
+        position: 1,
+        crewName: "Mãos de Ferro",
+        totalSC: 100,
+        memberCount: 2,
+      });
+      expect(body.crews[1]).toEqual({
+        position: 2,
+        crewName: "Filhos do Fluxo",
+        totalSC: 90,
+        memberCount: 3,
+      });
+    });
+
+    it("should cap the crew leaderboard at 5 entries", async () => {
+      const { accessToken } = await registerApiUser();
+      for (let i = 0; i < 6; i++) {
+        const solo = await registerApiUser();
+        await seedCrew(`Crew ${i}`, `C${i}${i}`, [
+          { characterId: solo.characterId, streetCred: 10 + i },
+        ]);
+      }
+
+      const res = await fetch(`${base()}/api/saideira/leaderboard/crews`, {
+        headers: authHeader(accessToken),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await json<CrewLeaderboardResponse>(res);
+      expect(body.crews).toHaveLength(5);
+      expect(body.crews.map((entry) => entry.position)).toEqual([1, 2, 3, 4, 5]);
     });
 
     it("should return 401 without an access token", async () => {
