@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   real,
@@ -13,6 +14,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { desc, sql } from "drizzle-orm";
+import { GAME_EVENT_TYPES, type ChromeBonuses } from "@neon-dusk/shared";
 
 // Neon Dusk — Database Schema
 // ============================================================================
@@ -45,6 +47,8 @@ export const transactionTypeEnum = pgEnum("transaction_type", [
   "STIM_PURCHASE",
   "CREW_BONUS",
   "ADMIN_ADJUSTMENT",
+  "CHROME_PURCHASE",
+  "CHROME_UNINSTALL",
 ]);
 
 export const vendorTypeEnum = pgEnum("vendor_type", [
@@ -52,6 +56,36 @@ export const vendorTypeEnum = pgEnum("vendor_type", [
   "STIM_DEALER",
   "FIXER",
   "BLACK_MARKET",
+]);
+
+// Feature #7 (ND-007): Telemetry. Every player action worth auditing lands in
+// `game_events` as a typed event; the enum values mirror the shared
+// GAME_EVENT_TYPES constant so the DB and the app agree.
+export const gameEventTypeEnum = pgEnum("game_event_type", [...GAME_EVENT_TYPES]);
+
+// Feature #4 (ND-011): Gigs. The `gig_phase` enum mirrors the phase machine in
+// game/gigs.ts — the terminal phase is `wrap_up`, never `wrapup`.
+export const gigTypeEnum = pgEnum("gig_type", ["extraction", "delivery", "sabotage"]);
+export const gigTierEnum = pgEnum("gig_tier", ["t1", "t2"]);
+export const gigPhaseEnum = pgEnum("gig_phase", [
+  "meet",
+  "legwork",
+  "execute",
+  "escape",
+  "wrap_up",
+]);
+export const gigOutcomeEnum = pgEnum("gig_outcome", ["success", "failure"]);
+export const historyOutcomeEnum = pgEnum("history_outcome", ["success", "failure", "abandoned"]);
+
+// Feature #4: Chrome (cyberware). Implants fill body slots, grant stat bonuses
+// and drain humanity (0-100). Slot capacities follow 04-sistemas-e-progressao.md.
+export const chromeSlotEnum = pgEnum("chrome_slot", [
+  "frontal_cortex",
+  "ocular",
+  "arms",
+  "skeleton",
+  "nervous_system",
+  "integumentary",
 ]);
 
 // --- Tables ------------------------------------------------------------------
@@ -93,11 +127,16 @@ export const characters = pgTable(
     intelligence: integer("intelligence").notNull().default(3),
     technical: integer("technical").notNull().default(3),
     cool: integer("cool").notNull().default(3),
+    // Street Cred (ND-011): reputation earned by completing gigs (0-100).
+    // Gates gig tiers (T2 needs 5+) and future fixers (04-sistemas-e-progressao §5).
+    streetCred: integer("street_cred").notNull().default(0),
     // NIL (Feature #2): neural load — regens +1 every 5 min. `nil_updated_at`
     // is the last persisted snapshot; regen is applied lazily on read.
     nil: integer("nil").notNull().default(100),
     maxNil: integer("max_nil").notNull().default(100),
     nilUpdatedAt: timestamp("nil_updated_at").notNull().defaultNow(),
+    // Chrome (Feature #4): humanity drains with every implant. 0 = flatline.
+    humanity: integer("humanity").notNull().default(100),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -117,6 +156,13 @@ export const characters = pgTable(
     // NIL integrity: never negative, never above max, max always positive.
     check("characters_nil_range", sql`${table.nil} >= 0 and ${table.nil} <= ${table.maxNil}`),
     check("characters_max_nil_positive", sql`${table.maxNil} > 0`),
+    // Humanity: 0-100. Reaching 0 is handled by the cyberpsychosis system.
+    check("characters_humanity_range", sql`${table.humanity} >= 0 and ${table.humanity} <= 100`),
+    // Street Cred: 0-100 reputation ceiling (04-sistemas-e-progressao.md §5).
+    check(
+      "characters_street_cred_range",
+      sql`${table.streetCred} >= 0 AND ${table.streetCred} <= 100`,
+    ),
   ],
 );
 
@@ -224,5 +270,180 @@ export const lootTables = pgTable(
       "loot_tables_quantity_range",
       sql`${table.minQuantity} >= 1 AND ${table.maxQuantity} >= ${table.minQuantity}`,
     ),
+  ],
+);
+
+// --- Telemetry (Feature #7 / ND-007) -----------------------------------------
+// Append-only event log written by the telemetry onResponse hook. `actor_id`
+// is intentionally FK-less: it may reference a user or a character depending
+// on the event, and telemetry rows must never block entity deletion.
+
+export const gameEvents = pgTable(
+  "game_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventType: gameEventTypeEnum("event_type").notNull(),
+    actorId: uuid("actor_id"),
+    payload: jsonb("payload").notNull().default({}),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // Admin metrics aggregate by type over time windows — a composite index
+    // serves both the WHERE (time) and GROUP BY (type) clauses.
+    index("idx_game_events_type_created_at").on(table.eventType, desc(table.createdAt)),
+  ],
+);
+
+// --- Chrome (Feature #4) -----------------------------------------------------
+// Static implant catalog + per-character loadouts. Slugs are stable identifiers
+// used by vendor inventory (item_type='CHROME', item_id=slug) and loot tables.
+
+export const chromeDefinitions = pgTable(
+  "chrome_definitions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    slot: chromeSlotEnum("slot").notNull(),
+    tier: integer("tier").notNull(),
+    bonuses: jsonb("bonuses").$type<ChromeBonuses>().notNull().default({}),
+    humanityCost: integer("humanity_cost").notNull(),
+    basePrice: bigint("base_price", { mode: "number" }).notNull(),
+    description: text("description"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check("chrome_definitions_tier_range", sql`${table.tier} between 1 and 5`),
+    check("chrome_definitions_humanity_cost_positive", sql`${table.humanityCost} > 0`),
+    check("chrome_definitions_base_price_positive", sql`${table.basePrice} > 0`),
+  ],
+);
+
+export const installedChrome = pgTable(
+  "installed_chrome",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    characterId: uuid("character_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    chromeDefinitionId: uuid("chrome_definition_id")
+      .notNull()
+      .references(() => chromeDefinitions.id, { onDelete: "restrict" }),
+    installedAt: timestamp("installed_at").defaultNow().notNull(),
+  },
+  (table) => [
+    // One implant per definition per character (duplicate installs rejected).
+    uniqueIndex("installed_chrome_character_definition_unique").on(
+      table.characterId,
+      table.chromeDefinitionId,
+    ),
+    // Loadout reads always filter by character.
+    index("idx_installed_chrome_character_id").on(table.characterId),
+  ],
+);
+
+// --- Gigs (Feature #4 / ND-011) ---------------------------------------------
+// Static gig catalog (seeded from game/gig-templates.ts), one active gig per
+// character, an append-only history and per-district heat accumulation.
+
+export const gigs = pgTable(
+  "gigs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull().unique(),
+    description: text("description").notNull(),
+    tier: gigTierEnum("tier").notNull(),
+    type: gigTypeEnum("type").notNull(),
+    district: text("district").notNull(),
+    difficulty: integer("difficulty").notNull(),
+    escapeDifficulty: integer("escape_difficulty").notNull().default(40),
+    requiredStats: jsonb("required_stats").notNull().$type<Record<string, number>>(),
+    requiredStreetCred: integer("required_street_cred").notNull().default(0),
+    baseReward: integer("base_reward").notNull(),
+    nilCost: integer("nil_cost").notNull(),
+    heatGenerated: integer("heat_generated").notNull().default(5),
+    legworkMinutes: integer("legwork_minutes").notNull(),
+    cooldownMinutes: integer("cooldown_minutes").notNull().default(10),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check("gigs_difficulty_range", sql`${table.difficulty} BETWEEN 1 AND 100`),
+    check("gigs_escape_difficulty_range", sql`${table.escapeDifficulty} BETWEEN 1 AND 100`),
+    check("gigs_base_reward_positive", sql`${table.baseReward} > 0`),
+    check("gigs_nil_cost_positive", sql`${table.nilCost} > 0`),
+    check("gigs_heat_positive", sql`${table.heatGenerated} >= 0`),
+    check("gigs_legwork_minutes_range", sql`${table.legworkMinutes} BETWEEN 5 AND 30`),
+    check("gigs_sc_non_negative", sql`${table.requiredStreetCred} >= 0`),
+    index("idx_gigs_tier").on(table.tier),
+    index("idx_gigs_type").on(table.type),
+    index("idx_gigs_district").on(table.district),
+  ],
+);
+
+export const activeGigs = pgTable(
+  "active_gigs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    characterId: uuid("character_id")
+      .notNull()
+      .unique()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    gigId: uuid("gig_id")
+      .notNull()
+      .references(() => gigs.id, { onDelete: "restrict" }),
+    phase: gigPhaseEnum("phase").notNull().default("meet"),
+    status: text("status").notNull().default("active"),
+    acceptedAt: timestamp("accepted_at").defaultNow().notNull(),
+    legworkStartedAt: timestamp("legwork_started_at"),
+    legworkCompleted: boolean("legwork_completed").notNull().default(false),
+    executeOutcome: gigOutcomeEnum("execute_outcome"),
+    escapeOutcome: gigOutcomeEnum("escape_outcome"),
+    actualPayout: integer("actual_payout"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("idx_active_gigs_character").on(table.characterId)],
+);
+
+export const gigHistory = pgTable(
+  "gig_history",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    characterId: uuid("character_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    gigId: uuid("gig_id")
+      .notNull()
+      .references(() => gigs.id, { onDelete: "restrict" }),
+    outcome: historyOutcomeEnum("outcome").notNull(),
+    phasesCompleted: text("phases_completed").array().notNull(),
+    payout: integer("payout").notNull().default(0),
+    streetCredGained: integer("street_cred_gained").notNull().default(0),
+    heatAccumulated: integer("heat_accumulated").notNull().default(0),
+    district: text("district").notNull(),
+    completedAt: timestamp("completed_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_gig_history_character").on(table.characterId, desc(table.completedAt)),
+    index("idx_gig_history_completed_at").on(table.completedAt),
+  ],
+);
+
+export const heat = pgTable(
+  "heat",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    characterId: uuid("character_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    district: text("district").notNull(),
+    amount: integer("amount").notNull().default(0),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("heat_character_district").on(table.characterId, table.district),
+    check("heat_amount_non_negative", sql`${table.amount} >= 0`),
+    index("idx_heat_character").on(table.characterId),
   ],
 );

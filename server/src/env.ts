@@ -28,6 +28,12 @@ export const envSchema = z.object({
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 characters"),
 
+  // Admin (ND-007): API key guarding the /api/admin/* endpoints.
+  ADMIN_API_KEY: z.string().min(32, "ADMIN_API_KEY must be at least 32 characters"),
+
+  // Telemetry (ND-007): opt-in Node.js runtime metrics on the Prometheus registry.
+  PROMETHEUS_COLLECT_DEFAULTS: z.enum(["true", "false"]).default("false"),
+
   // CORS
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
 });

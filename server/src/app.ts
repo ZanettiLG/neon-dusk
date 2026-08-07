@@ -1,14 +1,25 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import type Redis from "ioredis";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import jwt from "@fastify/jwt";
 import { type Env } from "./env";
 import { apiRoutes } from "./routes";
+import { prometheusRoutes } from "./routes/metrics";
+import { telemetryPlugin } from "./telemetry/middleware";
 import { errorHandler } from "./middleware/error-handler";
 import { createRedisClient } from "./lib/redis";
 
 export interface AppOptions {
   env: Env;
+}
+
+// The shared Redis instance is decorated on the Fastify instance so any route
+// or hook can reach it via `request.server.redis`.
+declare module "fastify" {
+  interface FastifyInstance {
+    redis: Redis;
+  }
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -38,6 +49,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   // Fastify 5 AND the direct `redis` option (verified against v10.3.0 types).
   const redis = createRedisClient(env.REDIS_URL);
 
+  // Shared Redis instance (rate-limit, auth, telemetry active-tracker)
+  app.decorate("redis", redis);
+
   await app.register(rateLimit, {
     max: env.RATE_LIMIT_MAX,
     timeWindow: env.RATE_LIMIT_WINDOW_MS,
@@ -59,6 +73,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   // Global error handler
   app.setErrorHandler(errorHandler);
+
+  // Telemetry (ND-007): onResponse hook — fire-and-forget game event writes.
+  // Registered before the routes so it applies to every endpoint under /api.
+  await app.register(telemetryPlugin);
+
+  // Prometheus scrape endpoint at the ROOT (not under /api) so the dockerized
+  // Prometheus can reach it at host.docker.internal:3000/metrics.
+  await app.register(prometheusRoutes);
 
   // Routes — all feature routes under /api
   await app.register(apiRoutes, { prefix: "/api", redis });

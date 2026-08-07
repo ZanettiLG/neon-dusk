@@ -5,7 +5,14 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ["**/dist/**", "**/node_modules/**", "**/migrations/**", "**/.opencode/**"],
+    // Scratch/temp files (e.g. agent smoke tests) never gate lint.
+    ignores: [
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/migrations/**",
+      "**/.opencode/**",
+      "**/*.tmp.*",
+    ],
   },
   {
     rules: {

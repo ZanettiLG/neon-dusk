@@ -167,6 +167,8 @@ export const TRANSACTION_TYPES = [
   "STIM_PURCHASE",
   "CREW_BONUS",
   "ADMIN_ADJUSTMENT",
+  "CHROME_PURCHASE",
+  "CHROME_UNINSTALL",
 ] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
@@ -245,4 +247,257 @@ export interface BuyResponse {
     unitPrice: number;
     totalPrice: number;
   };
+}
+
+// --- Telemetry (ND-007) ------------------------------------------------------
+// Game events are the single audit stream behind the ops dashboards: gigs,
+// PVP, economy movements and NIL spends. The enum lives here so server,
+// app and the DB enum (game_event_type) share one source of truth.
+
+export const GAME_EVENT_TYPES = [
+  "CHARACTER_CREATED",
+  "GIG_STARTED",
+  "GIG_COMPLETED",
+  "GIG_FAILED",
+  "PVP_ATTACK",
+  "PVP_DEFEAT",
+  "EDDIES_EARNED",
+  "EDDIES_SPENT",
+  "NIL_SPENT",
+  "NIL_RESTORED",
+  "VENDOR_PURCHASE",
+] as const;
+export type GameEventType = (typeof GAME_EVENT_TYPES)[number];
+
+/** GET /api/admin/metrics response — recent activity digest. */
+export interface AdminMetricsResponse {
+  timestamp: string;
+  events: {
+    /** event_type → count over the last 24h. */
+    last24h: Record<string, number>;
+    /** event_type → count over the last 1h. */
+    last1h: Record<string, number>;
+  };
+  economy: {
+    eddiesEarned24h: number;
+    eddiesSpent24h: number;
+    nilSpent24h: number;
+  };
+  activity: {
+    activeCharacters24h: number;
+    gigsCompleted24h: number;
+    gigsFailed24h: number;
+    pvpAttacks24h: number;
+  };
+}
+
+// --- Chrome (cyberware) -------------------------------------------------------
+// Implants fill body slots, grant stat bonuses and drain humanity (100 base).
+// Slot capacities and humanity pricing follow 04-sistemas-e-progressao.md §3-4.
+
+/** Body slots an implant can occupy (MVP subset of the 9-slot table). */
+export const CHROME_SLOTS = [
+  "frontal_cortex",
+  "ocular",
+  "arms",
+  "skeleton",
+  "nervous_system",
+  "integumentary",
+] as const;
+export type ChromeSlot = (typeof CHROME_SLOTS)[number];
+
+/** How many implants fit per slot. */
+export const SLOT_CAPACITY: Record<ChromeSlot, number> = {
+  frontal_cortex: 3,
+  ocular: 2,
+  arms: 2,
+  skeleton: 2,
+  nervous_system: 3,
+  integumentary: 3,
+};
+
+/** Stat deltas granted by an implant (all optional — an implant may give none). */
+export interface ChromeBonuses {
+  body?: number;
+  reflexes?: number;
+  intelligence?: number;
+  technical?: number;
+  cool?: number;
+  max_hp?: number;
+  gig_success_rate?: number;
+}
+
+/** Static chrome catalog entry (sold by ripperdocs). */
+export interface ChromeDefinition {
+  id: string;
+  slug: string;
+  name: string;
+  slot: ChromeSlot;
+  tier: number;
+  bonuses: ChromeBonuses;
+  humanityCost: number;
+  basePrice: number;
+  description?: string | null;
+}
+
+/** One installed implant (join of installed_chrome + chrome_definitions). */
+export interface InstalledChromeRecord {
+  installedId: string;
+  installedAt: string;
+  definition: ChromeDefinition;
+}
+
+/** GET /api/chrome/installed response — current loadout + effective bonuses. */
+export interface InstalledChromeResponse {
+  installed: InstalledChromeRecord[];
+  /** Persisted humanity after all installs (never below 0). */
+  effectiveHumanity: number;
+  /** Total humanity drained by installed chrome. */
+  humanitySpent: number;
+  statBonus: Attributes;
+  hpBonus: number;
+  gigSuccessBonus: number;
+}
+
+/** POST /api/chrome/install response (201). */
+export interface ChromeInstallResponse {
+  installedChrome: InstalledChromeRecord;
+  effectiveHumanity: number;
+  walletBalance: number;
+}
+
+/** POST /api/chrome/uninstall response. */
+export interface ChromeUninstallResponse {
+  /** The slot freed by the uninstall. */
+  freedSlot: ChromeSlot;
+  /** Humanity is unchanged by uninstall (no refund, no recovery). */
+  effectiveHumanity: number;
+}
+
+// ─── Gigs (Feature #4 / ND-011) ───────────────────────────────────────────
+// The 5-phase loop of 03-mecanicas-core.md §2. NOTE: the terminal phase is
+// `wrap_up` (not `wrapup`) — it matches the phase machine in
+// server/src/game/gigs.ts (`canTransition`), which the service stores verbatim
+// in active_gigs.phase.
+
+export const GIG_TYPES = ["extraction", "delivery", "sabotage"] as const;
+export type GigType = (typeof GIG_TYPES)[number];
+
+export const GIG_TIERS = ["t1", "t2"] as const;
+export type GigTier = (typeof GIG_TIERS)[number];
+
+export const GIG_PHASES = ["meet", "legwork", "execute", "escape", "wrap_up"] as const;
+export type GigPhase = (typeof GIG_PHASES)[number];
+
+/** Gig template returned to client (one row of the static `gigs` catalog). */
+export interface GigTemplate {
+  id: string;
+  name: string;
+  description: string;
+  tier: GigTier;
+  type: GigType;
+  district: string;
+  difficulty: number;
+  escapeDifficulty: number;
+  requiredStats: Record<string, number>;
+  requiredStreetCred: number;
+  baseReward: number;
+  nilCost: number;
+  heatGenerated: number;
+  legworkMinutes: number;
+  cooldownMinutes: number;
+  meetsRequirements?: boolean;
+  cooldownRemaining?: number;
+}
+
+/** Condensed for the board list. */
+export interface GigListItem {
+  id: string;
+  name: string;
+  tier: GigTier;
+  type: GigType;
+  district: string;
+  difficulty: number;
+  baseReward: number;
+  nilCost: number;
+  /** Sparse attribute requirements (rendered as checked/unchecked chips). */
+  requiredStats: Record<string, number>;
+  meetsRequirements: boolean;
+  cooldownRemaining: number;
+}
+
+/** Active gig state (one per character — `active_gigs.character_id` unique). */
+export interface ActiveGig {
+  id: string;
+  gigId: string;
+  gigName: string;
+  gigType: string;
+  gigTier: string;
+  phase: string;
+  status: string;
+  acceptedAt: string;
+  legworkStartedAt: string | null;
+  legworkCompleted: boolean;
+  legworkMinutes: number;
+  executeOutcome: string | null;
+  escapeOutcome: string | null;
+  actualPayout: number | null;
+  escapeDifficulty: number;
+}
+
+/** History entry (one row of `gig_history`). */
+export interface GigHistoryEntry {
+  id: string;
+  gigId: string;
+  gigName: string;
+  tier: string;
+  type: string;
+  outcome: string;
+  payout: number;
+  streetCredGained: number;
+  heatAccumulated: number;
+  district: string;
+  completedAt: string;
+}
+
+// Response types
+export interface GigBoardResponse {
+  gigs: GigListItem[];
+  activeGig: ActiveGig | null;
+  dailyCount: number;
+}
+
+export interface GigDetailResponse {
+  gig: GigTemplate;
+  meetsRequirements: boolean;
+  cooldownRemaining: number;
+}
+
+export interface GigAcceptResponse {
+  activeGig: ActiveGig;
+  nilRemaining: number;
+}
+
+export interface GigExecuteResponse {
+  activeGig: ActiveGig;
+  outcome: { success: boolean; roll: number; successChance: number };
+}
+
+export interface GigEscapeResponse {
+  activeGig: ActiveGig;
+  outcome: { success: boolean; roll: number; successChance: number };
+  heatGenerated: number;
+}
+
+export interface GigWrapupResponse {
+  outcome: string;
+  payout: number;
+  streetCredGained: number;
+  heatAccumulated: number;
+  newBalance: number;
+}
+
+export interface GigHistoryResponse {
+  history: GigHistoryEntry[];
+  nextCursor: string | null;
 }

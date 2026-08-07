@@ -31,8 +31,44 @@ services:
       timeout: 3s
       retries: 5
 
+  # ND-007: Telemetry stack. Prometheus scrapes the server's /metrics endpoint
+  # (the server runs on the host via `npm run dev`, hence host.docker.internal)
+  # and Grafana renders the provisioned Neon Dusk dashboard.
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: neondusk-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: neondusk-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      # Anonymous read access — the ops dashboard is not sensitive.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+
 volumes:
   pgdata:
     driver: local
   redisdata:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local
