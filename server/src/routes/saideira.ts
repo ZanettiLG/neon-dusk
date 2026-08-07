@@ -1,7 +1,7 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
 import { z } from "zod";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type {
   SaideiraHubInfo,
@@ -13,11 +13,11 @@ import type {
 import { authenticate } from "../middleware/auth";
 import { AppError } from "../middleware/error-handler";
 import { checkRateLimit } from "../lib/rate-limit";
+import { escapeHtml } from "../lib/escape-html";
+import { sseAuthenticate } from "../lib/sse-auth";
 import { requireCharacterId } from "../services/economy-service";
-import type { AccessTokenPayload } from "../lib/auth";
-import { trackActiveUser } from "../telemetry/active-tracker";
 import { db } from "../db";
-import { characters, legends } from "../db/schema";
+import { characters, crewMembers, crews, legends } from "../db/schema";
 
 // Neon Dusk — Saideira Hub routes (ND-015)
 // ============================================================================
@@ -59,16 +59,6 @@ const SSE_KEEPALIVE_MS = 30_000;
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** HTML-escape user input before storing/displaying (XSS mitigation). */
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 /**
  * Count active users by scanning `auth:active:*` keys (ND-007 telemetry).
  * Best-effort: returns 0 on any Redis hiccup so hub info never fails.
@@ -86,39 +76,6 @@ async function countOnline(redis: Redis): Promise<number> {
   } catch {
     return 0; // best-effort: hub info stays up when telemetry is down
   }
-}
-
-/**
- * Auth for the SSE stream. EventSource cannot set Authorization headers, so
- * this accepts the access token as a `?token=` query param for this route
- * only (ponytail: MVP — switch to an HTTP-only cookie when the auth system
- * supports it). Prefers the Bearer header when present.
- */
-async function sseAuthenticate(request: FastifyRequest): Promise<void> {
-  const header = request.headers.authorization;
-  const queryToken = (request.query as { token?: unknown } | null)?.token;
-  const token =
-    header?.startsWith("Bearer ")
-      ? header.slice("Bearer ".length)
-      : typeof queryToken === "string" && queryToken.length > 0
-        ? queryToken
-        : undefined;
-
-  if (!token) {
-    throw new AppError(401, "UNAUTHORIZED", "Missing, invalid or expired access token");
-  }
-
-  try {
-    request.user = await request.server.jwt.verify<AccessTokenPayload>(token);
-  } catch {
-    throw new AppError(401, "UNAUTHORIZED", "Missing, invalid or expired access token");
-  }
-
-  // Telemetry (ND-007): mark the user active for 24h. Fire-and-forget — a
-  // Redis hiccup must never fail an otherwise valid request.
-  void trackActiveUser(request.server.redis, request.user.sub).catch(() => {
-    // best-effort telemetry: intentionally silent
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -158,18 +115,29 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
         CHAT_RATE_LIMIT_WINDOW_MS,
       );
 
-      // Resolve the character name (direct query — 1 row, no cache needed).
+      // Resolve the character name + crew tag (direct query — 1 row).
       const [char] = await db
-        .select({ name: characters.name })
+        .select({ name: characters.name, crewId: characters.crewId })
         .from(characters)
         .where(eq(characters.id, characterId))
         .limit(1);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
+      // ND-016: attach the crew tag when the character belongs to a crew.
+      let crewTag: string | null = null;
+      if (char.crewId) {
+        const [crew] = await db
+          .select({ tag: crews.tag })
+          .from(crews)
+          .where(eq(crews.id, char.crewId))
+          .limit(1);
+        crewTag = crew?.tag ?? null;
+      }
+
       const chatMessage: ChatMessage = {
         id: randomUUID(),
         characterName: char.name,
-        crewTag: null, // ponytail: NULL until ND-016 (crews)
+        crewTag,
         message: escapeHtml(message),
         createdAt: new Date().toISOString(),
       };
@@ -270,14 +238,33 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     },
   );
 
-  // GET /api/saideira/leaderboard/crews — placeholder until ND-016 (crews).
+  // GET /api/saideira/leaderboard/crews — top 5 crews by total member SC.
   app.get(
     "/saideira/leaderboard/crews",
     { preHandler: [authenticate] },
     async (): Promise<CrewLeaderboardResponse> => {
-      // ponytail: placeholder until ND-016 ships. Real implementation:
-      // GROUP BY crew_name → SUM(street_cred), COUNT(*) ordered desc.
-      return { crews: [] };
+      const totalSC = sql<number>`COALESCE(SUM(${characters.streetCred}), 0)::int`;
+      const rows = await db
+        .select({
+          name: crews.name,
+          totalSC,
+          memberCount: sql<number>`COUNT(${crewMembers.characterId})::int`,
+        })
+        .from(crews)
+        .leftJoin(crewMembers, eq(crewMembers.crewId, crews.id))
+        .leftJoin(characters, eq(characters.id, crewMembers.characterId))
+        .groupBy(crews.id)
+        .orderBy(desc(totalSC))
+        .limit(5);
+
+      return {
+        crews: rows.map((row, index) => ({
+          position: index + 1,
+          crewName: row.name,
+          totalSC: row.totalSC,
+          memberCount: row.memberCount,
+        })),
+      };
     },
   );
 }

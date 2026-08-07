@@ -18,9 +18,12 @@ export async function startTestServer(app: FastifyInstance) {
       return fetch(`${base}${path}`);
     },
     post(path: string, body?: unknown, headers?: Record<string, string>) {
+      // Content-Type is only set when a body exists: Fastify rejects a JSON
+      // content-type with an empty body (e.g. bodyless POSTs like crew join).
       return fetch(`${base}${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...headers },
+        headers:
+          body === undefined ? { ...headers } : { "Content-Type": "application/json", ...headers },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     },

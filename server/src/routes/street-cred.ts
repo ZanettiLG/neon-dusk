@@ -10,7 +10,7 @@ import type {
 import { authenticate } from "../middleware/auth";
 import { AppError } from "../middleware/error-handler";
 import { db } from "../db";
-import { characters, transactionLog } from "../db/schema";
+import { characters, crews, transactionLog } from "../db/schema";
 import { requireCharacterId } from "../services/economy-service";
 import { calculateDecay, getNextThreshold, getTitle } from "../game/street-cred";
 
@@ -94,22 +94,25 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
         streetCred: characters.streetCred,
         maxStreetCredAchieved: characters.maxStreetCredAchieved,
         lastActivityAt: characters.lastActivityAt,
+        crewName: crews.name,
       })
       .from(characters)
+      .leftJoin(crews, eq(crews.id, characters.crewId))
       .orderBy(desc(characters.streetCred))
       .limit(50);
 
     const leaderboard = rows
       .map((row) => ({
         name: row.name,
+        crewName: row.crewName,
         score: calculateDecay(row.lastActivityAt, row.streetCred, row.maxStreetCredAchieved).effectiveScore,
       }))
       .sort((a, b) => b.score - a.score)
       .map((row, index) => ({
         position: index + 1,
         characterName: row.name,
-        // ponytail: crews ship post-MVP — the column exists so the API shape is stable.
-        crewName: null,
+        // ND-016: crew affiliation, null for solo runners.
+        crewName: row.crewName ?? null,
         score: row.score,
         title: getTitle(row.score),
       }));
