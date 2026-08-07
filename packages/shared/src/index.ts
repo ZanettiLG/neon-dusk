@@ -154,3 +154,95 @@ export interface AuthResponse {
   user: User;
   character: Character | null;
 }
+
+// --- Economy (Feature #3 / ND-010) -------------------------------------------
+// Wallet balances are expressed in eddies (integers). Transaction types record
+// every wallet movement; vendor types classify the NPC vendors.
+
+export const TRANSACTION_TYPES = [
+  "GIG_PAYOUT",
+  "VENDOR_PURCHASE",
+  "PVP_REWARD",
+  "PVP_LOSS",
+  "STIM_PURCHASE",
+  "CREW_BONUS",
+  "ADMIN_ADJUSTMENT",
+] as const;
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+
+export const VENDOR_TYPES = ["RIPPERDOC", "STIM_DEALER", "FIXER", "BLACK_MARKET"] as const;
+export type VendorType = (typeof VENDOR_TYPES)[number];
+
+/** Wallet readout. `escrow` is balance committed to pending deals (unspendable). */
+export interface EconomyBalanceResponse {
+  balance: number;
+  escrow: number;
+  lifetimeEarned: number;
+  lifetimeSpent: number;
+}
+
+/** One entry in the append-only transaction audit trail. */
+export interface TransactionRecord {
+  id: string;
+  characterId: string;
+  type: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  source: string;
+  referenceType: string | null;
+  referenceId: string | null;
+  createdAt: string;
+}
+
+/** GET /api/economy/transactions response (cursor-based pagination). */
+export interface TransactionListResponse {
+  transactions: TransactionRecord[];
+  nextCursor: string | null;
+}
+
+/** Public vendor listing entry. */
+export interface VendorRecord {
+  id: string;
+  name: string;
+  type: string;
+  district: string;
+  description?: string | null;
+}
+
+/** A sellable item at a vendor. `stock` -1 means unlimited. */
+export interface VendorInventoryRecord {
+  id: string;
+  vendorId: string;
+  itemType: string;
+  itemId: string;
+  price: number;
+  stock: number;
+}
+
+/** GET /api/vendors/:id response. */
+export interface VendorWithInventory {
+  vendor: VendorRecord;
+  inventory: VendorInventoryRecord[];
+}
+
+/** POST /api/vendors/:id/buy request body. */
+export interface BuyRequest {
+  itemType: string;
+  itemId: string;
+  quantity: number;
+}
+
+/** POST /api/vendors/:id/buy response. */
+export interface BuyResponse {
+  success: boolean;
+  balanceBefore: number;
+  balanceAfter: number;
+  item: {
+    itemType: string;
+    itemId: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  };
+}
