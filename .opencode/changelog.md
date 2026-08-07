@@ -2,6 +2,47 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-07 — N2 Proposals: PvP Auto-Refinement (ND-014)
+
+### Trigger
+Auto-refinamento N1 aplicado (checks #24, #25 no developer). Patterns N2 identificados requerem confirmação humana antes da aplicação.
+
+### N2 Proposal 1: Code-reviewer — N+1 Query Detection Rule
+
+**Problema**: `getAttackableTargets` gera 40+ queries para 20 targets. N+1 é um anti-padrão recorrente (mencionado no `nodejs-patterns` como anti-padrão, mas o code-reviewer só tem uma menção genérica "N+1 queries?" no critério #3).
+
+**Solução proposta**: Expandir o critério #3 (Performance) do code-reviewer com sub-check explícito:
+```
+- N+1 queries: para cada query dentro de um loop, verificar se deveria ser um JOIN/Drizzle `with`/batch load. 
+  Threshold: > 2 queries por unidade de trabalho iterada = violação.
+```
+
+**Impacto esperado**: Detecção sistemática de N+1 em revisões, não dependente do conhecimento tácito do reviewer.
+
+**Riscos**: Possível falso-positivo em queries paginadas com pré-carregamento intencional. Mitigável com threshold de contexto.
+
+### N2 Proposal 2: Documentar padrão "constants live in game-logic/, not duplicated in service/"
+
+**Problema**: `IMMUNITY_DAYS` definido em `src/server/game-logic/` e `IMMUNITY_MS` duplicado em `src/server/services/pvp.service.ts`. Serviço usa constante diferente da camada de jogo — bug silencioso quando as duas divergem.
+
+**Solução proposta**: Adicionar ao `nodejs-patterns` skill uma nova seção "Game Constants" documentando:
+```
+Constantes de domínio (IMMUNITY_DAYS, MAX_NIL, STREET_CRED_THRESHOLDS) 
+vivem em src/server/game-logic/constants.ts e são IMPORTADAS pelo service layer. 
+NUNCA redefinir constante de jogo no service/.
+```
+
+**Alternativa**: Adicionar como check #26 no developer self-review.
+
+**Impacto esperado**: Elimina duplicação de constantes entre camadas, previne bugs de divergência.
+
+**Riscos**: Nenhum — é reforço de padrão existente (DRY interno já é check #19).
+
+### Status
+⏳ Aguardando confirmação humana para aplicar N2.
+
+---
+
 ## 2026-08-06
 ### N3: Frontend Migration Vue 3 → React 19
 - Epic #5: Complete frontend rewrite from Vue 3 to React 19

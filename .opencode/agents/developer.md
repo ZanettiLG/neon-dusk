@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (20 checks)
+7. Self-review (27 checks)
 8. Handoff do código implementado
 
-## Self-Review (23 checks)
+## Self-Review (27 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex/Drizzle; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -55,6 +55,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Docker operations ordered correctly — pull before run, up after pull (deploy scripts)
 - [ ] Workflow triggers that checkout code use correct ref — `workflow_run` needs explicit `ref: ${{ github.event.workflow_run.head_sha }}`, `push`/`pull_request` use default
 - [ ] Every Docker service has a healthcheck if a health endpoint exists (check `/api/health`, `/health`, or similar before writing compose)
+- [ ] Débitos usam saldo disponível (`balance - escrow`), nunca `balance` bruto — aplica-se a PvP, vendor purchases, gig payouts, ou qualquer operação que reserve fundos temporariamente
+- [ ] Features com outcomes duais (win/loss, success/failure, accept/reject) emitem eventos de telemetria para TODOS os outcomes, não apenas o caminho feliz
+- [ ] SSE/hijack pattern: async setup entre `reply.raw.writeHead()` e `reply.hijack()` deve estar em try/catch com cleanup (destroy socket, unsubscribe Redis) — se `redis.duplicate()`/`subscribe()` falhar após `writeHead`, a conexão fica half-open
+- [ ] Component test baseline: todo componente novo que renderiza condicionalmente em uma view (ex: dentro de tabs, guards de rota, ou flags de feature) deve ter pelo menos um "renders without error" test (Vitest + Testing Library)
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino
