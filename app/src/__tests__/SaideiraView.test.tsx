@@ -12,7 +12,12 @@ import type { Character, ChatMessage, CrewLeaderboardResponse, LegendsResponse }
 // effect and render assertions.
 const storeMocks = vi.hoisted(() => {
   const initial = {
-    hub: null as { onlineCount: number; lastReset: string; currentRound: number } | null,
+    hub: null as {
+      onlineCount: number;
+      lastReset: string | null;
+      currentRound: number;
+      roundEndsAt: string;
+    } | null,
     hubLoading: false,
     hubError: null as string | null,
     messages: [] as ChatMessage[],
@@ -135,7 +140,12 @@ describe("SaideiraView", () => {
   it("should show hub online count and round in the header", () => {
     useAuthStore.setState({ character: character(25) });
     useSaideiraStore.setState({
-      hub: { onlineCount: 12, lastReset: "2026-08-01T00:00:00.000Z", currentRound: 1 },
+      hub: {
+        onlineCount: 12,
+        lastReset: "2026-08-01T00:00:00.000Z",
+        currentRound: 1,
+        roundEndsAt: "2026-08-15T00:00:00.000Z",
+      },
     });
 
     renderView();

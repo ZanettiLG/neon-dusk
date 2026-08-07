@@ -159,7 +159,7 @@ describe("ND-015 — Saideira Hub API", () => {
   // ─── GET /api/saideira ─────────────────────────────────────────────────────
 
   describe("GET /api/saideira", () => {
-    it("should return hub info with onlineCount, lastReset and currentRound", async () => {
+    it("should return hub info with onlineCount, lastReset and currentRound (ND-017 real data)", async () => {
       const { accessToken } = await registerApiUser();
 
       const res = await fetch(`${base()}/api/saideira`, { headers: authHeader(accessToken) });
@@ -167,8 +167,10 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(res.status).toBe(200);
       const body = await json<SaideiraHubInfo>(res);
       expect(body.onlineCount).toBeTypeOf("number");
-      expect(body.lastReset).toBe("2026-08-01T00:00:00.000Z");
-      expect(body.currentRound).toBe(1);
+      // Round data is real (ND-017): lastReset is null until a round has ended.
+      expect(body.lastReset === null || typeof body.lastReset === "string").toBe(true);
+      expect(body.currentRound).toBeGreaterThan(0);
+      expect(Number.isNaN(Date.parse(body.roundEndsAt))).toBe(false);
     });
 
     it("should return 401 without an access token", async () => {
@@ -311,7 +313,7 @@ describe("ND-015 — Saideira Hub API", () => {
     });
 
     it("should keep crewTag null when the character has no crew (ND-016)", async () => {
-      const { accessToken, characterId } = await registerApiUser();
+      const { accessToken } = await registerApiUser();
       // A crew exists — but this character is NOT a member.
       const other = await registerApiUser();
       await seedCrew("Filhos do Fluxo", "FLX", [{ characterId: other.characterId, streetCred: 30 }]);

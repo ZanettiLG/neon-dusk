@@ -186,7 +186,9 @@ export const characters = pgTable(
     // reads (chat tag, leaderboard affiliation) skip the join. It is NOT
     // unique — every member of a crew shares the value; the one-crew-per-
     // character rule lives in crew_members.character_id UNIQUE.
-    index("idx_characters_crew_id").on(table.crewId).where(sql`${table.crewId} IS NOT NULL`),
+    index("idx_characters_crew_id")
+      .on(table.crewId)
+      .where(sql`${table.crewId} IS NOT NULL`),
   ],
 );
 
@@ -308,7 +310,9 @@ export const gameEvents = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     eventType: gameEventTypeEnum("event_type").notNull(),
     actorId: uuid("actor_id"), // FK-less — never blocks deletion
-    payload: jsonb("payload").default(sql`'{}'::jsonb`).notNull(),
+    payload: jsonb("payload")
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
@@ -494,10 +498,7 @@ export const pvpCombats = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    check(
-      "pvp_combats_loot_amount_non_negative",
-      sql`${table.lootAmount} >= 0`,
-    ),
+    check("pvp_combats_loot_amount_non_negative", sql`${table.lootAmount} >= 0`),
     index("idx_pvp_combats_attacker").on(table.attackerId, desc(table.createdAt)),
     index("idx_pvp_combats_defender").on(table.defenderId, desc(table.createdAt)),
     index("idx_pvp_combats_attacker_defender").on(
@@ -584,5 +585,60 @@ export const crewInvites = pgTable(
     uniqueIndex("crew_invites_crew_character_unique").on(table.crewId, table.characterId),
     index("idx_crew_invites_character_id").on(table.characterId),
     index("idx_crew_invites_crew_id").on(table.crewId),
+  ],
+);
+
+// --- Rounds (ND-017) ---------------------------------------------------------
+// 14-day rounds with a full server-side reset. `rounds` tracks the lifecycle
+// (one active round at a time, sequential numbering); `round_stats` stores a
+// snapshot captured at reset time BEFORE the wipe. The partial unique index
+// guarantees at most one active round — the DB-level invariant the reset
+// relies on.
+
+export const roundStatusEnum = pgEnum("round_status", ["active", "ended"]);
+
+export const rounds = pgTable(
+  "rounds",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    roundNumber: integer("round_number").notNull().unique(),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    status: roundStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // "Which round is active?" lookups (both cron and GET /api/round).
+    index("idx_rounds_status").on(table.status),
+    // At most one active round at any time.
+    uniqueIndex("idx_rounds_active")
+      .on(table.status)
+      .where(sql`${table.status} = 'active'`),
+  ],
+);
+
+export const roundStats = pgTable(
+  "round_stats",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    roundId: uuid("round_id")
+      .notNull()
+      .references(() => rounds.id, { onDelete: "cascade" }),
+    totalGigsCompleted: integer("total_gigs_completed").notNull().default(0),
+    totalEddiesEarned: bigint("total_eddies_earned", { mode: "number" }).notNull().default(0),
+    totalPvpFights: integer("total_pvp_fights").notNull().default(0),
+    totalActiveCharacters: integer("total_active_characters").notNull().default(0),
+    // Snapshot of the top crew / top character — FK-less on purpose: crews are
+    // deleted on reset and characters persist, so ids are informational only.
+    topCrewId: uuid("top_crew_id"),
+    topCrewName: text("top_crew_name"),
+    topScCharacterId: uuid("top_sc_character_id"),
+    topScCharacterName: text("top_sc_character_name"),
+    topScValue: integer("top_sc_value"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // History reads always join rounds → round_stats by round_id.
+    index("idx_round_stats_round_id").on(table.roundId),
   ],
 );

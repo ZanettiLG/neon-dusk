@@ -9,7 +9,6 @@ import { db } from "../db";
 import { characterWallets, characters, pvpCombats, transactionLog } from "../db/schema";
 import { ensureWallet } from "../services/economy-service";
 import type {
-  AuthResponse,
   PvpAttackableResponse,
   PvpCombatResult,
   PvpHistoryResponse,
