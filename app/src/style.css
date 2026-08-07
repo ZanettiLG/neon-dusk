@@ -43,4 +43,9 @@
            bg-nd-magenta/10 hover:bg-nd-magenta/20
            hover:shadow-neon-magenta;
   }
+
+  .nav-link {
+    @apply font-heading text-xs uppercase tracking-widest text-nd-text-secondary
+           hover:text-nd-cyan transition-colors;
+  }
 }
