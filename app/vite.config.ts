@@ -10,6 +10,45 @@ export default defineConfig({
       registerType: "autoUpdate",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Runtime caching: cache-first for static assets, network-first for API
+        runtimeCaching: [
+          {
+            urlPattern: /\.(?:js|css|woff2)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "static-assets",
+              expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 },
+            },
+          },
+          {
+            urlPattern: /\.(?:png|svg|ico|jpg|jpeg|gif|webp)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images",
+              expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts",
+              expiration: { maxEntries: 10, maxAgeSeconds: 365 * 24 * 60 * 60 },
+            },
+          },
+          {
+            urlPattern: /\/api\//,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-calls",
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 50, maxAgeSeconds: 5 * 60 },
+            },
+          },
+        ],
+        // SPA fallback: serve index.html for navigation requests when offline
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api\//, /^\/assets\//],
       },
       manifest: {
         name: "Neon Dusk",
@@ -19,9 +58,11 @@ export default defineConfig({
         background_color: "#0a0a0f",
         display: "standalone",
         orientation: "portrait-primary",
+        start_url: "/",
+        scope: "/",
         icons: [
-          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icon-192.svg", sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+          { src: "/icon-512.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any" },
         ],
       },
     }),
