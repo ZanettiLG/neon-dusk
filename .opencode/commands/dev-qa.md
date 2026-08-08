@@ -15,7 +15,9 @@ Executa testes E2E no browser para features já implementadas, sem passar pelo p
 /dev-qa "Sistema de gigs — fluxo completo de 5 fases"
 /dev-qa --smoke
 /dev-qa --regression
-/dev-qa "criação de personagem" --github
+/dev-qa "criação de personagem"
+/dev-qa --regression
+/dev-qa --smoke --local
 ```
 
 ## Modos
@@ -32,7 +34,7 @@ Executa testes E2E no browser para features já implementadas, sem passar pelo p
 |---|---|
 | `--smoke` | Smoke test rápido (<5 min, fluxos críticos apenas) |
 | `--regression` | Suíte completa de regressão (todas as features) |
-| `--github` | Posta relatório como comentário na issue linkada |
+| `--local` | Não posta relatório no GitHub (default: posta como comentário na issue) |
 
 ## Workflow
 
@@ -56,7 +58,7 @@ build agent
 /dev-qa --smoke
 
 # Regressão completa antes de release
-/dev-qa --regression --github
+/dev-qa --regression --local
 ```
 
 ## Regras

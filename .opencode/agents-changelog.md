@@ -2,7 +2,35 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
-## 2026-08-08
+## 2026-08-08 — N3: Pipeline GitHub-Native Default + Capability Gate + Commit Step
+
+### Trigger
+Pipeline workflow com problemas estruturais: GitHub era opt-in (`--github`), zero rastreabilidade, sem capability check antes de spawnar agentes, sem step de commit entre implementação e review.
+
+### Changes
+
+#### dev-orchestrator (refatoração N3)
+- **Flag invertida**: `--github` → `--local` (GitHub é o default)
+- **Passo -1: Capability Gate**: Pre-flight check de skills, agentes e `gh auth status`. Mapeamento feature→skills para detecção automática de gaps. Spawna `harness-engineer` se capacidade ausente.
+- **Passo 0: GitHub Setup**: Default (pular com `--local`). Inclui `gh auth status`. Contexto (`issue_number`, `branch`) propagado para subagentes.
+- **Passo 2.5: Commit**: Novo step pós-implementação. Conventional commits (`closes #<issue>`). Branch enforcement.
+- **Handoffs**: GitHub-native por padrão. `--local` usa handoffs inline.
+- **Anti-padrões**: Atualizados para refletir default GitHub-native.
+- **Skills**: `github-workflow` carregada sempre (não condicional).
+
+#### github-ops (atualizado)
+- Nova operação `check-auth`: verifica `gh auth status` como pre-flight.
+- Commit segue `closes #<issue>` / `fixes #<issue>`.
+
+#### qa-browser (atualizado)
+- Referência defasada a `--github` removida da seção "Integração com GitHub".
+
+### Impact
+Pipeline 100% rastreável por padrão. Toda feature tem issue, branch, commits e PR. Agentes só executam tasks para as quais têm capacidades verificadas. Zero alterações anônimas no git.
+
+---
+
+ 2026-08-08
 ### Trigger
 ND-018 code review found 3 critical issues: E2E dirty state on failure, missing admin acceptance in smoke test, silent version conflicts in economy check.
 

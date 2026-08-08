@@ -28,23 +28,28 @@ Pipeline completo de desenvolvimento de feature: design → implementação → 
 | `--design-only` | Para no passo 1, produz apenas design doc |
 | `--skip-tests` | Pula testes automatizados (MVP rápido, não recomendado) |
 | `--skip-qa` | Pula QA browser E2E (feature urgente, não recomendado) |
-| `--github` | Integração completa com GitHub: cria issue, branch e PR |
+| `--local` | Pipeline local, sem GitHub (sem issue, branch, PR) |
 
 ## Workflow
 
 ``` 
 build agent (entrada fina)
   └── task(dev-orchestrator, $ARGUMENTS)
-       ├── [--github] github-ops → criar issue + branch
-       ├── architect → design técnico
-       ├── developer → implementação
-       ├── test-writer → testes automatizados
-       ├── qa-browser → testes E2E no browser
-       ├── code-reviewer → qualidade
+       ├── [passo -1] capability check (skills, agentes, deps)
+       ├── [passo 0]  github-ops → verificar gh auth + criar issue + branch
+       ├── [passo 1]  architect → design técnico
+       ├── [passo 2]  developer → implementação
+       ├── [passo 2.5] github-ops → commit + push
+       ├── [passo 3]  test-writer → testes automatizados
+       ├── [passo 3.5] qa-browser → testes E2E no browser
+       ├── [passo 4]  code-reviewer → qualidade
        ├── [se score < 4.5] → corrigir
        ├── [se score < 5.0] → harness-engineer → refinar
-       ├── [--github] github-ops → criar PR
-       └── [--github] pr-reviewer → auditar PR (QA/DevOps/Tech Lead)
+       ├── [passo 7]  github-ops → criar PR
+       ├── [passo 8]  pr-reviewer → auditar PR (QA/DevOps/Tech Lead)
+       └── [passo 9]  github-ops → fechamento com labels
+       
+  Passos 0, 2.5, 7, 8, 9 pulados com --local.
 ```
 
 ## Regras
