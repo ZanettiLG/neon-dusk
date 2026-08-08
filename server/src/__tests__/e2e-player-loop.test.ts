@@ -25,7 +25,6 @@ import type {
   GigWrapupResponse,
 } from "@neon-dusk/shared";
 import { seedGigs } from "../db/seed";
-
 // DB 0: redis:7-alpine default max 16 databases (0-15)
 const REDIS_TEST_DB = "redis://localhost:56379/0";
 const PASSWORD = "StrongPass123!";

@@ -11,12 +11,15 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import Redis from "ioredis";
+import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, resetRounds } from "./helpers";
 import type { AuthResponse, Character } from "@neon-dusk/shared";
 import { seedGigs } from "../db/seed";
+import { db } from "../db";
+import { users } from "../db/schema";
 
 // DB 0: redis:7-alpine default max 16 databases (0-15)
 const REDIS_TEST_DB = "redis://localhost:56379/0";
@@ -37,6 +40,7 @@ describe("ND-018 — smoke test (all routes)", () => {
   let server: Awaited<ReturnType<typeof startTestServer>>;
   let auth: AuthResponse;
   let headers: Record<string, string>;
+  let adminHeaders: Record<string, string>;
 
   beforeAll(async () => {
     await resetDb();
@@ -68,6 +72,12 @@ describe("ND-018 — smoke test (all routes)", () => {
       headers,
     );
     await json<Character>(charRes);
+
+    // Promote user to admin and re-login to get a JWT with role='admin'.
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, auth.user.id));
+    const adminLoginRes = await server.post("/api/auth/login", { email, password: PASSWORD });
+    const adminAuth = await json<AuthResponse>(adminLoginRes);
+    adminHeaders = authHeader(adminAuth.accessToken);
   });
 
   afterAll(async () => {
@@ -260,8 +270,8 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect(res.status).toBe(403);
   });
 
-  it("GET /api/admin/players → 200 (x-api-key)", async () => {
-    const res = await server.get("/api/admin/players", { "x-api-key": ADMIN_KEY });
+  it("GET /api/admin/players → 200 (admin JWT)", async () => {
+    const res = await server.get("/api/admin/players", adminHeaders);
     expect(res.status).toBe(200);
   });
 
@@ -270,8 +280,8 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect(res.status).toBe(403);
   });
 
-  it("GET /api/admin/economy → 200 (x-api-key)", async () => {
-    const res = await server.get("/api/admin/economy", { "x-api-key": ADMIN_KEY });
+  it("GET /api/admin/economy → 200 (admin JWT)", async () => {
+    const res = await server.get("/api/admin/economy", adminHeaders);
     expect(res.status).toBe(200);
   });
 
@@ -280,8 +290,8 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect(res.status).toBe(403);
   });
 
-  it("GET /api/admin/transactions → 200 (x-api-key)", async () => {
-    const res = await server.get("/api/admin/transactions", { "x-api-key": ADMIN_KEY });
+  it("GET /api/admin/transactions → 200 (admin JWT)", async () => {
+    const res = await server.get("/api/admin/transactions", adminHeaders);
     expect(res.status).toBe(200);
   });
 
@@ -290,8 +300,8 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect(res.status).toBe(403);
   });
 
-  it("GET /api/admin/params → 200 (x-api-key)", async () => {
-    const res = await server.get("/api/admin/params", { "x-api-key": ADMIN_KEY });
+  it("GET /api/admin/params → 200 (admin JWT)", async () => {
+    const res = await server.get("/api/admin/params", adminHeaders);
     expect(res.status).toBe(200);
   });
 
