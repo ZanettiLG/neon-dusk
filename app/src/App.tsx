@@ -3,6 +3,7 @@ import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import { useAppStore } from "@/stores/app";
 import { useAuthStore } from "@/stores/auth";
+import InstallPrompt from "@/components/InstallPrompt";
 
 /** Inline banner shown while the backend is degraded (Redis down, etc.). */
 function DegradedBanner() {
@@ -21,7 +22,7 @@ function DegradedBanner() {
   );
 }
 
-/** App shell: header + routed content + footer (port of App.vue). */
+/** App shell: header + routed content + install prompt + footer (port of App.vue). */
 export default function App() {
   return (
     <div className="min-h-screen bg-nd-bg flex flex-col">
@@ -30,6 +31,7 @@ export default function App() {
       <main className="flex-1">
         <Outlet />
       </main>
+      <InstallPrompt />
       <AppFooter />
     </div>
   );

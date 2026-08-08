@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0f"/>
+      <stop offset="100%" style="stop-color:#12121a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="64" fill="url(#bg)"/>
+  <text x="256" y="192" text-anchor="middle" font-family="monospace" font-size="120" font-weight="bold" fill="#00f0ff" letter-spacing="-6">NEON</text>
+  <text x="256" y="192" text-anchor="middle" font-family="monospace" font-size="120" font-weight="bold" fill="#ff00aa" opacity="0.4" letter-spacing="-6" transform="translate(4, 2)">NEON</text>
+  <text x="256" y="360" text-anchor="middle" font-family="monospace" font-size="120" font-weight="bold" fill="#ff00aa" letter-spacing="-6">DUSK</text>
+  <text x="256" y="360" text-anchor="middle" font-family="monospace" font-size="120" font-weight="bold" fill="#00f0ff" opacity="0.3" letter-spacing="-6" transform="translate(4, 2)">DUSK</text>
+  <line x1="64" y1="232" x2="448" y2="232" stroke="#00f0ff" stroke-width="2" opacity="0.3"/>
+</svg>
