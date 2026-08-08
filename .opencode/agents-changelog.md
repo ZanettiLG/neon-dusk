@@ -36,7 +36,6 @@ Root cause: code-reviewer had no explicit sub-check for LIKE/ILIKE escaping or R
 Prevents recurrence of: LIKE wildcard injection in search/filter endpoints (security) and N+1 Redis calls degrading performance under high concurrency. Both sub-checks are low-cost to verify — grep for `.ilike(` / `.like(` in query builders and `redis.get(` inside `.map()` in services.
 
 ---
-
 ## 2026-08-07 — N2: QA Browser integrado como passo default no pipeline
 
 ### Trigger
