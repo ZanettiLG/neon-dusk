@@ -18,7 +18,7 @@ import { startTestServer, json, authHeader, resetDb, resetRounds } from "./helpe
 import type { AuthResponse, Character } from "@neon-dusk/shared";
 import { seedGigs } from "../db/seed";
 
-const REDIS_TEST_DB = "redis://localhost:56379/21";
+const REDIS_TEST_DB = "redis://localhost:56379/0";
 const PASSWORD = "StrongPass123!";
 // ADMIN_KEY matches process.env.ADMIN_API_KEY set by setup.ts
 const ADMIN_KEY = "test-admin-key-that-is-at-least-32-characters-long";
