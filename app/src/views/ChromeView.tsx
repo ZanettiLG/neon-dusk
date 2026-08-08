@@ -24,6 +24,9 @@ export default function ChromeView() {
   const [installedLoading, setInstalledLoading] = useState(true);
   const [installedError, setInstalledError] = useState<string | null>(null);
 
+  // Vendors — needed so install can pick a ripperdoc
+  const [vendorId, setVendorId] = useState<string | null>(null);
+
   // Action state
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -63,15 +66,25 @@ export default function ChromeView() {
     mountedRef.current = true;
     fetchCatalog();
     fetchInstalled();
+    api.get<Array<{ id: string; type: string }>>("/api/vendors")
+      .then((vendors) => {
+        const ripper = vendors.find((v) => v.type === "ripperdoc");
+        if (ripper && mountedRef.current) setVendorId(ripper.id);
+      })
+      .catch(() => {}); // non-blocking — catalog still renders without a vendor
     return () => { mountedRef.current = false; };
   }, []);
 
-  async function onInstall(chromeId: string) {
+  async function onInstall(chromeDefinitionId: string) {
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
     try {
-      await api.post(`/api/chrome/install`, { chromeId });
+      if (!vendorId) {
+        setActionError("Nenhum ripperdoc disponível. Visite a aba Vendedores.");
+        return;
+      }
+      await api.post(`/api/chrome/install`, { chromeDefinitionId, vendorId });
       if (!mountedRef.current) return;
       setActionSuccess("Implante instalado!");
       fetchInstalled();
@@ -83,12 +96,12 @@ export default function ChromeView() {
     }
   }
 
-  async function onUninstall(installedId: string) {
+  async function onUninstall(installedChromeId: string) {
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
     try {
-      await api.post(`/api/chrome/uninstall`, { installedId });
+      await api.post(`/api/chrome/uninstall`, { installedChromeId });
       if (!mountedRef.current) return;
       setActionSuccess("Implante removido.");
       fetchInstalled();

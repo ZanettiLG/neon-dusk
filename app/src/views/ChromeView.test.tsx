@@ -77,6 +77,7 @@ describe("ChromeView", () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
       return Promise.resolve([]);
     });
 
@@ -107,6 +108,7 @@ describe("ChromeView", () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
       return Promise.resolve([]);
     });
     mocks.api.post.mockRejectedValue(new Error("Eds insuficientes."));
@@ -118,13 +120,15 @@ describe("ChromeView", () => {
 
     expect(await screen.findByText("Eds insuficientes.")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/install", {
-      chromeId: "ch1",
+      chromeDefinitionId: "ch1",
+      vendorId: "v1",
     });
   });
 
   it("should reset mounted ref after StrictMode remount and show empty state", async () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([]);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
       if (url === "/api/chrome/installed") return Promise.resolve({
         installed: [],
         effectiveHumanity: 75,
