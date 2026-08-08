@@ -9,6 +9,9 @@ import type {
   CrewLeaderboardResponse,
 } from "@neon-dusk/shared";
 
+/** SSE connection state — three-tier so the UI can show progress. */
+export type ConnectionStatus = "connected" | "reconnecting" | "offline";
+
 interface SaideiraState {
   // Hub
   hub: SaideiraHubInfo | null;
@@ -17,7 +20,7 @@ interface SaideiraState {
 
   // Chat
   messages: ChatMessage[];
-  chatConnected: boolean;
+  chatStatus: ConnectionStatus;
   chatSendLoading: boolean;
   chatSendError: string | null;
 
@@ -41,20 +44,42 @@ interface SaideiraState {
   fetchCrewLeaderboard: () => Promise<void>;
 }
 
-/**
- * Live EventSource for the chat stream. Module-level so reconnect timers and
- * the active connection survive across store re-renders (Zustand actions are
- * stable singleton functions).
- */
+// --- SSE reconnect machinery (module-level, survives store re-renders) ---
+
+/** Active EventSource instance — null when disconnected or reconnecting. */
 let eventSource: EventSource | null = null;
 /** Set by disconnectChat() so a pending reconnect timer never resurrects the
  * stream after an intentional teardown (e.g. navigating away). */
 let chatStopped = false;
+/** Number of consecutive failed reconnect attempts. Reset on successful
+ * connect. Drives the backoff delay and the offline threshold. */
+let reconnectAttempts = 0;
+/** Active reconnect timer handle — cleared on teardown or successful connect. */
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+/** Last EventSource ID received from the server, sent as Last-Event-ID on
+ * reconnect so the server can resume from where the stream dropped. */
+let lastEventId: string | null = null;
+
+/** Backoff: 1s, 2s, 4s, 8s, 16s (max). */
+const BACKOFF_BASE_MS = 1000;
+const BACKOFF_MAX_MS = 16_000;
+const OFFLINE_THRESHOLD = 3;
+
+function backoffDelay(attempts: number): number {
+  return Math.min(BACKOFF_BASE_MS * 2 ** (attempts - 1), BACKOFF_MAX_MS);
+}
+
+function clearReconnectTimer(): void {
+  if (reconnectTimer !== null) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
 
 /**
  * Saideira store (Zustand singleton) — hub readout, real-time chat (SSE +
- * Redis pub/sub) and the Legends menu. connectChat reconnects with a 3s
- * backoff on error; disconnectChat tears down cleanly.
+ * Redis pub/sub) and the Legends menu. connectChat establishes the SSE stream
+ * with exponential backoff reconnect; disconnectChat tears down cleanly.
  */
 export const useSaideiraStore = create<SaideiraState>((set, get) => ({
   hub: null,
@@ -62,7 +87,7 @@ export const useSaideiraStore = create<SaideiraState>((set, get) => ({
   hubError: null,
 
   messages: [],
-  chatConnected: false,
+  chatStatus: "offline",
   chatSendLoading: false,
   chatSendError: null,
 
@@ -110,21 +135,29 @@ export const useSaideiraStore = create<SaideiraState>((set, get) => ({
 
   connectChat: () => {
     chatStopped = false;
-    if (eventSource) return; // já conectado
+    if (eventSource) return; // already connected
 
     const token = useAuthStore.getState().accessToken;
     if (!token) return;
 
+    clearReconnectTimer();
+
     // ponytail: query-param token — EventSource can't set Authorization
     // headers. Switch to an HTTP-only cookie when the auth system supports it.
-    const es = new EventSource(
-      `${API_BASE_URL}/api/saideira/chat/stream?token=${encodeURIComponent(token)}`,
-    );
+    let url = `${API_BASE_URL}/api/saideira/chat/stream?token=${encodeURIComponent(token)}`;
+    if (lastEventId) {
+      url += `&lastEventId=${encodeURIComponent(lastEventId)}`;
+    }
+    const es = new EventSource(url);
     eventSource = es;
 
-    es.onopen = () => set({ chatConnected: true });
+    es.onopen = () => {
+      reconnectAttempts = 0;
+      set({ chatStatus: "connected" });
+    };
 
     es.onmessage = (event) => {
+      if (event.lastEventId) lastEventId = event.lastEventId;
       try {
         const msg = JSON.parse(event.data) as ChatMessage;
         set((s) => ({ messages: [...s.messages.slice(-49), msg] })); // keep last 50
@@ -137,20 +170,29 @@ export const useSaideiraStore = create<SaideiraState>((set, get) => ({
       // Only react to the active instance — a stale event from a closed
       // connection must not schedule a duplicate stream.
       if (eventSource !== es) return;
-      set({ chatConnected: false });
+
+      reconnectAttempts++;
+      set({ chatStatus: reconnectAttempts >= OFFLINE_THRESHOLD ? "offline" : "reconnecting" });
       es.close();
       eventSource = null;
-      setTimeout(() => {
+
+      if (chatStopped) return;
+
+      const delay = backoffDelay(reconnectAttempts);
+      reconnectTimer = setTimeout(() => {
         if (!chatStopped && eventSource === null) get().connectChat();
-      }, 3000);
+      }, delay);
     };
   },
 
   disconnectChat: () => {
     chatStopped = true;
+    clearReconnectTimer();
     eventSource?.close();
     eventSource = null;
-    set({ chatConnected: false });
+    reconnectAttempts = 0;
+    lastEventId = null;
+    set({ chatStatus: "offline" });
   },
 
   fetchLegends: async () => {

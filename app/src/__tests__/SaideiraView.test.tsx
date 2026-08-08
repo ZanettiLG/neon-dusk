@@ -21,7 +21,7 @@ const storeMocks = vi.hoisted(() => {
     hubLoading: false,
     hubError: null as string | null,
     messages: [] as ChatMessage[],
-    chatConnected: false,
+    chatStatus: "offline" as const,
     chatSendLoading: false,
     chatSendError: null as string | null,
     legends: null as LegendsResponse | null,
@@ -206,7 +206,7 @@ describe("SaideiraView", () => {
 
   it("should render ChatBox without error when the stream is empty", () => {
     useAuthStore.setState({ character: character(10) });
-    useSaideiraStore.setState({ messages: [], chatConnected: true });
+    useSaideiraStore.setState({ messages: [], chatStatus: "connected" });
 
     renderView();
 
