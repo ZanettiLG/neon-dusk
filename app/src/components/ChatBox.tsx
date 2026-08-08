@@ -1,18 +1,44 @@
 import { useEffect, useRef, useState } from "react";
-import { useSaideiraStore } from "@/stores/saideira";
+import { useSaideiraStore, type ConnectionStatus } from "@/stores/saideira";
 import { useAuthStore } from "@/stores/auth";
 import { formatRelativeTime } from "@/lib/format";
 
 const MAX_MESSAGE_LENGTH = 500;
 
+const STATUS_CONFIG: Record<
+  ConnectionStatus,
+  { label: string; dot: string; border: string; text: string }
+> = {
+  connected: {
+    label: "▲ ao vivo",
+    dot: "●",
+    border: "border-nd-green/40",
+    text: "text-nd-green",
+  },
+  reconnecting: {
+    label: "▼ reconectando...",
+    dot: "●",
+    border: "border-nd-gold/40",
+    text: "text-nd-gold",
+  },
+  offline: {
+    label: "✕ offline",
+    dot: "●",
+    border: "border-nd-magenta/40",
+    text: "text-nd-magenta",
+  },
+};
+
 /**
  * Saideira chat — real-time tavern chatter. Renders the SSE message stream
  * (auto-scrolled), highlights the current runner's rows in cyan and sends via
- * POST /api/saideira/chat. Enter sends; MVP has no multiline.
+ * POST /api/saideira/chat. Shows a three-tier connection indicator:
+ * green (live), yellow (reconnecting with backoff), red (offline after 3+
+ * failures). Enter sends; MVP has no multiline.
  */
 export default function ChatBox() {
   const messages = useSaideiraStore((s) => s.messages);
-  const chatConnected = useSaideiraStore((s) => s.chatConnected);
+  const chatStatus = useSaideiraStore((s) => s.chatStatus);
   const sendLoading = useSaideiraStore((s) => s.chatSendLoading);
   const sendError = useSaideiraStore((s) => s.chatSendError);
   const sendMessage = useSaideiraStore((s) => s.sendMessage);
@@ -45,15 +71,20 @@ export default function ChatBox() {
       <div className="flex items-center justify-between gap-3 mb-3">
         <h3 className="font-heading text-nd-cyan text-lg tracking-widest">CIDADE // CHAT</h3>
         <span
-          className={`font-data text-[10px] uppercase tracking-widest border rounded-terminal px-2 py-0.5 ${
-            chatConnected
-              ? "border-nd-green/40 text-nd-green"
-              : "border-nd-magenta/40 text-nd-magenta"
-          }`}
+          className={`font-data text-[10px] uppercase tracking-widest border rounded-terminal px-2 py-0.5 ${STATUS_CONFIG[chatStatus].border} ${STATUS_CONFIG[chatStatus].text}`}
         >
-          {chatConnected ? "▲ ao vivo" : "▼ reconectando..."}
+          <span className="mr-1">{STATUS_CONFIG[chatStatus].dot}</span>
+          {STATUS_CONFIG[chatStatus].label}
         </span>
       </div>
+
+      {chatStatus === "offline" && (
+        <div className="mb-3 border border-nd-magenta/20 rounded-terminal bg-nd-magenta/5 px-3 py-2">
+          <p className="font-data text-xs text-nd-magenta">
+            Chat indisponível. Tentando reconectar...
+          </p>
+        </div>
+      )}
 
       {/* Messages */}
       <div
