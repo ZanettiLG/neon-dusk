@@ -213,6 +213,34 @@ export default function ActiveGigPanel() {
         </div>
       )}
 
+      {gig.phase === "execute" && (
+        <div className="space-y-3">
+          <OutcomeChip
+            label="Execução"
+            outcome={gig.executeOutcome}
+            roll={lastExecute?.outcome.roll}
+            chance={lastExecute?.outcome.successChance}
+          />
+          {gig.executeOutcome === "failure" && (
+            <p className="text-nd-magenta text-sm">
+              Deu ruim no meio do caminho. Cupim vai cobrar explicação — primeiro, sai daí.
+            </p>
+          )}
+          {gig.executeOutcome === "success" && (
+            <p className="text-nd-green text-sm">
+              Serviço limpo. Agora some da cena antes que a milícia chegue.
+            </p>
+          )}
+          <button
+            className="btn-neon text-xs"
+            disabled={actionLoading}
+            onClick={() => void onAction(() => escapeGig(gig.gigId))}
+          >
+            Fugir / Extração
+          </button>
+        </div>
+      )}
+
       {gig.phase === "escape" && (
         <div className="space-y-3">
           <OutcomeChip
