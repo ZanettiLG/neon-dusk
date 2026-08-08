@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import ChromeView from "@/views/ChromeView";
 import type { ChromeDefinition, InstalledChromeResponse } from "@neon-dusk/shared";
@@ -76,6 +77,7 @@ describe("ChromeView", () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
       return Promise.resolve([]);
     });
 
@@ -106,6 +108,7 @@ describe("ChromeView", () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
       return Promise.resolve([]);
     });
     mocks.api.post.mockRejectedValue(new Error("Eds insuficientes."));
@@ -117,7 +120,31 @@ describe("ChromeView", () => {
 
     expect(await screen.findByText("Eds insuficientes.")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/install", {
-      chromeId: "ch1",
+      chromeDefinitionId: "ch1",
+      vendorId: "v1",
     });
+  });
+
+  it("should reset mounted ref after StrictMode remount and show empty state", async () => {
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/chrome") return Promise.resolve([]);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
+      if (url === "/api/chrome/installed") return Promise.resolve({
+        installed: [],
+        effectiveHumanity: 75,
+        humanitySpent: 0,
+        statBonus: { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 },
+        hpBonus: 0,
+        gigSuccessBonus: 0,
+        nilMaxBonus: 0,
+      });
+      return Promise.resolve([]);
+    });
+
+    render(<StrictMode><ChromeView /></StrictMode>);
+
+    // Empty state only appears after loading resolves — proves StrictMode remount didn't break mountedRef
+    expect(await screen.findByText("Nenhum implante disponível.")).toBeInTheDocument();
+    expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
   });
 });
