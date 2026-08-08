@@ -44,19 +44,15 @@ Camada adicional de qualidade no pipeline: QA E2E automatizado fecha o gap entre
 ### Trigger
 Auto-refinamento N1 aplicado (checks #24, #25 no developer). Patterns N2 identificados requerem confirmação humana antes da aplicação.
 
-### N2 Proposal 1: Code-reviewer — N+1 Query Detection Rule
+### N2 Proposal 1: Code-reviewer — N+1 Query Detection Rule ✅ RESOLVIDO
 
 **Problema**: `getAttackableTargets` gera 40+ queries para 20 targets. N+1 é um anti-padrão recorrente (mencionado no `nodejs-patterns` como anti-padrão, mas o code-reviewer só tem uma menção genérica "N+1 queries?" no critério #3).
 
-**Solução proposta**: Expandir o critério #3 (Performance) do code-reviewer com sub-check explícito:
-```
-- N+1 queries: para cada query dentro de um loop, verificar se deveria ser um JOIN/Drizzle `with`/batch load. 
-  Threshold: > 2 queries por unidade de trabalho iterada = violação.
-```
+**Solução aplicada**: Expandido o critério #3 (Performance) do code-reviewer com sub-checks explícitos:
+- **Redis batch operations**: `.map()` ou loop com chamadas Redis individuais → usar `mget`/`mset`/`pipeline`. Threshold: > 2 chamadas sequenciais single-key no mesmo codepath = violação.
+- Ver `agents-changelog.md` 2026-08-07 — N1: Admin Panel Post-Mortem.
 
-**Impacto esperado**: Detecção sistemática de N+1 em revisões, não dependente do conhecimento tácito do reviewer.
-
-**Riscos**: Possível falso-positivo em queries paginadas com pré-carregamento intencional. Mitigável com threshold de contexto.
+**Impacto**: Detecção sistemática de N+1 Redis em revisões. Complementa o check genérico "N+1 queries?" com padrão concreto para Redis.
 
 ### N2 Proposal 2: Documentar padrão "constants live in game-logic/, not duplicated in service/"
 

@@ -15,6 +15,7 @@ export const REFRESH_TOKEN_TTL_S = 7 * 24 * 60 * 60; // 7 days
 export interface AccessTokenPayload {
   sub: string; // user id
   email: string;
+  role: "player" | "admin";
 }
 
 /** JWT type augmentation consumed by @fastify/jwt → typed `request.user`. */
@@ -30,8 +31,14 @@ function refreshKey(token: string): string {
 }
 
 /** Sign a 15-minute access token for the given user. */
-export function signAccessToken(app: FastifyInstance, user: { id: string; email: string }): string {
-  return app.jwt.sign({ sub: user.id, email: user.email }, { expiresIn: ACCESS_TOKEN_TTL });
+export function signAccessToken(
+  app: FastifyInstance,
+  user: { id: string; email: string; role?: "player" | "admin" },
+): string {
+  return app.jwt.sign(
+    { sub: user.id, email: user.email, role: user.role ?? "player" },
+    { expiresIn: ACCESS_TOKEN_TTL },
+  );
 }
 
 /** Issue a fresh opaque refresh token, storing it in Redis for 7 days. */

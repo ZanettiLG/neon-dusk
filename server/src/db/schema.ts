@@ -37,6 +37,9 @@ export const originEnum = pgEnum("origin", [
   "o_ponto",
 ]);
 
+// Feature #15 (ND-052): Admin Panel — user roles for role-based access control.
+export const userRoleEnum = pgEnum("user_role", ["player", "admin"]);
+
 // Feature #3 (ND-010): Economy. Transaction types record every wallet movement;
 // vendor types classify the NPC vendors that sell gear and consumables.
 export const transactionTypeEnum = pgEnum("transaction_type", [
@@ -104,6 +107,7 @@ export const users = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     email: text("email").notNull(),
     passwordHash: text("password_hash").notNull(),
+    role: userRoleEnum("role").notNull().default("player"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -150,6 +154,8 @@ export const characters = pgTable(
     // which TS cannot infer (TS7022). The FK lives in migration 0010 and is
     // enforced by Postgres (ON DELETE SET NULL).
     crewId: uuid("crew_id"),
+    // ND-052: manual admin ban (separate from circuit breaker — ADR-3).
+    isBanned: boolean("is_banned").notNull().default(false),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -189,6 +195,10 @@ export const characters = pgTable(
     index("idx_characters_crew_id")
       .on(table.crewId)
       .where(sql`${table.crewId} IS NOT NULL`),
+    // ND-052: partial index for banned characters (admin panel queries).
+    index("idx_characters_is_banned")
+      .on(table.isBanned)
+      .where(sql`${table.isBanned} = true`),
   ],
 );
 
@@ -663,9 +673,9 @@ export const auditLog = pgTable(
   "audit_log",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    characterId: uuid("character_id")
-      .notNull()
-      .references(() => characters.id, { onDelete: "cascade" }),
+    characterId: uuid("character_id").references(() => characters.id, {
+      onDelete: "set null",
+    }),
     action: text("action").notNull(), // "gig_accept", "pvp_attack", "saideira_chat", etc.
     ip: text("ip").notNull(),
     userAgent: text("user_agent").notNull(),
@@ -680,3 +690,16 @@ export const auditLog = pgTable(
     index("idx_audit_log_created").on(sql`${table.createdAt} DESC`),
   ],
 );
+
+// --- Admin Panel (ND-052) ----------------------------------------------------
+// Runtime-tunable game parameters stored as key-value pairs. Updated via the
+// admin panel; each change is audit-logged with old/new value diff.
+
+export const gameParams = pgTable("game_params", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedBy: uuid("updated_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

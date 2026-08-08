@@ -12,6 +12,7 @@ import { saideiraRoutes } from "./saideira";
 import { crewRoutes } from "./crews";
 import { roundRoutes } from "./round";
 import { adminMetricsRoutes } from "../telemetry/admin-metrics";
+import { adminRoutes } from "./admin";
 
 export interface ApiRoutesOptions {
   redis: Redis;
@@ -32,4 +33,6 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(roundRoutes, { redis: opts.redis });
   // Admin telemetry digest — /api/admin/metrics (x-api-key protected)
   await app.register(adminMetricsRoutes);
+  // Admin panel — /api/admin/* (JWT role protected, ND-052)
+  await app.register(adminRoutes);
 }

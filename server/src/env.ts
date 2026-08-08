@@ -31,6 +31,10 @@ export const envSchema = z.object({
   // Admin (ND-007): API key guarding the /api/admin/* endpoints.
   ADMIN_API_KEY: z.string().min(32, "ADMIN_API_KEY must be at least 32 characters"),
 
+  // Admin Panel (ND-052): auto-seed admin account on startup.
+  ADMIN_EMAIL: z.string().email().optional(),
+  ADMIN_PASSWORD: z.string().min(8).optional(),
+
   // Telemetry (ND-007): opt-in Node.js runtime metrics on the Prometheus registry.
   PROMETHEUS_COLLECT_DEFAULTS: z.enum(["true", "false"]).default("false"),
 

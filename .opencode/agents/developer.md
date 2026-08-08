@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (27 checks)
+7. Self-review (30 checks)
 8. Handoff do código implementado
 
-## Self-Review (27 checks)
+## Self-Review (30 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex/Drizzle; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -59,6 +59,9 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Features com outcomes duais (win/loss, success/failure, accept/reject) emitem eventos de telemetria para TODOS os outcomes, não apenas o caminho feliz
 - [ ] SSE/hijack pattern: async setup entre `reply.raw.writeHead()` e `reply.hijack()` deve estar em try/catch com cleanup (destroy socket, unsubscribe Redis) — se `redis.duplicate()`/`subscribe()` falhar após `writeHead`, a conexão fica half-open
 - [ ] Component test baseline: todo componente novo que renderiza condicionalmente em uma view (ex: dentro de tabs, guards de rota, ou flags de feature) deve ter pelo menos um "renders without error" test (Vitest + Testing Library)
+- [ ] Smoke test covers 200 for ALL routes at ALL auth levels (public, JWT, admin x-api-key), not just rejections — every route must have at least one successful 200 assertion per auth level
+- [ ] Standalone scripts that do optimistic-locking UPDATEs must verify rowCount/affected rows after the query — silent version conflicts corrupt data
+- [ ] E2E tests with conditional flows must never leave dirty state — always have cleanup (delete/rollback) in failure branches (catch blocks, early returns, timeout handlers)
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino

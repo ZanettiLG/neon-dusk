@@ -79,10 +79,12 @@ async function request<T>(method: string, path: string, body?: unknown, isRetry 
 
     if (!response.ok) {
       const errBody = data as { error?: string; message?: string; details?: unknown } | null;
+      const code = errBody?.error || "UNKNOWN_ERROR";
+      const rawMessage = errBody?.message || "Erro inesperado.";
       throw new ApiError(
         response.status,
-        errBody?.error || "UNKNOWN_ERROR",
-        errBody?.message || "Request failed",
+        code,
+        ptBrError(code, rawMessage),
         errBody?.details,
       );
     }
@@ -91,6 +93,93 @@ async function request<T>(method: string, path: string, body?: unknown, isRetry 
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/** Human-readable PT-BR messages for server error codes. */
+const PT_BR_ERRORS: Record<string, string> = {
+  // Auth
+  UNAUTHORIZED: "Sessão expirada. Faça login novamente.",
+  INVALID_CREDENTIALS: "E-mail ou senha inválidos.",
+  INVALID_REFRESH_TOKEN: "Sessão expirada. Faça login novamente.",
+  FORBIDDEN: "Acesso negado.",
+  EMAIL_TAKEN: "Este e-mail já está cadastrado.",
+
+  // Validation
+  VALIDATION_ERROR: "Dados inválidos. Verifique os campos.",
+
+  // Character
+  NO_CHARACTER: "Nenhum personagem vinculado a esta conta.",
+  CHARACTER_NOT_FOUND: "Personagem não encontrado.",
+  CHARACTER_EXISTS: "Você já possui um personagem.",
+  NAME_TAKEN: "Este codinome já está em uso.",
+  INVALID_ATTRIBUTES: "Distribuição de atributos inválida.",
+
+  // Economy
+  INSUFFICIENT_FUNDS: "Eds insuficientes.",
+  OUT_OF_STOCK: "Item fora de estoque.",
+  VENDOR_NOT_FOUND: "Vendedor não encontrado.",
+  ITEM_NOT_FOUND: "Item não encontrado.",
+  INVALID_QUANTITY: "Quantidade inválida.",
+  WALLET_CREATE_FAILED: "Erro ao criar carteira.",
+
+  // NIL
+  INSUFFICIENT_NIL: "NIL insuficiente.",
+  NIL_STIM_COOLDOWN: "Syn-café em cooldown. Aguarde.",
+  NIL_FULL: "NIL já está cheio.",
+  NIL_CONCURRENT_MODIFICATION: "NIL foi modificado por outra ação. Tente novamente.",
+
+  // Chrome
+  CHROME_NOT_FOUND: "Implante não encontrado.",
+  ALREADY_INSTALLED: "Este implante já está instalado.",
+  SLOT_FULL: "Slot de chrome ocupado.",
+  HUMANITY_TOO_LOW: "Humanidade insuficiente para este implante.",
+  INSTALLED_CHROME_NOT_FOUND: "Implante instalado não encontrado.",
+
+  // Gigs
+  GIG_NOT_FOUND: "Gig não encontrado.",
+  NO_ACTIVE_GIG: "Você não tem gig ativo.",
+  ALREADY_ACTIVE_GIG: "Você já tem um gig ativo.",
+  INSUFFICIENT_STATS: "Atributos insuficientes para este gig.",
+  GIG_COOLDOWN: "Este gig está em cooldown.",
+  DAILY_GIG_LIMIT: "Limite diário de gigs atingido.",
+  INVALID_PHASE_TRANSITION: "Transição de fase inválida.",
+  GIG_MISMATCH: "Este gig não pertence a você.",
+
+  // PvP
+  CANNOT_ATTACK_SELF: "Você não pode atacar a si mesmo.",
+  TARGET_NOT_FOUND: "Alvo não encontrado.",
+  TARGET_IMMUNE: "Alvo está imune a PvP.",
+  PVP_COOLDOWN: "Cooldown de PvP ativo. Aguarde.",
+  POWER_RANGE_EXCEEDED: "Poder do alvo fora do alcance.",
+
+  // Anti-cheat
+  RATE_LIMITED: "Muitas requisições. Aguarde.",
+  COOLDOWN_ACTIVE: "Ação em cooldown. Aguarde.",
+  CIRCUIT_BREAK: "Conta suspensa temporariamente por atividades suspeitas.",
+
+  // Concurrency
+  CONCURRENCY_CONFLICT: "Conflito de concorrência. Tente novamente.",
+
+  // Round
+  NO_ACTIVE_ROUND: "Não há rodada ativa.",
+
+  // Crew
+  CREW_NOT_FOUND: "Crew não encontrada.",
+  ALREADY_IN_CREW: "Você já está em uma crew.",
+
+  // Infra
+  INTERNAL_ERROR: "Erro interno. Tente novamente.",
+  SERVICE_UNAVAILABLE: "Serviço temporariamente indisponível.",
+  USER_NOT_FOUND: "Usuário não encontrado.",
+  NOT_FOUND: "Não encontrado.",
+  INVALID_CREW_STATE: "Estado inválido da crew.",
+  LEADER_CANNOT_LEAVE: "Líder não pode sair da crew. Dissolva-a primeiro.",
+  ADMIN_RATE_LIMITED: "Muitas requisições. Aguarde.",
+};
+
+/** Translate an error code to a PT-BR message. Falls back to the original message. */
+export function ptBrError(code: string, originalMessage: string): string {
+  return PT_BR_ERRORS[code] ?? originalMessage;
 }
 
 export const api = {
