@@ -119,11 +119,16 @@ describe("ND-018 — e2e player loop", () => {
 
         // Step 5b: Bypass legwork timer via direct DB update
         // ponytail: bypass legwork timer via DB — waiting 5-30min per gig would
-        // make this test O(hours). Force legwork_completed=true so the execute
-        // phase is immediately available.
+        // make this test O(hours). Backdate legwork_started_at so the timer gate
+        // (ND-078) passes.
         await db
           .update(activeGigs)
-          .set({ legworkCompleted: true, phase: "legwork" as const, updatedAt: new Date() })
+          .set({
+            phase: "legwork" as const,
+            legworkStartedAt: new Date(Date.now() - 31 * 60_000),
+            legworkCompleted: true,
+            updatedAt: new Date(),
+          })
           .where(eq(activeGigs.characterId, character.id));
 
         // Step 5c: Execute
