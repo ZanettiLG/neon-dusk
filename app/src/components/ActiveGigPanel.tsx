@@ -249,17 +249,23 @@ export default function ActiveGigPanel() {
             roll={lastExecute?.outcome.roll}
             chance={lastExecute?.outcome.successChance}
           />
-          {gig.executeOutcome === "failure" && (
-            <p className="text-nd-magenta text-sm">
-              Deu ruim no meio do caminho. Cupim vai cobrar explicação — primeiro, sai daí.
+          <OutcomeChip
+            label="Fuga"
+            outcome={gig.escapeOutcome}
+            roll={lastEscape?.outcome.roll}
+            chance={lastEscape?.outcome.successChance}
+          />
+          {lastEscape && lastEscape.heatGenerated > 0 && (
+            <p className="font-data text-xs text-nd-magenta">
+              +{lastEscape.heatGenerated} calor no distrito — a polícia andou te perguntando por nome.
             </p>
           )}
           <button
-            className="btn-neon text-xs"
+            className="btn-neon text-xs border-nd-gold text-nd-gold bg-nd-gold/10 hover:bg-nd-gold/20"
             disabled={actionLoading}
-            onClick={() => void onAction(() => escapeGig(gig.gigId))}
+            onClick={() => void wrapUpGig(gig.gigId).catch(() => undefined)}
           >
-            Fugir / Extração
+            Concluir gig (receber)
           </button>
         </div>
       )}
