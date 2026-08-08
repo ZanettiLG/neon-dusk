@@ -49,6 +49,7 @@ const TRANSITIONS: Record<string, Record<string, string>> = {
 const SUCCESS_CAP = 0.95;
 const SUCCESS_FLOOR = 0.05;
 const LEGWORK_MULTIPLIER = 1.2;
+const LEGWORK_SKIP_MULTIPLIER = 0.8;
 const SUCCESS_MULTIPLIER = 1.1;
 const HEAT_FAILURE_MULTIPLIER = 2;
 const HEAT_DIVISOR = 100;
@@ -145,6 +146,36 @@ export function calculateSuccessChance(
   if (difficulty <= 0) return SUCCESS_CAP;
   const raw = (stat + chromeBonus) / difficulty;
   return Math.min(SUCCESS_CAP, Math.max(SUCCESS_FLOOR, raw));
+}
+
+/** Options for applying legwork phase modifiers to the base success chance. */
+export interface LegworkModifiers {
+  /** Player skipped legwork (modo rápido, -20% success penalty). */
+  skippedLegwork: boolean;
+  /** Player completed the legwork timer (+20% success bonus). */
+  legworkDone: boolean;
+}
+
+/**
+ * Apply legwork phase multiplier to the base success chance.
+ *
+ * Formula: `baseChance × (skippedLegwork ? 0.8 : legworkDone ? 1.2 : 1.0)`,
+ * capped at 0.95 in all cases.
+ *
+ * @param baseChance - Raw success probability from `calculateSuccessChance`.
+ * @param modifiers  - Legwork state (skipped or completed).
+ * @returns Modified probability capped at `SUCCESS_CAP`.
+ *
+ * @edgecases If both skipped and done (should never happen), skipped wins.
+ *            Nil modifiers (neither skipped nor done) returns chance unchanged.
+ */
+export function applyLegworkModifier(
+  baseChance: number,
+  modifiers: LegworkModifiers,
+): number {
+  if (modifiers.skippedLegwork) return Math.min(SUCCESS_CAP, baseChance * LEGWORK_SKIP_MULTIPLIER);
+  if (modifiers.legworkDone) return Math.min(SUCCESS_CAP, baseChance * LEGWORK_MULTIPLIER);
+  return baseChance;
 }
 
 /**
