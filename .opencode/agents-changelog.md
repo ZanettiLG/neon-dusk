@@ -2,6 +2,50 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-07 — N2: QA Browser integrado como passo default no pipeline
+
+### Trigger
+QA suite (#49-#62) executada em 14 áreas do Neon Dusk descobriu 21 bugs — mas o bug mais óbvio (ActiveGigPanel não renderiza fase "execute") escapou porque o qa-browser nunca foi spawnado. O agente existia mas era opcional (`--qa`), e ninguém passava a flag.
+
+### Changes
+- **dev-orchestrator.md**: QA browser movido de opcional (`--qa`) para default (pular com `--skip-qa`)
+- **dev-orchestrator.md**: Anti-padrão atualizado — pular QA sem `--skip-qa` explícito agora é erro
+- **dev-orchestrator.md**: Passo 3.5 atualizado com instrução explícita: "NÃO apenas tira snapshots — navega clicando botão por botão"
+- **dev-feature.md**: Pipeline atualizado para incluir qa-browser como passo padrão
+- **dev-feature.md**: Flag `--skip-qa` adicionada para features urgentes
+
+### Rationale
+O QA browser é a única camada que verifica a jornada interativa completa do usuário. Testes automatizados (test-writer) cobrem lógica e API, mas não detectam fases de UI não renderizadas, transições quebradas entre estados, ou falta de feedback visual. QA deve ser default — pular é a exceção.
+
+## 2026-08-07 — N3: QA Browser Agent (E2E Testing)
+
+### Trigger
+Necessidade de um agente de QA para testes end-to-end com browser, usando agent-browser MCP. Cobre features completas, smoke tests pós-deploy e suítes de regressão. Pipeline estruturado em 5 fases (ANALYZE → PLAN → EXECUTE → ASSERT → REPORT).
+
+### Changes
+
+#### qa-browser (NOVO)
+- **Modelo**: deepseek-v4-pro, temperature 0.1, thinking 16K
+- **Modo**: subagent, hidden
+- **Permissões**: read:allow, glob:allow, grep:allow, write:allow, edit:deny, bash:deny
+- **Função**: Testes E2E no browser em 3 modos: feature QA, smoke test, regression
+- **Pipeline**: ANALYZE (design doc + código) → PLAN (cenários: happy/error/edge) → EXECUTE (agent-browser) → ASSERT (UI, API, console, storage) → REPORT (JSON + screenshots)
+- **Skills**: neon-dusk-design, testing-patterns, github-workflow
+- **Ferramentas MCP**: agent_browser_* (navigate, click, fill, snapshot, screenshot, eval, console, network, storage)
+
+#### dev-orchestrator (atualizado)
+- Novo worker: `qa-browser` — opcional com flag `--qa` (Passo 3.5 entre Test e Review)
+- Flag `--qa` adicionada à lista de flags suportadas
+- Anti-padrão: não usar `qa-browser` sem `--qa`
+
+#### AGENTS.md (atualizado)
+- Spawn rules: dev-orchestrator pode spawnar qa-browser; qa-browser nunca spawna qa-browser
+
+### Impact
+QA E2E automatizado via browser reduz regressões visuais e bugs de UX antes do merge. Três modos de operação: feature QA (completo), smoke test (rápido, <5min), regression suite (cross-feature). Integrado ao pipeline GitHub-native com labels `qa-failed` / `qa-passed`.
+
+---
+
 ## 2026-08-07 — N1: Saideira Hub Harness Refinement (ND-015)
 
 ### Trigger

@@ -3,18 +3,23 @@ import type Redis from "ioredis";
 import { z } from "zod";
 import type { PvpAttackableResponse, PvpCombatResult, PvpHistoryResponse } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
-import { checkRateLimit } from "../lib/rate-limit";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { checkCooldown } from "../middleware/cooldown";
+import { validate } from "../middleware/validate";
+import { setAuditContext } from "../middleware/audit-middleware";
+import { checkActionRateLimit } from "../lib/rate-limit";
+import { requireCharacterId } from "../services/economy-service";
 import {
   executeAttack,
   getAttackableTargets,
   getCombatHistory,
 } from "../services/pvp-service";
 
-// Neon Dusk — PvP routes (ND-014)
+// Neon Dusk — PvP routes (ND-014, ND-053)
 // ============================================================================
 // Three endpoints: attackable target list, the attack itself (rate-limited:
-// 3 attacks/hour per user) and the combat history. All resolve the caller's
-// character from their JWT sub claim.
+// 3 attacks/hour per character + 1h cooldown), and the combat history. All
+// resolve the caller's character from their JWT sub claim.
 
 export interface PvpRoutesOptions {
   redis: Redis;
@@ -32,10 +37,6 @@ const attackSchema = z.object({
   targetId: z.string().uuid("targetId must be a UUID"),
 });
 
-/** Per-user attack rate limit: 3 attacks per hour. */
-const ATTACK_LIMIT = 3;
-const ATTACK_WINDOW_MS = 60 * 60 * 1000;
-
 export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
   const { redis } = opts;
 
@@ -49,20 +50,31 @@ export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
     },
   );
 
-  // POST /api/pvp/attack — the combat itself (3/hour per user).
+  // POST /api/pvp/attack — the combat itself (3/hour per character, 1h cooldown).
   app.post(
     "/pvp/attack",
     {
       preHandler: [
         authenticate,
-        // PreHandler hooks run in order — this runs after authenticate, so
-        // `req.user.sub` is guaranteed to exist here.
-        async (req) => checkRateLimit(redis, `pvp:attack:user:${req.user.sub}`, ATTACK_LIMIT, ATTACK_WINDOW_MS),
+        setAuditContext("pvp_attack"),
+        checkCircuitBreaker(redis),
+        checkCooldown(redis, "pvp_attack"),
+        validate(attackSchema),
+        checkActionRateLimit(redis, "pvp_attack"),
       ],
     },
     async (request): Promise<PvpCombatResult> => {
-      const { targetId } = attackSchema.parse(request.body);
-      return executeAttack(redis, request.user.sub, targetId);
+      const characterId = await requireCharacterId(request.user.sub);
+      const { targetId } = request.body as z.infer<typeof attackSchema>;
+
+      request.audit_context!.payload = { targetId };
+
+      const result = await executeAttack(redis, request.user.sub, targetId);
+
+      // Set cooldown AFTER success (ADR-2) — 1h.
+      await redis.setex(`cooldown:${characterId}:pvp_attack`, 3600, "1");
+
+      return result;
     },
   );
 

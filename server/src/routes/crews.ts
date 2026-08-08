@@ -17,8 +17,12 @@ import {
   CREW_RECRUIT_SC,
 } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { checkCooldown } from "../middleware/cooldown";
+import { validate } from "../middleware/validate";
+import { setAuditContext } from "../middleware/audit-middleware";
+import { checkActionRateLimit } from "../lib/rate-limit";
 import { AppError } from "../middleware/error-handler";
-import { checkRateLimit } from "../lib/rate-limit";
 import { escapeHtml } from "../lib/escape-html";
 import { sseAuthenticate } from "../lib/sse-auth";
 import { db, type Tx } from "../db";
@@ -34,13 +38,16 @@ import { transferEddies } from "../game/economy";
 import { calculateCrewBonuses } from "../game/crews";
 import { ensureWallet, requireCharacterId } from "../services/economy-service";
 
-// Neon Dusk — Crew routes (ND-016: Crews Básicas)
+// Neon Dusk — Crew routes (ND-016: Crews Básicas, ND-053)
 // ============================================================================
 // Gang social system: found a crew (5,000 eddies, SC >= 25), invite recruits
 // (SC >= 10), join/leave/kick, dissolve, and a members-only real-time chat
 // (Redis pub/sub + list, ADR-2 — same shape as the saideira chat, scoped per
 // crew). Membership rules are mirrored in the DB (unique character_id, the
 // 4-member trigger); the app-level checks are UX, the constraints are law.
+//
+// ND-053: All POST/DELETE endpoints are guarded by circuit-break, rate-limit,
+// and audit logging. Invite also has a 60s cooldown.
 
 export interface CrewRoutesOptions {
   redis: Redis;
@@ -81,8 +88,6 @@ const chatSendSchema = z.object({
 
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000; // invites expire after 24h
 const CHAT_HISTORY_MAX = 50;
-const CHAT_RATE_LIMIT_MAX = 1; // 1 message...
-const CHAT_RATE_LIMIT_WINDOW_MS = 5_000; // ...per 5 seconds
 const SSE_KEEPALIVE_MS = 30_000;
 
 const chatChannel = (crewId: string) => `crew:${crewId}:chat`;
@@ -143,10 +148,20 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   // POST /api/crews — found a crew (5,000 eddies + SC >= 25).
   app.post(
     "/crews",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("crew_invite"),
+        checkCircuitBreaker(redis),
+        validate(createCrewSchema),
+        checkActionRateLimit(redis, "crew_invite"),
+      ],
+    },
     async (request, reply): Promise<CreateCrewResponse> => {
-      const { name, tag } = createCrewSchema.parse(request.body);
+      const { name, tag } = request.body as z.infer<typeof createCrewSchema>;
       const characterId = await requireCharacterId(request.user.sub);
+
+      request.audit_context!.payload = { name, tag };
 
       // Eligibility: SC gate + already-affiliated guard (one crew per char).
       const [leader] = await db
@@ -317,11 +332,22 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   // POST /api/crews/:id/invite — leader invites a recruit (SC >= 10).
   app.post(
     "/crews/:id/invite",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("crew_invite"),
+        checkCircuitBreaker(redis),
+        checkCooldown(redis, "crew_invite"),
+        validate(inviteSchema),
+        checkActionRateLimit(redis, "crew_invite"),
+      ],
+    },
     async (request, reply): Promise<CrewInvite> => {
       const crewId = (request.params as { id: string }).id;
-      const { characterId: targetId } = inviteSchema.parse(request.body);
+      const { characterId: targetId } = request.body as z.infer<typeof inviteSchema>;
       const characterId = await requireCharacterId(request.user.sub);
+
+      request.audit_context!.payload = { crewId, targetCharacterId: targetId };
 
       const crew = await getCrew(crewId);
       requireLeader(crew, characterId);
@@ -369,6 +395,9 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         .returning();
       if (!invite) throw new AppError(500, "INVITE_FAILED", "Não foi possível criar o convite");
 
+      // Set cooldown AFTER success (ADR-2) — 60s.
+      await redis.setex(`cooldown:${characterId}:crew_invite`, 60, "1");
+
       return reply.status(201).send({
         id: invite.id,
         crewId: invite.crewId,
@@ -383,10 +412,19 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   // POST /api/crews/:id/join — accept an invite.
   app.post(
     "/crews/:id/join",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("crew_join"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "crew_invite"),
+      ],
+    },
     async (request, reply): Promise<CrewDetailResponse["members"][number]> => {
       const crewId = (request.params as { id: string }).id;
       const characterId = await requireCharacterId(request.user.sub);
+
+      request.audit_context!.payload = { crewId };
 
       const { member, target } = await db.transaction(async (tx) => {
         const [invite] = await tx
@@ -437,11 +475,21 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   // POST /api/crews/:id/leave — quit (leader must dissolve instead).
   app.post(
     "/crews/:id/leave",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("crew_leave"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "crew_invite"),
+      ],
+    },
     async (request, reply) => {
       const crewId = (request.params as { id: string }).id;
       const characterId = await requireCharacterId(request.user.sub);
       const crew = await getCrew(crewId);
+
+      request.audit_context!.payload = { crewId };
+
       if (crew.leaderId === characterId) {
         throw new AppError(400, "LEADER_CANNOT_LEAVE", "O líder deve dissolver a crew para sair");
       }
@@ -461,7 +509,14 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   // DELETE /api/crews/:id/members/:characterId — leader kicks a member.
   app.delete(
     "/crews/:id/members/:characterId",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("crew_kick"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "crew_invite"),
+      ],
+    },
     async (request, reply) => {
       const { id: crewId, characterId: targetId } = request.params as {
         id: string;
@@ -469,6 +524,9 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       };
       const characterId = await requireCharacterId(request.user.sub);
       const crew = await getCrew(crewId);
+
+      request.audit_context!.payload = { crewId, targetCharacterId: targetId };
+
       requireLeader(crew, characterId);
       if (targetId === crew.leaderId) {
         throw new AppError(400, "CANNOT_KICK_LEADER", "Não é possível remover o líder");
@@ -489,11 +547,21 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   // DELETE /api/crews/:id — dissolve the crew (leader only).
   app.delete(
     "/crews/:id",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("crew_dissolve"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "crew_invite"),
+      ],
+    },
     async (request, reply) => {
       const crewId = (request.params as { id: string }).id;
       const characterId = await requireCharacterId(request.user.sub);
       const crew = await getCrew(crewId);
+
+      request.audit_context!.payload = { crewId };
+
       requireLeader(crew, characterId);
 
       await db.transaction(async (tx) => {
@@ -523,22 +591,28 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     },
   );
 
-  // POST /api/crews/:id/chat — send a message (1 msg / 5s per member).
+  // POST /api/crews/:id/chat — send a message (1 msg / 5s per member via the
+  // chat_message cooldown, same gate as the saideira chat — ND-053).
   app.post(
     "/crews/:id/chat",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("crew_chat"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "saideira_chat"),
+        checkCooldown(redis, "chat_message"),
+        validate(chatSendSchema),
+      ],
+    },
     async (request, reply): Promise<ChatMessage> => {
       const crewId = (request.params as { id: string }).id;
-      const { message } = chatSendSchema.parse(request.body);
+      const { message } = request.body as z.infer<typeof chatSendSchema>;
       const characterId = await requireCharacterId(request.user.sub);
       const crew = await getCrew(crewId);
       await requireMember(crewId, characterId);
-      await checkRateLimit(
-        redis,
-        `crew:chat:rl:${crewId}:${characterId}`,
-        CHAT_RATE_LIMIT_MAX,
-        CHAT_RATE_LIMIT_WINDOW_MS,
-      );
+
+      request.audit_context!.payload = { crewId, messageLength: message.length };
 
       const [char] = await db
         .select({ name: characters.name })
@@ -559,6 +633,9 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       await redis.publish(chatChannel(crewId), payload);
       await redis.lpush(chatHistoryKey(crewId), payload);
       await redis.ltrim(chatHistoryKey(crewId), 0, CHAT_HISTORY_MAX - 1);
+
+      // Set cooldown AFTER success (ADR-2) — 5s.
+      await redis.setex(`cooldown:${characterId}:chat_message`, 5, "1");
 
       return reply.status(201).send(chatMessage);
     },

@@ -597,6 +597,17 @@ export const crewInvites = pgTable(
 
 export const roundStatusEnum = pgEnum("round_status", ["active", "ended"]);
 
+// ND-053: Anti-Cheat — audit_log result classification.
+export const auditResultEnum = pgEnum("audit_result", [
+  "allowed",
+  "blocked",
+  "rate_limited",
+  "validation_error",
+  "circuit_break",
+  "cooldown_active",
+  "server_error",
+]);
+
 export const rounds = pgTable(
   "rounds",
   {
@@ -640,5 +651,32 @@ export const roundStats = pgTable(
   (table) => [
     // History reads always join rounds → round_stats by round_id.
     index("idx_round_stats_round_id").on(table.roundId),
+  ],
+);
+
+// --- Anti-Cheat (ND-053) -----------------------------------------------------
+// Append-only audit log: every mutating game action is recorded with
+// character_id, IP, user-agent, request payload and a typed result for
+// analytics and abuse investigation. Fire-and-forget writes via audit-log.ts.
+
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    characterId: uuid("character_id")
+      .notNull()
+      .references(() => characters.id, { onDelete: "cascade" }),
+    action: text("action").notNull(), // "gig_accept", "pvp_attack", "saideira_chat", etc.
+    ip: text("ip").notNull(),
+    userAgent: text("user_agent").notNull(),
+    payload: jsonb("payload").default(sql`'{}'::jsonb`).notNull(),
+    result: auditResultEnum("result").notNull().default("allowed"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_audit_log_character").on(table.characterId),
+    index("idx_audit_log_action").on(table.action),
+    index("idx_audit_log_result").on(table.result),
+    index("idx_audit_log_created").on(sql`${table.createdAt} DESC`),
   ],
 );

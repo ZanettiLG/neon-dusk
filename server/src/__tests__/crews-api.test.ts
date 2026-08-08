@@ -38,7 +38,6 @@ import type {
 
 const REDIS_TEST_DB = "redis://localhost:56379/14";
 const PASSWORD = "StrongPass123!";
-const CREW_CHAT_RATE_KEY_PREFIX = "auth:rl:crew:chat:rl:";
 
 let seq = 0;
 function uniqueEmail(): string {
@@ -73,7 +72,17 @@ describe("ND-016 — Crews Básicas API", () => {
     await redis.connect();
     await redis.flushdb();
 
-    app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
+    // RATE_LIMIT_MAX headroom: this suite makes ~200+ HTTP requests from
+    // 127.0.0.1 within the global limiter's 60s window (and the limiter is
+    // in-memory, so redis.flushdb() no longer resets it). The IP limiter has
+    // its own dedicated suite — it must not trip mid-suite here.
+    app = await buildApp({
+      env: envSchema.parse({
+        ...process.env,
+        REDIS_URL: REDIS_TEST_DB,
+        RATE_LIMIT_MAX: "1000",
+      }),
+    });
     server = await startTestServer(app);
   });
 
@@ -172,6 +181,9 @@ describe("ND-016 — Crews Básicas API", () => {
     expect(created.status).toBe(201);
     const { crew } = created.body as CreateCrewResponse;
     for (const recruit of recruits) {
+      // ND-053: clear the 60s invite cooldown so a single leader can invite
+      // several recruits in one test (this helper is setup, not the gate).
+      await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       expect((await invite(leader, crew.id, recruit.characterId)).status).toBe(201);
       expect((await join(recruit, crew.id)).status).toBe(201);
     }
@@ -207,7 +219,7 @@ describe("ND-016 — Crews Básicas API", () => {
 
   /** Clear the per-member crew chat rate-limit counter (test seam for the 5s window). */
   async function clearChatRateLimit(crewId: string, characterId: string): Promise<void> {
-    await redis.del(`${CREW_CHAT_RATE_KEY_PREFIX}${crewId}:${characterId}`);
+    await redis.del(`cooldown:${characterId}:chat_message`);
   }
 
   // ─── POST /api/crews — creation ────────────────────────────────────────────
@@ -565,6 +577,7 @@ describe("ND-016 — Crews Básicas API", () => {
       await setStreetCred(extra.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD", recruits);
 
+      await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       const { status, body } = await invite(leader, crewId, extra.characterId);
 
       expect(status).toBe(409);
@@ -605,7 +618,11 @@ describe("ND-016 — Crews Básicas API", () => {
       await setStreetCred(recruit.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
+      // Clear the 60s invite cooldown so the second invite reaches the
+      // business rule (ALREADY_INVITED) instead of the anti-cheat gate.
+      await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       expect((await invite(leader, crewId, recruit.characterId)).status).toBe(201);
+      await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       const { status, body } = await invite(leader, crewId, recruit.characterId);
 
       expect(status).toBe(409);
@@ -627,6 +644,8 @@ describe("ND-016 — Crews Básicas API", () => {
         .set({ expiresAt: new Date(Date.now() - 1000) })
         .where(eq(crewInvites.id, inviteId));
 
+      // Clear the 60s invite cooldown set by the first invite.
+      await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       const { status, body } = await invite(leader, crewId, recruit.characterId);
 
       expect(status).toBe(201);
@@ -718,7 +737,12 @@ describe("ND-016 — Crews Básicas API", () => {
       for (const r of [late, a, b, c]) await setStreetCred(r.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
       // Invite everyone while there is room: crew 1 → invites for late/a/b/c.
-      for (const r of [late, a, b, c]) expect((await invite(leader, crewId, r.characterId)).status).toBe(201);
+      // (Clear the 60s invite cooldown between each so the anti-cheat gate
+      // does not fire — this test targets CREW_FULL, not the cooldown.)
+      for (const r of [late, a, b, c]) {
+        await redis.del(`cooldown:${leader.characterId}:crew_invite`);
+        expect((await invite(leader, crewId, r.characterId)).status).toBe(201);
+      }
       // a, b, c join → crew full (4/4).
       for (const r of [a, b, c]) expect((await join(r, crewId)).status).toBe(201);
 
@@ -946,7 +970,7 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(historyBody.messages.map((m) => m.message)).toEqual(["primeira", "segunda"]);
     });
 
-    it("should rate-limit the second message within 5s with 429 RATE_LIMITED", async () => {
+    it("should reject the second message within 5s with 429 COOLDOWN_ACTIVE", async () => {
       const leader = await registerApiUser();
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
@@ -957,13 +981,14 @@ describe("ND-016 — Crews Básicas API", () => {
       );
       expect(first.status).toBe(201);
 
+      // ND-053: the 5s chat cooldown gate fires on the second message.
       const second = await server.post(
         `/api/crews/${crewId}/chat`,
         { message: "segunda" },
         authHeader(leader.accessToken),
       );
       expect(second.status).toBe(429);
-      expect((await json<ErrorBody>(second)).error).toBe("RATE_LIMITED");
+      expect((await json<ErrorBody>(second)).error).toBe("COOLDOWN_ACTIVE");
     });
 
     it("should allow a message after the rate-limit window is cleared", async () => {
@@ -1111,6 +1136,47 @@ describe("ND-016 — Crews Básicas API", () => {
       const res = await fetch(`${base()}/api/crews/${crewId}/chat/stream`);
 
       expect(res.status).toBe(401);
+    });
+  });
+
+  // ─── Anti-cheat Middleware Chain Smoke Tests ─────────────────────────────
+
+  describe("anti-cheat middleware chain", () => {
+    it("should include X-RateLimit-Remaining on crew create", async () => {
+      const leader = await registerApiUser();
+      await makeFounder(leader);
+      const res = await fetch(`${base()}/api/crews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader(leader.accessToken) },
+        body: JSON.stringify({ name: "Smoke Test Crew", tag: "SMK" }),
+      });
+      expect(res.status).toBeLessThan(400);
+      expect(res.headers.get("x-ratelimit-remaining")).toBeTruthy();
+    });
+
+    it("should include X-RateLimit-Remaining on crew invite", async () => {
+      const leader = await registerApiUser();
+      const target = await registerApiUser();
+      await setStreetCred(target.characterId, 10);
+      const crewId = await buildCrew(leader, "Smoke Test Crew", "SMK");
+      const res = await fetch(`${base()}/api/crews/${crewId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader(leader.accessToken) },
+        body: JSON.stringify({ characterId: target.characterId }),
+      });
+      expect(res.status).toBeLessThan(400);
+      expect(res.headers.get("x-ratelimit-remaining")).toBeTruthy();
+    });
+
+    it("should include X-RateLimit-Remaining on crew chat", async () => {
+      const leader = await registerApiUser();
+      const crewId = await buildCrew(leader, "Smoke Test Crew", "SMK");
+      const res = await fetch(`${base()}/api/crews/${crewId}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader(leader.accessToken) },
+        body: JSON.stringify({ message: "Smoke test message" }),
+      });
+      expect(res.headers.get("x-ratelimit-remaining")).toBeTruthy();
     });
   });
 });

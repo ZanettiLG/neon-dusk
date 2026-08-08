@@ -25,7 +25,6 @@ import type {
 
 const REDIS_TEST_DB = "redis://localhost:56379/13";
 const PASSWORD = "StrongPass123!";
-const CHAT_RATE_KEY_PREFIX = "auth:rl:saideira:ratelimit:";
 
 let seq = 0;
 function uniqueEmail(): string {
@@ -60,7 +59,16 @@ describe("ND-015 — Saideira Hub API", () => {
     await redis.connect();
     await redis.flushdb();
 
-    app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
+    // RATE_LIMIT_MAX headroom: this suite makes ~100+ HTTP requests from
+    // 127.0.0.1 within the global limiter's 60s window — the IP limiter has
+    // its own dedicated suite, so it must not trip mid-suite here.
+    app = await buildApp({
+      env: envSchema.parse({
+        ...process.env,
+        REDIS_URL: REDIS_TEST_DB,
+        RATE_LIMIT_MAX: "1000",
+      }),
+    });
     server = await startTestServer(app);
   });
 
@@ -261,15 +269,16 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(err.error).toBe("NO_CHARACTER");
     });
 
-    it("should rate-limit the second message within 5s with 429 RATE_LIMITED", async () => {
+    it("should reject the second message within 5s with 429 COOLDOWN_ACTIVE", async () => {
       const { accessToken } = await registerApiUser();
 
       const first = await postChat(accessToken, "primeira");
       expect(first.status).toBe(201);
 
+      // ND-053: the 5s chat cooldown gate fires before the rate limiter.
       const second = await postChat(accessToken, "segunda");
       expect(second.status).toBe(429);
-      expect((second.body as ErrorBody).error).toBe("RATE_LIMITED");
+      expect((second.body as ErrorBody).error).toBe("COOLDOWN_ACTIVE");
     });
 
     it("should allow a message after the rate-limit window expires", async () => {
@@ -277,8 +286,10 @@ describe("ND-015 — Saideira Hub API", () => {
 
       const first = await postChat(accessToken, "primeira");
       expect(first.status).toBe(201);
-      // Simulate the 5s window passing (test seam — real clock would be slow).
-      await redis.del(`${CHAT_RATE_KEY_PREFIX}${characterId}`);
+      // Simulate the 5s window passing (test seam — real clock would be slow):
+      // clear the cooldown gate + the per-character rate counter.
+      await redis.del(`cooldown:${characterId}:chat_message`);
+      await redis.del(`rate:${characterId}:saideira_chat`);
 
       const second = await postChat(accessToken, "segunda");
       expect(second.status).toBe(201);
@@ -379,8 +390,10 @@ describe("ND-015 — Saideira Hub API", () => {
       const { accessToken, characterId } = await registerApiUser();
 
       expect((await postChat(accessToken, "primeira")).status).toBe(201);
-      // Second send within the same window — clear the per-character counter.
-      await redis.del(`${CHAT_RATE_KEY_PREFIX}${characterId}`);
+      // Second send within the same window — clear the cooldown gate + the
+      // per-character rate counter (ND-053 keys).
+      await redis.del(`cooldown:${characterId}:chat_message`);
+      await redis.del(`rate:${characterId}:saideira_chat`);
       expect((await postChat(accessToken, "segunda")).status).toBe(201);
 
       const res = await fetch(`${base()}/api/saideira/chat/history`, {

@@ -7,6 +7,11 @@ import type {
 } from "@neon-dusk/shared";
 import { CHROME_SLOTS } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { checkCooldown } from "../middleware/cooldown";
+import { validate } from "../middleware/validate";
+import { setAuditContext } from "../middleware/audit-middleware";
+import { checkActionRateLimit } from "../lib/rate-limit";
 import { requireCharacterId } from "../services/economy-service";
 import {
   installChrome,
@@ -20,8 +25,22 @@ import {
 // All endpoints resolve the caller's character from their JWT sub claim.
 // Install/uninstall are the only mutating endpoints and run atomically inside
 // the chrome service's transactions.
+//
+// ND-053: Install/uninstall are guarded by circuit-break, per-action rate
+// limits, validation, and audit logging. Install also has a 60s cooldown.
+
+const installSchema = z.object({
+  chromeDefinitionId: z.string().uuid(),
+  vendorId: z.string().uuid(),
+});
+
+const uninstallSchema = z.object({
+  installedChromeId: z.string().uuid(),
+});
 
 export async function chromeRoutes(app: FastifyInstance) {
+  const redis = app.redis;
+
   // GET /api/chrome — active catalog, optionally filtered by tier/slot
   app.get("/chrome", { preHandler: [authenticate] }, async (request) => {
     const querySchema = z.object({
@@ -39,26 +58,52 @@ export async function chromeRoutes(app: FastifyInstance) {
   });
 
   // POST /api/chrome/install — buy + implant a chrome from a ripperdoc
-  app.post("/chrome/install", { preHandler: [authenticate] }, async (request, reply) => {
-    const bodySchema = z.object({
-      chromeDefinitionId: z.string().uuid(),
-      vendorId: z.string().uuid(),
-    });
-    const body = bodySchema.parse(request.body);
+  app.post(
+    "/chrome/install",
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("chrome_install"),
+        checkCircuitBreaker(redis),
+        checkCooldown(redis, "chrome_install"),
+        validate(installSchema),
+        checkActionRateLimit(redis, "chrome_install"),
+      ],
+    },
+    async (request, reply) => {
+      const body = request.body as z.infer<typeof installSchema>;
+      const characterId = await requireCharacterId(request.user.sub);
 
-    const characterId = await requireCharacterId(request.user.sub);
-    const result = await installChrome(characterId, body.chromeDefinitionId, body.vendorId);
-    return reply.status(201).send(result as ChromeInstallResponse);
-  });
+      request.audit_context!.payload = { chromeDefinitionId: body.chromeDefinitionId, vendorId: body.vendorId };
+
+      const result = await installChrome(characterId, body.chromeDefinitionId, body.vendorId);
+
+      // Set cooldown AFTER success (ADR-2) — 60s.
+      await redis.setex(`cooldown:${characterId}:chrome_install`, 60, "1");
+
+      return reply.status(201).send(result as ChromeInstallResponse);
+    },
+  );
 
   // POST /api/chrome/uninstall — remove an implant (no refund, no humanity back)
-  app.post("/chrome/uninstall", { preHandler: [authenticate] }, async (request) => {
-    const bodySchema = z.object({
-      installedChromeId: z.string().uuid(),
-    });
-    const body = bodySchema.parse(request.body);
+  app.post(
+    "/chrome/uninstall",
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("chrome_uninstall"),
+        checkCircuitBreaker(redis),
+        validate(uninstallSchema),
+        checkActionRateLimit(redis, "chrome_uninstall"),
+      ],
+    },
+    async (request) => {
+      const body = request.body as z.infer<typeof uninstallSchema>;
+      const characterId = await requireCharacterId(request.user.sub);
 
-    const characterId = await requireCharacterId(request.user.sub);
-    return uninstallChrome(characterId, body.installedChromeId) as Promise<ChromeUninstallResponse>;
-  });
+      request.audit_context!.payload = { installedChromeId: body.installedChromeId };
+
+      return uninstallChrome(characterId, body.installedChromeId) as Promise<ChromeUninstallResponse>;
+    },
+  );
 }

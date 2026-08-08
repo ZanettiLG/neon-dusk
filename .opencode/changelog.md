@@ -2,6 +2,43 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-07 — N2: Comando /dev-qa standalone + QA integrado ao pipeline
+
+### Trigger
+QA suite completa executada (14 test issues, 21 bugs, 9 enhancements) revelou que o qa-browser nunca era chamado — era opcional com flag `--qa` que ninguém passava. O bug mais crítico (fase "execute" do gig sem renderização) escapou porque o teste parou em snapshots em vez de simular a jornada completa do usuário.
+
+### Changes
+- **Novo comando**: `/dev-qa` — QA browser standalone com 3 modos (feature/smoke/regression)
+- **dev-orchestrator.md**: QA movido de `--qa` opcional para default, pular com `--skip-qa`
+- **dev-feature.md**: Pipeline atualizado com qa-browser como passo 3.5 padrão
+- **dev-feature.md**: Flag `--skip-qa` documentada
+
+### Rationale
+QA interativo no browser é a única camada que verifica a jornada real do jogador (clique por clique, fase por fase). Testes unitários e de API são necessários mas não suficientes. O padrão deve ser "sempre testar no browser" — pular é exceção justificada.
+
+## 2026-08-07 — N3: QA Browser Agent (E2E Testing)
+
+### Trigger
+Pipeline de desenvolvimento cobria testes unitários, integração e revisão de código, mas não tinha verificação E2E no browser. Features podiam ter regressões visuais, bugs de UX ou side-effects não detectados (console errors, storage corruption, API call failures).
+
+### Changes
+- **Novo agente `qa-browser`**: QA E2E no browser usando agent-browser MCP. 5 fases: ANALYZE → PLAN → EXECUTE → ASSERT → REPORT. Três modos: feature QA (completo), smoke test (<5min pós-deploy), regression (cross-feature antes de release).
+- **`dev-orchestrator`**: Novo flag `--qa` ativa Passo 3.5 (QA Browser) entre Test e Review. Labels GitHub `qa-failed` / `qa-passed`.
+- **`AGENTS.md`**: Spawn rules para qa-browser.
+- **Evidências**: Screenshots, console logs, network traces, storage snapshots salvos em `.qa/`.
+
+### Architecture Decisions
+- Modelo Pro (deepseek-v4-pro) com thinking 16K — precisa de raciocínio analítico para decompor features em cenários de teste e avaliar side-effects
+- Permissão `edit: deny, bash: deny` — agente é read-only para código fonte, interage apenas via browser MCP
+- Integração GitHub-native: reporta resultados como comentário na issue, labels de estado
+- Ferramentas MCP `agent_browser_*` para interação direta com browser (snapshot a11y tree, screenshots, eval JS, network inspection)
+- Sem dependência de Playwright ou Selenium — usa o MCP server já configurado no harness
+
+### Impact
+Camada adicional de qualidade no pipeline: QA E2E automatizado fecha o gap entre testes unitários/integração e a experiência real do usuário no browser. Previne regressões visuais, bugs de UX e side-effects que escapam de code review e testes automatizados tradicionais.
+
+---
+
 ## 2026-08-07 — N2 Proposals: PvP Auto-Refinement (ND-014)
 
 ### Trigger

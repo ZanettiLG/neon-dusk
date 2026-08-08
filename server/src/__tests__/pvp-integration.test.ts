@@ -99,20 +99,26 @@ describe("ND-014 — PvP combat API", () => {
 
   // ─── Test seams ────────────────────────────────────────────────────────────
 
-  /** Redis key backing the per-user attack rate counter (see lib/rate-limit). */
+  /** Redis key backing the per-character attack rate counter (lib/rate-limit — keyed by JWT sub). */
   function attackRateKey(userId: string): string {
-    return `auth:rl:pvp:attack:user:${userId}`;
+    return `rate:${userId}:pvp_attack`;
   }
 
-  /** Redis key backing the per-character attack cooldown (see pvp-service). */
-  function cooldownKey(characterId: string): string {
+  /** Redis key backing the per-character attack cooldown (pvp-service). */
+  function serviceCooldownKey(characterId: string): string {
     return `pvp:cooldown:${characterId}`;
   }
 
-  /** Reset cooldown + per-user rate counter so a character can attack again. */
+  /** Redis key backing the anti-cheat cooldown gate (middleware/cooldown). */
+  function middlewareCooldownKey(characterId: string): string {
+    return `cooldown:${characterId}:pvp_attack`;
+  }
+
+  /** Reset cooldown + per-character rate counter so a character can attack again. */
   async function clearAttackLimits(player: PvpPlayer): Promise<void> {
     await redis.del(attackRateKey(player.userId));
-    await redis.del(cooldownKey(player.characterId));
+    await redis.del(serviceCooldownKey(player.characterId));
+    await redis.del(middlewareCooldownKey(player.characterId));
   }
 
   /** Register a user over HTTP, then insert their character directly (full attribute control). */
@@ -253,7 +259,7 @@ describe("ND-014 — PvP combat API", () => {
 
     it("should return an empty target list while the attacker is on cooldown", async () => {
       const attacker = await createPvpPlayer();
-      await redis.set(cooldownKey(attacker.characterId), "1", "EX", 3600);
+      await redis.set(serviceCooldownKey(attacker.characterId), "1", "EX", 3600);
 
       const res = await fetch(`${base()}/api/pvp/attackable`, {
         headers: authHeader(attacker.accessToken),
@@ -417,7 +423,7 @@ describe("ND-014 — PvP combat API", () => {
       expect(res.status).toBe(401);
     });
 
-    it("should enforce a 1-hour cooldown after a successful attack (429 PVP_COOLDOWN)", async () => {
+    it("should enforce a 1-hour cooldown after a successful attack (429 COOLDOWN_ACTIVE)", async () => {
       const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
       const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
 
@@ -428,6 +434,9 @@ describe("ND-014 — PvP combat API", () => {
       );
       expect(first.status).toBe(200);
 
+      // ND-053: the anti-cheat cooldown gate (middleware) fires before the
+      // handler — the second attack within 1h is COOLDOWN_ACTIVE, not the
+      // service's legacy PVP_COOLDOWN.
       const second = await server.post(
         "/api/pvp/attack",
         { targetId: defender.characterId },
@@ -435,7 +444,8 @@ describe("ND-014 — PvP combat API", () => {
       );
       expect(second.status).toBe(429);
       const body = await json<ErrorBody>(second);
-      expect(body.error).toBe("PVP_COOLDOWN");
+      expect(body.error).toBe("COOLDOWN_ACTIVE");
+      expect(second.headers.get("retry-after")).toBeTruthy();
     });
 
     it("should not burn the cooldown when the attack fails inside the transaction", async () => {
@@ -448,7 +458,8 @@ describe("ND-014 — PvP combat API", () => {
         authHeader(attacker.accessToken),
       );
       expect(failed.status).toBe(400); // INSUFFICIENT_NIL — transaction rolled back
-      expect(await redis.get(cooldownKey(attacker.characterId))).toBeNull();
+      expect(await redis.get(serviceCooldownKey(attacker.characterId))).toBeNull();
+      expect(await redis.get(middlewareCooldownKey(attacker.characterId))).toBeNull();
 
       // Top up NIL — the same character may retry immediately (no cooldown burned).
       await db.update(characters).set({ nil: 100 }).where(eq(characters.id, attacker.characterId));
@@ -605,12 +616,17 @@ describe("ND-014 — PvP combat API", () => {
       const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
 
       for (let i = 0; i < 3; i++) {
-        // Clear only the cooldown — the per-user rate counter must accumulate.
-        await redis.del(cooldownKey(attacker.characterId));
+        // Clear only the cooldowns — the per-character rate counter must accumulate.
+        await redis.del(middlewareCooldownKey(attacker.characterId));
+        await redis.del(serviceCooldownKey(attacker.characterId));
         const { status } = await attack(attacker, defender.characterId);
         expect(status).toBe(200);
       }
 
+      // The 4th attack: rate limiter (max 3/h) must fire — clear the cooldown
+      // keys (set by attack 3) so the request reaches the limiter.
+      await redis.del(middlewareCooldownKey(attacker.characterId));
+      await redis.del(serviceCooldownKey(attacker.characterId));
       const fourth = await server.post(
         "/api/pvp/attack",
         { targetId: defender.characterId },

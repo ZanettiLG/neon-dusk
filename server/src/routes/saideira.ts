@@ -12,8 +12,12 @@ import type {
   NameDrinkResponse,
 } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { checkCooldown } from "../middleware/cooldown";
+import { validate } from "../middleware/validate";
+import { setAuditContext } from "../middleware/audit-middleware";
+import { checkActionRateLimit } from "../lib/rate-limit";
 import { AppError } from "../middleware/error-handler";
-import { checkRateLimit } from "../lib/rate-limit";
 import { escapeHtml } from "../lib/escape-html";
 import { sseAuthenticate } from "../lib/sse-auth";
 import { requireCharacterId } from "../services/economy-service";
@@ -22,12 +26,16 @@ import { characters, crewMembers, crews, legends, rounds } from "../db/schema";
 import { env } from "../env";
 import { UNNAMED_DRINK } from "../game/round-reset";
 
-// Neon Dusk — Saideira Hub routes (ND-015)
+// Neon Dusk — Saideira Hub routes (ND-015, ND-053)
 // ============================================================================
 // The bar that never closes (Babilônia): hub info, ephemeral real-time chat
 // (Redis pub/sub + list, ADR-2), the permanent Legends menu and the crew
 // leaderboard placeholder (ADR-4). Chat requires SC >= 10 (gate enforced
 // client-side; the endpoints themselves only require a character).
+//
+// ND-053: Chat POST is guarded by circuit-break, 5s cooldown, validation,
+// and per-action rate limiting. Name-drink is guarded by circuit-break and
+// validation.
 
 export interface SaideiraRoutesOptions {
   redis: Redis;
@@ -63,8 +71,6 @@ const nameDrinkSchema = z.object({
 const CHAT_HISTORY_KEY = "saideira:chat:history";
 const CHAT_CHANNEL = "saideira:chat";
 const CHAT_HISTORY_MAX = 50;
-const CHAT_RATE_LIMIT_MAX = 1; // 1 message...
-const CHAT_RATE_LIMIT_WINDOW_MS = 5_000; // ...per 5 seconds
 const SSE_KEEPALIVE_MS = 30_000;
 const DAY_MS = 86_400_000; // ROUND_DURATION_DAYS is expressed in days
 
@@ -123,20 +129,24 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     };
   });
 
-  // POST /api/saideira/chat — send a message (1 msg / 5s per character).
+  // POST /api/saideira/chat — send a message (12/minute per character, 5s cooldown).
   app.post(
     "/saideira/chat",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("saideira_chat"),
+        checkCircuitBreaker(redis),
+        checkCooldown(redis, "chat_message"),
+        validate(chatSendSchema),
+        checkActionRateLimit(redis, "saideira_chat"),
+      ],
+    },
     async (request, reply): Promise<ChatMessage> => {
-      const { message } = chatSendSchema.parse(request.body);
-
+      const { message } = request.body as z.infer<typeof chatSendSchema>;
       const characterId = await requireCharacterId(request.user.sub);
-      await checkRateLimit(
-        redis,
-        `saideira:ratelimit:${characterId}`,
-        CHAT_RATE_LIMIT_MAX,
-        CHAT_RATE_LIMIT_WINDOW_MS,
-      );
+
+      request.audit_context!.payload = { messageLength: message.length };
 
       // Resolve the character name + crew tag (direct query — 1 row).
       const [char] = await db
@@ -173,6 +183,9 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
       // 2. Push to the ephemeral history list, capped at 50.
       await redis.lpush(CHAT_HISTORY_KEY, payload);
       await redis.ltrim(CHAT_HISTORY_KEY, 0, CHAT_HISTORY_MAX - 1);
+
+      // Set cooldown AFTER success (ADR-2) — 5s.
+      await redis.setex(`cooldown:${characterId}:chat_message`, 5, "1");
 
       return reply.status(201).send(chatMessage);
     },
@@ -267,10 +280,19 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
   // at most one unnamed row can match (ADR-5 — no schema change).
   app.post(
     "/legends/name-drink",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("name_drink"),
+        checkCircuitBreaker(redis),
+        validate(nameDrinkSchema),
+      ],
+    },
     async (request, reply): Promise<NameDrinkResponse> => {
-      const { drinkName } = nameDrinkSchema.parse(request.body);
+      const { drinkName } = request.body as z.infer<typeof nameDrinkSchema>;
       const characterId = await requireCharacterId(request.user.sub);
+
+      request.audit_context!.payload = { drinkName };
 
       const [char] = await db
         .select({ name: characters.name })

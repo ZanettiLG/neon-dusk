@@ -20,16 +20,22 @@ describe("Redis unavailable", () => {
     CORS_ORIGIN: "*",
     ROUND_DURATION_DAYS: 14,
     ROUND_INTERMISSION_MINUTES: 60,
+    ANTI_CHEAT_STRICT_MODE: "true",
   };
 
   let app: FastifyInstance;
 
   beforeAll(async () => {
     app = await buildApp({ env });
-    // Test route that passes through the global rate limiter (which hits
-    // Redis). When Redis is down, the limiter's Redis call fails and the
-    // error propagates to the global error handler.
+    // Route that only touches the DB — with the in-memory rate limiter, a
+    // plain request must NEVER depend on Redis (ND-053: fail open).
     app.get("/api/test-redis-guard", async (_req, reply) => {
+      return reply.send({ ok: true });
+    });
+    // Route that genuinely requires Redis — its failure maps to 503 via the
+    // global error handler.
+    app.get("/api/test-redis-required", async (_req, reply) => {
+      await app.redis.ping();
       return reply.send({ ok: true });
     });
     await app.listen({ port: 0 });
@@ -39,16 +45,30 @@ describe("Redis unavailable", () => {
     await app.close();
   });
 
-  it("should return 503 SERVICE_UNAVAILABLE when Redis is down", async () => {
+  it("should keep the app available (fail open) when Redis is down", async () => {
     const res = await app.inject({ method: "GET", url: "/api/test-redis-guard" });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("should return 503 SERVICE_UNAVAILABLE when a route genuinely needs Redis", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/test-redis-required" });
     expect(res.statusCode).toBe(503);
     const body = res.json();
     expect(body.error).toBe("SERVICE_UNAVAILABLE");
     expect(body.message).toBe("Serviço temporariamente indisponível. Tente novamente.");
   });
 
+  it("should report redis as disconnected on /api/health", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/health" });
+    expect(res.statusCode).toBe(503); // degraded — DB up, Redis down
+    const body = res.json();
+    expect(body.status).toBe("degraded");
+    expect(body.services.database).toBe("connected");
+    expect(body.services.redis).toBe("disconnected");
+  });
+
   it("should not expose internal details in error message", async () => {
-    const res = await app.inject({ method: "GET", url: "/api/test-redis-guard" });
+    const res = await app.inject({ method: "GET", url: "/api/test-redis-required" });
     const body = res.json();
     expect(body.message).not.toContain("maxRetriesPerRequest");
     expect(body.message).not.toContain("ioredis");

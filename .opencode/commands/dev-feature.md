@@ -26,18 +26,20 @@ Pipeline completo de desenvolvimento de feature: design → implementação → 
 | `--game-logic` | Usa `game-logic-dev` em vez de `developer` |
 | `--db-only` | Usa `db-designer` diretamente |
 | `--design-only` | Para no passo 1, produz apenas design doc |
-| `--skip-tests` | Pula testes (MVP rápido, não recomendado) |
+| `--skip-tests` | Pula testes automatizados (MVP rápido, não recomendado) |
+| `--skip-qa` | Pula QA browser E2E (feature urgente, não recomendado) |
 | `--github` | Integração completa com GitHub: cria issue, branch e PR |
 
 ## Workflow
 
-```
+``` 
 build agent (entrada fina)
   └── task(dev-orchestrator, $ARGUMENTS)
        ├── [--github] github-ops → criar issue + branch
        ├── architect → design técnico
        ├── developer → implementação
-       ├── test-writer → testes
+       ├── test-writer → testes automatizados
+       ├── qa-browser → testes E2E no browser
        ├── code-reviewer → qualidade
        ├── [se score < 4.5] → corrigir
        ├── [se score < 5.0] → harness-engineer → refinar

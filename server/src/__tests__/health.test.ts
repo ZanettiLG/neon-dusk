@@ -36,14 +36,13 @@ describe("GET /api/health", () => {
     });
   });
 
-  it("should include rate limit headers on the response", async () => {
-    const res = await server.get("/api/health");
-
-    expect(res.status).toBe(200);
-    expect(res.headers.get("x-ratelimit-limit")).toBe("100");
-    expect(res.headers.get("x-ratelimit-remaining")).toBeDefined();
-    expect(res.headers.get("x-ratelimit-reset")).toBeDefined();
-    expect(Number(res.headers.get("x-ratelimit-remaining"))).toBeGreaterThanOrEqual(0);
+  it("should stay reachable when hammered (health bypasses the rate limiter)", async () => {
+    // ND-053: /api/health is registered BEFORE the rate-limit plugin so it
+    // stays reachable when Redis is down — it must never return 429.
+    for (let i = 0; i < 20; i++) {
+      const res = await server.get("/api/health");
+      expect(res.status).toBe(200);
+    }
   });
 
   it("should return 404 JSON for unknown routes", async () => {

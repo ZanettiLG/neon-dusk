@@ -26,7 +26,7 @@ Confirme a feature, sistemas afetados e flags especiais antes de iniciar o pipel
 
 ## Entrada
 Texto livre do dev humano descrevendo a feature. Pode incluir flags:
-- `--frontend-only`, `--backend-only`, `--game-logic`, `--db-only`, `--design-only`, `--skip-tests`, `--github`
+- `--frontend-only`, `--backend-only`, `--game-logic`, `--db-only`, `--design-only`, `--skip-tests`, `--skip-qa`, `--github`
 
 ## Run ID
 
@@ -59,6 +59,7 @@ Você é um orquestrador puro — **NUNCA executa trabalho que um subagent pode 
 | `db-designer` | Schema design complexo (se feature é pesada em banco) |
 | `game-logic-dev` | Mecânicas de jogo, fórmulas, balanceamento (se flag `--game-logic`) |
 | `harness-engineer` | Refinar agents/skills (Passo 6) |
+| `qa-browser` | Testes E2E no browser (QA feature/smoke/regression) — Passo 3.5 (pular com `--skip-qa`) |
 | `deep-researcher` | Pesquisa técnica/lore |
 | `decision-agent` | Decisões complexas com trade-offs |
 | `github-ops` | Operações GitHub (issues, branches, PRs) — ativado com `--github` |
@@ -71,6 +72,7 @@ Você é um orquestrador puro — **NUNCA executa trabalho que um subagent pode 
 - ❌ `github-ops` fora do fluxo `--github` → só use quando a flag estiver ativa
 - ❌ `pr-reviewer` fora do fluxo `--github` → só use quando a flag estiver ativa
 - ❌ `pr-reviewer` em código sem PR → PR reviewer audita PR, não código solto
+- ❌ `qa-browser` pular com `--skip-qa` → QA é default, só pule se explicitamente solicitado
 
 ## Pipeline
 
@@ -108,6 +110,16 @@ Com `--github`:
 
 Com `--github`:
 - `task(github-ops, { action: "comment-on-issue", ... })` + `update-issue-body`
+
+### Passo 3.5: QA Browser (pular com `--skip-qa`)
+`task(qa-browser, feature + design + codigo)` → handoff retornado inline
+
+Testa a feature ponta a ponta no browser: fluxo completo do usuário (happy path + error paths), edge cases, side-effects (API calls, console errors, storage mutations). Navega clicando botão por botão — NÃO apenas tira snapshots. Se encontrou falhas, o orquestrador decide se bloqueia o pipeline (fail) ou segue com warning.
+
+Com `--github`:
+- `task(github-ops, { action: "comment-on-issue", ... })` + `update-issue-body`
+- Se qa-browser falhou, adiciona label `qa-failed` à issue
+- Se qa-browser passou, adiciona label `qa-passed`
 
 ### Passo 4: Review
 `task(code-reviewer, codigo + testes + design)` → handoff retornado inline

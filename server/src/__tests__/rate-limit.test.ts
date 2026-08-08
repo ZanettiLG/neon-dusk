@@ -33,6 +33,9 @@ describe("rate limiting", () => {
     await redis.flushdb();
 
     app = await buildApp({ env });
+    // /api/health is registered BEFORE the rate-limit plugin (it must stay
+    // reachable when Redis is down) — hammer a plain guarded route instead.
+    app.get("/api/test-rl-guard", async () => ({ ok: true }));
     server = await startTestServer(app);
   });
 
@@ -44,11 +47,11 @@ describe("rate limiting", () => {
 
   it("should return 429 with RATE_LIMITED error after the limit is exceeded", async () => {
     for (let i = 0; i < RATE_LIMIT_MAX; i++) {
-      const res = await server.get("/api/health");
+      const res = await server.get("/api/test-rl-guard");
       expect(res.status).toBe(200);
     }
 
-    const res = await server.get("/api/health");
+    const res = await server.get("/api/test-rl-guard");
     expect(res.status).toBe(429);
     const body = await json<RateLimitedBody>(res);
     expect(body.error).toBe("RATE_LIMITED");

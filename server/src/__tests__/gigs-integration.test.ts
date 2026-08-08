@@ -985,7 +985,7 @@ describe("ND-011 — gigs service & API", () => {
     });
 
     it("should return 400 ALREADY_ACTIVE_GIG on a double accept", async () => {
-      const { accessToken: token } = await registerApiUser();
+      const { accessToken: token, characterId } = await registerApiUser();
       const farma = await farmaGig();
 
       await app.inject({
@@ -993,6 +993,11 @@ describe("ND-011 — gigs service & API", () => {
         url: `/api/gigs/${farma.id}/accept`,
         headers: { authorization: `Bearer ${token}` },
       });
+
+      // ND-053: clear the 30s accept cooldown so the second accept reaches the
+      // business rule (ALREADY_ACTIVE_GIG) instead of the anti-cheat gate.
+      await app.redis.del(`cooldown:${characterId}:gig_accept`);
+
       const res = await app.inject({
         method: "POST",
         url: `/api/gigs/${farma.id}/accept`,
