@@ -124,4 +124,18 @@ describe("CharacterCreateView", () => {
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().character).toBeNull();
   });
+
+  it("soft cap indicator is not shown when no stat reaches 15", async () => {
+    renderCreate();
+    // With 7 free points (max 10 on one stat), soft cap text should not appear.
+    await fillValidForm();
+    // Wait for the increase buttons to be clicked and DOM to settle.
+    expect(screen.queryByText(/Após 15, cada ponto custa 2/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/bônus de soft cap/)).not.toBeInTheDocument();
+  });
+
+  it("remaining points reflect initial 7-pool correctly", () => {
+    renderCreate();
+    expect(screen.getByText("7 pontos restantes")).toBeInTheDocument();
+  });
 });

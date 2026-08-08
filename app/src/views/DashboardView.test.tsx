@@ -159,4 +159,35 @@ describe("DashboardView", () => {
     });
     expect(useAuthStore.getState().accessToken).toBeNull();
   });
+
+  it("shows SOFT CAP label for attributes at or above 15", async () => {
+    mocks.api.get.mockResolvedValue(nilStatus);
+    const highStatChar: Character = {
+      ...character,
+      body: 16,
+      reflexes: 15,
+      intelligence: 14,
+      technical: 3,
+      cool: 3,
+    };
+    useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character: highStatChar });
+    renderDashboard();
+
+    // Body (16) and Reflexes (15) should show SOFT CAP label.
+    const softCaps = await screen.findAllByText("SOFT CAP");
+    expect(softCaps).toHaveLength(2);
+
+    // Intelligence (14) should NOT show SOFT CAP.
+    const allSoftCaps = screen.getAllByText("SOFT CAP");
+    expect(allSoftCaps).toHaveLength(2);
+  });
+
+  it("does not show SOFT CAP label when all stats are below 15", async () => {
+    mocks.api.get.mockResolvedValue(nilStatus);
+    useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
+    renderDashboard();
+
+    expect(await screen.findByText("Ghost")).toBeInTheDocument();
+    expect(screen.queryByText("SOFT CAP")).not.toBeInTheDocument();
+  });
 });
