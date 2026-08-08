@@ -8,6 +8,7 @@ import {
   MIN_ATTR,
   ORIGINS,
   ROLES,
+  SOFT_CAP,
 } from "@neon-dusk/shared";
 import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS } from "@/lib/labels";
 
@@ -37,10 +38,19 @@ export default function CharacterForm({ loading, onSubmit }: CharacterFormProps)
     () => ATTRIBUTE_KEYS.reduce((sum, key) => sum + attributes[key], 0),
     [attributes],
   );
-  // Free pool: starts at 7 and shrinks as points are placed.
-  const remaining = useMemo(() => ATTR_TOTAL - spent, [spent]);
+  /** Soft cap penalty: each point above SOFT_CAP effectively costs double. */
+  const softCapPenalty = useMemo(
+    () => ATTRIBUTE_KEYS.reduce((sum, key) => sum + Math.max(0, attributes[key] - SOFT_CAP), 0),
+    [attributes],
+  );
+  // Effective remaining pool factoring in soft cap penalty.
+  const remaining = useMemo(() => ATTR_TOTAL - spent - softCapPenalty, [spent, softCapPenalty]);
 
-  const canIncrease = (key: AttributeKey) => remaining > 0 && attributes[key] < MAX_ATTR;
+  const canIncrease = (key: AttributeKey) => {
+    // At or above soft cap: each step costs 2 effective points.
+    const needed = attributes[key] >= SOFT_CAP ? 2 : 1;
+    return remaining >= needed && attributes[key] < MAX_ATTR;
+  };
   const canDecrease = (key: AttributeKey) => attributes[key] > MIN_ATTR;
 
   function adjust(key: AttributeKey, delta: 1 | -1): void {
@@ -147,41 +157,64 @@ export default function CharacterForm({ loading, onSubmit }: CharacterFormProps)
         </div>
 
         <div className="space-y-2">
-          {ATTRIBUTE_KEYS.map((key) => (
-            <div
-              key={key}
-              className="flex items-center justify-between bg-nd-bg/60 border border-nd-cyan/20 rounded-terminal px-3 py-2"
-            >
-              <span className="text-nd-text text-sm w-28">{ATTRIBUTE_LABELS[key]}</span>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  disabled={!canDecrease(key)}
-                  className="w-8 h-8 border border-nd-cyan/40 text-nd-cyan rounded-terminal hover:bg-nd-cyan/10 disabled:opacity-30 disabled:hover:bg-transparent"
-                  aria-label="Diminuir"
-                  onClick={() => adjust(key, -1)}
+          {ATTRIBUTE_KEYS.map((key) => {
+            const atSoftCap = attributes[key] >= SOFT_CAP;
+            const statColor = atSoftCap
+              ? "text-nd-gold"
+              : attributes[key] > BASE_ATTRIBUTES
+                ? "text-nd-cyan"
+                : "text-nd-text";
+            const borderGlow = atSoftCap ? "border-nd-gold/40 shadow-[0_0_6px_rgba(255,204,0,0.15)]" : "border-nd-cyan/20";
+
+            return (
+              <div key={key} className="space-y-1">
+                <div
+                  className={`flex items-center justify-between bg-nd-bg/60 border ${borderGlow} rounded-terminal px-3 py-2 transition-colors`}
                 >
-                  −
-                </button>
-                <span className="font-data text-nd-cyan text-lg w-8 text-center tabular-nums">
-                  {attributes[key]}
-                </span>
-                <button
-                  type="button"
-                  disabled={!canIncrease(key)}
-                  className="w-8 h-8 border border-nd-cyan/40 text-nd-cyan rounded-terminal hover:bg-nd-cyan/10 disabled:opacity-30 disabled:hover:bg-transparent"
-                  aria-label="Aumentar"
-                  onClick={() => adjust(key, 1)}
-                >
-                  +
-                </button>
+                  <span className="text-nd-text text-sm w-28">{ATTRIBUTE_LABELS[key]}</span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={!canDecrease(key)}
+                      className="w-8 h-8 border border-nd-cyan/40 text-nd-cyan rounded-terminal hover:bg-nd-cyan/10 disabled:opacity-30 disabled:hover:bg-transparent"
+                      aria-label="Diminuir"
+                      onClick={() => adjust(key, -1)}
+                    >
+                      −
+                    </button>
+                    <span className={`font-data text-lg w-8 text-center tabular-nums ${statColor}`}>
+                      {attributes[key]}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!canIncrease(key)}
+                      className="w-8 h-8 border border-nd-cyan/40 text-nd-cyan rounded-terminal hover:bg-nd-cyan/10 disabled:opacity-30 disabled:hover:bg-transparent"
+                      aria-label="Aumentar"
+                      onClick={() => adjust(key, 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                {atSoftCap && (
+                  <p className="text-nd-gold/70 text-xs font-data pl-1">
+                    Após {SOFT_CAP}, cada ponto custa 2
+                  </p>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <p className="text-nd-text-secondary text-xs">
-          Base {BASE_ATTRIBUTES} em cada atributo. Total: {spent}/{ATTR_TOTAL} pontos.
+          Base {BASE_ATTRIBUTES} em cada atributo. Total: {spent}/{ATTR_TOTAL} pontos
+          {softCapPenalty > 0 && (
+            <span className="text-nd-gold">
+              {" "}
+              ({softCapPenalty} bônus de soft cap)
+            </span>
+          )}
+          .
         </p>
       </div>
 

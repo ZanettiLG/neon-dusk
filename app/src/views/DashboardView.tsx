@@ -158,20 +158,31 @@ export default function DashboardView() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {ATTRIBUTE_KEYS.map((key) => (
-                <div
-                  key={key}
-                  className="bg-nd-bg/60 border border-nd-cyan/20 rounded-terminal p-3 text-center"
-                >
-                  <div className="text-nd-text-secondary text-xs font-data uppercase tracking-wider">
-                    {ATTRIBUTE_LABELS[key]}
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {ATTRIBUTE_KEYS.map((key) => (
+                  <div
+                    key={key}
+                    className={`bg-nd-bg/60 border rounded-terminal p-3 text-center transition-colors ${
+                      character[key] >= SOFT_CAP
+                        ? "border-nd-gold/40 shadow-[0_0_6px_rgba(255,204,0,0.15)]"
+                        : "border-nd-cyan/20"
+                    }`}
+                  >
+                    <div className="text-nd-text-secondary text-xs font-data uppercase tracking-wider">
+                      {ATTRIBUTE_LABELS[key]}
+                    </div>
+                    <div className={`font-data text-3xl mt-1 ${attributeHighlight(key)}`}>
+                      {character[key]}
+                    </div>
+                    {character[key] >= SOFT_CAP && (
+                      <div className="text-nd-gold/60 text-[10px] font-data mt-1 leading-tight" title="Após 15, cada ponto custa 2">
+                        SOFT CAP
+                      </div>
+                    )}
                   </div>
-                  <div className={`font-data text-3xl mt-1 ${attributeHighlight(key)}`}>
-                    {character[key]}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
