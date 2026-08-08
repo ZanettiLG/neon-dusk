@@ -28,6 +28,7 @@ export async function checkRateLimit(
   const count = results[0][1] as number;
 
   if (count > max) {
-    throw new AppError(429, "RATE_LIMITED", "Too many attempts. Try again later.");
+    const retryAfter = Math.ceil(windowMs / 1000);
+    throw new AppError(429, "RATE_LIMITED", "Too many attempts. Try again later.", { retryAfter });
   }
 }
