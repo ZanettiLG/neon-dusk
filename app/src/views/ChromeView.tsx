@@ -60,6 +60,7 @@ export default function ChromeView() {
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchCatalog();
     fetchInstalled();
     return () => { mountedRef.current = false; };
