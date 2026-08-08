@@ -533,17 +533,16 @@ describe("ND-011 — gigs service & API", () => {
       expect(res.outcome.successChance).toBeLessThanOrEqual(0.95);
     });
 
-    it("should roll from legwork without the bonus while the timer is running", async () => {
+    it("should reject execute during active legwork timer (ND-078)", async () => {
       const { characterId } = await insertTestCharacter();
-      const farma = await farmaGig();
+      const farma = await farmaGig(); // legworkMinutes 5
       await acceptGig(characterId, farma.id);
       await doLegwork(characterId, farma.id);
 
-      const res = await executeGig(characterId, farma.id);
-
-      expect(res.activeGig.phase).toBe("execute");
-      expect(res.activeGig.legworkCompleted).toBe(false);
-      expect(res.activeGig.actualPayout).toBe(res.outcome.success ? 550 : 0); // no legwork bonus
+      await expect(executeGig(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 409,
+        code: "LEGWORK_IN_PROGRESS",
+      });
     });
 
     it("should mark legwork completed and apply the +20% payout when the timer elapsed", async () => {
@@ -590,8 +589,7 @@ describe("ND-011 — gigs service & API", () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig(); // heatGenerated 5
       await acceptGig(characterId, farma.id);
-      await doLegwork(characterId, farma.id);
-      const exec = await executeGig(characterId, farma.id);
+      const exec = await executeGig(characterId, farma.id); // skip legwork
 
       const res = await escapeGig(characterId, farma.id);
 
@@ -748,6 +746,11 @@ describe("ND-011 — gigs service & API", () => {
       const farma = await farmaGig();
       await acceptGig(characterId, farma.id);
       await doLegwork(characterId, farma.id);
+      // Backdate legwork so the timer has elapsed (gate ND-078).
+      await db
+        .update(activeGigs)
+        .set({ legworkStartedAt: new Date(Date.now() - 6 * 60_000) })
+        .where(eq(activeGigs.characterId, characterId));
       await executeGig(characterId, farma.id);
 
       await expect(wrapUpGig(characterId, farma.id)).rejects.toMatchObject({
@@ -1109,11 +1112,9 @@ describe("ND-011 — gigs service & API", () => {
       const res = await app.inject({ method: "POST", url: `/api/gigs/${farma.id}/execute` });
       expect(res.statusCode).toBe(401);
     });
-  });
 
-  describe("POST /api/gigs/:id/escape", () => {
-    it("should roll the escape outcome and report the generated heat", async () => {
-      const { accessToken: token } = await registerApiUser();
+    it("should return 409 LEGWORK_IN_PROGRESS when the legwork timer hasn't elapsed (ND-078)", async () => {
+      const { accessToken: token, characterId } = await registerApiUser();
       const farma = await farmaGig();
       await app.inject({
         method: "POST",
@@ -1123,6 +1124,27 @@ describe("ND-011 — gigs service & API", () => {
       await app.inject({
         method: "POST",
         url: `/api/gigs/${farma.id}/legwork`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/execute`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(409);
+      expect((res.json() as ErrorBody).error).toBe("LEGWORK_IN_PROGRESS");
+    });
+  });
+
+  describe("POST /api/gigs/:id/escape", () => {
+    it("should roll the escape outcome and report the generated heat", async () => {
+      const { accessToken: token } = await registerApiUser();
+      const farma = await farmaGig();
+      await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/accept`,
         headers: { authorization: `Bearer ${token}` },
       });
       const exec = await app.inject({

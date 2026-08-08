@@ -457,16 +457,24 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       throw new AppError(409, "INVALID_PHASE_TRANSITION", `Cannot execute from ${active.phase}`);
     }
 
+    // Gate: if legwork was started, the timer must have elapsed (ND-078).
+    const legworkDone =
+      active.legworkStartedAt !== null &&
+      Date.now() >= active.legworkStartedAt.getTime() + gig.legworkMinutes * 60_000;
+    if (!skippedLegwork && !legworkDone) {
+      throw new AppError(
+        409,
+        "LEGWORK_IN_PROGRESS",
+        "Legwork em andamento. Aguarde o timer.",
+      );
+    }
+
     const [character] = await tx
       .select()
       .from(characters)
       .where(eq(characters.id, characterId))
       .limit(1);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Create a character first");
-
-    const legworkDone =
-      active.legworkStartedAt !== null &&
-      Date.now() >= active.legworkStartedAt.getTime() + gig.legworkMinutes * 60_000;
 
     const { primary } = getRelevantStats(gig.type, toAttributes(character));
     const chromeBonus = await getGigSuccessBonus(tx, characterId);
