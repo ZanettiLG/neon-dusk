@@ -23,8 +23,9 @@ docs/cyber-rpg/
 1. **Mandatory delegation** — the build agent NEVER writes code. Delegate to `dev-orchestrator`
 2. **Skills on demand** — domain knowledge lives in skills, not in the system prompt
 3. **Quality gate** — feature is only complete with `code-reviewer` score ≥ 4.5 AND `qa-browser` passing all interactive flows
-4. **Self-refinement** — the harness self-improves with every delivered feature
-5. **Product docs are canonical** — always consult `definicoes-de-produto/` before implementing
+4. **GitHub-native by default** — every pipeline run creates issue, branch, commits, and PR. Use `--local` to skip GitHub integration
+5. **Self-refinement** — the harness self-improves with every delivered feature
+6. **Product docs are canonical** — always consult `definicoes-de-produto/` before implementing
 
 ## Commands
 

@@ -2,7 +2,67 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
-## 2026-08-07 — N2: Comando /dev-qa standalone + QA integrado ao pipeline
+## 2026-08-08 — N3: Pipeline GitHub-Native Default + Capability Gate + Commit Step
+
+### Trigger
+Análise do orquestrador revelou 10 problemas estruturais no workflow:
+1. **Sem capability gate**: agentes spawnados sem verificar se tinham as skills necessárias para a task — erros só apareciam 3 ciclos depois no review
+2. **GitHub opt-in (`--github`)**: flag quase nunca passada → zero rastreabilidade, alterações anônimas, sem histórico
+3. **Sem step de commit**: developer escrevia código mas ninguém commita → drift entre working tree e git, PRs vazios
+4. **Orquestrador não passava contexto GitHub para subagentes** — developer/architect não sabiam número da issue ou branch
+5. **`dev-refactor` e `dev-debug` ignoravam GitHub** — zero integração, alterações diretas em `main`
+6. **`gh auth status` nunca verificado** — pipeline quebrava silenciosamente
+7. **`dev-qa` standalone ainda usava `--github`** — inconsistente com pipeline principal
+8. **QA browser referência defasada a `--github`**
+9. **Handoffs em `.handoff/` ainda eram fallback padrão**
+10. **Branch enforcement inexistente** — developer podia trabalhar em branch errada
+
+### Changes
+
+#### dev-orchestrator (refatorado)
+- **Flag invertida**: `--github` removido. GitHub é o default. `--local` desabilita GitHub (pipeline local).
+- **Passo -1: Capability Gate** — verifica skills, agentes e `gh auth status` antes de iniciar pipeline. Mapeamento feature→skills para detectar gaps automaticamente. Se capacidade ausente, spawna `harness-engineer` para construir antes de prosseguir.
+- **Passo 0: GitHub Setup** — sempre executa (pular com `--local`). Inclui `gh auth status` check. Passa `issue_number` e `branch` como contexto para todos os subagentes.
+- **Passo 2.5: Commit** — novo step entre Implement e Test. Commita código após implementação com conventional commits (`closes #<issue>`). Verifica branch antes de commitar.
+- **Handoffs**: GitHub é o registro canônico por padrão. `--local` usa handoffs inline.
+- **Todos os passos 0-9**: GitHub-native por default, pular com `--local`.
+
+#### dev-feature (atualizado)
+- `--github` → `--local`
+- Workflow atualizado com novo pipeline de 10 passos (incluindo capability gate e commit step)
+
+#### dev-qa (atualizado)
+- `--github` → `--local`
+- Exemplos atualizados
+
+#### github-workflow skill (atualizado)
+- "Fluxo Completo (com `--github`)" → "Fluxo Padrão (GitHub-Native)"
+
+#### github-ops (atualizado)
+- Nova operação: `check-auth` — verifica `gh auth status` antes de qualquer operação
+
+#### qa-browser (atualizado)
+- Referência defasada a flag `--github` removida
+
+#### dev-refactor (atualizado)
+- Pipeline completo GitHub-native: issue + branch `refactor/` + commit + PR + pr-reviewer
+- Flag `--local` para pular GitHub
+
+#### dev-debug (atualizado)
+- Pipeline completo GitHub-native: issue (label: bug) + branch `fix/` + commit + PR + pr-reviewer
+- Flag `--local` para pular GitHub
+- Commit segue `fix(<scope>): <descrição> (fixes #<issue>)`
+
+#### AGENTS.md raiz
+- Princípio #4 atualizado: "GitHub-native by default" substitui menção antiga a `--github`
+
+### Rationale
+O pipeline deve ser completo por padrão — issue, branch, commit, PR. Pular etapas é exceção justificada (`--local` para MVPs rápidos, `--skip-tests` para urgências). O capability gate elimina ciclos de correção causados por agentes sem as skills necessárias. O commit step fecha o gap entre implementação e revisão.
+
+### Impact
+Pipeline 100% rastreável. Toda alteração tem issue, branch dedicada, commits com referência e PR auditável. Zero alterações anônimas. Zero drift entre working tree e git. Agentes só executam tasks para as quais têm capacidades verificadas.
+
+--- 2026-08-07 — N2: Comando /dev-qa standalone + QA integrado ao pipeline
 
 ### Trigger
 QA suite completa executada (14 test issues, 21 bugs, 9 enhancements) revelou que o qa-browser nunca era chamado — era opcional com flag `--qa` que ninguém passava. O bug mais crítico (fase "execute" do gig sem renderização) escapou porque o teste parou em snapshots em vez de simular a jornada completa do usuário.

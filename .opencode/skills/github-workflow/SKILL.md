@@ -29,7 +29,7 @@ Issue #42 (feature principal)
 
 **ZERO arquivos `.handoff/`.** O GitHub é o handoff.
 
-## Fluxo Completo (com `--github`)
+## Fluxo Padrão (GitHub-Native)
 
 ### Passo 0: Criar Issue
 

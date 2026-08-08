@@ -23,6 +23,15 @@ Receber comandos do `dev-orchestrator` para operações GitHub → executar via 
 
 ## Operações
 
+### Pre-Flight
+
+#### `check-auth`
+```
+gh auth status
+```
+Retorna: `{ authenticated: true|false, user: "<user>" }`
+Se não autenticado, retorna erro com instruções: "Execute `gh auth login` ou use `--local` para pular GitHub."
+
 ### Issues
 
 #### `create-issue`

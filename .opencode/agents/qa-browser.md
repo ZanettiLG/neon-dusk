@@ -205,7 +205,7 @@ Quando invocado com `--regression`, execute TODOS os cenários de TODAS as featu
 
 ## Integração com GitHub
 
-Quando invocado pelo `dev-orchestrator` com flag `--github`:
+Quando invocado pelo `dev-orchestrator` (padrão, GitHub é default):
 
 1. Leia o design doc e handoffs dos comentários da issue
 2. Execute o pipeline de QA
