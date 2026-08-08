@@ -5,6 +5,7 @@ import { RequireAuth } from "@/components/guards/RequireAuth";
 import { RequireCharacter } from "@/components/guards/RequireCharacter";
 import { RequireCharacterless } from "@/components/guards/RequireCharacterless";
 import { GuestOnly } from "@/components/guards/GuestOnly";
+import { RequireAdmin } from "@/components/guards/RequireAdmin";
 
 const HomeView = lazy(() => import("@/views/HomeView"));
 const LoginView = lazy(() => import("@/views/LoginView"));
@@ -13,6 +14,7 @@ const CharacterCreateView = lazy(() => import("@/views/CharacterCreateView"));
 const DashboardView = lazy(() => import("@/views/DashboardView"));
 const GigBoardView = lazy(() => import("@/views/GigBoardView"));
 const SaideiraView = lazy(() => import("@/views/SaideiraView"));
+const AdminPanel = lazy(() => import("@/views/admin/AdminPanel"));
 
 function Lazy({ children }: { children: ReactNode }) {
   return (
@@ -56,6 +58,16 @@ const router = createBrowserRouter([
               { path: "gigs",      element: <Lazy><GigBoardView /></Lazy> },
               { path: "saideira",  element: <Lazy><SaideiraView /></Lazy> },
             ],
+          },
+          {
+            path: "admin",
+            element: (
+              <Lazy>
+                <RequireAdmin>
+                  <AdminPanel />
+                </RequireAdmin>
+              </Lazy>
+            ),
           },
         ],
       },

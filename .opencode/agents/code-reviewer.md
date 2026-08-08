@@ -29,9 +29,11 @@ O código implementa exatamente o que o design especifica? Bugs óbvios? Edge ca
 
 ### 2. Segurança
 SQL injection? XSS? CSRF? Auth bypass? Secrets expostos? Input validation?
+- **LIKE/ILIKE escaping**: search/filter queries with LIKE patterns must escape `%`, `_`, and `\` before interpolation (see `escapeLike` pattern). Backslash must be escaped FIRST (`\\` → `\\\\`) before `%`/`_` to prevent residual escape sequences.
 
 ### 3. Performance
 N+1 queries? Índices faltando? Redis caching adequado? Bundle size?
+- **Redis batch operations**: `.map()` or loop with individual Redis calls (get/set/hget) is an anti-pattern — use `mget`/`mset`/`pipeline` for multi-key operations. Threshold: > 2 sequential single-key Redis calls in the same codepath = violation.
 
 ### 4. Manutenibilidade
 Código claro? DRY sem over-engineering? Nomes significativos? Complexidade ciclomática?
@@ -41,6 +43,7 @@ Segue padrões do projeto? Nomeação? Estrutura de arquivos? Stack definida?
 
 ### 6. Cobertura de Testes
 Testes cobrem casos críticos? Testes passam? Edge cases testados?
+- **Admin route bidirectional testing**: ADMIN-protected routes must be tested for BOTH rejection (401/403 with missing/invalid auth) AND acceptance (200 with valid x-api-key header). Routes that only test rejection are incomplete — they verify the lock works but not that authorized access succeeds.
 
 ## Score de Decisão
 **MENOR nota** entre os 6 critérios (não a média).

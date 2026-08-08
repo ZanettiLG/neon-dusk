@@ -14,8 +14,10 @@ export async function startTestServer(app: FastifyInstance) {
   const base = `http://127.0.0.1:${port}`;
   return {
     port,
-    get(path: string) {
-      return fetch(`${base}${path}`);
+    get(path: string, headers?: Record<string, string>) {
+      return fetch(`${base}${path}`, {
+        headers: headers ?? {},
+      });
     },
     post(path: string, body?: unknown, headers?: Record<string, string>) {
       // Content-Type is only set when a body exists: Fastify rejects a JSON

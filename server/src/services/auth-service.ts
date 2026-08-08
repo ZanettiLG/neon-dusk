@@ -49,6 +49,7 @@ function toPublicUser(row: typeof users.$inferSelect): User {
   return {
     id: row.id,
     email: row.email,
+    role: row.role,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -70,7 +71,7 @@ async function buildAuthResponse(
   user: typeof users.$inferSelect,
 ): Promise<AuthResponse> {
   const [accessToken, refreshToken, character] = await Promise.all([
-    signAccessToken(app, { id: user.id, email: user.email }),
+    signAccessToken(app, { id: user.id, email: user.email, role: user.role }),
     issueRefreshToken(redis, user.id),
     findCharacterByUser(user.id),
   ]);

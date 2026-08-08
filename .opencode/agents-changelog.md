@@ -2,6 +2,41 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-08
+### Trigger
+ND-018 code review found 3 critical issues: E2E dirty state on failure, missing admin acceptance in smoke test, silent version conflicts in economy check.
+
+### Change
+Added 3 items to developer self-review checklist (smoke coverage, optimistic locking, E2E cleanup). Added 1 item to code-reviewer checklist (admin route bidirectional testing).
+
+### Impact
+Expected to prevent these pattern failures in future features.
+
+---
+
+## 2026-08-07 — N1: Admin Panel Post-Mortem — LIKE Escaping + Redis Batch Checks (ND-052)
+
+### Trigger
+Feature ND-052 (Admin Panel) went through 3 review cycles but couldn't reach score 4.5:
+1. **Cycle 1 (3.5)**: LIKE injection in search (`escapeLike` missing), N+1 Redis calls, seed case-sensitivity
+2. **Cycle 2 (4.0)**: All fixes applied — core solid at 5.0 in 5 criteria, test coverage at 4.0
+3. **Cycle 3 (4.0)**: 6 new tests added — but a residual bug found: `escapeLike` doesn't escape backslash before `%` and `_`
+
+Root cause: code-reviewer had no explicit sub-check for LIKE/ILIKE escaping or Redis N+1 patterns. Developer and reviewer both have blind spots.
+
+### Changes
+
+#### code-reviewer
+- Critério #2 (Segurança) expanded with sub-check:
+  - **LIKE/ILIKE escaping**: verify `%`, `_`, and `\` are escaped before interpolation into LIKE patterns. Backslash must be escaped FIRST (`\\` → `\\\\`) before `%`/`_` to prevent residual escape sequences.
+- Critério #3 (Performance) expanded with sub-check:
+  - **Redis batch operations**: `.map()` or loop with individual Redis calls is an anti-pattern — suggest `mget`/`mset`/`pipeline`. Threshold: > 2 sequential single-key Redis calls in same codepath = violation.
+
+### Impact
+Prevents recurrence of: LIKE wildcard injection in search/filter endpoints (security) and N+1 Redis calls degrading performance under high concurrency. Both sub-checks are low-cost to verify — grep for `.ilike(` / `.like(` in query builders and `redis.get(` inside `.map()` in services.
+
+---
+
 ## 2026-08-07 — N2: QA Browser integrado como passo default no pipeline
 
 ### Trigger

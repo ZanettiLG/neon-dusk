@@ -57,6 +57,7 @@ export interface Attributes {
 export interface User {
   id: string;
   email: string;
+  role: "player" | "admin";
   createdAt: string;
   updatedAt: string;
 }
@@ -825,4 +826,82 @@ export interface NameDrinkResponse {
     achievedAt: string;
     crewName: string | null;
   };
+}
+
+// ─── Admin Panel (ND-052) ─────────────────────────────────────────────────────
+// Role-based admin panel for Beta operations. Types shared between
+// server (API) and app (Zustand stores, views).
+
+/** One player row in the admin player list. */
+export interface AdminPlayer {
+  id: string;
+  name: string;
+  level: number;
+  sc: number;
+  eddies: number;
+  crew: string | null;
+  lastLogin: string | null;
+  status: "active" | "banned" | "circuit_broken";
+}
+
+/** GET /api/admin/players response (paginated). */
+export interface AdminPlayersResponse {
+  players: AdminPlayer[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** Economy dashboard snapshot. */
+export interface AdminEconomy {
+  eddiesInCirculation: number;
+  topFaucets24h: { source: string; amount: number }[];
+  topSinks24h: { source: string; amount: number }[];
+  dailyActiveCharacters: number;
+  transactions24h: number;
+  hourlyBreakdown24h: { hour: string; count: number }[];
+}
+
+/** One audit log entry (IP masked). */
+export interface AdminAuditEntry {
+  id: string;
+  timestamp: string;
+  characterName: string | null;
+  action: string;
+  result: string;
+  payload: Record<string, unknown>;
+  ip: string;
+}
+
+/** GET /api/admin/audit response (cursor-paginated). */
+export interface AdminAuditResponse {
+  entries: AdminAuditEntry[];
+  nextCursor: string | null;
+}
+
+/** POST /api/admin/players/:id/ban request body. */
+export interface BanPlayerRequest {
+  reason: string;
+}
+
+/** PATCH /api/admin/params request body. */
+export interface UpdateParamsRequest {
+  params: Record<string, string>;
+}
+
+/** GET /api/admin/transactions response. */
+export interface AdminTransaction {
+  id: string;
+  characterName: string;
+  type: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  source: string;
+  createdAt: string;
+}
+
+export interface AdminTransactionsResponse {
+  transactions: AdminTransaction[];
+  total: number;
 }

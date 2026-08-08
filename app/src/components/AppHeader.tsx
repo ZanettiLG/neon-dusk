@@ -6,6 +6,7 @@ import { useAuthStore } from "@/stores/auth";
 /** Top app bar: brand, connection status, street cred badge, version. */
 export default function AppHeader() {
   const character = useAuthStore((s) => s.character);
+  const user = useAuthStore((s) => s.user);
 
   return (
     <header className="bg-nd-surface border-b border-nd-cyan/20 px-4 py-3">
@@ -14,11 +15,18 @@ export default function AppHeader() {
           <h1 className="font-heading text-nd-cyan text-xl tracking-widest">
             NEON<span className="text-nd-magenta">//</span>DUSK
           </h1>
-          {character && (
+          {(character || user?.role === "admin") && (
             <nav className="hidden sm:flex items-center gap-4">
-              <Link to="/dashboard" className="nav-link">Painel</Link>
-              <Link to="/gigs" className="nav-link">Gigs</Link>
-              <Link to="/saideira" className="nav-link">Saideira</Link>
+              {character && (
+                <>
+                  <Link to="/dashboard" className="nav-link">Painel</Link>
+                  <Link to="/gigs" className="nav-link">Gigs</Link>
+                  <Link to="/saideira" className="nav-link">Saideira</Link>
+                </>
+              )}
+              {user?.role === "admin" && (
+                <Link to="/admin" className="nav-link text-nd-gold">Admin</Link>
+              )}
             </nav>
           )}
         </div>
