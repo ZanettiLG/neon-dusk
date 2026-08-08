@@ -42,3 +42,21 @@ export const GIG_PHASE_LABELS: Record<GigPhase, string> = {
   escape: "Fuga",
   wrap_up: "Wrap Up",
 };
+
+// Chrome slots (ND-010)
+export const CHROME_SLOT_LABELS: Record<string, string> = {
+  frontal_cortex: "Córtex Frontal",
+  ocular: "Ocular",
+  arms: "Braços",
+  skeleton: "Esqueleto",
+  nervous_system: "Sistema Nervoso",
+  integumentary: "Tegumentar",
+};
+
+// Vendor types (ND-010)
+export const VENDOR_TYPE_LABELS: Record<string, string> = {
+  RIPPERDOC: "Ripperdoc",
+  STIM_DEALER: "Stim Dealer",
+  FIXER: "Fixer",
+  BLACK_MARKET: "Mercado Negro",
+};

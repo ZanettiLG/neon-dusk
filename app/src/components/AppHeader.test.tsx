@@ -122,5 +122,80 @@ describe("AppHeader nav (landing-nav)", () => {
     expect(screen.getByRole("link", { name: "Painel" })).toHaveAttribute("href", "/dashboard");
     expect(screen.getByRole("link", { name: "Gigs" })).toHaveAttribute("href", "/gigs");
     expect(screen.getByRole("link", { name: "Saideira" })).toHaveAttribute("href", "/saideira");
+    expect(screen.getByRole("link", { name: "Chrome" })).toHaveAttribute("href", "/chrome");
+    expect(screen.getByRole("link", { name: "Vendedores" })).toHaveAttribute("href", "/vendors");
+    expect(screen.getByRole("link", { name: "PvP" })).toHaveAttribute("href", "/pvp");
+    expect(screen.getByRole("link", { name: "Economia" })).toHaveAttribute("href", "/economy");
+    expect(screen.getByRole("link", { name: "Crews" })).toHaveAttribute("href", "/crews");
+    // The Admin link is reserved for admin users — not shown for players.
+    expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
+  });
+
+  it("should not render the Admin link for regular players", () => {
+    useAuthStore.setState({
+      character,
+      user: {
+        id: "u1",
+        email: "fixer@neondusk.gg",
+        role: "player",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Painel" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
+  });
+
+  it("should render the Admin link for admin users", () => {
+    useAuthStore.setState({
+      character,
+      user: {
+        id: "u9",
+        email: "netwatch@neondusk.gg",
+        role: "admin",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
+    // Character links stay visible alongside the admin link.
+    expect(screen.getByRole("link", { name: "Chrome" })).toHaveAttribute("href", "/chrome");
+  });
+
+  it("should render the Admin link for admins without a character (no character links)", () => {
+    useAuthStore.setState({
+      character: null,
+      user: {
+        id: "u9",
+        email: "netwatch@neondusk.gg",
+        role: "admin",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
+    expect(screen.queryByRole("link", { name: "Gigs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Crews" })).not.toBeInTheDocument();
   });
 });

@@ -24,7 +24,7 @@ function OutcomeChip({
       <span className={ok ? "text-nd-green" : "text-nd-magenta"}>
         {ok ? "✓" : "✗"} {label.toUpperCase()} {ok ? "BEM-SUCEDIDA" : "FALHOU"}
       </span>
-      {roll !== undefined && chance !== undefined && (
+      {roll !== undefined && chance !== undefined && roll >= 0 && (
         <span className="text-nd-text-secondary">
           (rolou {roll.toFixed(2)} vs {Math.round(chance * 100)}%)
         </span>

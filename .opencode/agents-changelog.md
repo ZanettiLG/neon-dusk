@@ -30,7 +30,39 @@ Pipeline 100% rastreável por padrão. Toda feature tem issue, branch, commits e
 
 ---
 
- 2026-08-08
+## 2026-08-08 — N1: Data Display View Patterns (Issue #69 Post-Mortem)
+
+### Trigger
+Issue #69 (5 nav links + 7 new views) went through 3 review cycles but stagnated at score 4.0 — each cycle found new small issues instead of fixes improving the score. Root cause analysis:
+
+1. **Repetitive view boilerplate**: 5+ views follow identical fetch→loading→error→data pattern, but react-patterns skill had no positive template — only an anti-pattern note.
+2. **Style drift**: `.then()` vs `async/await` mixing crept in and was only caught at review, not by developer self-check.
+3. **Missing cleanup**: `cancelled`/`mountedRef` pattern was added in cycle 3 — should have been caught by developer before cycle 1.
+4. **Tab component duplication**: ChromeView and PvpView independently defined identical Tab components — caught only in review cycle 2.
+5. **Score stagnation**: 3 cycles at 4.0 — reviewer kept finding new small issues because developer had no preventive checks.
+
+### Changes
+
+#### developer
+- Self-review expanded from 30→33 checks:
+  - #31: Consistent async style — no `.then()` / `async/await` mixing in same file
+  - #32: Async cleanup on every useEffect with fetch — `cancelled`/`abortRef` pattern
+  - #33: No duplicated UI components — extract to `shared/` if used in 2+ views
+
+#### react-patterns (skill)
+- New section "Data Display View Template": standard pattern for CRUD list views with 4 distinct states (loading→error→empty→data), `cancelled` cleanup, `async/await`, `api` client
+- Anti-pattern updated: `useEffect` para fetch → points to template with `cancelled` flag
+- Template enforces: always `async/await`, never `.then()` in views
+
+#### code-reviewer
+- Critério #5 (Consistência) expanded with 2 sub-checks:
+  - **Duplicate UI components**: scan new pages for repeated component structures (Tab, card grid, filter bar, modal wrapper) — flag for extraction to `shared/`
+  - **Async style drift**: `.then()` / `async/await` mixing within same file or across sibling files
+
+### Impact
+Prevents recurrence of: repetitive view boilerplate without cleanup (cycle 1), async style inconsistency (cycle 2 detection window), component duplication caught only mid-review (cycle 2), and score stagnation from late discoveries. N1 checks are cheap — grep for `.then(` in new files, scan for repeated JSX shapes, verify `cancelled` flag in every `useEffect` with async.
+
+---
 ### Trigger
 ND-018 code review found 3 critical issues: E2E dirty state on failure, missing admin acceptance in smoke test, silent version conflicts in economy check.
 

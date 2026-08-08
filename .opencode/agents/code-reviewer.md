@@ -40,6 +40,8 @@ Código claro? DRY sem over-engineering? Nomes significativos? Complexidade cicl
 
 ### 5. Consistência
 Segue padrões do projeto? Nomeação? Estrutura de arquivos? Stack definida?
+- **Duplicate UI components**: identical or near-identical component structure (same JSX shape, same props pattern) in 2+ views is a violation — flag for extraction to `src/client/components/shared/`. Check: scan new page files for repeated patterns (Tab components, card grids, filter bars, modal wrappers).
+- **Async style drift**: mixing `.then()` and `async/await` within the same file or across sibling files — flag for inconsistency. Prefer `async/await` throughout.
 
 ### 6. Cobertura de Testes
 Testes cobrem casos críticos? Testes passam? Edge cases testados?

@@ -521,12 +521,26 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     const active = await queryActiveGig(tx, characterId);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
+    const [gig] = await tx.select().from(gigs).where(eq(gigs.id, active.gigId)).limit(1);
+    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
+
+    // ponytail: idempotent escape — server already committed, client retrying
+    if (active.phase === "escape") {
+      const heatGenerated = calculateHeat(
+        gig.heatGenerated,
+        active.executeOutcome ?? "failure",
+      );
+      return {
+        activeGig: toActiveGig(active),
+        // roll: -1 is a sentinel for "previously rolled — details unavailable"
+        outcome: { success: active.escapeOutcome === "success", roll: -1, successChance: 0 },
+        heatGenerated,
+      };
+    }
+
     if (!canTransition(active.phase, "escape")) {
       throw new AppError(409, "INVALID_PHASE_TRANSITION", "Fuga só está disponível após executar");
     }
-
-    const [gig] = await tx.select().from(gigs).where(eq(gigs.id, active.gigId)).limit(1);
-    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
 
     const [character] = await tx
       .select()

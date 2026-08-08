@@ -255,6 +255,64 @@ VitePWA({
   })}
   ```
 
+## Data Display View Template
+
+For pages that fetch and display array data (CRUD list views), use this standard pattern:
+
+```tsx
+// src/client/pages/ExampleListPage.tsx
+import { useState, useEffect } from 'react'
+import { api } from '@/api/client'
+import type { Example } from '@/shared/types'
+
+export default function ExampleListPage() {
+  const [items, setItems] = useState<Example[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await api.get<Example[]>('/api/examples')
+        if (!cancelled) setItems(data)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  if (loading) return <div className="text-nd-text-secondary animate-pulse">Carregando...</div>
+  if (error) return <div className="text-nd-magenta bg-nd-surface/50 border border-nd-magenta/30 rounded p-4">{error}</div>
+  if (items.length === 0) return <div className="text-nd-text-secondary text-center py-12">Nenhum dado disponível.</div>
+
+  return (
+    <div className="space-y-2">
+      {items.map(item => (
+        <div key={item.id} className="bg-nd-surface border border-nd-cyan/10 rounded p-4">
+          <span className="font-mono text-nd-cyan">{item.name}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+**Rules:**
+- `cancelled` flag in every `useEffect` with async fetch — prevents setState on unmounted component
+- Four distinct states: **loading** (spinner/skeleton), **error** (red banner), **empty** (friendly message), **data** (list render)
+- Use `api` client from `@/api/client`, never raw `fetch`
+- Always `async/await`, never `.then()` in views
+- Separate view into its own file under `src/client/pages/` — lazy-loaded in router
+
 ## Responsividade
 
 - Mobile-first: 320px → 768px → 1024px
@@ -271,4 +329,4 @@ VitePWA({
 - ❌ Sem manifest PWA ou service worker
 - ❌ Cores hardcoded (usar tokens da paleta)
 - ❌ Mutação direta de estado Zustand (usar `set` retornando novo estado)
-- ❌ `useEffect` para fetch (preferir React Query/TanStack ou custom hook com cleanup)
+- ❌ `useEffect` para fetch sem cleanup (ver template "Data Display View" para o padrão correto com `cancelled` flag)

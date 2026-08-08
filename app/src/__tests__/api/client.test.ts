@@ -56,7 +56,8 @@ describe("api client", () => {
     expect(err).toMatchObject({
       status: 404,
       code: "NOT_FOUND",
-      message: "Gig não encontrada",
+      // Server message is translated to PT-BR by ptBrError.
+      message: "Não encontrado.",
     });
   });
 
@@ -69,7 +70,7 @@ describe("api client", () => {
     expect(err).toMatchObject({
       status: 500,
       code: "UNKNOWN_ERROR",
-      message: "Request failed",
+      message: "Erro inesperado.",
     });
   });
 
