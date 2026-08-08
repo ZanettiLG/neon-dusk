@@ -13,14 +13,16 @@ import { db } from "../db";
 import { characters, crews, transactionLog } from "../db/schema";
 import { requireCharacterId } from "../services/economy-service";
 import { calculateDecay, getNextThreshold, getTitle } from "../game/street-cred";
+import { invalidateLeaderboardCache, LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
 
 // Neon Dusk — Street Cred routes (ND-011.2)
 // ============================================================================
 // GET /api/street-cred applies decay lazily on read (grace 7d, -5 SC/day,
 // floor = max threshold achieved) and writes the decayed score back. The
-// leaderboard is public and cached in Redis (5 min TTL). POST /award is the
-// internal/system faucet (events, admin) — clamped at the 100 cap and audited
-// in transaction_log with type STREET_CRED_AWARD.
+// leaderboard is public and cached in Redis (5 min TTL, invalidated on every
+// SC change — see #74). POST /award is the internal/system faucet (events,
+// admin) — clamped at the 100 cap and audited in transaction_log with type
+// STREET_CRED_AWARD.
 
 export interface StreetCredRoutesOptions {
   redis: Redis;
@@ -35,8 +37,7 @@ const awardSchema = z.object({
   source: z.string().min(1).max(200),
 });
 
-/** Redis key + TTL for the public leaderboard snapshot. */
-const LEADERBOARD_CACHE_KEY = "leaderboard:top50";
+/** TTL for the public leaderboard snapshot (kept long for passive readers). */
 const LEADERBOARD_CACHE_TTL_S = 300;
 
 export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRoutesOptions) {
@@ -166,6 +167,10 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
             balanceAfter: newScore,
             source: body.source,
           });
+
+          // #74: drop the cached leaderboard so the next read shows the fresh
+          // ranking. Best-effort, fires outside the DB transaction.
+          await invalidateLeaderboardCache(redis);
 
           return {
             score: newScore,

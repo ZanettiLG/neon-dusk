@@ -31,6 +31,7 @@ import {
 import { transferEddies, type WalletState } from "../game/economy";
 import { ensureWallet } from "./economy-service";
 import { instrument } from "../telemetry/instrument";
+import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
 
 // Neon Dusk — PvP service (ND-014)
 // ============================================================================
@@ -421,9 +422,12 @@ export async function executeAttack(
     };
   });
 
-  // Post-commit side effects: cooldown + telemetry. Never set the cooldown
-  // when the transaction rolled back — the attacker must be able to retry.
+  // Post-commit side effects: cooldown + telemetry + leaderboard invalidation.
+  // Never set the cooldown when the transaction rolled back — the attacker
+  // must be able to retry. Leaderboard cache is dropped unconditionally
+  // because any fight can move SC for both winner and loser (#74).
   await redis.set(`${PVP_COOLDOWN_KEY}${attackerId}`, "1", "EX", PVP_COOLDOWN_S);
+  await invalidateLeaderboardCache(redis);
   instrument({
     eventType: "PVP_ATTACK",
     actorId: attackerId,
