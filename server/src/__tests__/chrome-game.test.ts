@@ -4,6 +4,7 @@ import {
   calculateGigSuccessBonus,
   calculateHpBonus,
   calculateHumanityCost,
+  calculateNilMaxBonus,
   calculateStatBonus,
   validateHumanityAfterInstall,
   validateSlotAvailability,
@@ -108,6 +109,32 @@ describe("calculateGigSuccessBonus", () => {
       def({ bonuses: { gig_success_rate: 3 } }),
     ]);
     expect(result).toBe(5);
+  });
+});
+
+describe("calculateNilMaxBonus", () => {
+  it("should return 0 for an empty loadout", () => {
+    expect(calculateNilMaxBonus([])).toBe(0);
+  });
+
+  it("should return the nil_max bonus of a Neural Booster (T1: +10)", () => {
+    expect(calculateNilMaxBonus([def({ bonuses: { nil_max: 10 } })])).toBe(10);
+  });
+
+  it("should sum nil_max bonuses across multiple neural implants", () => {
+    const result = calculateNilMaxBonus([
+      def({ bonuses: { nil_max: 10 } }),
+      def({ bonuses: { nil_max: 20 } }),
+    ]);
+    expect(result).toBe(30);
+  });
+
+  it("should return 0 for non-neural implants (Gorilla Arms)", () => {
+    expect(calculateNilMaxBonus([def({ bonuses: { body: 3 } })])).toBe(0);
+  });
+
+  it("should return 0 for implants with mixed bonuses but no nil_max", () => {
+    expect(calculateNilMaxBonus([def({ bonuses: { max_hp: 10, gig_success_rate: 5 } })])).toBe(0);
   });
 });
 

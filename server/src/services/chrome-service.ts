@@ -1,5 +1,6 @@
 import { and, eq, gte } from "drizzle-orm";
 import type {
+  ChromeBonuses,
   ChromeDefinition,
   ChromeInstallResponse,
   ChromeSlot,
@@ -7,7 +8,7 @@ import type {
   InstalledChromeRecord,
   InstalledChromeResponse,
 } from "@neon-dusk/shared";
-import { SLOT_CAPACITY } from "@neon-dusk/shared";
+import { SLOT_CAPACITY, NIL_MAX_BASE } from "@neon-dusk/shared";
 import { db } from "../db";
 import {
   characterWallets,
@@ -22,6 +23,7 @@ import {
   calculateGigSuccessBonus,
   calculateHpBonus,
   calculateHumanityCost,
+  calculateNilMaxBonus,
   calculateStatBonus,
   validateHumanityAfterInstall,
   validateSlotAvailability,
@@ -217,6 +219,20 @@ export async function installChrome(
         ),
       );
 
+    // Recompute effective NIL max from all installed chrome (base 100 + nil_max bonuses).
+    const installedDefs = await tx
+      .select({ bonuses: chromeDefinitions.bonuses })
+      .from(installedChrome)
+      .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
+      .where(eq(installedChrome.characterId, characterId));
+    const nilMaxBonus = calculateNilMaxBonus(
+      installedDefs.map((d) => ({ bonuses: d.bonuses as ChromeBonuses } as ChromeDefinition)),
+    );
+    await tx
+      .update(characters)
+      .set({ maxNil: NIL_MAX_BASE + nilMaxBonus, updatedAt: new Date() })
+      .where(eq(characters.id, characterId));
+
     return {
       installedChrome: {
         installedId: installed.id,
@@ -266,6 +282,20 @@ export async function uninstallChrome(
 
   await db.transaction(async (tx) => {
     await tx.delete(installedChrome).where(eq(installedChrome.id, installedChromeId));
+
+    // Recompute effective NIL max from remaining chrome.
+    const remaining = await tx
+      .select({ bonuses: chromeDefinitions.bonuses })
+      .from(installedChrome)
+      .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
+      .where(eq(installedChrome.characterId, characterId));
+    const nilMaxBonus = calculateNilMaxBonus(
+      remaining.map((d) => ({ bonuses: d.bonuses as ChromeBonuses } as ChromeDefinition)),
+    );
+    await tx
+      .update(characters)
+      .set({ maxNil: NIL_MAX_BASE + nilMaxBonus, updatedAt: new Date() })
+      .where(eq(characters.id, characterId));
 
     // Audit-only entry: no wallet movement, so balanceBefore = balanceAfter.
     const wallet = await ensureWallet(characterId, tx);
@@ -319,6 +349,7 @@ export async function listInstalledChrome(characterId: string): Promise<Installe
     statBonus: calculateStatBonus(definitions),
     hpBonus: calculateHpBonus(definitions),
     gigSuccessBonus: calculateGigSuccessBonus(definitions),
+    nilMaxBonus: calculateNilMaxBonus(definitions),
   };
 }
 

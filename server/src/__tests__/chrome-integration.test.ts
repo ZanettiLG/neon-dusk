@@ -8,6 +8,7 @@ import { startTestServer, json, authHeader, resetDb } from "./helpers";
 import { db } from "../db";
 import {
   characters,
+  characterWallets,
   chromeDefinitions,
   installedChrome,
   transactionLog,
@@ -103,6 +104,28 @@ describe("Feature #4 — chrome API", () => {
         stock: -1,
       })),
     );
+
+    // Sync chrome definitions to match the content seed (migration rows may be stale).
+    await db
+      .update(chromeDefinitions)
+      .set({ bonuses: { intelligence: 2, nil_max: 10 } })
+      .where(eq(chromeDefinitions.slug, "neural-booster"));
+    await db
+      .update(chromeDefinitions)
+      .set({ bonuses: { reflexes: 2 } })
+      .where(eq(chromeDefinitions.slug, "reflex-tuner"));
+    await db
+      .update(chromeDefinitions)
+      .set({ bonuses: { reflexes: 2, gig_success_rate: 5 } })
+      .where(eq(chromeDefinitions.slug, "kiroshi-optics"));
+    await db
+      .update(chromeDefinitions)
+      .set({ bonuses: { body: 3 } })
+      .where(eq(chromeDefinitions.slug, "gorilla-arms"));
+    await db
+      .update(chromeDefinitions)
+      .set({ bonuses: { max_hp: 10 } })
+      .where(eq(chromeDefinitions.slug, "subdermal-armor"));
   });
 
   afterAll(async () => {
@@ -255,6 +278,7 @@ describe("Feature #4 — chrome API", () => {
         statBonus: { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 },
         hpBonus: 0,
         gigSuccessBonus: 0,
+        nilMaxBonus: 0,
       });
     });
 
@@ -282,6 +306,7 @@ describe("Feature #4 — chrome API", () => {
       expect(body.humanitySpent).toBe(3);
       expect(body.hpBonus).toBe(0);
       expect(body.gigSuccessBonus).toBe(0);
+      expect(body.nilMaxBonus).toBe(10); // frontal_cortex: +10/tier
     });
 
     it("should return 401 without an access token", async () => {
@@ -419,6 +444,41 @@ describe("Feature #4 — chrome API", () => {
       });
       expect(res.status).toBe(401);
     });
+
+    it("should increase NIL max by 10 when installing Neural Booster (frontal_cortex)", async () => {
+      const { accessToken, characterId } = await registerAndCreateCharacter();
+
+      const res = await installChrome(accessToken, await defId("neural-booster"));
+      expect(res.status).toBe(201);
+
+      const [char] = await db
+        .select({ maxNil: characters.maxNil })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+      expect(char!.maxNil).toBe(110); // 100 base + 10 from Neural Booster
+    });
+
+    it("should NOT increase NIL max when installing Gorilla Arms (non-neural)", async () => {
+      const { accessToken, characterId } = await registerAndCreateCharacter();
+
+      // Fetch balance to trigger wallet creation, then top up for Gorilla Arms (2500 eddies).
+      await fetch(`${base()}/api/economy/balance`, { headers: authHeader(accessToken) });
+      await db
+        .update(characterWallets)
+        .set({ balance: 3000 })
+        .where(eq(characterWallets.characterId, characterId));
+
+      const res = await installChrome(accessToken, await defId("gorilla-arms"));
+      expect(res.status).toBe(201);
+
+      const [char] = await db
+        .select({ maxNil: characters.maxNil })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+      expect(char!.maxNil).toBe(100); // unchanged
+    });
   });
 
   describe("POST /api/chrome/uninstall", () => {
@@ -445,6 +505,14 @@ describe("Feature #4 — chrome API", () => {
         .from(installedChrome)
         .where(eq(installedChrome.characterId, characterId));
       expect(loadout).toHaveLength(0);
+
+      // NIL max restored to base (100) after uninstalling frontal cortex chrome.
+      const [char] = await db
+        .select({ maxNil: characters.maxNil })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+      expect(char!.maxNil).toBe(100);
 
       // No refund — wallet stays at 200 (the balance after the 300-eddie purchase).
       const balance = await fetch(`${base()}/api/economy/balance`, {
@@ -518,6 +586,34 @@ describe("Feature #4 — chrome API", () => {
     it("should return 401 without an access token", async () => {
       const res = await server.post("/api/chrome/uninstall", { installedChromeId: ZERO_ID });
       expect(res.status).toBe(401);
+    });
+
+    it("should restore NIL max to 100 after uninstalling the only Neural Booster", async () => {
+      const { accessToken, characterId } = await registerAndCreateCharacter();
+      const install = await json<ChromeInstallResponse>(
+        await installChrome(accessToken, await defId("neural-booster")),
+      );
+
+      // Verify max went up.
+      let [char] = await db
+        .select({ maxNil: characters.maxNil })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+      expect(char!.maxNil).toBe(110);
+
+      await server.post(
+        "/api/chrome/uninstall",
+        { installedChromeId: install.installedChrome.installedId },
+        authHeader(accessToken),
+      );
+
+      [char] = await db
+        .select({ maxNil: characters.maxNil })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+      expect(char!.maxNil).toBe(100);
     });
   });
 

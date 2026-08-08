@@ -29,6 +29,7 @@ const VALID_STAT_KEYS = [
   "cool",
   "max_hp",
   "gig_success_rate",
+  "nil_max",
 ] as const;
 const VALID_VENDOR_ITEM_TYPES = ["CHROME", "CONSUMABLE", "LOOT"] as const;
 const VALID_LOOT_ITEM_TYPES = ["EDDIES", "CONSUMABLE", "LOOT"] as const;
