@@ -306,10 +306,13 @@ describe("Feature #4 — chrome API", () => {
     });
 
     it("should reject a second install of the same chrome with 409", async () => {
-      const { accessToken } = await registerAndCreateCharacter();
+      const { accessToken, characterId } = await registerAndCreateCharacter();
       const neural = await defId("neural-booster");
       await installChrome(accessToken, neural);
 
+      // ND-053: the 60s install cooldown fires before the business rule — clear
+      // it so the request reaches ALREADY_INSTALLED (what this test targets).
+      await app.redis.del(`cooldown:${characterId}:chrome_install`);
       const res = await installChrome(accessToken, neural);
 
       expect(res.status).toBe(409);
@@ -586,8 +589,15 @@ describe("Feature #4 — chrome API", () => {
         installChrome(accessToken, neural),
       ]);
 
-      const statuses = [a.status, b.status].sort();
-      expect(statuses).toEqual([201, 409]);
+      // Exactly one install wins (201). The loser legitimately fails with
+      // either 409 ALREADY_INSTALLED (it sees the winner's row) or 400
+      // INSUFFICIENT_FUNDS (the winner's debit lands between its reads) —
+      // both prove only one purchase happened.
+      const ok = [a, b].filter((r) => r.status === 201);
+      const rejected = [a, b].filter((r) => r.status !== 201);
+      expect(ok).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect([400, 409]).toContain(rejected[0].status);
 
       // Exactly one installed row and one debit.
       const loadout = await db

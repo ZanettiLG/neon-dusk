@@ -31,6 +31,31 @@ export function errorHandler(
   reply: FastifyReply,
 ) {
   if (error instanceof AppError) {
+    // ND-053: RATE_LIMITED, COOLDOWN_ACTIVE, CIRCUIT_BREAK — 429 with Retry-After header.
+    if (error.code === "RATE_LIMITED") {
+      const retryAfter = (error.details as { retryAfter?: number } | undefined)?.retryAfter;
+      if (retryAfter !== undefined) {
+        reply.header("Retry-After", retryAfter);
+      }
+      return reply.status(429).send({
+        error: error.code,
+        message: error.message,
+        retryAfter,
+      });
+    }
+
+    if (error.code === "COOLDOWN_ACTIVE" || error.code === "CIRCUIT_BREAK") {
+      const retryAfter = (error.details as { retryAfter?: number } | undefined)?.retryAfter;
+      if (retryAfter !== undefined) {
+        reply.header("Retry-After", retryAfter);
+      }
+      return reply.status(429).send({
+        error: error.code,
+        message: error.message,
+        retryAfter,
+      });
+    }
+
     return reply.status(error.statusCode).send({
       error: error.code,
       message: error.message,

@@ -40,6 +40,10 @@ export const envSchema = z.object({
   // Round System (ND-017): 14-day rounds with a 60-minute intermission.
   ROUND_DURATION_DAYS: z.coerce.number().int().positive().default(14),
   ROUND_INTERMISSION_MINUTES: z.coerce.number().int().positive().default(60),
+
+  // Anti-Cheat (ND-053): when "false", circuit-break enforcement is skipped
+  // (useful for test environments).
+  ANTI_CHEAT_STRICT_MODE: z.enum(["true", "false"]).default("true"),
 });
 
 export type Env = z.infer<typeof envSchema>;

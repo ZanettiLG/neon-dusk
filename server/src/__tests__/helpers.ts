@@ -53,9 +53,22 @@ export function authHeader(token: string): { Authorization: string } {
 
 /** Wipe account + economy data so test runs are repeatable regardless of order. */
 export async function resetDb(): Promise<void> {
-  await db.execute(
-    sql`TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE`,
-  );
+  const truncate = () =>
+    db.execute(sql`TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE`);
+  try {
+    await truncate();
+  } catch (err) {
+    // The ND-053 audit hook writes audit_log fire-and-forget AFTER the
+    // response; a previous test's write can still be in-flight when this
+    // TRUNCATE (which cascades into audit_log) runs, and TRUNCATE/INSERT
+    // deadlock transiently. Retry once once the competing write settles.
+    if (err instanceof Error && err.message.includes("deadlock")) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await truncate();
+    } else {
+      throw err;
+    }
+  }
 }
 
 /**

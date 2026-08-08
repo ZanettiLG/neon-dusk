@@ -7,6 +7,7 @@ function mockReply() {
   const reply = {
     status: vi.fn().mockReturnThis(),
     send: vi.fn().mockReturnThis(),
+    header: vi.fn().mockReturnThis(),
   };
   return reply as unknown as FastifyReply;
 }
@@ -76,6 +77,70 @@ describe("errorHandler", () => {
     expect(reply.send).toHaveBeenCalledWith({
       error: "RATE_LIMITED",
       message: "Too many requests",
+    });
+  });
+
+  it("should set Retry-After header and top-level retryAfter for RATE_LIMITED", () => {
+    const reply = mockReply();
+    const err = new AppError(429, "RATE_LIMITED", "Muitas requisições. Aguarde.", { retryAfter: 60 });
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.status).toHaveBeenCalledWith(429);
+    expect(reply.header).toHaveBeenCalledWith("Retry-After", 60);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "RATE_LIMITED",
+      message: "Muitas requisições. Aguarde.",
+      retryAfter: 60,
+    });
+  });
+
+  it("should set Retry-After header for COOLDOWN_ACTIVE", () => {
+    const reply = mockReply();
+    const err = new AppError(429, "COOLDOWN_ACTIVE", "Ação em cooldown. Aguarde.", { retryAfter: 5 });
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.status).toHaveBeenCalledWith(429);
+    expect(reply.header).toHaveBeenCalledWith("Retry-After", 5);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "COOLDOWN_ACTIVE",
+      message: "Ação em cooldown. Aguarde.",
+      retryAfter: 5,
+    });
+  });
+
+  it("should set Retry-After header for CIRCUIT_BREAK", () => {
+    const reply = mockReply();
+    const err = new AppError(
+      429,
+      "CIRCUIT_BREAK",
+      "Sistema neural sobrecarregado. Retorne em 24 horas.",
+      { retryAfter: 86_400 },
+    );
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.status).toHaveBeenCalledWith(429);
+    expect(reply.header).toHaveBeenCalledWith("Retry-After", 86_400);
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "CIRCUIT_BREAK",
+      message: "Sistema neural sobrecarregado. Retorne em 24 horas.",
+      retryAfter: 86_400,
+    });
+  });
+
+  it("should omit Retry-After header when the AppError carries no retryAfter", () => {
+    const reply = mockReply();
+    const err = new AppError(429, "RATE_LIMITED", "Muitas requisições. Aguarde.");
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.header).not.toHaveBeenCalled();
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "RATE_LIMITED",
+      message: "Muitas requisições. Aguarde.",
+      retryAfter: undefined,
     });
   });
 

@@ -21,6 +21,8 @@ interface AuthState {
   refreshToken: string | null;
   loading: boolean;
   error: string | null;
+  /** Set when bootstrap can't reach the backend (e.g. Redis down) — UI shows degraded state instead of dead-ends. */
+  initializationError: string | null;
   nilStatus: NilStatus | null;
   nilLoading: boolean;
   nilError: string | null;
@@ -60,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       loading: false,
       error: null,
+      initializationError: null,
       nilStatus: null,
       nilLoading: false,
       nilError: null,
@@ -80,6 +83,7 @@ export const useAuthStore = create<AuthState>()(
           character: null,
           accessToken: null,
           refreshToken: null,
+          initializationError: null,
           nilStatus: null,
           nilError: null,
         });
@@ -138,7 +142,7 @@ export const useAuthStore = create<AuthState>()(
 
       fetchMe: async () => {
         const res = await api.get<UserWithCharacter>("/api/auth/me");
-        set({ user: res.user, character: res.character });
+        set({ user: res.user, character: res.character, initializationError: null });
       },
 
       /** Restore tokens from localStorage and refresh the session on app start. */
@@ -151,8 +155,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           await get().fetchMe();
         } catch (err) {
-          // Only drop the session on auth failures (401); keep tokens on network errors.
-          if (err instanceof ApiError && err.status === 401) get().clearAuth();
+          if (err instanceof ApiError && err.status === 401) {
+            get().clearAuth();
+          } else {
+            // Redis down or other transient failure — keep tokens but flag degradation.
+            set({ initializationError: err instanceof Error ? err.message : "Serviço indisponível" });
+          }
         }
       },
 

@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import { useAppStore } from "@/stores/app";
+import { useAuthStore } from "@/stores/auth";
+import type { Character } from "@neon-dusk/shared";
 
 const mocks = vi.hoisted(() => ({
   api: {
@@ -51,5 +54,73 @@ describe("AppHeader", () => {
     // StatusBar inside the header polls health on mount.
     expect(await screen.findByText("● online")).toBeInTheDocument();
     expect(mocks.api.get).toHaveBeenCalledWith("/api/health");
+  });
+});
+
+describe("AppHeader nav (landing-nav)", () => {
+  const character: Character = {
+    id: "c1",
+    userId: "u1",
+    name: "Ghost",
+    origin: "a_paraiso",
+    role: "solo",
+    body: 3,
+    reflexes: 3,
+    intelligence: 3,
+    technical: 3,
+    cool: 3,
+    streetCred: 0,
+    maxStreetCredAchieved: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  beforeEach(() => {
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/street-cred") {
+        return Promise.resolve({
+          score: 0,
+          title: "Nobody",
+          maxAchieved: 0,
+          nextThreshold: { score: 10, title: "Hustler" },
+          scToNext: 10,
+        });
+      }
+      return Promise.resolve({
+        status: "ok",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        uptime: 1,
+        version: "0.1.0",
+        services: { database: "connected", redis: "connected" },
+      });
+    });
+  });
+
+  it("should not render nav links when character is null", () => {
+    useAuthStore.setState({ character: null });
+
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+  });
+
+  it("should render nav links with correct routes when character exists", () => {
+    useAuthStore.setState({ character });
+
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+
+    const nav = screen.getByRole("navigation");
+    expect(nav).toHaveClass("hidden sm:flex");
+    expect(screen.getByRole("link", { name: "Painel" })).toHaveAttribute("href", "/dashboard");
+    expect(screen.getByRole("link", { name: "Gigs" })).toHaveAttribute("href", "/gigs");
+    expect(screen.getByRole("link", { name: "Saideira" })).toHaveAttribute("href", "/saideira");
   });
 });

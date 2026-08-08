@@ -1,5 +1,7 @@
 import { useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAppStore } from "@/stores/app";
+import { useAuthStore } from "@/stores/auth";
 
 /** Landing page: hero + backend health card (port of HomeView.vue). */
 export default function HomeView() {
@@ -7,6 +9,8 @@ export default function HomeView() {
   const healthError = useAppStore((s) => s.healthError);
   const healthLoading = useAppStore((s) => s.healthLoading);
   const checkHealth = useAppStore((s) => s.checkHealth);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const character = useAuthStore((s) => s.character);
 
   useEffect(() => {
     void checkHealth();
@@ -23,6 +27,23 @@ export default function HomeView() {
           Build your chrome. Burn your name. Leave a legend.
         </p>
       </div>
+
+      {/* CTA buttons — ND landing-nav */}
+      {!accessToken && (
+        <Link to="/login" className="btn-neon text-base px-8 py-3">
+          Entrar no Jogo
+        </Link>
+      )}
+      {accessToken && !character && (
+        <Link to="/create-character" className="btn-neon text-base px-8 py-3">
+          Criar Personagem
+        </Link>
+      )}
+      {accessToken && character && (
+        <Link to="/dashboard" className="btn-neon text-base px-8 py-3">
+          Painel
+        </Link>
+      )}
 
       {/* System Status Card */}
       <div className="card w-full max-w-md space-y-3">
