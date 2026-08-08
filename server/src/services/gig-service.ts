@@ -28,6 +28,7 @@ import {
 } from "../db/schema";
 import { AppError } from "../middleware/error-handler";
 import {
+  applyLegworkModifier,
   calculateEscapeChance,
   calculateHeat,
   calculatePayout,
@@ -478,9 +479,8 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
 
     const { primary } = getRelevantStats(gig.type, toAttributes(character));
     const chromeBonus = await getGigSuccessBonus(tx, characterId);
-    let chance = calculateSuccessChance(primary, chromeBonus, gig.difficulty);
-    if (skippedLegwork) chance = Math.min(0.95, chance * 0.8);
-    else if (legworkDone) chance = Math.min(0.95, chance * 1.2);
+    const baseChance = calculateSuccessChance(primary, chromeBonus, gig.difficulty);
+    const chance = applyLegworkModifier(baseChance, { skippedLegwork, legworkDone });
 
     const outcome = rollGigOutcome(chance);
     const actualPayout = outcome.success

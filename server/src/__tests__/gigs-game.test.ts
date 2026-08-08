@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { Attributes } from "@neon-dusk/shared";
 import {
+  applyLegworkModifier,
   calculateEscapeChance,
   calculateHeat,
   calculatePayout,
@@ -118,6 +119,46 @@ describe("calculateSuccessChance", () => {
 
   it("should return the cap (0.95) when difficulty is negative", () => {
     expect(calculateSuccessChance(5, 0, -10)).toBe(0.95);
+  });
+});
+
+describe("applyLegworkModifier", () => {
+  it("should apply -20% penalty when legwork is skipped (modo rápido)", () => {
+    const base = 0.5;
+    expect(applyLegworkModifier(base, { skippedLegwork: true, legworkDone: false })).toBe(0.4);
+  });
+
+  it("should apply +20% bonus when legwork was completed", () => {
+    const base = 0.5;
+    expect(applyLegworkModifier(base, { skippedLegwork: false, legworkDone: true })).toBe(0.6);
+  });
+
+  it("should return neutral chance when no legwork action taken", () => {
+    const base = 0.5;
+    expect(applyLegworkModifier(base, { skippedLegwork: false, legworkDone: false })).toBe(0.5);
+  });
+
+  it("should cap at 95% even with legwork bonus on high base chance", () => {
+    expect(applyLegworkModifier(0.9, { skippedLegwork: false, legworkDone: true })).toBe(0.95);
+  });
+
+  it("should cap at 95% even with skip penalty (already capped by base calc)", () => {
+    // 0.95 base → 0.95 × 0.8 = 0.76, not capped; cap only matters for bonus
+    expect(applyLegworkModifier(0.95, { skippedLegwork: true, legworkDone: false })).toBe(0.76);
+  });
+
+  it("should apply penalty even to floored chances", () => {
+    // Base floor is 0.05; skip penalty pushes it to 0.04 (fp-tolerant)
+    expect(applyLegworkModifier(0.05, { skippedLegwork: true, legworkDone: false })).toBeCloseTo(0.04, 4);
+  });
+
+  it("should apply bonus even when base is below floor (already floored by caller)", () => {
+    expect(applyLegworkModifier(0.1, { skippedLegwork: false, legworkDone: true })).toBe(0.12);
+  });
+
+  it("should let skipped win over done if both true (edge case, never happens)", () => {
+    // Skipped vs done conflict — penalty takes precedence (safer).
+    expect(applyLegworkModifier(0.5, { skippedLegwork: true, legworkDone: true })).toBe(0.4);
   });
 });
 

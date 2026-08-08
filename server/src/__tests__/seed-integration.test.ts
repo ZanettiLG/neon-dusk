@@ -114,7 +114,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
         basePrice: 1500,
         isActive: true,
       });
-      expect(booster.bonuses).toEqual({ intelligence: 2 });
+      expect(booster.bonuses).toEqual({ intelligence: 2, nil_max: 10 });
 
       const [armor] = await db
         .select()

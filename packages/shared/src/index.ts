@@ -332,6 +332,8 @@ export interface ChromeBonuses {
   cool?: number;
   max_hp?: number;
   gig_success_rate?: number;
+  /** +NIL max cap per implant tier (frontal_cortex: +10/tier per design). */
+  nil_max?: number;
 }
 
 /** Static chrome catalog entry (sold by ripperdocs). */
@@ -364,6 +366,8 @@ export interface InstalledChromeResponse {
   statBonus: Attributes;
   hpBonus: number;
   gigSuccessBonus: number;
+  /** Extra NIL cap granted by installed chrome (purely from nil_max bonuses). */
+  nilMaxBonus: number;
 }
 
 /** POST /api/chrome/install response (201). */

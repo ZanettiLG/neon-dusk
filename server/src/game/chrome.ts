@@ -55,6 +55,11 @@ export function calculateGigSuccessBonus(defs: ChromeDefinition[]): number {
   return sumBonus(defs, "gig_success_rate");
 }
 
+/** Total +NIL max granted by the given implants (frontal_cortex: +10/tier). */
+export function calculateNilMaxBonus(defs: ChromeDefinition[]): number {
+  return sumBonus(defs, "nil_max");
+}
+
 /** Total humanity drained by the given implants. */
 export function calculateHumanityCost(defs: ChromeDefinition[]): number {
   return defs.reduce((total, def) => total + def.humanityCost, 0);

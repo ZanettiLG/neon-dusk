@@ -23,11 +23,11 @@ export const CHROME_DEFINITIONS: ChromeSeedEntry[] = [
     name: "Neural Booster",
     slot: "frontal_cortex",
     tier: 1,
-    bonuses: { intelligence: 2 },
+    bonuses: { intelligence: 2, nil_max: 10 },
     humanityCost: 3,
     basePrice: 1500,
     description:
-      "Aprimoramento neural básico. +2 INT. Processamento sináptico acelerado em 40%.",
+      "Aprimoramento neural básico. +2 INT, +10 NIL máximo. Processamento sináptico acelerado em 40%.",
   },
   {
     slug: "reflex-tuner",
