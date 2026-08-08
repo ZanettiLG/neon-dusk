@@ -231,6 +231,32 @@ describe("ActiveGigPanel", () => {
     expect(await screen.findByText(/\+3 calor no distrito/i)).toBeInTheDocument();
   });
 
+  it("keeps the escape phase from the escape response and does not refetch the board", async () => {
+    useGigStore.setState({
+      board: {
+        gigs: [],
+        dailyCount: 0,
+        activeGig: escapePhaseGig({ phase: "execute", escapeOutcome: null }),
+      },
+    });
+    // Retry-style response: server already committed — roll is the -1 sentinel.
+    mocks.api.post.mockResolvedValueOnce({
+      activeGig: escapePhaseGig(),
+      outcome: { success: true, roll: -1, successChance: 0 },
+      heatGenerated: 3,
+    });
+    render(<ActiveGigPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /fugir/i }));
+
+    // Phase came from the escape response — wrap-up action shown, stale fugir button gone.
+    expect(await screen.findByRole("button", { name: /concluir gig \(receber\)/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /fugir/i })).not.toBeInTheDocument();
+    // Sentinel roll (-1) must not render "(rolou -1 vs 0%)".
+    expect(screen.queryByText(/rolou/i)).not.toBeInTheDocument();
+    // No board refetch overwrote the phase.
+    expect(mocks.api.get).not.toHaveBeenCalled();
+  });
+
   it("does not render the Fugir / Extração button when phase is escape", () => {
     useGigStore.setState({
       board: {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { and, eq } from "drizzle-orm";
@@ -1139,6 +1139,8 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("POST /api/gigs/:id/escape", () => {
+    afterEach(() => vi.restoreAllMocks());
+
     it("should roll the escape outcome and report the generated heat", async () => {
       const { accessToken: token } = await registerApiUser();
       const farma = await farmaGig();
@@ -1184,6 +1186,82 @@ describe("ND-011 — gigs service & API", () => {
 
       expect(res.statusCode).toBe(409);
       expect((res.json() as ErrorBody).error).toBe("INVALID_PHASE_TRANSITION");
+    });
+
+    it("should return 200 escape after a failed execute roll (deterministic, real path)", async () => {
+      const { accessToken: token } = await registerApiUser();
+      const farma = await farmaGig();
+      await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/accept`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      // Force every roll to fail: delivery uses reflexes 4 vs difficulty 30
+      // (chance ≈ 0.133); roll 0.99 ≥ any capped chance → execute AND escape fail.
+      vi.spyOn(Math, "random").mockReturnValue(0.99);
+
+      const exec = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/execute`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(exec.statusCode).toBe(200);
+      expect((exec.json() as GigExecuteResponse).outcome.success).toBe(false);
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/escape`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as GigEscapeResponse;
+      expect(body.activeGig.phase).toBe("escape");
+      expect(body.activeGig.escapeOutcome).toBe("failure");
+      // Failed execute doubles the heat (5 × 2).
+      expect(body.heatGenerated).toBe(10);
+      expect(body.outcome.success).toBe(false);
+    });
+
+    it("should return 200 with same state (not 409) on idempotent retry after committed escape", async () => {
+      const { accessToken: token } = await registerApiUser();
+      const farma = await farmaGig();
+      // accept → execute (skip legwork)
+      await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/accept`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/execute`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      const first = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/escape`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(first.statusCode).toBe(200);
+      const firstBody = first.json() as GigEscapeResponse;
+      expect(firstBody.activeGig.phase).toBe("escape");
+
+      // Retry — must return 200 with same outcomes, not 409
+      const retry = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/escape`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(retry.statusCode).toBe(200);
+      const retryBody = retry.json() as GigEscapeResponse;
+      expect(retryBody.activeGig.phase).toBe("escape");
+      expect(retryBody.activeGig.escapeOutcome).toBe(firstBody.activeGig.escapeOutcome);
+      expect(retryBody.activeGig.executeOutcome).toBe(firstBody.activeGig.executeOutcome);
+      expect(retryBody.heatGenerated).toBe(firstBody.heatGenerated);
+      expect(retryBody.outcome.success).toBe(firstBody.outcome.success);
+      // Sentinel: retry has no roll details (already committed)
+      expect(retryBody.outcome.roll).toBe(-1);
     });
   });
 
