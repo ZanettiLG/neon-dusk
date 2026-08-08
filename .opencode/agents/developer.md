@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (30 checks)
+7. Self-review (33 checks)
 8. Handoff do código implementado
 
-## Self-Review (30 checks)
+## Self-Review (33 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex/Drizzle; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -62,6 +62,9 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Smoke test covers 200 for ALL routes at ALL auth levels (public, JWT, admin x-api-key), not just rejections — every route must have at least one successful 200 assertion per auth level
 - [ ] Standalone scripts that do optimistic-locking UPDATEs must verify rowCount/affected rows after the query — silent version conflicts corrupt data
 - [ ] E2E tests with conditional flows must never leave dirty state — always have cleanup (delete/rollback) in failure branches (catch blocks, early returns, timeout handlers)
+- [ ] Consistent async style — no `.then()` / `async/await` mixing in the same file; pick one and use throughout
+- [ ] Async cleanup on every useEffect with fetch — use `cancelled` / `abortRef` pattern (set flag in cleanup, check before setState)
+- [ ] No duplicated UI components — extract to `src/client/components/shared/` if the same component structure appears in 2+ views
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino

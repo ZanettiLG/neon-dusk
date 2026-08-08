@@ -14,6 +14,13 @@ const CharacterCreateView = lazy(() => import("@/views/CharacterCreateView"));
 const DashboardView = lazy(() => import("@/views/DashboardView"));
 const GigBoardView = lazy(() => import("@/views/GigBoardView"));
 const SaideiraView = lazy(() => import("@/views/SaideiraView"));
+const ChromeView = lazy(() => import("@/views/ChromeView"));
+const VendorsView = lazy(() => import("@/views/VendorsView"));
+const VendorDetailView = lazy(() => import("@/views/VendorDetailView"));
+const PvpView = lazy(() => import("@/views/PvpView"));
+const EconomyView = lazy(() => import("@/views/EconomyView"));
+const CrewsView = lazy(() => import("@/views/CrewsView"));
+const CrewDetailView = lazy(() => import("@/views/CrewDetailView"));
 const AdminPanel = lazy(() => import("@/views/admin/AdminPanel"));
 
 function Lazy({ children }: { children: ReactNode }) {
@@ -57,6 +64,13 @@ const router = createBrowserRouter([
               { path: "dashboard", element: <Lazy><DashboardView /></Lazy> },
               { path: "gigs",      element: <Lazy><GigBoardView /></Lazy> },
               { path: "saideira",  element: <Lazy><SaideiraView /></Lazy> },
+              { path: "chrome", element: <Lazy><ChromeView /></Lazy> },
+              { path: "vendors", element: <Lazy><VendorsView /></Lazy> },
+              { path: "vendors/:id", element: <Lazy><VendorDetailView /></Lazy> },
+              { path: "pvp", element: <Lazy><PvpView /></Lazy> },
+              { path: "economy", element: <Lazy><EconomyView /></Lazy> },
+              { path: "crews", element: <Lazy><CrewsView /></Lazy> },
+              { path: "crews/:id", element: <Lazy><CrewDetailView /></Lazy> },
             ],
           },
           {
