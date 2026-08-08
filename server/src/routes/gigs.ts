@@ -23,6 +23,7 @@ import {
   listAvailableGigs,
   wrapUpGig,
 } from "../services/gig-service";
+import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
 
 // Neon Dusk — Gig routes (Fixer Cupim board, 5-phase loop)
 // ============================================================================
@@ -118,7 +119,16 @@ export async function gigRoutes(app: FastifyInstance) {
     async (request): Promise<GigWrapupResponse> => {
       const { id } = uuidParam.parse(request.params);
       const characterId = await requireCharacterId(request.user.sub);
-      return wrapUpGig(characterId, id);
+
+      const result = await wrapUpGig(characterId, id);
+
+      // #74: when SC changed, drop the cached leaderboard so the public
+      // ranking reflects the new score immediately.
+      if (result.streetCredGained > 0) {
+        await invalidateLeaderboardCache(app.redis);
+      }
+
+      return result;
     },
   );
 }

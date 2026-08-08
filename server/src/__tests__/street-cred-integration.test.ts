@@ -398,6 +398,66 @@ describe("ND-013 — street-cred API", () => {
     });
   });
 
+  describe("leaderboard cache invalidation after SC change (#74)", () => {
+    it("should invalidate the leaderboard cache after a successful SC award", async () => {
+      await isolateLeaderboard();
+      const { accessToken, characterId } = await registerApiUser();
+      await db
+        .update(characters)
+        .set({ streetCred: 90, maxStreetCredAchieved: 90 })
+        .where(eq(characters.id, characterId));
+
+      // Populate the leaderboard cache so it holds a snapshot.
+      await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
+      const cachedBefore = await redis.get(LEADERBOARD_CACHE_KEY);
+      expect(cachedBefore).toBeTruthy();
+
+      // Award SC — the route handler must drop the cache.
+      const res = await app.inject({
+        method: "POST",
+        url: "/api/street-cred/award",
+        headers: { authorization: `Bearer ${accessToken}` },
+        payload: { amount: 10, source: "admin-bonus" },
+      });
+      expect(res.statusCode).toBe(200);
+
+      const cachedAfter = await redis.get(LEADERBOARD_CACHE_KEY);
+      expect(cachedAfter).toBeNull();
+    });
+
+    it("should show the player's fresh SC in the leaderboard after an award", async () => {
+      await isolateLeaderboard();
+      const { accessToken, characterId } = await registerApiUser();
+      // Set SC to 90 so the leaderboard is populated with that score.
+      await db
+        .update(characters)
+        .set({ streetCred: 90, maxStreetCredAchieved: 90 })
+        .where(eq(characters.id, characterId));
+
+      // Seed a cache snapshot with the old score.
+      await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
+
+      // Award +10 SC so the player hits Legend at 100.
+      const award = await app.inject({
+        method: "POST",
+        url: "/api/street-cred/award",
+        headers: { authorization: `Bearer ${accessToken}` },
+        payload: { amount: 10, source: "gig-wrapup" },
+      });
+      expect(award.statusCode).toBe(200);
+      const awardBody = award.json() as AwardSCResponse;
+      expect(awardBody.score).toBe(100);
+
+      // Read the leaderboard — the cache was just dropped, so this hits the DB
+      // and must show the updated score.
+      const lb = await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
+      expect(lb.statusCode).toBe(200);
+      const body = lb.json() as LeaderboardResponse;
+      expect(body.leaderboard[0].score).toBe(100);
+      expect(body.leaderboard[0].title).toBe("Legend");
+    });
+  });
+
   describe("decay writeback", () => {
     it("should apply decay on GET and persist the decayed score", async () => {
       const { accessToken, characterId } = await registerApiUser();
