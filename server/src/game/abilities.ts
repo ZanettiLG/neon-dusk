@@ -31,11 +31,11 @@ export interface AbilityState {
 
 /** Cooldown durations in milliseconds, per ability. */
 export const ABILITY_COOLDOWNS: Record<AbilityType, number> = {
-  combat_trance: 30_000,
-  deep_dive: 30_000,
-  overclock: 30_000,
-  silver_tongue: 30_000,
-  long_haul: 30_000,
+  combat_trance: 24 * 60 * 1000,   // 24 minutes
+  deep_dive: 48 * 60 * 1000,       // 48 minutes
+  overclock: 120 * 60 * 1000,      // 2 hours
+  silver_tongue: 60 * 60 * 1000,   // 1 hour
+  long_haul: 30 * 60 * 1000,       // 30 minutes
 };
 
 /**
