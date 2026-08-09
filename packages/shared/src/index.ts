@@ -147,13 +147,13 @@ export interface CreateCharacterRequest {
 /** Base NIL cap for a new character (chrome raises it later). */
 export const NIL_MAX_BASE = 100;
 /** Passive regen cadence: 1 point per 30 seconds. */
-export const NIL_REGEN_INTERVAL_MS = 30 * 1000;
+export const NIL_REGEN_INTERVAL_MS = 5_000;
 /** NIL points restored per regen tick. */
 export const NIL_REGEN_RATE = 1;
 /** NIL restored by one syn-café. */
 export const NIL_SYN_CAFE_AMOUNT = 20;
 /** Syn-café cooldown, in seconds. */
-export const NIL_SYN_CAFE_COOLDOWN_S = 60 * 6;
+export const NIL_SYN_CAFE_COOLDOWN_S = 15;
 
 /** Live NIL readout (regen applied lazily, never written on GET). */
 export interface NilStatus {
