@@ -379,7 +379,7 @@ export function canRunSecondGig(
  */
 export function isAbilityActive(activeUntil: Date | null, now?: Date): boolean {
   if (!activeUntil) return false;
-  return activeUntil.getTime() > (now ?? new Date()).getTime();
+  return activeUntil.getTime() >= (now ?? new Date()).getTime();
 }
 
 /**

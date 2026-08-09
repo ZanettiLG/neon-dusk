@@ -63,7 +63,8 @@ export interface User {
 }
 
 // ─── Role Abilities (Feature #65) ──────────────────────────────────────────
-// Each role has a unique active ability with a 30-min window and 2h cooldown.
+// Each role has a unique active ability. Combat Trance is duration-based
+// (30 min); all others are one-shot. Cooldowns vary per ability (4h–24h).
 
 /** Active ability types — one per role. */
 export const ABILITY_TYPES = [

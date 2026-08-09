@@ -237,16 +237,14 @@ export async function installChrome(
     // Feature #65: consume Overclock after successful install.
     if (overclockActive) {
       const consumed = computeConsumption(character.role);
-      if (consumed) {
-        await tx
-          .update(characters)
-          .set({
-            abilityActiveUntil: consumed.activeUntil,
-            abilityCooldownUntil: consumed.cooldownUntil,
-            updatedAt: new Date(),
-          })
-          .where(eq(characters.id, characterId));
-      }
+      await tx
+        .update(characters)
+        .set({
+          abilityActiveUntil: consumed.activeUntil,
+          abilityCooldownUntil: consumed.cooldownUntil,
+          updatedAt: new Date(),
+        })
+        .where(eq(characters.id, characterId));
     }
 
     // Recompute effective NIL max from all installed chrome (base 100 + nil_max bonuses).

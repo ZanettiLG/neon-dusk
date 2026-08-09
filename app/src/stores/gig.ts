@@ -141,7 +141,7 @@ export const useGigStore = create<GigState>((set, get) => ({
       await api.post(`/api/gigs/${id}/abandon`, {});
       set((s) => ({ board: s.board ? { ...s.board, activeGig: null } : null }));
       void get().fetchBoard();
-      // Refresh NIL display — keep the dashboard bar honest.
+      // NIL is refunded — keep the dashboard bar honest.
       void useAuthStore.getState().fetchNil();
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao abandonar gig" });
