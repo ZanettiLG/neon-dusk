@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import type { Attributes } from "@neon-dusk/shared";
 import {
+  applyHeatDecay,
   applyLegworkModifier,
   calculateEscapeChance,
   calculateHeat,
@@ -14,6 +15,7 @@ import {
   isUnderDailyLimit,
   meetsStatRequirements,
   rollGigOutcome,
+  STAT_SCALING,
 } from "../game/gigs";
 
 // ND-011 — unit tests for the pure gig game logic (no DB, no mocks).
@@ -81,16 +83,24 @@ describe("meetsStatRequirements", () => {
 });
 
 describe("calculateSuccessChance", () => {
-  it("should return 50% when stat equals half the difficulty", () => {
-    expect(calculateSuccessChance(5, 0, 10)).toBe(0.5);
+  it("should return 50% when stat × SCALING equals half the difficulty", () => {
+    // stat=1, STAT_SCALING=5 → 5 / 10 = 0.50
+    expect(calculateSuccessChance(1, 0, 10)).toBe(0.5);
   });
 
-  it("should return 95% when stat matches the difficulty (cap at 0.95)", () => {
-    expect(calculateSuccessChance(10, 0, 10)).toBe(0.95);
+  it("should return exactly 0.05 when the raw ratio is exactly 0.05", () => {
+    // stat=1 → 5 / 100 = 0.05
+    expect(calculateSuccessChance(1, 0, 100)).toBe(0.05);
   });
 
-  it("should add the chrome bonus to the stat before dividing", () => {
-    expect(calculateSuccessChance(2, 3, 10)).toBe(0.5);
+  it("should return 95% when stat × SCALING matches the difficulty (cap at 0.95)", () => {
+    // stat=10 → 50 / 50 = 1.0 → capped to 0.95
+    expect(calculateSuccessChance(10, 0, 50)).toBe(0.95);
+  });
+
+  it("should add the chrome bonus to the scaled stat before dividing", () => {
+    // stat=0, chromeBonus=5 → 5 / 10 = 0.50
+    expect(calculateSuccessChance(0, 5, 10)).toBe(0.5);
   });
 
   it("should cap at 95% even with a large chrome bonus", () => {
@@ -98,19 +108,18 @@ describe("calculateSuccessChance", () => {
   });
 
   it("should floor at 5% when the stat is far below the difficulty", () => {
+    // stat=0 → 0 / 100 = 0 → floored 0.05
     expect(calculateSuccessChance(0, 0, 100)).toBe(0.05);
   });
 
-  it("should floor at 5% when stat + chrome is negative", () => {
-    expect(calculateSuccessChance(-5, 0, 10)).toBe(0.05);
-  });
-
-  it("should return exactly 0.05 when the raw ratio is exactly 0.05", () => {
-    expect(calculateSuccessChance(5, 0, 100)).toBe(0.05);
+  it("should floor at 5% when scaled stat + chrome is negative", () => {
+    // stat=0, chromeBonus=-10 → -10 / 10 = -1 → floored 0.05
+    expect(calculateSuccessChance(0, -10, 10)).toBe(0.05);
   });
 
   it("should return the raw ratio when it is inside the bounds", () => {
-    expect(calculateSuccessChance(30, 0, 100)).toBe(0.3);
+    // stat=2, STAT_SCALING=5 → 10 / 100 = 0.10
+    expect(calculateSuccessChance(2, 0, 100)).toBe(0.1);
   });
 
   it("should return the cap (0.95) when difficulty is zero", () => {
@@ -119,6 +128,16 @@ describe("calculateSuccessChance", () => {
 
   it("should return the cap (0.95) when difficulty is negative", () => {
     expect(calculateSuccessChance(5, 0, -10)).toBe(0.95);
+  });
+
+  it("should include optional skillBonus in the numerator", () => {
+    // stat=1 → 5, + skillBonus=5 → 10 / 10 = 1.0 → capped 0.95
+    expect(calculateSuccessChance(1, 0, 10, 5)).toBe(0.95);
+  });
+
+  it("should treat missing skillBonus as 0", () => {
+    // Same as: stat=1 → 5/10 = 0.5
+    expect(calculateSuccessChance(1, 0, 10)).toBe(0.5);
   });
 });
 
@@ -256,31 +275,38 @@ describe("calculateHeat", () => {
 });
 
 describe("calculateEscapeChance", () => {
-  it("should return 50% when stat equals half the escape difficulty", () => {
-    expect(calculateEscapeChance(5, 10, 0)).toBe(0.5);
+  it("should return 50% when scaled stat equals half the escape difficulty", () => {
+    // stat=1, STAT_SCALING=5 → 5 / (10 * 1) = 0.50
+    expect(calculateEscapeChance(1, 10, 0)).toBe(0.5);
   });
 
   it("should have no heat penalty when heat is zero", () => {
-    expect(calculateEscapeChance(5, 10, 0)).toBe(0.5);
+    // stat=1 → 5 / 10 = 0.5
+    expect(calculateEscapeChance(1, 10, 0)).toBe(0.5);
   });
 
   it("should halve the chance at 100 heat (difficulty ×2)", () => {
-    expect(calculateEscapeChance(5, 10, 100)).toBeCloseTo(0.25, 5);
+    // stat=1 → 5 / (10 × 2) = 5/20 = 0.25
+    expect(calculateEscapeChance(1, 10, 100)).toBeCloseTo(0.25, 5);
   });
 
   it("should triple the difficulty at 200 heat", () => {
-    expect(calculateEscapeChance(5, 10, 200)).toBeCloseTo(0.16667, 4);
+    // stat=1 → 5 / (10 × 3) = 5/30 = 0.16667
+    expect(calculateEscapeChance(1, 10, 200)).toBeCloseTo(0.16667, 4);
   });
 
   it("should ignore negative heat (no penalty)", () => {
-    expect(calculateEscapeChance(5, 10, -50)).toBe(0.5);
+    // stat=1 → 5 / 10 = 0.5
+    expect(calculateEscapeChance(1, 10, -50)).toBe(0.5);
   });
 
   it("should cap at 95% when stat exceeds the difficulty", () => {
-    expect(calculateEscapeChance(20, 10, 0)).toBe(0.95);
+    // stat=10 → 50 / 10 = 5.0 → capped 0.95
+    expect(calculateEscapeChance(10, 10, 0)).toBe(0.95);
   });
 
   it("should floor at 5% when stat is zero", () => {
+    // stat=0 → 0 / 10 = 0 → floored 0.05
     expect(calculateEscapeChance(0, 10, 0)).toBe(0.05);
   });
 
@@ -431,5 +457,52 @@ describe("getEscapeStat", () => {
     const attrs = { ...FULL_ATTRS } as Partial<Attributes>;
     delete attrs.cool;
     expect(getEscapeStat("sabotage", attrs as Attributes)).toBe(0);
+  });
+});
+
+describe("STAT_SCALING", () => {
+  it("should be 5 as per ND-011 balance fix", () => {
+    expect(STAT_SCALING).toBe(5);
+  });
+});
+
+describe("applyHeatDecay", () => {
+  const now = new Date("2026-08-07T12:00:00.000Z");
+  const DAY = 86_400_000;
+
+  it("should decay 5 heat per full day", () => {
+    const last = new Date(now.getTime() - 2 * DAY);
+    expect(applyHeatDecay(50, last, now)).toEqual({ heat: 40, decayed: 10 });
+  });
+
+  it("should not decay partial days", () => {
+    const last = new Date(now.getTime() - 23 * 3_600_000); // 23 hours
+    expect(applyHeatDecay(50, last, now)).toEqual({ heat: 50, decayed: 0 });
+  });
+
+  it("should not go below zero", () => {
+    const last = new Date(now.getTime() - 5 * DAY);
+    expect(applyHeatDecay(10, last, now)).toEqual({ heat: 0, decayed: 10 });
+  });
+
+  it("should return zero heat when input is zero", () => {
+    expect(applyHeatDecay(0, now, now)).toEqual({ heat: 0, decayed: 0 });
+  });
+
+  it("should return zero heat when input is negative", () => {
+    expect(applyHeatDecay(-10, now, now)).toEqual({ heat: 0, decayed: 0 });
+  });
+
+  it("should treat lastUpdatedAt in the future as 0 days elapsed", () => {
+    const future = new Date(now.getTime() + DAY);
+    expect(applyHeatDecay(50, future, now)).toEqual({ heat: 50, decayed: 0 });
+  });
+
+  it("should use Date.now as the default third parameter", () => {
+    const result = applyHeatDecay(10, new Date());
+    expect(result.heat).toBeGreaterThanOrEqual(0);
+    expect(result.heat).toBeLessThanOrEqual(10);
+    expect(result.decayed).toBeGreaterThanOrEqual(0);
+    expect(result.decayed).toBeLessThanOrEqual(10);
   });
 });

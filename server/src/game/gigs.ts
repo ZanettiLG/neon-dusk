@@ -12,7 +12,7 @@ import type { Attributes } from "@neon-dusk/shared";
 export type GigType = "extraction" | "delivery" | "sabotage";
 
 /** Gig tier (MVP: T1-T2). */
-export type GigTier = "t1" | "t2";
+export type GigTier = "t1" | "t2" | "t3" | "t4" | "t5";
 
 /** Result of a gig success roll. */
 export interface GigOutcome {
@@ -54,6 +54,14 @@ const SUCCESS_MULTIPLIER = 1.1;
 const HEAT_FAILURE_MULTIPLIER = 2;
 const HEAT_DIVISOR = 100;
 const DAILY_GIG_LIMIT = 10;
+
+/**
+ * Scaling factor to align stat values (1-20) with difficulty range (1-100).
+ * Without this, a stat of 10 / difficulty 50 gives 20% — too punishing for new players.
+ * With STAT_SCALING = 5, the same scenario yields (10 × 5) / 50 = 100% → capped at 95%.
+ * Conforme ND-011 balance fix.
+ */
+export const STAT_SCALING = 5;
 
 // ─── Stat Mapping ───────────────────────────────────────────────────────────
 
@@ -127,24 +135,27 @@ export function meetsStatRequirements(
 /**
  * Calculate gig execution success probability.
  *
- * Formula: `(stat + chromeBonus) / difficulty`, clamped to [0.05, 0.95].
- * Conforme 03-mecanicas-core.md §3 (Fórmula de sucesso).
+ * Formula: `(stat × STAT_SCALING + chromeBonus + skillBonus) / difficulty`,
+ * clamped to [0.05, 0.95].
+ * Conforme 03-mecanicas-core.md §3 (Fórmula de sucesso) and ND-011 balance fix.
  *
- * @param stat        - The relevant primary attribute value.
+ * @param stat        - The relevant primary attribute value (1-20 range).
  * @param chromeBonus - Flat success bonus from installed chrome (percentage points).
- * @param difficulty  - The gig's difficulty rating.
+ * @param difficulty  - The gig's difficulty rating (1-100 range).
+ * @param skillBonus  - Optional flat bonus from player skill perks (defaults to 0).
  * @returns Probability in range [0.05, 0.95].
  *
  * @edgecases `difficulty ≤ 0` would cause division by zero → capped at 0.95.
- *            Negative `stat + chromeBonus` → floored at 0.05.
+ *            Negative numerator → floored at 0.05.
  */
 export function calculateSuccessChance(
   stat: number,
   chromeBonus: number,
   difficulty: number,
+  skillBonus?: number,
 ): number {
   if (difficulty <= 0) return SUCCESS_CAP;
-  const raw = (stat + chromeBonus) / difficulty;
+  const raw = (stat * STAT_SCALING + chromeBonus + (skillBonus ?? 0)) / difficulty;
   return Math.min(SUCCESS_CAP, Math.max(SUCCESS_FLOOR, raw));
 }
 
@@ -261,17 +272,25 @@ export function calculateEscapeChance(
 ): number {
   if (escapeDifficulty <= 0) return SUCCESS_CAP;
   const heatMultiplier = 1 + Math.max(0, heatAmount) / HEAT_DIVISOR;
-  const raw = stat / (escapeDifficulty * heatMultiplier);
+  const raw = (stat * STAT_SCALING) / (escapeDifficulty * heatMultiplier);
   return Math.min(SUCCESS_CAP, Math.max(SUCCESS_FLOOR, raw));
 }
+
+/** Street cred range per tier: [min, max] inclusive. */
+const SC_RANGES: Record<GigTier, [number, number]> = {
+  t1: [1, 3],
+  t2: [3, 8],
+  t3: [8, 15],
+  t4: [15, 25],
+  t5: [25, 40],
+};
 
 /**
  * Roll street cred gain within tier range.
  *
  * Conforme 04-sistemas-e-progressao.md §5 (Como Ganhar).
- * T1: 1–3 SC. T2: 3–8 SC (as designed for ND-011 MVP).
  *
- * @param tier - Gig tier ("t1" or "t2").
+ * @param tier - Gig tier (t1–t5).
  * @param rng  - Injectable RNG. Defaults to `Math.random`.
  * @returns Street cred points gained.
  *
@@ -281,7 +300,7 @@ export function calculateStreetCred(
   tier: GigTier,
   rng: () => number = Math.random,
 ): number {
-  const [min, max] = tier === "t1" ? [1, 3] : [3, 8];
+  const [min, max] = SC_RANGES[tier];
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
@@ -353,4 +372,46 @@ export function canTransition(currentPhase: string, action: string): string | nu
 export function getEscapeStat(gigType: GigType, attrs: Attributes): number {
   const key = ESCAPE_STATS[gigType];
   return (attrs as unknown as Record<string, number>)[key] ?? 0;
+}
+
+// ─── Heat Decay ──────────────────────────────────────────────────────────────
+
+/** Heat points decayed per full 24h day. Conforme ND-011 balance fix. */
+const HEAT_DECAY_PER_DAY = 5;
+
+/** Milliseconds in one day. */
+const DAY_MS = 86_400_000;
+
+export interface HeatDecayResult {
+  /** Heat remaining after decay. */
+  heat: number;
+  /** Amount of heat that decayed. */
+  decayed: number;
+}
+
+/**
+ * Apply heat decay based on elapsed days since last update.
+ * Lazy: calculated on read, no cron job needed.
+ *
+ * @param currentHeat   - Current accumulated heat.
+ * @param lastUpdatedAt - When heat was last modified.
+ * @param now           - Current time (injectable for testing). Defaults to `new Date()`.
+ * @returns `HeatDecayResult` with remaining heat and amount decayed.
+ *
+ * @edgecases `lastUpdatedAt` in the future → 0 days elapsed, no decay.
+ *            `currentHeat ≤ 0` → returns `{ heat: 0, decayed: 0 }`.
+ */
+export function applyHeatDecay(
+  currentHeat: number,
+  lastUpdatedAt: Date,
+  now: Date = new Date(),
+): HeatDecayResult {
+  if (currentHeat <= 0) return { heat: 0, decayed: 0 };
+  const elapsedMs = now.getTime() - lastUpdatedAt.getTime();
+  const elapsedDays = Math.max(0, Math.floor(elapsedMs / DAY_MS));
+  const decayed = elapsedDays * HEAT_DECAY_PER_DAY;
+  return {
+    heat: Math.max(0, currentHeat - decayed),
+    decayed: Math.min(decayed, currentHeat),
+  };
 }

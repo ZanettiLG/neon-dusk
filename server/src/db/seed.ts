@@ -27,7 +27,12 @@ import { LOOT_TABLES } from "../content/loot-tables";
 export async function seedGigs(): Promise<number> {
   let inserted = 0;
   for (const t of GIG_TEMPLATES) {
-    const cooldownMinutes = t.tier === "t1" ? 10 : 25;
+    const cooldownMinutes =
+      t.tier === "t1" ? 10
+        : t.tier === "t2" ? 25
+        : t.tier === "t3" ? 40
+        : t.tier === "t4" ? 60
+        : 90;
     const rows = await db
       .insert(gigs)
       .values({

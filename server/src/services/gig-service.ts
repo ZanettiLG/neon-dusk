@@ -20,6 +20,7 @@ import {
   characterWallets,
   characters,
   chromeDefinitions,
+  crewMembers,
   gigHistory,
   gigs,
   heat as heatTable,
@@ -28,6 +29,7 @@ import {
 } from "../db/schema";
 import { AppError } from "../middleware/error-handler";
 import {
+  applyHeatDecay,
   applyLegworkModifier,
   calculateEscapeChance,
   calculateHeat,
@@ -43,6 +45,12 @@ import {
   rollGigOutcome,
 } from "../game/gigs";
 import { calculateGigSuccessBonus } from "../game/chrome";
+import { calculateCrewBonuses } from "../game/crews.js";
+import {
+  getSilverTongueBonus,
+  canRunSecondGig,
+  computeConsumption,
+} from "../game/abilities";
 import { ensureWallet } from "./economy-service";
 import { transferEddies } from "../game/economy";
 import { emitEvent } from "../telemetry/emit-event";
@@ -173,6 +181,15 @@ async function getGigSuccessBonus(q: Queryable, characterId: string): Promise<nu
     .from(chromeDefinitions)
     .where(inArray(chromeDefinitions.id, installed.map((i) => i.defId)));
   return calculateGigSuccessBonus(defs);
+}
+
+/** Count active members in a crew. */
+async function getCrewMemberCount(q: Queryable, crewId: string): Promise<number> {
+  const rows = await q
+    .select({ count: sql<number>`count(*)::int` })
+    .from(crewMembers)
+    .where(eq(crewMembers.crewId, crewId));
+  return rows[0]?.count ?? 0;
 }
 
 /**
@@ -310,7 +327,21 @@ export async function getGigDetail(
 export async function acceptGig(characterId: string, gigId: string): Promise<GigAcceptResponse> {
   return db.transaction(async (tx) => {
     const [character] = await tx
-      .select()
+      .select({
+        id: characters.id,
+        role: characters.role,
+        streetCred: characters.streetCred,
+        nil: characters.nil,
+        maxNil: characters.maxNil,
+        nilUpdatedAt: characters.nilUpdatedAt,
+        body: characters.body,
+        reflexes: characters.reflexes,
+        intelligence: characters.intelligence,
+        technical: characters.technical,
+        cool: characters.cool,
+        abilityActiveUntil: characters.abilityActiveUntil,
+        abilityCooldownUntil: characters.abilityCooldownUntil,
+      })
       .from(characters)
       .where(eq(characters.id, characterId))
       .limit(1);
@@ -327,6 +358,39 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
       .onConflictDoNothing()
       .returning();
     if (!inserted) {
+      // Feature #65: Long Haul — nomads can run a second concurrent gig when
+      // the ability is active. ponytail: the DB unique constraint on
+      // active_gigs.character_id still blocks this; drop it when Long Haul ships.
+      const existingCount = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(activeGigs)
+        .where(eq(activeGigs.characterId, characterId));
+      const currentGigs = existingCount[0]?.count ?? 0;
+      const longHaul = canRunSecondGig(
+        character.role,
+        character.abilityActiveUntil,
+        character.abilityCooldownUntil,
+        currentGigs,
+      );
+      if (longHaul) {
+        // Consume Long Haul — the second gig starts now.
+        const consumed = computeConsumption(character.role);
+        await tx
+          .update(characters)
+          .set({
+            abilityActiveUntil: consumed.activeUntil,
+            abilityCooldownUntil: consumed.cooldownUntil,
+            updatedAt: new Date(),
+          })
+          .where(eq(characters.id, characterId));
+        // TODO: drop the unique constraint on active_gigs.character_id, then
+        // allow the second INSERT to proceed here. For now, throw a clear error.
+        throw new AppError(
+          503,
+          "LONG_HAUL_REQUIRES_MIGRATION",
+          "Long Haul detectado, mas o schema ainda não suporta 2 gigs ativas. Aguarde a próxima migração.",
+        );
+      }
       throw new AppError(400, "ALREADY_ACTIVE_GIG", "Você já tem uma gig ativa");
     }
 
@@ -338,7 +402,13 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
           `Need ${gig.requiredStreetCred} street cred, have ${character.streetCred}`,
         );
       }
-      if (!meetsStatRequirements(toAttributes(character), gig.requiredStats)) {
+      if (!meetsStatRequirements({
+        body: character.body,
+        reflexes: character.reflexes,
+        intelligence: character.intelligence,
+        technical: character.technical,
+        cool: character.cool,
+      }, gig.requiredStats)) {
         throw new AppError(403, "INSUFFICIENT_STATS", "Atributos não atendem aos requisitos da gig");
       }
 
@@ -479,10 +549,22 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
 
     const { primary } = getRelevantStats(gig.type, toAttributes(character));
     const chromeBonus = await getGigSuccessBonus(tx, characterId);
+
+    // Crew bonus: +N percentage points to gig success (ND-016).
+    let crewBonus = 0;
+    if (character.crewId) {
+      const crewCount = await getCrewMemberCount(tx, character.crewId);
+      const bonuses = calculateCrewBonuses(crewCount);
+      const gigBonus = bonuses.find((b) => b.type === "gig_success");
+      if (gigBonus) crewBonus = gigBonus.value;
+    }
+
     const baseChance = calculateSuccessChance(primary, chromeBonus, gig.difficulty);
     const chance = applyLegworkModifier(baseChance, { skippedLegwork, legworkDone });
+    // Crew bonus adds percentage points after base chance (value=5 → +0.05).
+    const chanceWithCrew = Math.min(0.95, chance + crewBonus / 100);
 
-    const outcome = rollGigOutcome(chance);
+    const outcome = rollGigOutcome(chanceWithCrew);
     const actualPayout = outcome.success
       ? calculatePayout(gig.baseReward, { legworkBonus: legworkDone, successBonus: true })
       : 0;
@@ -550,13 +632,18 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
     const [districtHeat] = await tx
-      .select({ amount: heatTable.amount })
+      .select({ amount: heatTable.amount, updatedAt: heatTable.updatedAt })
       .from(heatTable)
       .where(and(eq(heatTable.characterId, characterId), eq(heatTable.district, gig.district)))
       .limit(1);
 
+    const { heat: effectiveHeat } = applyHeatDecay(
+      districtHeat?.amount ?? 0,
+      districtHeat?.updatedAt ?? new Date(),
+    );
+
     const stat = getEscapeStat(gig.type, toAttributes(character));
-    const chance = calculateEscapeChance(stat, gig.escapeDifficulty, districtHeat?.amount ?? 0);
+    const chance = calculateEscapeChance(stat, gig.escapeDifficulty, effectiveHeat);
     const outcome = rollGigOutcome(chance);
     const heatGenerated = calculateHeat(gig.heatGenerated, active.executeOutcome ?? "failure");
 
@@ -603,19 +690,38 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
 
     const [character] = await tx
-      .select()
+      .select({
+        id: characters.id,
+        role: characters.role,
+        streetCred: characters.streetCred,
+        abilityActiveUntil: characters.abilityActiveUntil,
+        abilityCooldownUntil: characters.abilityCooldownUntil,
+      })
       .from(characters)
       .where(eq(characters.id, characterId))
       .limit(1);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
+    // Feature #65: Silver Tongue — fixer ability boosts payout +50% and SC +25%.
+    const silverTongue = getSilverTongueBonus(
+      character.role,
+      character.abilityActiveUntil,
+      character.abilityCooldownUntil,
+    );
+
     // Outcome: execute failure means the job was botched (no payout, no cred).
     const executed = active.executeOutcome === "success";
     const outcome = executed ? "success" : "failure";
-    const payout = executed
+    const basePayout = executed
       ? calculatePayout(gig.baseReward, { legworkBonus: active.legworkCompleted, successBonus: true })
       : 0;
-    const streetCredGained = executed ? calculateStreetCred(gig.tier) : 0;
+    const payout = silverTongue && basePayout > 0
+      ? Math.ceil(basePayout * silverTongue.eddieMultiplier)
+      : basePayout;
+    const baseSC = executed ? calculateStreetCred(gig.tier) : 0;
+    const streetCredGained = silverTongue && baseSC > 0
+      ? Math.ceil(baseSC * silverTongue.scMultiplier)
+      : baseSC;
     const heatDelta = calculateHeat(gig.heatGenerated, active.executeOutcome ?? "failure");
 
     // 1. Wallet credit — optimistic lock (same pattern as buyFromVendor).
@@ -677,14 +783,39 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
       })
       .where(eq(characters.id, characterId));
 
-    // 3. District heat — upsert (one row per character + district).
+    // Feature #65: consume Silver Tongue after the gig action.
+    if (silverTongue) {
+      const consumed = computeConsumption(character.role);
+      await tx
+        .update(characters)
+        .set({
+          abilityActiveUntil: consumed.activeUntil,
+          abilityCooldownUntil: consumed.cooldownUntil,
+          updatedAt: new Date(),
+        })
+        .where(eq(characters.id, characterId));
+    }
+
+    // 3. District heat — apply decay then upsert (one row per character + district).
     if (heatDelta > 0) {
+      // Read current heat to apply lazy decay before adding new heat.
+      const [existingHeat] = await tx
+        .select({ amount: heatTable.amount, updatedAt: heatTable.updatedAt })
+        .from(heatTable)
+        .where(and(eq(heatTable.characterId, characterId), eq(heatTable.district, gig.district)))
+        .limit(1);
+
+      const { heat: decayedHeat } = existingHeat
+        ? applyHeatDecay(existingHeat.amount, existingHeat.updatedAt)
+        : { heat: 0 };
+      const newHeat = decayedHeat + heatDelta;
+
       await tx
         .insert(heatTable)
-        .values({ characterId, district: gig.district, amount: heatDelta, updatedAt: new Date() })
+        .values({ characterId, district: gig.district, amount: newHeat, updatedAt: new Date() })
         .onConflictDoUpdate({
           target: [heatTable.characterId, heatTable.district],
-          set: { amount: sql`${heatTable.amount} + ${heatDelta}`, updatedAt: new Date() },
+          set: { amount: newHeat, updatedAt: new Date() },
         });
     }
 
@@ -719,6 +850,60 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
       streetCredGained: scGranted,
       heatAccumulated: heatDelta,
       newBalance,
+    };
+  });
+}
+
+/**
+ * POST /api/gigs/:id/abandon — drop the active gig and record as abandoned.
+ * No payout, no street cred, no heat. The fixer won't be happy, but you live.
+ */
+export async function abandonGig(
+  characterId: string,
+  gigId: string,
+): Promise<{ outcome: "abandoned"; message: string }> {
+  return db.transaction(async (tx) => {
+    // 1. Find active gig for this character.
+    const [active] = await tx
+      .select()
+      .from(activeGigs)
+      .where(
+        and(
+          eq(activeGigs.characterId, characterId),
+          eq(activeGigs.gigId, gigId),
+        ),
+      )
+      .limit(1);
+    if (!active) {
+      throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa para abandonar");
+    }
+
+    // 2. Get the gig district for the history entry.
+    const [gig] = await tx
+      .select({ district: gigs.district })
+      .from(gigs)
+      .where(eq(gigs.id, active.gigId))
+      .limit(1);
+    const district = gig?.district ?? "Desconhecido";
+
+    // 3. Delete active gig.
+    await tx
+      .delete(activeGigs)
+      .where(eq(activeGigs.characterId, characterId));
+
+    // 4. Write history with outcome "abandoned".
+    await tx.insert(gigHistory).values({
+      characterId,
+      gigId,
+      outcome: "abandoned",
+      phasesCompleted: [active.phase],
+      district,
+    });
+
+    return {
+      outcome: "abandoned" as const,
+      message:
+        "Gig abandonada. O fixer não vai gostar, mas você vive para correr outro dia.",
     };
   });
 }

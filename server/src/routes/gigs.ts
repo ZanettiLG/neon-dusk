@@ -17,6 +17,7 @@ import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
 import { requireCharacterId } from "../services/economy-service";
 import {
+  abandonGig,
   acceptGig,
   doLegwork,
   escapeGig,
@@ -164,6 +165,27 @@ export async function gigRoutes(app: FastifyInstance) {
       request.audit_context!.payload = { gigId: id };
 
       return escapeGig(characterId, id);
+    },
+  );
+
+  // POST /api/gigs/:id/abandon — drop the active gig, no payout, no heat
+  app.post(
+    "/gigs/:id/abandon",
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("gig_abandon"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "gig_execute"),
+      ],
+    },
+    async (request): Promise<{ outcome: "abandoned"; message: string }> => {
+      const { id } = uuidParam.parse(request.params);
+      const characterId = await requireCharacterId(request.user.sub);
+
+      request.audit_context!.payload = { gigId: id };
+
+      return abandonGig(characterId, id);
     },
   );
 
