@@ -10,7 +10,6 @@ import { AppError } from "./error-handler";
 // failed action (e.g., insufficient eddies) does NOT trigger a cooldown.
 
 export type CooldownActionType =
-  | "gig_accept"       // 30s
   | "pvp_attack"       // 1h
   | "stim_use"         // 5min
   | "chat_message"     // 5s
@@ -22,7 +21,6 @@ export interface CooldownEntry {
 }
 
 export const cooldownConfig: Record<CooldownActionType, CooldownEntry> = {
-  gig_accept:     { durationMs: 30_000 },
   pvp_attack:     { durationMs: 15_000 },
   stim_use:       { durationMs: 300_000 },
   chat_message:   { durationMs: 5_000 },

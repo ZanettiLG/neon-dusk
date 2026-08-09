@@ -40,18 +40,18 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
 
   it("should allow the first request when no cooldown key exists", async () => {
     const { userId } = await insertTestCharacter();
-    const preHandler = checkCooldown(redis, "gig_accept");
+    const preHandler = checkCooldown(redis, "chat_message");
 
     await expect(preHandler(requestFor(userId))).resolves.toBeUndefined();
   });
 
   it("should reject with 429 COOLDOWN_ACTIVE and Retry-After within the window", async () => {
     const { userId, characterId } = await insertTestCharacter();
-    const preHandler = checkCooldown(redis, "gig_accept");
+    const preHandler = checkCooldown(redis, "chat_message");
 
     // Route handler sets the key after a successful action (ADR-2), keyed by
     // the DB character id — the same id requireCharacterId resolves.
-    await redis.setex(`cooldown:${characterId}:gig_accept`, cooldownConfig.gig_accept.durationMs / 1000, "1");
+    await redis.setex(`cooldown:${characterId}:chat_message`, cooldownConfig.chat_message.durationMs / 1000, "1");
 
     const auditContext = {};
     await expect(preHandler(requestFor(userId, auditContext))).rejects.toMatchObject({
@@ -66,9 +66,9 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
 
   it("should allow the request again after the cooldown expires", async () => {
     const { userId, characterId } = await insertTestCharacter();
-    const preHandler = checkCooldown(redis, "gig_accept");
+    const preHandler = checkCooldown(redis, "chat_message");
 
-    await redis.setex(`cooldown:${characterId}:gig_accept`, 1, "1");
+    await redis.setex(`cooldown:${characterId}:chat_message`, 1, "1");
     await expect(preHandler(requestFor(userId))).rejects.toMatchObject({
       code: "COOLDOWN_ACTIVE",
     });
@@ -80,13 +80,13 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
 
   it("should keep cooldowns independent across different actions", async () => {
     const { userId, characterId } = await insertTestCharacter();
-    const gigPreHandler = checkCooldown(redis, "gig_accept");
+    const pvpPreHandler = checkCooldown(redis, "pvp_attack");
     const chatPreHandler = checkCooldown(redis, "chat_message");
 
-    await redis.setex(`cooldown:${characterId}:gig_accept`, 30, "1");
+    await redis.setex(`cooldown:${characterId}:pvp_attack`, 30, "1");
 
-    // gig_accept is on cooldown…
-    await expect(gigPreHandler(requestFor(userId))).rejects.toMatchObject({
+    // pvp_attack is on cooldown…
+    await expect(pvpPreHandler(requestFor(userId))).rejects.toMatchObject({
       code: "COOLDOWN_ACTIVE",
     });
 
@@ -95,7 +95,7 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
   });
 
   it("should reject with 404 NO_CHARACTER when the user has no character", async () => {
-    const preHandler = checkCooldown(redis, "gig_accept");
+    const preHandler = checkCooldown(redis, "chat_message");
 
     // requireCharacterId runs before the Redis check — a sub without a
     // character must be rejected, not silently allowed.
@@ -114,7 +114,7 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
       },
     } as unknown as Redis;
 
-    const preHandler = checkCooldown(deadRedis, "gig_accept");
+    const preHandler = checkCooldown(deadRedis, "chat_message");
     await expect(preHandler(requestFor(userId))).resolves.toBeUndefined();
   });
 });
