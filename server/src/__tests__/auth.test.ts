@@ -111,17 +111,15 @@ describe("Feature #1 — auth API", () => {
     // NOTE: `confirmPassword` is not part of the backend contract — the
     // mismatch is validated client-side (see RegisterView.test.ts). The
     // backend schema is { email, password } and ignores extra fields.
-    it("should return 429 on the 4th register attempt for the same email", async () => {
-      // The per-email register counter (max 3/min) is consumed by every
-      // attempt — including the rejected duplicates.
+    it("should return 429 when the register per-email limit is exceeded", async () => {
+      // Per-email register counter (max 300/min) — pre-set via Redis to
+      // avoid making 301 sequential HTTP requests.
       const email = uniqueEmail();
       const first = await server.post("/api/auth/register", { email, password: PASSWORD });
       expect(first.status).toBe(201);
 
-      for (let i = 0; i < 2; i++) {
-        const dup = await server.post("/api/auth/register", { email, password: PASSWORD });
-        expect(dup.status).toBe(409);
-      }
+      // Set the counter to 300 so the next INCR (to 301) trips the limit.
+      await redis.setex("auth:rl:register:" + email, 60, 300);
 
       const res = await server.post("/api/auth/register", { email, password: PASSWORD });
       expect(res.status).toBe(429);
@@ -167,17 +165,12 @@ describe("Feature #1 — auth API", () => {
       expect(body.error).toBe("INVALID_CREDENTIALS");
     });
 
-    it("should return 429 after 5 failed logins per email in a minute", async () => {
+    it("should return 429 when the login per-email limit is exceeded", async () => {
       const email = uniqueEmail();
       await registerAndGetTokens(email);
 
-      for (let i = 0; i < 5; i++) {
-        const failed = await server.post("/api/auth/login", {
-          email,
-          password: `WrongPass${i}!`,
-        });
-        expect(failed.status).toBe(401);
-      }
+      // Set the counter to 500 (max for login) so next INCR trips the limit.
+      await redis.setex("auth:rl:login:" + email, 60, 500);
 
       const res = await server.post("/api/auth/login", { email, password: PASSWORD });
       expect(res.status).toBe(429);

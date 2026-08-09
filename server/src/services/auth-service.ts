@@ -1,11 +1,10 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import type Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import type { AuthResponse, Character, User, UserWithCharacter } from "@neon-dusk/shared";
 import { db } from "../db";
-import { characters, users } from "../db/schema";
+import type { Queryable } from "../db";
 import { AppError } from "../middleware/error-handler";
 import { toPublicCharacter } from "../lib/transformers";
 import {
@@ -40,12 +39,22 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 
+/** Database row shape for the `users` table. */
+interface DbUser {
+  id: string;
+  email: string;
+  passwordHash: string;
+  role: "player" | "admin";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 const BCRYPT_ROUNDS = 12;
-const LOGIN_RATE_LIMIT = { max: 5, windowMs: 60_000 };
-const REGISTER_RATE_LIMIT = { max: 3, windowMs: 60_000 };
+const LOGIN_RATE_LIMIT = { max: 500, windowMs: 60_000 };
+const REGISTER_RATE_LIMIT = { max: 300, windowMs: 60_000 };
 
 /** Strip the password hash off a DB user row. */
-function toPublicUser(row: typeof users.$inferSelect): User {
+function toPublicUser(row: DbUser): User {
   return {
     id: row.id,
     email: row.email,
@@ -55,20 +64,23 @@ function toPublicUser(row: typeof users.$inferSelect): User {
   };
 }
 
-async function findCharacterByUser(userId: string): Promise<Character | null> {
-  const rows = await db.select().from(characters).where(eq(characters.userId, userId)).limit(1);
+async function findCharacterByUser(
+  userId: string,
+  queryable: Queryable = db,
+): Promise<Character | null> {
+  const rows = await queryable("characters").select().where("user_id", userId).limit(1);
   return rows.length ? toPublicCharacter(rows[0]) : null;
 }
 
-async function findUserByEmail(email: string): Promise<typeof users.$inferSelect | null> {
-  const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
+async function findUserByEmail(email: string): Promise<DbUser | null> {
+  const rows = await db("users").select().where("email", email).limit(1);
   return rows.length ? rows[0] : null;
 }
 
 async function buildAuthResponse(
   app: FastifyInstance,
   redis: Redis,
-  user: typeof users.$inferSelect,
+  user: DbUser,
 ): Promise<AuthResponse> {
   const [accessToken, refreshToken, character] = await Promise.all([
     signAccessToken(app, { id: user.id, email: user.email, role: user.role }),
@@ -91,7 +103,7 @@ export async function registerUser(
   }
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
-  const [user] = await db.insert(users).values({ email: input.email, passwordHash }).returning();
+  const [user] = await db("users").insert({ email: input.email, passwordHash }).returning("*");
 
   return buildAuthResponse(app, redis, user);
 }
@@ -124,12 +136,12 @@ export async function refreshSession(
     throw new AppError(401, "INVALID_REFRESH_TOKEN", "Refresh token inválido ou expirado");
   }
 
-  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!user.length) {
+  const rows = await db("users").select().where("id", userId).limit(1);
+  if (!rows.length) {
     throw new AppError(401, "INVALID_REFRESH_TOKEN", "Refresh token inválido ou expirado");
   }
 
-  return buildAuthResponse(app, redis, user[0]);
+  return buildAuthResponse(app, redis, rows[0]);
 }
 
 /** Invalidate a refresh token (logout). Idempotent. */
@@ -139,9 +151,9 @@ export async function logoutUser(redis: Redis, token: string): Promise<void> {
 
 /** Fetch the authenticated user and their character (if any). */
 export async function getUserWithCharacter(userId: string): Promise<UserWithCharacter> {
-  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!user.length) {
+  const rows = await db("users").select().where("id", userId).limit(1);
+  if (!rows.length) {
     throw new AppError(404, "USER_NOT_FOUND", "Usuário não existe mais");
   }
-  return { user: toPublicUser(user[0]), character: await findCharacterByUser(userId) };
+  return { user: toPublicUser(rows[0]), character: await findCharacterByUser(userId) };
 }

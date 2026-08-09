@@ -65,8 +65,9 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
 
     await preHandler(requestFor(characterId), reply);
 
-    // First request: 9 remaining out of max 10.
-    expect(reply.header).toHaveBeenCalledWith("X-RateLimit-Remaining", 9);
+    // First request: (max - 1) remaining out of the configured maximum.
+    const expectedRemaining = rateLimitConfig.gig_accept.max - 1;
+    expect(reply.header).toHaveBeenCalledWith("X-RateLimit-Remaining", expectedRemaining);
     // X-RateLimit-Reset is an epoch-seconds timestamp in the future.
     const reset = vi.mocked(reply.header).mock.calls.find(
       ([name]) => name === "X-RateLimit-Reset",
@@ -90,23 +91,26 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
 
   it("should set circuit_break key after circuitBreakerConfig.strikeThreshold rate-limit hits", async () => {
     const characterId = randomUUID();
-    const preHandler = checkActionRateLimit(redis, "pvp_attack"); // max 3, window 1h
+    const preHandler = checkActionRateLimit(redis, "pvp_attack");
+    const max = rateLimitConfig.pvp_attack.max;
 
-    // Counts 1-3 pass; every later request exceeds (count keeps growing) —
-    // strikes land on counts 4 through (3 + threshold). Circuit break on
-    // the 10th call (7th rejection), when cb_count reaches threshold.
-    for (let i = 0; i < 3; i++) {
-      await preHandler(requestFor(characterId), mockReply());
-    }
-    const rejectionsBeforeTrip = circuitBreakerConfig.strikeThreshold - 1;
-    for (let i = 0; i < rejectionsBeforeTrip; i++) {
+    // Exhaust the per-action limit by setting the counter just below max,
+    // then call once more to trip the limit (strike 1).
+    await redis.set(`rate:${characterId}:pvp_attack`, max);
+    await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
+      statusCode: 429,
+      code: "RATE_LIMITED",
+    });
+
+    // Send (threshold - 1) more rate-limited requests — each is a strike.
+    for (let i = 0; i < circuitBreakerConfig.strikeThreshold - 1; i++) {
       await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
         statusCode: 429,
         code: "RATE_LIMITED",
       });
     }
 
-    // 10th call: cb_count hits threshold → 24h ban thrown.
+    // Next call: cb_count hits threshold → 24h ban thrown.
     await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
       statusCode: 429,
       code: "CIRCUIT_BREAK",
@@ -122,13 +126,11 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
 
   it("should keep counters independent across different actions", async () => {
     const characterId = randomUUID();
-    const pvpPreHandler = checkActionRateLimit(redis, "pvp_attack"); // max 3
-    const gigPreHandler = checkActionRateLimit(redis, "gig_accept"); // max 10
+    const pvpPreHandler = checkActionRateLimit(redis, "pvp_attack");
+    const gigPreHandler = checkActionRateLimit(redis, "gig_accept");
 
-    // Exhaust pvp_attack (4th call rejects).
-    for (let i = 0; i < 3; i++) {
-      await pvpPreHandler(requestFor(characterId), mockReply());
-    }
+    // Exhaust pvp_attack by setting counter at max → next call rejects.
+    await redis.set(`rate:${characterId}:pvp_attack`, rateLimitConfig.pvp_attack.max);
     await expect(pvpPreHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
       statusCode: 429,
     });

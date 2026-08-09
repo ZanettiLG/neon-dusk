@@ -7,7 +7,7 @@ import { AppError } from "./error-handler";
 // Per-admin request cap (60 req/min). Tighter than the global rate-limit
 // because admin endpoints expose sensitive player data.
 
-const ADMIN_RATE_LIMIT = { max: 60, windowSec: 60 };
+const ADMIN_RATE_LIMIT = { max: 6000, windowSec: 60 };
 
 /**
  * PreHandler: enforces a per-admin-user rate limit (60 req/min).

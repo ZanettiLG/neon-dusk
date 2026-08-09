@@ -11,7 +11,7 @@ describe("Redis unavailable", () => {
     LOG_LEVEL: "fatal",
     DATABASE_URL: process.env.DATABASE_URL || "postgres://localhost:5432/neondusk_test",
     REDIS_URL: "redis://localhost:56380",
-    RATE_LIMIT_MAX: 100,
+    RATE_LIMIT_MAX: 10000,
     RATE_LIMIT_WINDOW_MS: 60_000,
     JWT_SECRET: "test-jwt-secret-that-is-at-least-32-characters-long",
     JWT_REFRESH_SECRET: "test-refresh-secret-that-is-at-least-32-chars-long",

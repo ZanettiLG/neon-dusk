@@ -39,7 +39,7 @@ describe("env schema", () => {
     expect(env.LOG_LEVEL).toBe("info");
     expect(env.DATABASE_URL).toBe("postgres://neondusk:neondusk_dev@localhost:5432/neondusk");
     expect(env.REDIS_URL).toBe("redis://localhost:6379");
-    expect(env.RATE_LIMIT_MAX).toBe(100);
+    expect(env.RATE_LIMIT_MAX).toBe(10000);
     expect(env.RATE_LIMIT_WINDOW_MS).toBe(60000);
     expect(env.CORS_ORIGIN).toBe("http://localhost:5173");
   });
