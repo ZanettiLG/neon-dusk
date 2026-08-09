@@ -5,8 +5,8 @@ const BASE_URL: string = import.meta.env.VITE_API_BASE_URL || "";
 /** Base URL for API calls — also used by EventSource (SSE) URLs. */
 export const API_BASE_URL = BASE_URL;
 
-// Abort requests that hang longer than this (e.g. a cold-start DB query).
-const REQUEST_TIMEOUT_MS = 15_000;
+// Abort requests that hang longer than this (e.g. a dead API with no RST).
+const REQUEST_TIMEOUT_MS = 5000;
 
 // Access token for the Authorization header. Set by the auth store whenever
 // tokens change; kept here so this module has no hard dependency on React.
@@ -28,10 +28,6 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 }
-
-// In-flight GET deduplication — multiple components mounting simultaneously
-// shouldn't fire identical requests.
-const _inFlight = new Map<string, Promise<unknown>>();
 
 // Single in-flight refresh so concurrent 401s trigger one refresh call.
 // Zustand stores are singletons; getState() reads state outside React, so the
@@ -94,13 +90,6 @@ async function request<T>(method: string, path: string, body?: unknown, isRetry 
     }
 
     return data as T;
-  } catch (err) {
-    // AbortError from the AbortController timeout — the server may have already
-    // counted this request. Don't retry; surface as a distinct error code.
-    if ((err instanceof Error && err.name === 'AbortError') || (err instanceof DOMException && err.name === 'AbortError')) {
-      throw new ApiError(408, 'TIMEOUT', ptBrError('TIMEOUT', 'Requisição expirou. O servidor pode já ter processado.'));
-    }
-    throw err;
   } finally {
     clearTimeout(timeout);
   }
@@ -171,9 +160,6 @@ const PT_BR_ERRORS: Record<string, string> = {
   // Concurrency
   CONCURRENCY_CONFLICT: "Conflito de concorrência. Tente novamente.",
 
-  // Request
-  TIMEOUT: "Requisição expirou. O servidor pode já ter processado.",
-
   // Round
   NO_ACTIVE_ROUND: "Não há rodada ativa.",
 
@@ -197,16 +183,7 @@ export function ptBrError(code: string, originalMessage: string): string {
 }
 
 export const api = {
-  get: <T>(path: string) => {
-    const key = `GET:${path}`;
-    const existing = _inFlight.get(key);
-    if (existing) return existing as Promise<T>;
-    const promise = request<T>("GET", path).finally(() => {
-      _inFlight.delete(key);
-    });
-    _inFlight.set(key, promise);
-    return promise;
-  },
+  get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body: unknown) => request<T>("POST", path, body),
   put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
   patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
