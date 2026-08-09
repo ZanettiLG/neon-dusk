@@ -34,8 +34,7 @@ interface GigState {
 /**
  * Gigs store (Zustand singleton) — Fixer Cupim board, the 5-phase loop of the
  * active gig and cursor-paginated history. Phase actions patch `board.activeGig`
- * straight from the server response; wrap up clears it and refreshes the board
- * (cooldowns + daily count change).
+ * straight from the server response; wrap up clears it and refreshes the board.
  */
 export const useGigStore = create<GigState>((set, get) => ({
   board: null,
@@ -122,8 +121,8 @@ export const useGigStore = create<GigState>((set, get) => ({
     try {
       const res = await api.post<GigWrapupResponse>(`/api/gigs/${id}/wrapup`, {});
       set((s) => ({ lastWrapup: res, board: s.board ? { ...s.board, activeGig: null } : null }));
-      // Payout/street-cred changed — refresh the board so cooldowns + count
-      // reflect the completed gig (best-effort; the wrapup already resolved).
+      // Payout/street-cred changed — refresh the board so cooldowns reflect
+      // the completed gig (best-effort; the wrapup already resolved).
       void get().fetchBoard();
       void useAuthStore.getState().fetchNil();
       return res;

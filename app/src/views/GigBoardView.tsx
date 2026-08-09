@@ -35,8 +35,7 @@ function Tab({
 
 /**
  * Fixer Cupim's gig board — the first contact with the underworld. Lists the
- * T1-T2 catalog filtered by tier/type, hosts the active-gig panel and reports
- * today's gig count (max 10/day).
+ * T1-T2 catalog filtered by tier/type and hosts the active-gig panel.
  */
 export default function GigBoardView() {
   const board = useGigStore((s) => s.board);
@@ -87,14 +86,7 @@ export default function GigBoardView() {
             </p>
           </div>
           <div className="text-right shrink-0">
-            <p className="font-data text-xs text-nd-text-secondary">
-              gigs hoje:{" "}
-              <span className="text-nd-cyan">
-                {board?.dailyCount ?? 0}
-                /10
-              </span>
-            </p>
-            <p className="font-data text-[10px] text-nd-text-secondary mt-1">
+            <p className="font-data text-[10px] text-nd-text-secondary">
               "{"Mano, preciso que você entregue esse pacote antes que o dono perceba que sumiu. Corre!"}"
             </p>
           </div>

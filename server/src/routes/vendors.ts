@@ -6,6 +6,7 @@ import { checkCircuitBreaker } from "../middleware/circuit-breaker";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
+import { AppError } from "../middleware/error-handler";
 import {
   buyFromVendor,
   getVendor,
@@ -59,6 +60,10 @@ export async function vendorRoutes(app: FastifyInstance) {
       const { id: vendorId } = paramsSchema.parse(request.params);
       const characterId = await requireCharacterId(request.user.sub);
       const body = request.body as z.infer<typeof buyBodySchema>;
+
+      if (body.itemType === "CHROME") {
+        throw new AppError(400, "INVALID_PURCHASE", "Chrome deve ser comprado e instalado diretamente no vendedor.");
+      }
 
       request.audit_context!.payload = { vendorId, itemType: body.itemType, itemId: body.itemId, quantity: body.quantity };
 

@@ -13,8 +13,7 @@ export type CooldownActionType =
   | "pvp_attack"       // 1h
   | "stim_use"         // 5min
   | "chat_message"     // 5s
-  | "crew_invite"      // 60s
-  | "chrome_install";  // 60s
+  | "crew_invite";     // 60s
 
 export interface CooldownEntry {
   durationMs: number;
@@ -25,7 +24,6 @@ export const cooldownConfig: Record<CooldownActionType, CooldownEntry> = {
   stim_use:       { durationMs: 300_000 },
   chat_message:   { durationMs: 5_000 },
   crew_invite:    { durationMs: 60_000 },
-  chrome_install: { durationMs: 10_000 },
 } as const;
 
 /**

@@ -53,7 +53,6 @@ const LEGWORK_SKIP_MULTIPLIER = 0.8;
 const SUCCESS_MULTIPLIER = 1.1;
 const HEAT_FAILURE_MULTIPLIER = 2;
 const HEAT_DIVISOR = 100;
-const DAILY_GIG_LIMIT = 10;
 
 /**
  * Scaling factor to align stat values (1-20) with difficulty range (1-100).
@@ -328,18 +327,6 @@ export function isCooldownExpired(
   if (cooldownMinutes <= 0) return true;
   const elapsedMs = now.getTime() - lastCompletedAt.getTime();
   return elapsedMs >= cooldownMinutes * 1_000;
-}
-
-/**
- * Check daily gig limit.
- *
- * @param todayCount - Number of gigs completed today (midnight-to-midnight).
- * @returns `true` when under the daily cap (max 10 per calendar day).
- *
- * @edgecases `todayCount < 0` returns true (defensive).
- */
-export function isUnderDailyLimit(todayCount: number): boolean {
-  return todayCount < DAILY_GIG_LIMIT;
 }
 
 /**

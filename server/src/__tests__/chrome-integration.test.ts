@@ -331,13 +331,10 @@ describe("Feature #4 — chrome API", () => {
     });
 
     it("should reject a second install of the same chrome with 409", async () => {
-      const { accessToken, characterId } = await registerAndCreateCharacter();
+      const { accessToken } = await registerAndCreateCharacter();
       const neural = await defId("neural-booster");
       await installChrome(accessToken, neural);
 
-      // ND-053: the 60s install cooldown fires before the business rule — clear
-      // it so the request reaches ALREADY_INSTALLED (what this test targets).
-      await app.redis.del(`cooldown:${characterId}:chrome_install`);
       const res = await installChrome(accessToken, neural);
 
       expect(res.status).toBe(409);

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import type {
   ActiveGig,
   Attributes,
@@ -42,7 +42,7 @@ import {
   getPrimaryStatKey,
   getRelevantStats,
   isCooldownExpired,
-  isUnderDailyLimit,
+
   meetsStatRequirements,
   rollGigOutcome,
 } from "../game/gigs";
@@ -151,23 +151,6 @@ function cooldownRemainingFor(lastAt: Date | string | null, cooldownMinutes: num
   if (isCooldownExpired(last, cooldownMinutes, now)) return 0;
   const msLeft = last.getTime() + cooldownMinutes * 1_000 - now.getTime();
   return Math.ceil(msLeft / 1000);
-}
-
-/** Number of gigs completed today (midnight-to-midnight, abandoned excluded). */
-async function countTodayGigs(q: Queryable, characterId: string): Promise<number> {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const [row] = await q
-    .select({ count: sql<number>`count(*)::int` })
-    .from(gigHistory)
-    .where(
-      and(
-        eq(gigHistory.characterId, characterId),
-        gte(gigHistory.completedAt, startOfDay),
-        ne(gigHistory.outcome, "abandoned"),
-      ),
-    );
-  return row?.count ?? 0;
 }
 
 /** Sum of the character's installed-chrome gig success bonus (percentage points). */
@@ -282,7 +265,6 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
   return {
     gigs: board,
     activeGig: active ? toActiveGig(active) : null,
-    dailyCount: await countTodayGigs(db, characterId),
   };
 }
 
@@ -344,7 +326,7 @@ export async function getGigDetail(
 
 /**
  * POST /api/gigs/:id/accept — phase 1 (meet). Validates street cred, stats,
- * cooldown, daily limit and NIL, then atomically opens an active gig.
+ * cooldown and NIL, then atomically opens an active gig.
  */
 export async function acceptGig(characterId: string, gigId: string): Promise<GigAcceptResponse> {
   return db.transaction(async (tx) => {
@@ -442,10 +424,6 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
         .limit(1);
       if (last && !isCooldownExpired(last.lastAt, gig.cooldownMinutes)) {
         throw new AppError(400, "GIG_COOLDOWN", "Esta gig ainda está em cooldown");
-      }
-
-      if (!isUnderDailyLimit(await countTodayGigs(tx, characterId))) {
-        throw new AppError(400, "DAILY_GIG_LIMIT", "Você atingiu o limite diário de gigs");
       }
 
       // NIL spend (in-transaction, mirrors nil-service.consumeNil): persist the

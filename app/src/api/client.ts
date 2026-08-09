@@ -141,7 +141,6 @@ const PT_BR_ERRORS: Record<string, string> = {
   ALREADY_ACTIVE_GIG: "Você já tem um gig ativo.",
   INSUFFICIENT_STATS: "Atributos insuficientes para este gig.",
   GIG_COOLDOWN: "Este gig está em cooldown.",
-  DAILY_GIG_LIMIT: "Limite diário de gigs atingido.",
   INVALID_PHASE_TRANSITION: "Transição de fase inválida.",
   GIG_MISMATCH: "Este gig não pertence a você.",
 

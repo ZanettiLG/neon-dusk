@@ -153,7 +153,7 @@ export const NIL_REGEN_RATE = 1;
 /** NIL restored by one syn-café. */
 export const NIL_SYN_CAFE_AMOUNT = 20;
 /** Syn-café cooldown, in seconds. */
-export const NIL_SYN_CAFE_COOLDOWN_S = 15;
+export const NIL_SYN_CAFE_COOLDOWN_S = 3600;
 
 /** Live NIL readout (regen applied lazily, never written on GET). */
 export interface NilStatus {
@@ -261,6 +261,10 @@ export interface VendorInventoryRecord {
   itemId: string;
   price: number;
   stock: number;
+  /** Chrome definition UUID when `itemType === "CHROME"`. */
+  chromeDefinitionId?: string | null;
+  /** Humanity cost when `itemType === "CHROME"`. */
+  humanityCost?: number | null;
 }
 
 /** GET /api/vendors/:id response. */
@@ -511,7 +515,6 @@ export interface GigHistoryEntry {
 export interface GigBoardResponse {
   gigs: GigListItem[];
   activeGig: ActiveGig | null;
-  dailyCount: number;
 }
 
 export interface GigDetailResponse {

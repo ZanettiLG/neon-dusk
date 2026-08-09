@@ -150,13 +150,18 @@ export default function DashboardView() {
                     {nilStatus?.current ?? 0} / {nilStatus?.max ?? 0}
                   </span>
                 </div>
-                <button
-                  className="btn-neon text-xs px-3 py-1"
-                  disabled={nilLoading || !nilStatus?.regenerating}
-                  onClick={() => void onUseStim()}
-                >
-                  SYN-CAFÉ
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    className="btn-neon text-xs px-3 py-1"
+                    disabled={nilLoading || !nilStatus?.regenerating}
+                    onClick={() => void onUseStim()}
+                  >
+                    SYN-CAFÉ
+                  </button>
+                  <span className="text-[10px] font-data text-nd-text-secondary">
+                    Brinde gratuito — 1h cooldown
+                  </span>
+                </div>
               </div>
               <div className="h-2 w-full bg-nd-bg overflow-hidden rounded-full border border-nd-cyan/20">
                 <div
