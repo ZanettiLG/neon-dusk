@@ -548,6 +548,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
     const { primary } = getRelevantStats(gig.type, toAttributes(character));
+    // ponytail: sequential queries, JOIN if latency matters
     const chromeBonus = await getGigSuccessBonus(tx, characterId);
 
     // Crew bonus: +N percentage points to gig success (ND-016).

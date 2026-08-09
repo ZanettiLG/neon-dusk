@@ -342,6 +342,30 @@ describe("calculateStreetCred", () => {
       }
     }
   });
+
+  it("should grant 8-15 SC for T3 gigs (fuzz)", () => {
+    for (let i = 0; i < 50; i++) {
+      const sc = calculateStreetCred("t3", Math.random);
+      expect(sc).toBeGreaterThanOrEqual(8);
+      expect(sc).toBeLessThanOrEqual(15);
+    }
+  });
+
+  it("should grant 15-25 SC for T4 gigs (fuzz)", () => {
+    for (let i = 0; i < 50; i++) {
+      const sc = calculateStreetCred("t4", Math.random);
+      expect(sc).toBeGreaterThanOrEqual(15);
+      expect(sc).toBeLessThanOrEqual(25);
+    }
+  });
+
+  it("should grant 25-40 SC for T5 gigs (fuzz)", () => {
+    for (let i = 0; i < 50; i++) {
+      const sc = calculateStreetCred("t5", Math.random);
+      expect(sc).toBeGreaterThanOrEqual(25);
+      expect(sc).toBeLessThanOrEqual(40);
+    }
+  });
 });
 
 describe("isCooldownExpired", () => {

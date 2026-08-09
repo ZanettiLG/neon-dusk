@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type {
   ActiveGig,
+  GigAbandonResponse,
   GigAcceptResponse,
   GigBoardResponse,
   GigDetailResponse,
@@ -176,10 +177,10 @@ export async function gigRoutes(app: FastifyInstance) {
         authenticate,
         setAuditContext("gig_abandon"),
         checkCircuitBreaker(redis),
-        checkActionRateLimit(redis, "gig_execute"),
+        checkActionRateLimit(redis, "gig_abandon"),
       ],
     },
-    async (request): Promise<{ outcome: "abandoned"; message: string }> => {
+    async (request): Promise<GigAbandonResponse> => {
       const { id } = uuidParam.parse(request.params);
       const characterId = await requireCharacterId(request.user.sub);
 
