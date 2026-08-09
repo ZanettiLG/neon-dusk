@@ -2,6 +2,45 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-09 — N2: Migração Drizzle ORM → Knex.js (Skills + Agents)
+
+### Trigger
+Migração da stack ORM: Drizzle ORM substituído por Knex.js. Knex oferece query builder nativo, schema builder para migrations e melhor controle sobre raw SQL — mais alinhado com as necessidades do Neon Dusk (triggers, views, funções PostgreSQL nativas).
+
+### Changes
+
+#### sql-design (skill)
+- **Seção "Migrations (Drizzle)"** substituída por **"Migrations (Knex)"** com:
+  - Padrão `export function up(knex)` / `export function down(knex)`
+  - Schema builder: `createTable`, `table.uuid`, `table.specificType`, `table.jsonb`, `table.enu`
+  - Raw SQL para enums nativos (`CREATE TYPE ... AS ENUM`)
+  - Padrão de seed com `export async function seed(knex)`
+  - Tabela de referência com métodos do schema builder
+
+#### nodejs-patterns (skill)
+- **Seção "Database Access (Drizzle)"** substituída por **"Database Access (Knex)"** com:
+  - Connection setup (`knex({ client: 'pg', pool: {...} })`)
+  - Query builder: `select`, `insert`, `update`, `join`, `.returning()`
+  - Transaction pattern com `.transacting(trx)` e `forUpdate()`
+  - Raw queries via `db.raw()`
+  - Tabela de stack: `ORM: Drizzle` → `Query Builder: Knex.js`
+  - Anti-padrão: `Drizzle with` → `Knex eager-loading`
+
+#### developer (agent)
+- Self-review check #2: `Knex/Drizzle` → `Knex`
+- Stack: `ORM: Drizzle` → `Query Builder: Knex.js`
+
+#### testing-patterns (skill)
+- Sem alterações — skill não referenciava Drizzle
+
+#### architect (agent)
+- Sem alterações — agente não referenciava Drizzle
+
+### Impact
+Harness alinhado com Knex.js. Agentes agora produzem migrations com `exports.up`/`exports.down`, queries com query builder tipado e transações com `.transacting()`. Sem impacto em skills agnósticas (game-economy, cyberpunk-lore, react-patterns, etc.).
+
+---
+
 ## 2026-08-08 — N3: Pipeline GitHub-Native Default + Capability Gate + Commit Step
 
 ### Trigger

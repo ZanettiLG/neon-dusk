@@ -1,7 +1,5 @@
-import { sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { db } from "../db";
-import { users } from "../db/schema";
 import { env } from "../env";
 
 // Neon Dusk — Admin account seeder (ND-052)
@@ -24,10 +22,9 @@ export async function seedAdminAccount(): Promise<void> {
 
   const lowerEmail = env.ADMIN_EMAIL.toLowerCase();
 
-  const existing = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(sql`lower(${users.email}) = ${lowerEmail}`)
+  const existing = await db("users")
+    .select("id")
+    .whereRaw("lower(email) = ?", [lowerEmail])
     .limit(1);
 
   if (existing.length > 0) {
@@ -37,9 +34,9 @@ export async function seedAdminAccount(): Promise<void> {
 
   const passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, BCRYPT_ROUNDS);
 
-  await db.insert(users).values({
+  await db("users").insert({
     email: lowerEmail,
-    passwordHash,
+    password_hash: passwordHash,
     role: "admin",
   });
 

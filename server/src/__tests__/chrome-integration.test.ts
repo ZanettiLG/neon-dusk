@@ -1,20 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { and, eq } from "drizzle-orm";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb } from "./helpers";
 import { db } from "../db";
-import {
-  characters,
-  characterWallets,
-  chromeDefinitions,
-  installedChrome,
-  transactionLog,
-  vendorInventory,
-  vendors,
-} from "../db/schema";
 import type {
   AuthResponse,
   ChromeDefinition,
@@ -87,45 +77,40 @@ describe("Feature #4 — chrome API", () => {
     server = await startTestServer(app);
 
     // Re-seed Doc Fios (wiped by resetDb) with its fixed id + chrome inventory.
-    await db.insert(vendors).values({
+    await db("vendors").insert({
       id: DOC_FIOS_ID,
       name: "Doc Fios",
       type: "RIPPERDOC",
       district: "babilonia",
       description: "Ripperdoc veterano da Babilônia.",
-      isActive: true,
+      is_active: true,
     });
-    await db.insert(vendorInventory).values(
+    await db("vendor_inventory").insert(
       INVENTORY.map(({ itemId, price }) => ({
-        vendorId: DOC_FIOS_ID,
-        itemType: "CHROME",
-        itemId,
+        vendor_id: DOC_FIOS_ID,
+        item_type: "CHROME",
+        item_id: itemId,
         price,
         stock: -1,
       })),
     );
 
     // Sync chrome definitions to match the content seed (migration rows may be stale).
-    await db
-      .update(chromeDefinitions)
-      .set({ bonuses: { intelligence: 2, nil_max: 10 } })
-      .where(eq(chromeDefinitions.slug, "neural-booster"));
-    await db
-      .update(chromeDefinitions)
-      .set({ bonuses: { reflexes: 2 } })
-      .where(eq(chromeDefinitions.slug, "reflex-tuner"));
-    await db
-      .update(chromeDefinitions)
-      .set({ bonuses: { reflexes: 2, gig_success_rate: 5 } })
-      .where(eq(chromeDefinitions.slug, "kiroshi-optics"));
-    await db
-      .update(chromeDefinitions)
-      .set({ bonuses: { body: 3 } })
-      .where(eq(chromeDefinitions.slug, "gorilla-arms"));
-    await db
-      .update(chromeDefinitions)
-      .set({ bonuses: { max_hp: 10 } })
-      .where(eq(chromeDefinitions.slug, "subdermal-armor"));
+    await db("chrome_definitions")
+      .where("slug", "neural-booster")
+      .update({ bonuses: { intelligence: 2, nil_max: 10 } });
+    await db("chrome_definitions")
+      .where("slug", "reflex-tuner")
+      .update({ bonuses: { reflexes: 2 } });
+    await db("chrome_definitions")
+      .where("slug", "kiroshi-optics")
+      .update({ bonuses: { reflexes: 2, gig_success_rate: 5 } });
+    await db("chrome_definitions")
+      .where("slug", "gorilla-arms")
+      .update({ bonuses: { body: 3 } });
+    await db("chrome_definitions")
+      .where("slug", "subdermal-armor")
+      .update({ bonuses: { max_hp: 10 } });
   });
 
   afterAll(async () => {
@@ -150,35 +135,32 @@ describe("Feature #4 — chrome API", () => {
     });
     expect(created.status).toBe(201);
 
-    const [character] = await db
-      .select({ id: characters.id })
-      .from(characters)
-      .where(eq(characters.userId, user.id))
+    const [character] = await db("characters")
+      .select("id")
+      .where("user_id", user.id)
       .limit(1);
     return { accessToken, characterId: character!.id };
   }
 
   /** DB id of a seeded chrome definition, by slug. */
   async function defId(slug: string): Promise<string> {
-    const [row] = await db
-      .select({ id: chromeDefinitions.id })
-      .from(chromeDefinitions)
-      .where(eq(chromeDefinitions.slug, slug))
+    const [row] = await db("chrome_definitions")
+      .select("id")
+      .where("slug", slug)
       .limit(1);
     return row!.id;
   }
 
   /** A ripperdoc that stocks no chrome at all. */
   async function seedEmptyRipperdoc(): Promise<string> {
-    const [vendor] = await db
-      .insert(vendors)
-      .values({
+    const [vendor] = await db("vendors")
+      .insert({
         name: `Ripper-${Date.now()}-${seq++}`,
         type: "RIPPERDOC",
         district: "o_fluxo",
-        isActive: true,
+        is_active: true,
       })
-      .returning();
+      .returning("*");
     return vendor.id;
   }
 
@@ -386,10 +368,9 @@ describe("Feature #4 — chrome API", () => {
     it("should return 400 HUMANITY_TOO_LOW when humanity would drop below 0", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       // Reflex Tuner costs 3 humanity and 300 eddies. At 2 humanity it would go to -1.
-      await db
-        .update(characters)
-        .set({ humanity: 2 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ humanity: 2 });
 
       const res = await installChrome(accessToken, await defId("reflex-tuner"));
 
@@ -402,10 +383,9 @@ describe("Feature #4 — chrome API", () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       // Reflex Tuner costs 3 humanity; at 3 humanity the result is exactly 0,
       // which the game contract allows (cyberpsychosis handles flatline).
-      await db
-        .update(characters)
-        .set({ humanity: 3 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ humanity: 3 });
 
       const res = await installChrome(accessToken, await defId("reflex-tuner"));
 
@@ -448,12 +428,11 @@ describe("Feature #4 — chrome API", () => {
       const res = await installChrome(accessToken, await defId("neural-booster"));
       expect(res.status).toBe(201);
 
-      const [char] = await db
-        .select({ maxNil: characters.maxNil })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      const [char] = await db("characters")
+        .select("max_nil")
+        .where("id", characterId)
         .limit(1);
-      expect(char!.maxNil).toBe(110); // 100 base + 10 from Neural Booster
+      expect(char!.max_nil).toBe(110); // 100 base + 10 from Neural Booster
     });
 
     it("should NOT increase NIL max when installing Gorilla Arms (non-neural)", async () => {
@@ -461,20 +440,18 @@ describe("Feature #4 — chrome API", () => {
 
       // Fetch balance to trigger wallet creation, then top up for Gorilla Arms (2500 eddies).
       await fetch(`${base()}/api/economy/balance`, { headers: authHeader(accessToken) });
-      await db
-        .update(characterWallets)
-        .set({ balance: 3000 })
-        .where(eq(characterWallets.characterId, characterId));
+      await db("character_wallets")
+        .where("character_id", characterId)
+        .update({ balance: 3000 });
 
       const res = await installChrome(accessToken, await defId("gorilla-arms"));
       expect(res.status).toBe(201);
 
-      const [char] = await db
-        .select({ maxNil: characters.maxNil })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      const [char] = await db("characters")
+        .select("max_nil")
+        .where("id", characterId)
         .limit(1);
-      expect(char!.maxNil).toBe(100); // unchanged
+      expect(char!.max_nil).toBe(100); // unchanged
     });
   });
 
@@ -497,19 +474,17 @@ describe("Feature #4 — chrome API", () => {
       expect(body.effectiveHumanity).toBe(97); // no recovery
 
       // Slot freed — loadout is empty again.
-      const loadout = await db
-        .select()
-        .from(installedChrome)
-        .where(eq(installedChrome.characterId, characterId));
+      const loadout = await db("installed_chrome")
+        .select("*")
+        .where("character_id", characterId);
       expect(loadout).toHaveLength(0);
 
       // NIL max restored to base (100) after uninstalling frontal cortex chrome.
-      const [char] = await db
-        .select({ maxNil: characters.maxNil })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      const [char] = await db("characters")
+        .select("max_nil")
+        .where("id", characterId)
         .limit(1);
-      expect(char!.maxNil).toBe(100);
+      expect(char!.max_nil).toBe(100);
 
       // No refund — wallet stays at 200 (the balance after the 300-eddie purchase).
       const balance = await fetch(`${base()}/api/economy/balance`, {
@@ -518,15 +493,10 @@ describe("Feature #4 — chrome API", () => {
       expect((await json<{ balance: number }>(balance)).balance).toBe(200);
 
       // Audit entry with amount 0.
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            eq(transactionLog.type, "CHROME_UNINSTALL"),
-          ),
-        );
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "CHROME_UNINSTALL");
       expect(log).toMatchObject({
         amount: 0,
         balanceBefore: 200,
@@ -592,12 +562,11 @@ describe("Feature #4 — chrome API", () => {
       );
 
       // Verify max went up.
-      let [char] = await db
-        .select({ maxNil: characters.maxNil })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      let [char] = await db("characters")
+        .select("max_nil")
+        .where("id", characterId)
         .limit(1);
-      expect(char!.maxNil).toBe(110);
+      expect(char!.max_nil).toBe(110);
 
       await server.post(
         "/api/chrome/uninstall",
@@ -605,12 +574,11 @@ describe("Feature #4 — chrome API", () => {
         authHeader(accessToken),
       );
 
-      [char] = await db
-        .select({ maxNil: characters.maxNil })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      [char] = await db("characters")
+        .select("max_nil")
+        .where("id", characterId)
         .limit(1);
-      expect(char!.maxNil).toBe(100);
+      expect(char!.max_nil).toBe(100);
     });
   });
 
@@ -620,15 +588,10 @@ describe("Feature #4 — chrome API", () => {
 
       await installChrome(accessToken, await defId("neural-booster"));
 
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            eq(transactionLog.type, "CHROME_PURCHASE"),
-          ),
-        );
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "CHROME_PURCHASE");
       expect(log).toMatchObject({
         amount: -300,
         balanceBefore: 500,
@@ -641,30 +604,24 @@ describe("Feature #4 — chrome API", () => {
       const neural = await defId("neural-booster");
       // Simulate the race where the loadout row already exists (concurrent
       // install committed between the loadout read and the insert).
-      await db.insert(installedChrome).values({
-        characterId,
-        chromeDefinitionId: neural,
+      await db("installed_chrome").insert({
+        character_id: characterId,
+        chrome_definition_id: neural,
       });
 
       const res = await installChrome(accessToken, neural);
 
       expect(res.status).toBe(409);
       // Nothing persisted: no purchase entry, humanity untouched, wallet untouched.
-      const purchases = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            eq(transactionLog.type, "CHROME_PURCHASE"),
-          ),
-        );
+      const purchases = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "CHROME_PURCHASE");
       expect(purchases).toHaveLength(0);
 
-      const [character] = await db
-        .select({ humanity: characters.humanity })
-        .from(characters)
-        .where(eq(characters.id, characterId));
+      const [character] = await db("characters")
+        .select("humanity")
+        .where("id", characterId);
       expect(character!.humanity).toBe(100);
 
       const balance = await fetch(`${base()}/api/economy/balance`, {
@@ -693,28 +650,21 @@ describe("Feature #4 — chrome API", () => {
       expect([400, 409]).toContain(rejected[0].status);
 
       // Exactly one installed row and one debit.
-      const loadout = await db
-        .select()
-        .from(installedChrome)
-        .where(eq(installedChrome.characterId, characterId));
+      const loadout = await db("installed_chrome")
+        .select("*")
+        .where("character_id", characterId);
       expect(loadout).toHaveLength(1);
 
-      const purchases = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            eq(transactionLog.type, "CHROME_PURCHASE"),
-          ),
-        );
+      const purchases = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "CHROME_PURCHASE");
       expect(purchases).toHaveLength(1);
       expect(purchases[0].amount).toBe(-300);
 
-      const [character] = await db
-        .select({ humanity: characters.humanity })
-        .from(characters)
-        .where(eq(characters.id, characterId));
+      const [character] = await db("characters")
+        .select("humanity")
+        .where("id", characterId);
       expect(character!.humanity).toBe(97); // 100 - 3, applied exactly once
     });
   });

@@ -1,9 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { AddressInfo } from "node:net";
-import { sql } from "drizzle-orm";
 import type { AuthResponse, Role, Origin } from "@neon-dusk/shared";
 import { db } from "../db";
-import { characters, rounds, users } from "../db/schema";
 
 // supertest is incompatible with Fastify 5 + @fastify/rate-limit (crashes in
 // Fastify's internal preParsing hook runner — see test-report). Tests use a
@@ -56,7 +54,7 @@ export function authHeader(token: string): { Authorization: string } {
 /** Wipe account + economy data so test runs are repeatable regardless of order. */
 export async function resetDb(): Promise<void> {
   const truncate = () =>
-    db.execute(sql`TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE`);
+    db.raw("TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE");
   try {
     await truncate();
   } catch (err) {
@@ -80,8 +78,8 @@ export async function resetDb(): Promise<void> {
  * call this instead. Legends are untouched (permanent hall of fame).
  */
 export async function resetRounds(): Promise<void> {
-  await db.execute(sql`TRUNCATE TABLE rounds, round_stats CASCADE`);
-  await db.insert(rounds).values({ roundNumber: 1, startedAt: new Date() });
+  await db.raw("TRUNCATE TABLE rounds, round_stats CASCADE");
+  await db("rounds").insert({ round_number: 1, started_at: new Date() });
 }
 
 /**
@@ -97,15 +95,13 @@ export async function insertTestCharacter(opts?: {
   const email = opts?.email ?? `svc-${Date.now()}-${Math.random().toString(36).slice(2)}@neondusk.test`;
   const name = opts?.name ?? `Runner-${Math.random().toString(36).slice(2, 10)}`;
 
-  const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash: "test-hash" })
-    .returning({ id: users.id });
+  const [user] = await db("users")
+    .insert({ email, password_hash: "test-hash" })
+    .returning("id");
 
-  const [character] = await db
-    .insert(characters)
-    .values({
-      userId: user.id,
+  const [character] = await db("characters")
+    .insert({
+      user_id: user.id,
       name,
       origin: opts?.origin ?? "a_paraiso",
       role: opts?.role ?? "solo",
@@ -115,7 +111,7 @@ export async function insertTestCharacter(opts?: {
       technical: 4,
       cool: 5,
     })
-    .returning({ id: characters.id });
+    .returning("id");
 
   return { userId: user.id, characterId: character.id };
 }

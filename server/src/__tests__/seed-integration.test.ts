@@ -1,27 +1,9 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { eq, sql } from "drizzle-orm";
-import type { PgTable } from "drizzle-orm/pg-core";
 import { db } from "../db";
 import { resetDb, resetRounds, insertTestCharacter } from "./helpers";
 import { seedAll, seedGigs } from "../db/seed";
 import { performRoundReset } from "../services/round-service";
 import { ensureWallet } from "../services/economy-service";
-import {
-  activeGigs,
-  characterWallets,
-  chromeDefinitions,
-  crews,
-  crewMembers,
-  gigHistory,
-  gigs,
-  heat,
-  installedChrome,
-  lootTables,
-  rounds,
-  transactionLog,
-  vendorInventory,
-  vendors,
-} from "../db/schema";
 
 // ND-054 — seed executor integration tests. Real Postgres on the isolated
 // test stack (docker-compose.test.yml). These tests run the ACTUAL seed
@@ -41,8 +23,8 @@ const CONTENT_COUNTS = {
   loot: 9,
 } as const;
 
-async function count(table: PgTable): Promise<number> {
-  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(table);
+async function count(tableName: string): Promise<number> {
+  const [row] = await db(tableName).select(db.raw("count(*)::int as n"));
   return row!.n;
 }
 
@@ -51,18 +33,18 @@ describe("ND-054 — seed executor (db/seed)", () => {
     // Wipe account + dependent tables (users, characters, vendors, loot_tables
     // CASCADE) and the two catalog tables resetDb deliberately leaves alone.
     await resetDb();
-    await db.execute(sql`TRUNCATE TABLE gigs, chrome_definitions CASCADE`);
+    await db.raw("TRUNCATE TABLE gigs, chrome_definitions CASCADE");
     await resetRounds(); // round 1 active for the round-reset compatibility test
     await seedAll();
   });
 
   describe("seed executor", () => {
     it("should populate every content table with the full catalog", async () => {
-      expect(await count(gigs)).toBe(CONTENT_COUNTS.gigs);
-      expect(await count(chromeDefinitions)).toBe(CONTENT_COUNTS.chrome);
-      expect(await count(vendors)).toBe(CONTENT_COUNTS.vendors);
-      expect(await count(vendorInventory)).toBe(CONTENT_COUNTS.inventory);
-      expect(await count(lootTables)).toBe(CONTENT_COUNTS.loot);
+      expect(await count("gigs")).toBe(CONTENT_COUNTS.gigs);
+      expect(await count("chrome_definitions")).toBe(CONTENT_COUNTS.chrome);
+      expect(await count("vendors")).toBe(CONTENT_COUNTS.vendors);
+      expect(await count("vendor_inventory")).toBe(CONTENT_COUNTS.inventory);
+      expect(await count("loot_tables")).toBe(CONTENT_COUNTS.loot);
     });
 
     it("should be idempotent — a second run changes nothing", async () => {
@@ -75,82 +57,71 @@ describe("ND-054 — seed executor (db/seed)", () => {
         loot: 9,
       });
 
-      expect(await count(gigs)).toBe(CONTENT_COUNTS.gigs);
-      expect(await count(chromeDefinitions)).toBe(CONTENT_COUNTS.chrome);
-      expect(await count(vendors)).toBe(CONTENT_COUNTS.vendors);
-      expect(await count(vendorInventory)).toBe(CONTENT_COUNTS.inventory);
-      expect(await count(lootTables)).toBe(CONTENT_COUNTS.loot);
+      expect(await count("gigs")).toBe(CONTENT_COUNTS.gigs);
+      expect(await count("chrome_definitions")).toBe(CONTENT_COUNTS.chrome);
+      expect(await count("vendors")).toBe(CONTENT_COUNTS.vendors);
+      expect(await count("vendor_inventory")).toBe(CONTENT_COUNTS.inventory);
+      expect(await count("loot_tables")).toBe(CONTENT_COUNTS.loot);
     });
 
     it("should restore drifted content on re-run (upsert by slug)", async () => {
       // Simulate a manual price edit; the seed should push it back.
-      await db
-        .update(chromeDefinitions)
-        .set({ basePrice: 9999 })
-        .where(eq(chromeDefinitions.slug, "neural-booster"));
+      await db("chrome_definitions")
+        .where("slug", "neural-booster")
+        .update({ base_price: 9999 });
 
       await seedAll();
 
-      const [def] = await db
-        .select({ basePrice: chromeDefinitions.basePrice })
-        .from(chromeDefinitions)
-        .where(eq(chromeDefinitions.slug, "neural-booster"))
+      const [def] = await db("chrome_definitions")
+        .select("base_price")
+        .where("slug", "neural-booster")
         .limit(1);
-      expect(def!.basePrice).toBe(1500);
+      expect(def!.base_price).toBe(1500);
     });
 
     it("should store chrome definitions with the correct stats", async () => {
-      const [booster] = await db
-        .select()
-        .from(chromeDefinitions)
-        .where(eq(chromeDefinitions.slug, "neural-booster"))
+      const [booster] = await db("chrome_definitions")
+        .select("*")
+        .where("slug", "neural-booster")
         .limit(1);
       expect(booster).toMatchObject({
         slug: "neural-booster",
         name: "Neural Booster",
         slot: "frontal_cortex",
         tier: 1,
-        humanityCost: 3,
-        basePrice: 1500,
-        isActive: true,
+        humanity_cost: 3,
+        base_price: 1500,
+        is_active: true,
       });
       expect(booster.bonuses).toEqual({ intelligence: 2, nil_max: 10 });
 
-      const [armor] = await db
-        .select()
-        .from(chromeDefinitions)
-        .where(eq(chromeDefinitions.slug, "subdermal-armor"))
+      const [armor] = await db("chrome_definitions")
+        .select("*")
+        .where("slug", "subdermal-armor")
         .limit(1);
       expect(armor.bonuses).toEqual({ max_hp: 10 });
     });
 
     it("should seed 4 vendors with the expected inventory per vendor", async () => {
-      const docFios = await db
-        .select()
-        .from(vendors)
-        .where(eq(vendors.id, "00000000-0000-4000-8000-000000000001"))
+      const docFios = await db("vendors")
+        .select("*")
+        .where("id", "00000000-0000-4000-8000-000000000001")
         .limit(1);
       expect(docFios[0]).toMatchObject({
         name: "Doc Fios",
         type: "RIPPERDOC",
         district: "babilonia",
-        isActive: true,
+        is_active: true,
       });
 
-      const rows = await db
-        .select({
-          vendorId: vendorInventory.vendorId,
-          itemId: vendorInventory.itemId,
-          price: vendorInventory.price,
-          stock: vendorInventory.stock,
-        })
-        .from(vendorInventory)
-        .orderBy(vendorInventory.vendorId);
+      const rows = await db("vendor_inventory")
+        .select("vendor_id", "item_id", "price", "stock")
+        .orderBy("vendor_id");
 
       // 8 rows across the 4 fixed vendors: 5 ripperdoc, 0 fixer, 1 stim, 2 market.
       const perVendor = new Map<string, typeof rows>();
       for (const r of rows) {
-        perVendor.set(r.vendorId, [...(perVendor.get(r.vendorId) ?? []), r]);
+        perVendor.set(r.vendor_id, [...(perVendor.get(r.vendor_id) ?? []), r]);
       }
       expect(perVendor.get("00000000-0000-4000-8000-000000000001")).toHaveLength(5);
       expect(perVendor.get("00000000-0000-4000-8000-000000000002") ?? []).toHaveLength(0);
@@ -159,7 +130,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
 
       // Doc Fios stocks the 5 starter implants at the content prices.
       const docFiosItems = perVendor.get("00000000-0000-4000-8000-000000000001")!;
-      expect(docFiosItems.map((i) => i.itemId).sort()).toEqual([
+      expect(docFiosItems.map((i) => i.item_id).sort()).toEqual([
         "gorilla-arms",
         "kiroshi-optics",
         "neural-booster",
@@ -167,47 +138,45 @@ describe("ND-054 — seed executor (db/seed)", () => {
         "subdermal-armor",
       ]);
       expect(docFiosItems.every((i) => i.stock === -1)).toBe(true);
-      const [kiroshi] = docFiosItems.filter((i) => i.itemId === "kiroshi-optics");
+      const [kiroshi] = docFiosItems.filter((i) => i.item_id === "kiroshi-optics");
       expect(kiroshi.price).toBe(1800);
     });
 
     it("should derive the gig cooldown from tier (T1=10, T2=25)", async () => {
-      const t1 = await db.select({ cooldownMinutes: gigs.cooldownMinutes }).from(gigs).where(eq(gigs.tier, "t1"));
-      const t2 = await db.select({ cooldownMinutes: gigs.cooldownMinutes }).from(gigs).where(eq(gigs.tier, "t2"));
+      const t1 = await db("gigs").select("cooldown_minutes").where("tier", "t1");
+      const t2 = await db("gigs").select("cooldown_minutes").where("tier", "t2");
       expect(t1).toHaveLength(6);
       expect(t2).toHaveLength(4);
-      expect(t1.every((g) => g.cooldownMinutes === 10)).toBe(true);
-      expect(t2.every((g) => g.cooldownMinutes === 25)).toBe(true);
+      expect(t1.every((g) => g.cooldown_minutes === 10)).toBe(true);
+      expect(t2.every((g) => g.cooldown_minutes === 25)).toBe(true);
     });
 
     it("should seed 9 loot tables (4 T1, 5 T2) with weights intact", async () => {
-      const t1 = await db.select().from(lootTables).where(eq(lootTables.gigTier, "t1"));
-      const t2 = await db.select().from(lootTables).where(eq(lootTables.gigTier, "t2"));
+      const t1 = await db("loot_tables").select("*").where("gig_tier", "t1");
+      const t2 = await db("loot_tables").select("*").where("gig_tier", "t2");
       expect(t1).toHaveLength(4);
       expect(t2).toHaveLength(5);
-      const [eddies] = t1.filter((l) => l.itemType === "EDDIES");
+      const [eddies] = t1.filter((l) => l.item_type === "EDDIES");
       expect(eddies.weight).toBe(40);
-      expect(eddies.minQuantity).toBe(50);
-      expect(eddies.maxQuantity).toBe(200);
+      expect(eddies.min_quantity).toBe(50);
+      expect(eddies.max_quantity).toBe(200);
     });
 
     it("should not touch existing character data when the seed runs", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction(async (tx) => {
-        await ensureWallet(characterId, tx);
+      await db.transaction(async (trx) => {
+        await ensureWallet(characterId, trx);
       });
 
       await seedAll();
 
-      const [wallet] = await db
-        .select({ balance: characterWallets.balance })
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, characterId));
+      const [wallet] = await db("character_wallets")
+        .select("balance")
+        .where("character_id", characterId);
       expect(wallet!.balance).toBe(500); // seed capital untouched
-      const logs = await db
-        .select({ id: transactionLog.id })
-        .from(transactionLog)
-        .where(eq(transactionLog.characterId, characterId));
+      const logs = await db("transaction_log")
+        .select("id")
+        .where("character_id", characterId);
       expect(logs).toHaveLength(1); // only the ADMIN_ADJUSTMENT entry
     });
   });
@@ -215,36 +184,35 @@ describe("ND-054 — seed executor (db/seed)", () => {
   describe("seed + round reset compatibility", () => {
     it("should keep content tables populated and dynamic tables empty after a reset", async () => {
       const { characterId } = await insertTestCharacter();
-      const [gig] = await db.select().from(gigs).limit(1);
-      const [def] = await db.select().from(chromeDefinitions).limit(1);
-      await db.transaction(async (tx) => {
-        await ensureWallet(characterId, tx);
+      const [gig] = await db("gigs").select("*").limit(1);
+      const [def] = await db("chrome_definitions").select("*").limit(1);
+      await db.transaction(async (trx) => {
+        await ensureWallet(characterId, trx);
       });
 
       // Real player state the reset must wipe.
-      await db.insert(activeGigs).values({
-        characterId,
-        gigId: gig.id,
+      await db("active_gigs").insert({
+        character_id: characterId,
+        gig_id: gig.id,
         phase: "execute",
         status: "active",
       });
-      await db.insert(gigHistory).values({
-        characterId,
-        gigId: gig.id,
+      await db("gig_history").insert({
+        character_id: characterId,
+        gig_id: gig.id,
         outcome: "success",
-        phasesCompleted: ["meet", "legwork", "execute", "escape", "wrap_up"],
+        phases_completed: ["meet", "legwork", "execute", "escape", "wrap_up"],
         payout: 500,
-        streetCredGained: 2,
-        heatAccumulated: 5,
+        street_cred_gained: 2,
+        heat_accumulated: 5,
         district: gig.district,
       });
-      await db.insert(installedChrome).values({ characterId, chromeDefinitionId: def.id });
-      await db.insert(heat).values({ characterId, district: "babilonia", amount: 10 });
-      const [crew] = await db
-        .insert(crews)
-        .values({ name: `Banda-${Date.now()}`, tag: "BND", leaderId: characterId })
-        .returning();
-      await db.insert(crewMembers).values({ crewId: crew.id, characterId });
+      await db("installed_chrome").insert({ character_id: characterId, chrome_definition_id: def.id });
+      await db("heat").insert({ character_id: characterId, district: "babilonia", amount: 10 });
+      const [crew] = await db("crews")
+        .insert({ name: `Banda-${Date.now()}`, tag: "BND", leader_id: characterId })
+        .returning("*");
+      await db("crew_members").insert({ crew_id: crew.id, character_id: characterId });
 
       const result = await performRoundReset();
 
@@ -252,29 +220,28 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(result.newRound).toBe(2);
 
       // Content tables survive the reset untouched.
-      expect(await count(gigs)).toBe(CONTENT_COUNTS.gigs);
-      expect(await count(chromeDefinitions)).toBe(CONTENT_COUNTS.chrome);
-      expect(await count(vendors)).toBe(CONTENT_COUNTS.vendors);
-      expect(await count(vendorInventory)).toBe(CONTENT_COUNTS.inventory);
-      expect(await count(lootTables)).toBe(CONTENT_COUNTS.loot);
+      expect(await count("gigs")).toBe(CONTENT_COUNTS.gigs);
+      expect(await count("chrome_definitions")).toBe(CONTENT_COUNTS.chrome);
+      expect(await count("vendors")).toBe(CONTENT_COUNTS.vendors);
+      expect(await count("vendor_inventory")).toBe(CONTENT_COUNTS.inventory);
+      expect(await count("loot_tables")).toBe(CONTENT_COUNTS.loot);
 
       // Dynamic player tables are wiped.
-      expect(await count(activeGigs)).toBe(0);
-      expect(await count(gigHistory)).toBe(0);
-      expect(await count(installedChrome)).toBe(0);
-      expect(await count(heat)).toBe(0);
-      expect(await count(transactionLog)).toBe(0);
-      expect(await count(crews)).toBe(0);
-      expect(await count(crewMembers)).toBe(0);
+      expect(await count("active_gigs")).toBe(0);
+      expect(await count("gig_history")).toBe(0);
+      expect(await count("installed_chrome")).toBe(0);
+      expect(await count("heat")).toBe(0);
+      expect(await count("transaction_log")).toBe(0);
+      expect(await count("crews")).toBe(0);
+      expect(await count("crew_members")).toBe(0);
 
       // Wallets zeroed, next round opened.
-      const [wallet] = await db
-        .select({ balance: characterWallets.balance })
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, characterId));
+      const [wallet] = await db("character_wallets")
+        .select("balance")
+        .where("character_id", characterId);
       expect(wallet!.balance).toBe(0);
-      const [active] = await db.select().from(rounds).where(eq(rounds.status, "active")).limit(1);
-      expect(active!.roundNumber).toBe(2);
+      const [active] = await db("rounds").select("*").where("status", "active").limit(1);
+      expect(active!.round_number).toBe(2);
     });
   });
 
@@ -282,41 +249,37 @@ describe("ND-054 — seed executor (db/seed)", () => {
     it("should create a new wallet with INITIAL_BALANCE 500 and an audit entry", async () => {
       const { characterId } = await insertTestCharacter();
 
-      const wallet = await db.transaction(async (tx) => ensureWallet(characterId, tx));
+      const wallet = await db.transaction(async (trx) => ensureWallet(characterId, trx));
 
-      expect(wallet).toMatchObject({ balance: 500, escrow: 0, lifetimeEarned: 500, lifetimeSpent: 0 });
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(eq(transactionLog.characterId, characterId));
+      expect(wallet).toMatchObject({ balance: 500, escrow: 0, lifetime_earned: 500, lifetime_spent: 0 });
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId);
       expect(log).toMatchObject({
         type: "ADMIN_ADJUSTMENT",
         amount: 500,
-        balanceBefore: 0,
-        balanceAfter: 500,
+        balance_before: 0,
+        balance_after: 500,
         source: "Initial seed capital",
       });
     });
 
     it("should not reset an existing wallet when the seed runs", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction(async (tx) => ensureWallet(characterId, tx));
-      await db
-        .update(characterWallets)
-        .set({ balance: 1234 })
-        .where(eq(characterWallets.characterId, characterId));
+      await db.transaction(async (trx) => ensureWallet(characterId, trx));
+      await db("character_wallets")
+        .where("character_id", characterId)
+        .update({ balance: 1234 });
 
       await seedAll();
 
-      const [wallet] = await db
-        .select({ balance: characterWallets.balance })
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, characterId));
+      const [wallet] = await db("character_wallets")
+        .select("balance")
+        .where("character_id", characterId);
       expect(wallet!.balance).toBe(1234);
-      const logs = await db
-        .select({ id: transactionLog.id })
-        .from(transactionLog)
-        .where(eq(transactionLog.characterId, characterId));
+      const logs = await db("transaction_log")
+        .select("id")
+        .where("character_id", characterId);
       expect(logs).toHaveLength(1);
     });
   });

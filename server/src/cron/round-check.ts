@@ -6,9 +6,7 @@
 // multi-instance deployment would need a Redis lock to avoid double resets.
 
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { rounds } from "../db/schema";
 import { env } from "../env";
 import { performRoundReset } from "../services/round-service";
 
@@ -41,7 +39,7 @@ export function startRoundCheckCron(app: FastifyInstance): NodeJS.Timeout {
 export async function checkAndReset(app: FastifyInstance): Promise<void> {
   const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
 
-  const [activeRound] = await db.select().from(rounds).where(eq(rounds.status, "active")).limit(1);
+  const [activeRound] = await db("rounds").select().where("status", "active").limit(1);
 
   if (!activeRound) {
     app.log.debug("round-check: no active round, skipping");
@@ -50,11 +48,11 @@ export async function checkAndReset(app: FastifyInstance): Promise<void> {
 
   // During the intermission the next round's started_at is in the future —
   // a negative elapsed is always inside the duration, so it is skipped here.
-  const endsAt = activeRound.startedAt.getTime() + durationMs;
+  const endsAt = activeRound.started_at.getTime() + durationMs;
   if (endsAt > Date.now()) {
     app.log.debug(
       {
-        roundNumber: activeRound.roundNumber,
+        roundNumber: activeRound.round_number,
         endsAt: new Date(endsAt).toISOString(),
         roundDurationDays: env.ROUND_DURATION_DAYS,
       },
@@ -63,7 +61,7 @@ export async function checkAndReset(app: FastifyInstance): Promise<void> {
     return;
   }
 
-  app.log.info({ roundNumber: activeRound.roundNumber }, "round-check: triggering reset");
+  app.log.info({ roundNumber: activeRound.round_number }, "round-check: triggering reset");
   const result = await performRoundReset();
   app.log.info(
     {

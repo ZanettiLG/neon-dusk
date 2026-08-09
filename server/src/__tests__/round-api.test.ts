@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, resetRounds, type TestServer } from "./helpers";
 import { db } from "../db";
-import { legends, rounds, roundStats } from "../db/schema";
 import { UNNAMED_DRINK } from "../game/round-reset";
 import type {
   AuthResponse,
@@ -73,7 +71,7 @@ describe("ND-017 — Round & Legends API", () => {
   afterAll(async () => {
     // Leave the shared DB clean: remove any unnamed legend rows this suite
     // created (saideira's ordering assertions depend on the untouched seed).
-    await db.delete(legends).where(eq(legends.drinkName, UNNAMED_DRINK));
+    await db("legends").where("drink_name", UNNAMED_DRINK).del();
   });
 
   beforeEach(async () => {
@@ -81,7 +79,7 @@ describe("ND-017 — Round & Legends API", () => {
     await resetRounds();
     // Remove any unnamed legend rows left by this suite across runs (legends
     // are never truncated by resetDb — the saideira seed must survive).
-    await db.delete(legends).where(eq(legends.drinkName, UNNAMED_DRINK));
+    await db("legends").where("drink_name", UNNAMED_DRINK).del();
     await redis.flushdb();
   });
 
@@ -110,35 +108,32 @@ describe("ND-017 — Round & Legends API", () => {
 
   /** Seed `count` ended rounds (with stats) plus one active round. */
   async function seedEndedRounds(count: number): Promise<void> {
-    await db.delete(rounds);
+    await db("rounds").del();
     for (let n = 1; n <= count; n++) {
-      const [round] = await db
-        .insert(rounds)
-        .values({
-          roundNumber: n,
-          startedAt: new Date(Date.now() - (count - n + 1) * DAY_MS),
-          endedAt: new Date(Date.now() - (count - n) * DAY_MS),
+      const [round] = await db("rounds")
+        .insert({
+          round_number: n,
+          started_at: new Date(Date.now() - (count - n + 1) * DAY_MS),
+          ended_at: new Date(Date.now() - (count - n) * DAY_MS),
           status: "ended",
         })
-        .returning({ id: rounds.id });
-      await db.insert(roundStats).values({
-        roundId: round!.id,
-        totalGigsCompleted: n,
-        totalEddiesEarned: n * 100,
-        totalPvpFights: n,
-        totalActiveCharacters: n,
-        topScCharacterName: `Legend-${n}`,
-        topScValue: n,
+        .returning("id");
+      await db("round_stats").insert({
+        round_id: round!.id,
+        total_gigs_completed: n,
+        total_eddies_earned: n * 100,
+        total_pvp_fights: n,
+        total_active_characters: n,
+        top_sc_character_name: `Legend-${n}`,
+        top_sc_value: n,
       });
     }
-    await db.insert(rounds).values({ roundNumber: count + 1, startedAt: new Date() });
+    await db("rounds").insert({ round_number: count + 1, started_at: new Date() });
   }
 
   /** Insert an unnamed legend row for the given character name. */
   async function seedUnnamedLegend(characterName: string, crewName: string | null = null): Promise<void> {
-    await db
-      .insert(legends)
-      .values({ characterName, drinkName: UNNAMED_DRINK, crewName });
+    await db("legends").insert({ character_name: characterName, drink_name: UNNAMED_DRINK, crew_name: crewName });
   }
 
   // ─── GET /api/round ────────────────────────────────────────────────────────
@@ -236,7 +231,7 @@ describe("ND-017 — Round & Legends API", () => {
       expect(body).toEqual({ success: true, endedRound: 1, newRound: 2, legendsInducted: 0 });
 
       // Round 1 closed, round 2 opened (scheduled after the intermission).
-      const allRounds = await db.select().from(rounds).orderBy(rounds.roundNumber);
+      const allRounds = await db("rounds").select("*").orderBy("round_number");
       expect(allRounds).toHaveLength(2);
       expect(allRounds[0]).toMatchObject({ roundNumber: 1, status: "ended" });
       expect(allRounds[0].endedAt).not.toBeNull();
@@ -262,14 +257,11 @@ describe("ND-017 — Round & Legends API", () => {
       expect(body.legend.characterName).toBe(user.characterName);
       expect(body.legend.drinkName).toBe("Sangue de Mercúrio");
 
-      const [row] = await db
-        .select()
-        .from(legends)
-        .where(eq(legends.characterName, user.characterName));
+      const [row] = await db("legends").select("*").where("character_name", user.characterName);
       expect(row!.drinkName).toBe("Sangue de Mercúrio");
       expect(row!.crewName).toBeNull();
 
-      await db.delete(legends).where(eq(legends.characterName, user.characterName));
+      await db("legends").where("character_name", user.characterName).del();
     });
 
     it("should return 404 LEGEND_NOT_FOUND when the character has no unnamed legend", async () => {

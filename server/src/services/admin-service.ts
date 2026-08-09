@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, type SQLWrapper } from "drizzle-orm";
+import type { Knex } from "knex";
 import type Redis from "ioredis";
 import type {
   AdminEconomy,
@@ -10,16 +10,6 @@ import type {
   AdminAuditResponse,
 } from "@neon-dusk/shared";
 import { db } from "../db";
-import {
-  characters,
-  characterWallets,
-  crews,
-  crewMembers,
-  gameEvents,
-  transactionLog,
-  gameParams,
-  auditLog,
-} from "../db/schema";
 import { AppError } from "../middleware/error-handler";
 
 // Neon Dusk — Admin service (ND-052)
@@ -69,104 +59,94 @@ export async function getPlayers(
   const pageSize = opts.pageSize ?? 20;
   const offset = (page - 1) * pageSize;
 
-  // Base query: characters joined with wallets and crew name.
-  const walletJoin = db
+  let query = db("characters")
     .select({
-      characterId: characterWallets.characterId,
-      balance: characterWallets.balance,
+      id: "characters.id",
+      userId: "characters.user_id",
+      name: "characters.name",
+      streetCred: "characters.street_cred",
+      isBanned: "characters.is_banned",
+      balance: db.raw("COALESCE(cw.balance, 0)"),
+      crewName: "c.crew_name",
+      lastEvent: db.raw("le.last_event::text"),
     })
-    .from(characterWallets)
-    .as("w");
-
-  const crewJoin = db
-    .select({
-      characterId: crewMembers.characterId,
-      crewName: crews.name,
-    })
-    .from(crewMembers)
-    .innerJoin(crews, eq(crewMembers.crewId, crews.id))
-    .as("c");
-
-  // Last login: latest game_event per character.
-  const lastEventJoin = db
-    .select({
-      characterId: gameEvents.actorId,
-      lastEvent: sql<string>`max(${gameEvents.createdAt})`.as("last_event"),
-    })
-    .from(gameEvents)
-    .where(sql`${gameEvents.actorId} IS NOT NULL`)
-    .groupBy(gameEvents.actorId)
-    .as("le");
-
-  const conditions: SQLWrapper[] = [];
+    .leftJoin(
+      db("character_wallets")
+        .select("character_id", "balance")
+        .as("cw"),
+      "cw.character_id",
+      "characters.id",
+    )
+    .leftJoin(
+      db("crew_members")
+        .select("crew_members.character_id", "crews.name as crew_name")
+        .join("crews", "crews.id", "crew_members.crew_id")
+        .as("c"),
+      "c.character_id",
+      "characters.id",
+    )
+    .leftJoin(
+      db("game_events")
+        .select({
+          characterId: "actor_id",
+          lastEvent: db.raw("max(game_events.created_at)"),
+        })
+        .whereNotNull("actor_id")
+        .groupBy("actor_id")
+        .as("le"),
+      "le.characterId",
+      "characters.id",
+    );
 
   if (opts.search) {
     const safe = escapeLike(opts.search.toLowerCase());
-    conditions.push(sql`lower(${characters.name}) LIKE ${`%${safe}%`}`);
+    query = query.whereRaw("lower(characters.name) LIKE ?", [`%${safe}%`]);
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  // Count total
+  let countQuery = db("characters");
+  if (opts.search) {
+    const safe = escapeLike(opts.search.toLowerCase());
+    countQuery = countQuery.whereRaw("lower(characters.name) LIKE ?", [`%${safe}%`]);
+  }
+  const [countRow] = await countQuery.count("* as count");
+  const total = Number(countRow?.count ?? 0);
 
-  // Count total (without joins for performance).
-  const countRows = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(characters)
-    .where(where);
-  const total = countRows[0]?.count ?? 0;
-
-  // Build sort order.
-  let orderBy: ReturnType<typeof desc>;
+  // Build sort order
+  let orderCol: string;
   switch (opts.sort) {
     case "name":
-      orderBy = desc(characters.name);
+      orderCol = "characters.name";
       break;
     case "level":
-      orderBy = desc(characters.streetCred);
+      orderCol = "characters.street_cred";
       break;
     case "last_activity":
-      // Sorted in-memory after fetch.
-      orderBy = desc(characters.createdAt);
+      orderCol = "characters.created_at";
       break;
     default:
-      orderBy = desc(characters.streetCred);
+      orderCol = "characters.street_cred";
   }
+  query = query.orderBy(orderCol, "desc").limit(pageSize).offset(offset);
 
-  const rows = await db
-    .select({
-      id: characters.id,
-      userId: characters.userId,
-      name: characters.name,
-      streetCred: characters.streetCred,
-      isBanned: characters.isBanned,
-      balance: walletJoin.balance,
-      crewName: crewJoin.crewName,
-      lastEvent: lastEventJoin.lastEvent,
-    })
-    .from(characters)
-    .leftJoin(walletJoin, eq(characters.id, walletJoin.characterId))
-    .leftJoin(crewJoin, eq(characters.id, crewJoin.characterId))
-    .leftJoin(lastEventJoin, eq(characters.id, lastEventJoin.characterId))
-    .where(where)
-    .orderBy(orderBy)
-    .limit(pageSize)
-    .offset(offset);
+  const rows = await query;
 
   // Batch circuit-break checks: one mget instead of N sequential gets.
-  const userIds = [...new Set(rows.map((r) => r.userId))];
+  const userIds = [...new Set(rows.map((r) => r.userId as string))];
   const cbKeys = userIds.map((uid) => `circuit_break:${uid}`);
   const cbResults = userIds.length > 0 ? await redis.mget(...cbKeys) : [];
   const cbMap = new Map(userIds.map((uid, i) => [uid, cbResults[i] ?? null]));
 
   const players: AdminPlayer[] = rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      level: levelFromSC(row.streetCred),
-      sc: row.streetCred,
-      eddies: row.balance ?? 0,
-      crew: row.crewName ?? null,
-      lastLogin: row.lastEvent ?? null,
-      status: resolveStatus(row.isBanned, cbMap.get(row.userId) ?? null),
-    }));
+    id: row.id,
+    name: row.name,
+    level: levelFromSC(Number(row.streetCred)),
+    sc: Number(row.streetCred),
+    eddies: Number(row.balance ?? 0),
+    crew: (row.crewName as string) ?? null,
+    lastLogin: (row.lastEvent as string) ?? null,
+    status: resolveStatus(Boolean(row.isBanned), cbMap.get(row.userId as string) ?? null),
+  }));
 
   // Re-sort by last_activity if requested (lastEvent is string, sort by that).
   if (opts.sort === "last_activity") {
@@ -188,28 +168,25 @@ export async function banPlayer(
   adminUserId: string,
   reason: string,
 ): Promise<void> {
-  const [updated] = await db
-    .update(characters)
-    .set({ isBanned: true })
-    .where(eq(characters.id, characterId))
-    .returning({ id: characters.id });
+  const [updated] = await db("characters")
+    .update({ is_banned: true })
+    .where("id", characterId)
+    .returning("id");
 
   if (!updated) {
     throw new AppError(404, "NOT_FOUND", "Personagem não encontrado");
   }
 
   // Fire-and-forget audit log.
-  void db
-    .insert(auditLog)
-    .values({
-      characterId,
+  void db("audit_log")
+    .insert({
+      character_id: characterId,
       action: "admin.ban",
       ip: "admin",
-      userAgent: "admin-panel",
+      user_agent: "admin-panel",
       payload: { reason, adminUserId },
       result: "allowed",
     })
-    .execute()
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 }
 
@@ -220,27 +197,24 @@ export async function unbanPlayer(
   characterId: string,
   adminUserId: string,
 ): Promise<void> {
-  const [updated] = await db
-    .update(characters)
-    .set({ isBanned: false })
-    .where(eq(characters.id, characterId))
-    .returning({ id: characters.id });
+  const [updated] = await db("characters")
+    .update({ is_banned: false })
+    .where("id", characterId)
+    .returning("id");
 
   if (!updated) {
     throw new AppError(404, "NOT_FOUND", "Personagem não encontrado");
   }
 
-  void db
-    .insert(auditLog)
-    .values({
-      characterId,
+  void db("audit_log")
+    .insert({
+      character_id: characterId,
       action: "admin.unban",
       ip: "admin",
-      userAgent: "admin-panel",
+      user_agent: "admin-panel",
       payload: { adminUserId },
       result: "allowed",
     })
-    .execute()
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 }
 
@@ -253,70 +227,54 @@ export async function unbanPlayer(
  */
 export async function getEconomy(): Promise<AdminEconomy> {
   // Eddies in circulation: SUM of all wallet balances.
-  const [balanceRow] = await db
-    .select({
-      total: sql<number>`coalesce(sum(${characterWallets.balance}), 0)::int`,
-    })
-    .from(characterWallets);
+  const [balanceRow] = await db("character_wallets")
+    .select({ total: db.raw("coalesce(sum(balance), 0)::int") });
   const eddiesInCirculation = balanceRow?.total ?? 0;
 
   // Top faucets 24h (positive transactions, grouped by source).
-  const faucets = await db
+  const faucets = await db("transaction_log")
     .select({
-      source: transactionLog.source,
-      amount: sql<number>`sum(${transactionLog.amount})::int`,
+      source: "source",
+      amount: db.raw("sum(amount)::int"),
     })
-    .from(transactionLog)
-    .where(
-      sql`${transactionLog.createdAt} > now() - interval '24 hours'
-          AND ${transactionLog.amount} > 0`,
-    )
-    .groupBy(transactionLog.source)
-    .orderBy(sql`sum(${transactionLog.amount}) DESC`)
+    .where("amount", ">", 0)
+    .whereRaw("transaction_log.created_at > now() - interval '24 hours'")
+    .groupBy("source")
+    .orderByRaw("sum(amount) DESC")
     .limit(5);
 
   // Top sinks 24h (negative transactions, grouped by source).
-  const sinks = await db
+  const sinks = await db("transaction_log")
     .select({
-      source: transactionLog.source,
-      amount: sql<number>`abs(sum(${transactionLog.amount}))::int`,
+      source: "source",
+      amount: db.raw("abs(sum(amount))::int"),
     })
-    .from(transactionLog)
-    .where(
-      sql`${transactionLog.createdAt} > now() - interval '24 hours'
-          AND ${transactionLog.amount} < 0`,
-    )
-    .groupBy(transactionLog.source)
-    .orderBy(sql`abs(sum(${transactionLog.amount})) DESC`)
+    .where("amount", "<", 0)
+    .whereRaw("transaction_log.created_at > now() - interval '24 hours'")
+    .groupBy("source")
+    .orderByRaw("abs(sum(amount)) DESC")
     .limit(5);
 
   // Daily Active Characters: distinct actors with game events in last 24h.
-  const [dauRow] = await db
-    .select({
-      count: sql<number>`count(distinct ${gameEvents.actorId})::int`,
-    })
-    .from(gameEvents)
-    .where(
-      sql`${gameEvents.createdAt} > now() - interval '24 hours'
-          AND ${gameEvents.actorId} IS NOT NULL`,
-    );
+  const [dauRow] = await db("game_events")
+    .select({ count: db.raw("count(distinct actor_id)::int") })
+    .whereRaw("game_events.created_at > now() - interval '24 hours'")
+    .whereNotNull("actor_id");
 
   // Transactions in last 24h.
-  const [txRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(transactionLog)
-    .where(sql`${transactionLog.createdAt} > now() - interval '24 hours'`);
+  const [txRow] = await db("transaction_log")
+    .select({ count: db.raw("count(*)::int") })
+    .whereRaw("transaction_log.created_at > now() - interval '24 hours'");
 
   // Hourly breakdown: game events per hour for the last 24h.
-  const hourly = await db
+  const hourly = await db("game_events")
     .select({
-      hour: sql<string>`date_trunc('hour', ${gameEvents.createdAt})::text`,
-      count: sql<number>`count(*)::int`,
+      hour: db.raw("date_trunc('hour', game_events.created_at)::text"),
+      count: db.raw("count(*)::int"),
     })
-    .from(gameEvents)
-    .where(sql`${gameEvents.createdAt} > now() - interval '24 hours'`)
-    .groupBy(sql`date_trunc('hour', ${gameEvents.createdAt})`)
-    .orderBy(sql`date_trunc('hour', ${gameEvents.createdAt})`);
+    .whereRaw("game_events.created_at > now() - interval '24 hours'")
+    .groupByRaw("date_trunc('hour', game_events.created_at)")
+    .orderByRaw("date_trunc('hour', game_events.created_at)");
 
   return {
     eddiesInCirculation,
@@ -343,47 +301,45 @@ export async function getTransactions(
   } = {},
 ): Promise<AdminTransactionsResponse> {
   const limit = opts.limit ?? 50;
-  const offset = opts.offset ?? 0;
+  const offsetVal = opts.offset ?? 0;
 
-  const conditions: SQLWrapper[] = [];
-  if (opts.type) {
-    conditions.push(eq(transactionLog.type, opts.type as never));
-  }
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const [countRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(transactionLog)
-    .where(where);
-  const total = countRow?.count ?? 0;
-
-  const rows = await db
+  let query = db("transaction_log")
     .select({
-      id: transactionLog.id,
-      characterName: characters.name,
-      type: transactionLog.type,
-      amount: transactionLog.amount,
-      balanceBefore: transactionLog.balanceBefore,
-      balanceAfter: transactionLog.balanceAfter,
-      source: transactionLog.source,
-      createdAt: transactionLog.createdAt,
+      id: "transaction_log.id",
+      characterName: "characters.name",
+      type: "transaction_log.type",
+      amount: "transaction_log.amount",
+      balanceBefore: "transaction_log.balance_before",
+      balanceAfter: "transaction_log.balance_after",
+      source: "transaction_log.source",
+      createdAt: "transaction_log.created_at",
     })
-    .from(transactionLog)
-    .leftJoin(characters, eq(transactionLog.characterId, characters.id))
-    .where(where)
-    .orderBy(desc(transactionLog.createdAt))
+    .leftJoin("characters", "characters.id", "transaction_log.character_id");
+
+  let countQuery = db("transaction_log");
+
+  if (opts.type) {
+    query = query.where("transaction_log.type", opts.type);
+    countQuery = countQuery.where("type", opts.type);
+  }
+
+  const [countRow] = await countQuery.count("* as count");
+  const total = Number(countRow?.count ?? 0);
+
+  const rows = await query
+    .orderBy("transaction_log.created_at", "desc")
     .limit(limit)
-    .offset(offset);
+    .offset(offsetVal);
 
   const transactions: AdminTransaction[] = rows.map((r) => ({
     id: r.id,
     characterName: r.characterName ?? "unknown",
     type: r.type,
-    amount: r.amount,
-    balanceBefore: r.balanceBefore,
-    balanceAfter: r.balanceAfter,
+    amount: Number(r.amount),
+    balanceBefore: Number(r.balanceBefore),
+    balanceAfter: Number(r.balanceAfter),
     source: r.source,
-    createdAt: r.createdAt.toISOString(),
+    createdAt: new Date(r.createdAt).toISOString(),
   }));
 
   return { transactions, total };
@@ -395,8 +351,8 @@ export async function getTransactions(
 
 /** Get all game params as a flat record. */
 export async function getParams(): Promise<Record<string, string>> {
-  const rows = await db.select().from(gameParams);
-  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const rows = await db("game_params").select();
+  return Object.fromEntries(rows.map((r: Record<string, unknown>) => [r.key as string, r.value as string]));
 }
 
 /** Update game params. Only existing keys can be updated. Logs old→new diffs. */
@@ -405,7 +361,7 @@ export async function updateParams(
   adminUserId: string,
 ): Promise<Record<string, string>> {
   const existingKeys = new Set(
-    (await db.select({ key: gameParams.key }).from(gameParams)).map((r) => r.key),
+    (await db("game_params").select("key")).map((r: Record<string, unknown>) => r.key as string),
   );
 
   const unknownKeys = Object.keys(params).filter((k) => !existingKeys.has(k));
@@ -433,24 +389,21 @@ export async function updateParams(
 
   // Update each param.
   for (const [key, value] of Object.entries(params)) {
-    await db
-      .update(gameParams)
-      .set({ value, updatedBy: adminUserId, updatedAt: new Date() })
-      .where(eq(gameParams.key, key));
+    await db("game_params")
+      .update({ value, updated_by: adminUserId, updated_at: new Date() })
+      .where("key", key);
   }
 
   // Audit log the change (no characterId — system action).
-  void db
-    .insert(auditLog)
-    .values({
-      characterId: null,
+  void db("audit_log")
+    .insert({
+      character_id: null,
       action: "admin.update_params",
       ip: "admin",
-      userAgent: "admin-panel",
+      user_agent: "admin-panel",
       payload: { diffs, adminUserId },
       result: "allowed",
     })
-    .execute()
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 
   return getParams();
@@ -479,34 +432,31 @@ export async function getAuditLog(
 ): Promise<AdminAuditResponse> {
   const limit = opts.limit ?? 50;
 
-  const conditions: SQLWrapper[] = [];
+  let query = db("audit_log")
+    .select({
+      id: "audit_log.id",
+      timestamp: "audit_log.created_at",
+      characterName: "characters.name",
+      action: "audit_log.action",
+      result: "audit_log.result",
+      payload: "audit_log.payload",
+      ip: "audit_log.ip",
+    })
+    .leftJoin("characters", "characters.id", "audit_log.character_id");
+
   if (opts.action) {
-    conditions.push(eq(auditLog.action, opts.action));
+    query = query.where("audit_log.action", opts.action);
   }
   if (opts.result) {
-    conditions.push(eq(auditLog.result, opts.result as never));
+    query = query.where("audit_log.result", opts.result);
   }
   if (opts.cursor) {
-    conditions.push(sql`${auditLog.id} < ${opts.cursor}`);
+    query = query.where("audit_log.id", "<", opts.cursor);
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const rows = await db
-    .select({
-      id: auditLog.id,
-      timestamp: auditLog.createdAt,
-      characterName: characters.name,
-      action: auditLog.action,
-      result: auditLog.result,
-      payload: auditLog.payload,
-      ip: auditLog.ip,
-    })
-    .from(auditLog)
-    .leftJoin(characters, eq(auditLog.characterId, characters.id))
-    .where(where)
-    .orderBy(desc(auditLog.id))
-    .limit(limit + 1); // fetch one extra to determine hasMore
+  const rows = await query
+    .orderBy("audit_log.id", "desc")
+    .limit(limit + 1);
 
   const hasMore = rows.length > limit;
   const entries = rows.slice(0, limit);
@@ -514,8 +464,8 @@ export async function getAuditLog(
   return {
     entries: entries.map((r) => ({
       id: r.id,
-      timestamp: r.timestamp.toISOString(),
-      characterName: r.characterName ?? null,
+      timestamp: new Date(r.timestamp).toISOString(),
+      characterName: (r.characterName as string) ?? null,
       action: r.action,
       result: r.result,
       payload: (r.payload as Record<string, unknown>) ?? {},

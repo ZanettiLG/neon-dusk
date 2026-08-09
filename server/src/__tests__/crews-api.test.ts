@@ -1,19 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
-import { and, eq } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
-import {
-  characters,
-  characterWallets,
-  crewInvites,
-  crewMembers,
-  crews,
-  transactionLog,
-} from "../db/schema";
 import { ensureWallet } from "../services/economy-service";
 import type {
   AuthResponse,
@@ -121,21 +112,15 @@ describe("ND-016 — Crews Básicas API", () => {
 
   /** Seed a wallet with the given balance (ensureWallet creates it with 500). */
   async function seedWallet(characterId: string, balance: number): Promise<void> {
-    await db.transaction(async (tx) => {
-      await ensureWallet(characterId, tx);
+    await db.transaction(async (trx) => {
+      await ensureWallet(characterId, trx);
     });
-    await db
-      .update(characterWallets)
-      .set({ balance })
-      .where(eq(characterWallets.characterId, characterId));
+    await db("character_wallets").where("character_id", characterId).update({ balance });
   }
 
   /** Set a character's Street Cred (direct DB — the API awards cap at 100/request). */
   async function setStreetCred(characterId: string, sc: number): Promise<void> {
-    await db
-      .update(characters)
-      .set({ streetCred: sc, maxStreetCredAchieved: sc })
-      .where(eq(characters.id, characterId));
+    await db("characters").where("id", characterId).update({ street_cred: sc, max_street_cred_achieved: sc });
   }
 
   /** Make a character eligible to found a crew (SC >= 25, wallet >= 5000). */
@@ -210,11 +195,8 @@ describe("ND-016 — Crews Básicas API", () => {
 
   /** Read a character's current crewId straight from the DB. */
   async function crewIdOf(characterId: string): Promise<string | null> {
-    const [row] = await db
-      .select({ crewId: characters.crewId })
-      .from(characters)
-      .where(eq(characters.id, characterId));
-    return row?.crewId ?? null;
+    const [row] = await db("characters").select("crew_id").where("id", characterId);
+    return row?.crew_id ?? null;
   }
 
   /** Clear the per-member crew chat rate-limit counter (test seam for the 5s window). */
@@ -248,22 +230,11 @@ describe("ND-016 — Crews Básicas API", () => {
       const { status } = await createCrew(leader, "Blade Runners", "BLD");
       expect(status).toBe(201);
 
-      const [wallet] = await db
-        .select()
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, leader.characterId));
+      const [wallet] = await db("character_wallets").select("*").where("character_id", leader.characterId);
       expect(wallet!.balance).toBe(1000);
       expect(wallet!.lifetimeSpent).toBe(5000);
 
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, leader.characterId),
-            eq(transactionLog.type, "CREW_CREATION"),
-          ),
-        );
+      const [log] = await db("transaction_log").select("*").where("character_id", leader.characterId).andWhere("type", "CREW_CREATION");
       expect(log).toMatchObject({
         type: "CREW_CREATION",
         amount: -5000,
@@ -281,12 +252,7 @@ describe("ND-016 — Crews Básicas API", () => {
       const crewId = (body as CreateCrewResponse).crew.id;
 
       expect(await crewIdOf(leader.characterId)).toBe(crewId);
-      const [member] = await db
-        .select()
-        .from(crewMembers)
-        .where(
-          and(eq(crewMembers.crewId, crewId), eq(crewMembers.characterId, leader.characterId)),
-        );
+      const [member] = await db("crew_members").select("*").where("crew_id", crewId).andWhere("character_id", leader.characterId);
       expect(member).toBeDefined();
     });
 
@@ -321,10 +287,7 @@ describe("ND-016 — Crews Básicas API", () => {
       const { status } = await createCrew(leader, "Blade Runners", "BLD");
       expect(status).toBe(201);
 
-      const [wallet] = await db
-        .select()
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, leader.characterId));
+      const [wallet] = await db("character_wallets").select("*").where("character_id", leader.characterId);
       expect(wallet!.balance).toBe(0);
     });
 
@@ -467,12 +430,9 @@ describe("ND-016 — Crews Básicas API", () => {
         "INSUFFICIENT_FUNDS",
       ]).toContain((loser.body as ErrorBody).error);
       // Exactly one crew + one CREW_CREATION audit entry exist.
-      const crewRows = await db.select().from(crews).where(eq(crews.name, "Blade Runners"));
+      const crewRows = await db("crews").select("*").where("name", "Blade Runners");
       expect(crewRows).toHaveLength(1);
-      const logs = await db
-        .select()
-        .from(transactionLog)
-        .where(eq(transactionLog.type, "CREW_CREATION"));
+      const logs = await db("transaction_log").select("*").where("type", "CREW_CREATION");
       expect(logs).toHaveLength(1);
     });
   });
@@ -639,10 +599,7 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(first.status).toBe(201);
       const { id: inviteId } = first.body as CrewInvite;
       // Backdate the invite so it is expired at the next invite attempt.
-      await db
-        .update(crewInvites)
-        .set({ expiresAt: new Date(Date.now() - 1000) })
-        .where(eq(crewInvites.id, inviteId));
+      await db("crew_invites").where("id", inviteId).update({ expires_at: new Date(Date.now() - 1000) });
 
       // Clear the 60s invite cooldown set by the first invite.
       await redis.del(`cooldown:${leader.characterId}:crew_invite`);
@@ -681,20 +638,10 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(member.characterName).toBe(recruit.characterName);
       expect(await crewIdOf(recruit.characterId)).toBe(crewId);
 
-      const [row] = await db
-        .select()
-        .from(crewMembers)
-        .where(
-          and(eq(crewMembers.crewId, crewId), eq(crewMembers.characterId, recruit.characterId)),
-        );
+      const [row] = await db("crew_members").select("*").where("crew_id", crewId).andWhere("character_id", recruit.characterId);
       expect(row).toBeDefined();
       // The invite is consumed on join.
-      const [inviteRow] = await db
-        .select()
-        .from(crewInvites)
-        .where(
-          and(eq(crewInvites.crewId, crewId), eq(crewInvites.characterId, recruit.characterId)),
-        );
+      const [inviteRow] = await db("crew_invites").select("*").where("crew_id", crewId).andWhere("character_id", recruit.characterId);
       expect(inviteRow).toBeUndefined();
     });
 
@@ -715,12 +662,7 @@ describe("ND-016 — Crews Básicas API", () => {
       await setStreetCred(recruit.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
       expect((await invite(leader, crewId, recruit.characterId)).status).toBe(201);
-      await db
-        .update(crewInvites)
-        .set({ expiresAt: new Date(Date.now() - 1000) })
-        .where(
-          and(eq(crewInvites.crewId, crewId), eq(crewInvites.characterId, recruit.characterId)),
-        );
+      await db("crew_invites").where("crew_id", crewId).andWhere("character_id", recruit.characterId).update({ expires_at: new Date(Date.now() - 1000) });
 
       const { status, body } = await join(recruit, crewId);
 
@@ -770,13 +712,10 @@ describe("ND-016 — Crews Básicas API", () => {
 
       expect(res.status).toBe(204);
       expect(await crewIdOf(member.characterId)).toBeNull();
-      const [row] = await db
-        .select()
-        .from(crewMembers)
-        .where(eq(crewMembers.characterId, member.characterId));
+      const [row] = await db("crew_members").select("*").where("character_id", member.characterId);
       expect(row).toBeUndefined();
       // Crew still exists with just the leader.
-      const [crew] = await db.select().from(crews).where(eq(crews.id, crewId));
+      const [crew] = await db("crews").select("*").where("id", crewId);
       expect(crew).toBeDefined();
     });
 
@@ -826,10 +765,7 @@ describe("ND-016 — Crews Básicas API", () => {
 
       expect(res.status).toBe(204);
       expect(await crewIdOf(member.characterId)).toBeNull();
-      const [row] = await db
-        .select()
-        .from(crewMembers)
-        .where(eq(crewMembers.characterId, member.characterId));
+      const [row] = await db("crew_members").select("*").where("character_id", member.characterId);
       expect(row).toBeUndefined();
     });
 
@@ -896,9 +832,9 @@ describe("ND-016 — Crews Básicas API", () => {
       for (const user of [leader, ...members]) {
         expect(await crewIdOf(user.characterId)).toBeNull();
       }
-      const [crew] = await db.select().from(crews).where(eq(crews.id, crewId));
+      const [crew] = await db("crews").select("*").where("id", crewId);
       expect(crew).toBeUndefined();
-      const memberRows = await db.select().from(crewMembers).where(eq(crewMembers.crewId, crewId));
+      const memberRows = await db("crew_members").select("*").where("crew_id", crewId);
       expect(memberRows).toEqual([]);
       // The dissolved crew is no longer fetchable.
       const after = await fetch(`${base()}/api/crews/${crewId}`, {

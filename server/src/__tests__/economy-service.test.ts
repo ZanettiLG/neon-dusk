@@ -1,13 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import {
-  characterWallets,
-  characters,
-  transactionLog,
-  vendorInventory,
-  vendors,
-} from "../db/schema";
 import { NIL_SYN_CAFE_AMOUNT } from "@neon-dusk/shared";
 import {
   buyFromVendor,
@@ -41,7 +33,7 @@ describe("economy service", () => {
     it("should create a wallet with seed capital (500) for a new character", async () => {
       const { characterId } = await insertTestCharacter();
 
-      const wallet = await db.transaction((tx) => ensureWallet(characterId, tx));
+      const wallet = await db.transaction((trx) => ensureWallet(characterId, trx));
 
       expect(wallet.balance).toBe(500);
       expect(wallet.lifetimeEarned).toBe(500);
@@ -53,12 +45,11 @@ describe("economy service", () => {
     it("should record an ADMIN_ADJUSTMENT seed transaction with balance_before 0 and balance_after 500", async () => {
       const { characterId } = await insertTestCharacter();
 
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
-      const [seed] = await db
-        .select()
-        .from(transactionLog)
-        .where(eq(transactionLog.characterId, characterId));
+      const [seed] = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId);
 
       expect(seed).toMatchObject({
         type: "ADMIN_ADJUSTMENT",
@@ -72,22 +63,16 @@ describe("economy service", () => {
     it("should be idempotent — not create a duplicate wallet or a second seed transaction", async () => {
       const { characterId } = await insertTestCharacter();
 
-      await db.transaction((tx) => ensureWallet(characterId, tx));
-      const second = await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
+      const second = await db.transaction((trx) => ensureWallet(characterId, trx));
 
-      const wallets = await db
-        .select()
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, characterId));
-      const seeds = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            eq(transactionLog.type, "ADMIN_ADJUSTMENT"),
-          ),
-        );
+      const wallets = await db("character_wallets")
+        .select("*")
+        .where("character_id", characterId);
+      const seeds = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "ADMIN_ADJUSTMENT");
 
       expect(wallets).toHaveLength(1);
       expect(seeds).toHaveLength(1);
@@ -98,7 +83,7 @@ describe("economy service", () => {
   describe("getWallet", () => {
     it("should return the wallet state for an existing wallet", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       const wallet = await getWallet(characterId);
 
@@ -111,10 +96,9 @@ describe("economy service", () => {
       const { characterId } = await insertTestCharacter();
 
       const wallet = await getWallet(characterId);
-      const stored = await db
-        .select()
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, characterId));
+      const stored = await db("character_wallets")
+        .select("*")
+        .where("character_id", characterId);
 
       expect(wallet.balance).toBe(500);
       expect(stored).toHaveLength(1);
@@ -122,7 +106,7 @@ describe("economy service", () => {
 
     it("should return correct escrow/lifetime stats", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
       await transfer(characterId, 500, "GIG_PAYOUT", "gig");
       await transfer(characterId, -200, "VENDOR_PURCHASE", "vendor");
 
@@ -137,7 +121,7 @@ describe("economy service", () => {
   describe("transfer — happy path", () => {
     it("should credit the balance and update lifetime stats", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       const { wallet, transaction } = await transfer(characterId, 250, "GIG_PAYOUT", "gig-1");
 
@@ -153,7 +137,7 @@ describe("economy service", () => {
 
     it("should debit the balance and update lifetime stats", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       const { wallet } = await transfer(characterId, -150, "VENDOR_PURCHASE", "vendor");
 
@@ -164,7 +148,7 @@ describe("economy service", () => {
 
     it("should write a transaction log entry with correct balances", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       await transfer(
         characterId,
@@ -175,10 +159,9 @@ describe("economy service", () => {
         "11111111-2222-4333-8444-555555555555",
       );
 
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(eq(transactionLog.type, "VENDOR_PURCHASE"));
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("type", "VENDOR_PURCHASE");
 
       expect(log).toMatchObject({
         characterId,
@@ -193,7 +176,7 @@ describe("economy service", () => {
 
     it("should increment the wallet version on each write", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       const first = await transfer(characterId, 10, "GIG_PAYOUT", "gig");
       const second = await transfer(characterId, 10, "GIG_PAYOUT", "gig");
@@ -206,7 +189,7 @@ describe("economy service", () => {
   describe("transfer — errors", () => {
     it("should return 400 INSUFFICIENT_FUNDS when debiting more than the balance", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       await expect(transfer(characterId, -1500, "VENDOR_PURCHASE", "vendor")).rejects.toMatchObject({
         statusCode: 400,
@@ -216,7 +199,7 @@ describe("economy service", () => {
 
     it("should retry and succeed on concurrent modification", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       // Two writers race on version 0; one wins, the other retries and lands.
       const [a, b] = await Promise.all([
@@ -231,7 +214,7 @@ describe("economy service", () => {
 
     it("should return 409 CONCURRENCY_CONFLICT after max retries are exhausted", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       // 10 writers all start from version 0. With MAX_RETRIES=3, the losers
       // that keep colliding on every attempt surface CONCURRENCY_CONFLICT.
@@ -262,7 +245,7 @@ describe("economy service", () => {
   describe("getTransactions", () => {
     it("should return transactions in descending order by createdAt", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
       await transfer(characterId, 100, "GIG_PAYOUT", "first");
       await transfer(characterId, -50, "VENDOR_PURCHASE", "second");
 
@@ -278,7 +261,7 @@ describe("economy service", () => {
 
     it("should respect the limit", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
       for (let i = 0; i < 5; i++) {
         await transfer(characterId, 10, "GIG_PAYOUT", `gig-${i}`);
       }
@@ -291,7 +274,7 @@ describe("economy service", () => {
 
     it("should paginate with a cursor and return null nextCursor on the last page", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
       for (let i = 0; i < 5; i++) {
         await transfer(characterId, 10, "GIG_PAYOUT", `gig-${i}`);
       }
@@ -328,15 +311,14 @@ describe("economy service", () => {
 
   describe("listVendors / getVendor", () => {
     async function seedVendor(opts: { isActive?: boolean } = {}) {
-      const [vendor] = await db
-        .insert(vendors)
-        .values({
+      const [vendor] = await db("vendors")
+        .insert({
           name: `Doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           type: "RIPPERDOC",
           district: "a_paraiso",
-          isActive: opts.isActive ?? true,
+          is_active: opts.isActive ?? true,
         })
-        .returning();
+        .returning("*");
       return vendor;
     }
 
@@ -353,9 +335,8 @@ describe("economy service", () => {
 
     it("should return a vendor with its inventory", async () => {
       const vendor = await seedVendor();
-      await db
-        .insert(vendorInventory)
-        .values({ vendorId: vendor.id, itemType: "weapon", itemId: "nova-9", price: 100, stock: 3 });
+      await db("vendor_inventory")
+        .insert({ vendor_id: vendor.id, item_type: "weapon", item_id: "nova-9", price: 100, stock: 3 });
 
       const result = await getVendor(vendor.id);
 
@@ -381,26 +362,24 @@ describe("economy service", () => {
   describe("buyFromVendor — happy path", () => {
     async function seedStore(opts: { price?: number; stock?: number } = {}) {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
-      const [vendor] = await db
-        .insert(vendors)
-        .values({
+      await db.transaction((trx) => ensureWallet(characterId, trx));
+      const [vendor] = await db("vendors")
+        .insert({
           name: `Store-${Date.now()}`,
           type: "FIXER",
           district: "o_fluxo",
-          isActive: true,
+          is_active: true,
         })
-        .returning();
-      const [item] = await db
-        .insert(vendorInventory)
-        .values({
-          vendorId: vendor.id,
-          itemType: "weapon",
-          itemId: "nova-9",
+        .returning("*");
+      const [item] = await db("vendor_inventory")
+        .insert({
+          vendor_id: vendor.id,
+          item_type: "weapon",
+          item_id: "nova-9",
           price: opts.price ?? 100,
           stock: opts.stock ?? 5,
         })
-        .returning();
+        .returning("*");
       return { characterId, vendorId: vendor.id, item };
     }
 
@@ -426,10 +405,9 @@ describe("economy service", () => {
 
       await buyFromVendor(characterId, vendorId, "weapon", "nova-9", 2);
 
-      const [row] = await db
-        .select()
-        .from(vendorInventory)
-        .where(eq(vendorInventory.vendorId, vendorId));
+      const [row] = await db("vendor_inventory")
+        .select("*")
+        .where("vendor_id", vendorId);
       expect(row.stock).toBe(3);
     });
 
@@ -438,15 +416,10 @@ describe("economy service", () => {
 
       await buyFromVendor(characterId, vendorId, "weapon", "nova-9", 1);
 
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            eq(transactionLog.type, "VENDOR_PURCHASE"),
-          ),
-        );
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "VENDOR_PURCHASE");
 
       expect(log).toMatchObject({
         amount: -100,
@@ -461,29 +434,26 @@ describe("economy service", () => {
       const result = await buyFromVendor(characterId, vendorId, "weapon", "nova-9", 50);
 
       expect(result.balanceAfter).toBe(500 - 10 * 50);
-      const [row] = await db
-        .select()
-        .from(vendorInventory)
-        .where(eq(vendorInventory.vendorId, vendorId));
+      const [row] = await db("vendor_inventory")
+        .select("*")
+        .where("vendor_id", vendorId);
       expect(row.stock).toBe(-1); // untouched
     });
 
     it("should restore +20 NIL when buying CONSUMABLE/syn-cafe", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
-      await db
-        .update(characters)
-        .set({ nil: 50 })
-        .where(eq(characters.id, characterId));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db("characters")
+        .where("id", characterId)
+        .update({ nil: 50 });
 
-      const [vendor] = await db
-        .insert(vendors)
-        .values({ name: "Zé do Pó", type: "STIM_DEALER", district: "o_fervo", isActive: true })
-        .returning();
-      await db.insert(vendorInventory).values({
-        vendorId: vendor.id,
-        itemType: "CONSUMABLE",
-        itemId: "syn-cafe",
+      const [vendor] = await db("vendors")
+        .insert({ name: "Zé do Pó", type: "STIM_DEALER", district: "o_fervo", is_active: true })
+        .returning("*");
+      await db("vendor_inventory").insert({
+        vendor_id: vendor.id,
+        item_type: "CONSUMABLE",
+        item_id: "syn-cafe",
         price: 50,
         stock: -1,
       });
@@ -491,10 +461,9 @@ describe("economy service", () => {
       const result = await buyFromVendor(characterId, vendor.id, "CONSUMABLE", "syn-cafe", 1);
 
       expect(result.balanceAfter).toBe(450);
-      const [char] = await db
-        .select({ nil: characters.nil })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      const [char] = await db("characters")
+        .select("nil")
+        .where("id", characterId)
         .limit(1);
       expect(char!.nil).toBe(50 + NIL_SYN_CAFE_AMOUNT);
     });
@@ -503,17 +472,15 @@ describe("economy service", () => {
   describe("buyFromVendor — errors", () => {
     async function seedStore(opts: { price?: number; stock?: number } = {}) {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
-      const [vendor] = await db
-        .insert(vendors)
-        .values({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
-        .returning();
-      await db
-        .insert(vendorInventory)
-        .values({
-          vendorId: vendor.id,
-          itemType: "weapon",
-          itemId: "nova-9",
+      await db.transaction((trx) => ensureWallet(characterId, trx));
+      const [vendor] = await db("vendors")
+        .insert({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
+        .returning("*");
+      await db("vendor_inventory")
+        .insert({
+          vendor_id: vendor.id,
+          item_type: "weapon",
+          item_id: "nova-9",
           price: opts.price ?? 100,
           stock: opts.stock ?? 5,
         });
@@ -522,7 +489,7 @@ describe("economy service", () => {
 
     it("should return 404 when the vendor does not exist", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       await expect(
         buyFromVendor(characterId, "00000000-0000-0000-0000-000000000000", "weapon", "nova-9", 1),
@@ -568,10 +535,9 @@ describe("economy service", () => {
     it("should account for escrow when checking funds", async () => {
       const { characterId, vendorId } = await seedStore({ price: 800 });
       // Balance is 500 but 300 is committed to escrow → only 200 available.
-      await db
-        .update(characterWallets)
-        .set({ escrow: 300 })
-        .where(eq(characterWallets.characterId, characterId));
+      await db("character_wallets")
+        .where("character_id", characterId)
+        .update({ escrow: 300 });
 
       await expect(
         buyFromVendor(characterId, vendorId, "weapon", "nova-9", 1),

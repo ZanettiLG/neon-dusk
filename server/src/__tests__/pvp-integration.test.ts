@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, registerTestUser, type TestServer } from "./helpers";
 import { db } from "../db";
-import { characterWallets, characters, pvpCombats, transactionLog } from "../db/schema";
 import { ensureWallet } from "../services/economy-service";
 import type {
   PvpAttackableResponse,
@@ -126,10 +124,9 @@ describe("ND-014 — PvP combat API", () => {
     const auth = await registerTestUser(server, uniqueEmail(), PASSWORD);
     const attributes = opts.attributes ?? { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 };
 
-    const [character] = await db
-      .insert(characters)
-      .values({
-        userId: auth.user.id,
+    const [character] = await db("characters")
+      .insert({
+        user_id: auth.user.id,
         name: uniqueName(),
         origin: "a_paraiso",
         role: opts.role ?? "netrunner",
@@ -138,27 +135,26 @@ describe("ND-014 — PvP combat API", () => {
         intelligence: attributes.intelligence,
         technical: attributes.technical,
         cool: attributes.cool,
-        streetCred: opts.streetCred ?? 0,
+        street_cred: opts.streetCred ?? 0,
         nil: opts.nil ?? 100,
-        createdAt:
+        created_at:
           opts.createdAtDaysAgo === undefined
             ? new Date()
             : new Date(Date.now() - opts.createdAtDaysAgo * DAY_MS),
       })
-      .returning({ id: characters.id });
+      .returning("id");
 
     return { userId: auth.user.id, characterId: character.id, accessToken: auth.accessToken };
   }
 
   /** Seed a wallet with the given balance (ensureWallet creates it with 500). */
   async function seedWallet(characterId: string, balance: number): Promise<void> {
-    await db.transaction(async (tx) => {
-      await ensureWallet(characterId, tx);
+    await db.transaction(async (trx) => {
+      await ensureWallet(characterId, trx);
     });
-    await db
-      .update(characterWallets)
-      .set({ balance })
-      .where(eq(characterWallets.characterId, characterId));
+    await db("character_wallets")
+      .where("character_id", characterId)
+      .update({ balance });
   }
 
   async function attack(
@@ -170,15 +166,14 @@ describe("ND-014 — PvP combat API", () => {
   }
 
   async function getCharacter(characterId: string) {
-    const [row] = await db.select().from(characters).where(eq(characters.id, characterId));
+    const [row] = await db("characters").select("*").where("id", characterId);
     return row!;
   }
 
   async function getWalletRow(characterId: string) {
-    const [row] = await db
-      .select()
-      .from(characterWallets)
-      .where(eq(characterWallets.characterId, characterId));
+    const [row] = await db("character_wallets")
+      .select("*")
+      .where("character_id", characterId);
     return row!;
   }
 
@@ -320,25 +315,24 @@ describe("ND-014 — PvP combat API", () => {
       const attackerRow = await getCharacter(attacker.characterId);
       const defenderRow = await getCharacter(defender.characterId);
       expect(attackerRow.nil).toBe(80); // 100 − 20 NIL cost
-      expect(attackerRow.streetCred).toBe(5);
-      expect(attackerRow.maxStreetCredAchieved).toBe(5);
-      expect(defenderRow.streetCred).toBe(48); // 50 − max(1, floor(50 × 0.05)) = 2
+      expect(attackerRow.street_cred).toBe(5);
+      expect(attackerRow.max_street_cred_achieved).toBe(5);
+      expect(defenderRow.street_cred).toBe(48); // 50 − max(1, floor(50 × 0.05)) = 2
 
       const attackerWallet = await getWalletRow(attacker.characterId);
       const defenderWallet = await getWalletRow(defender.characterId);
       expect(attackerWallet.balance).toBe(1050);
       expect(defenderWallet.balance).toBe(450);
 
-      const [combat] = await db
-        .select()
-        .from(pvpCombats)
-        .where(eq(pvpCombats.id, body.combatId));
+      const [combat] = await db("pvp_combats")
+        .select("*")
+        .where("id", body.combatId);
       expect(combat).toMatchObject({
-        attackerId: attacker.characterId,
-        defenderId: defender.characterId,
-        winnerId: attacker.characterId,
-        lootAmount: 50,
-        grieferPenalty: false,
+        attacker_id: attacker.characterId,
+        defender_id: defender.characterId,
+        winner_id: attacker.characterId,
+        loot_amount: 50,
+        griefer_penalty: false,
       });
     });
 
@@ -462,7 +456,7 @@ describe("ND-014 — PvP combat API", () => {
       expect(await redis.get(middlewareCooldownKey(attacker.characterId))).toBeNull();
 
       // Top up NIL — the same character may retry immediately (no cooldown burned).
-      await db.update(characters).set({ nil: 100 }).where(eq(characters.id, attacker.characterId));
+      await db("characters").where("id", attacker.characterId).update({ nil: 100 });
       await redis.del(attackRateKey(attacker.userId));
       const retry = await server.post(
         "/api/pvp/attack",
@@ -493,14 +487,13 @@ describe("ND-014 — PvP combat API", () => {
       expect(body.newBalance).toBe(900);
 
       const attackerRow = await getCharacter(attacker.characterId);
-      expect(attackerRow.streetCred).toBe(29);
+      expect(attackerRow.street_cred).toBe(29);
       expect(attackerRow.nil).toBe(80); // NIL is still spent on a lost attack
 
-      const [combat] = await db
-        .select()
-        .from(pvpCombats)
-        .where(eq(pvpCombats.id, body.combatId));
-      expect(combat!.winnerId).toBe(defender.characterId);
+      const [combat] = await db("pvp_combats")
+        .select("*")
+        .where("id", body.combatId);
+      expect(combat!.winner_id).toBe(defender.characterId);
 
       const defenderWallet = await getWalletRow(defender.characterId);
       expect(defenderWallet.balance).toBe(600); // 500 + 100 loot
@@ -524,12 +517,11 @@ describe("ND-014 — PvP combat API", () => {
       // (1% = floor(floor(balance × 0.1) × 0.1) of the current balance).
       expect(loots).toEqual([50, 45, 40, 3]);
 
-      const combats = await db
-        .select()
-        .from(pvpCombats)
-        .where(eq(pvpCombats.defenderId, defender.characterId))
-        .orderBy(pvpCombats.createdAt);
-      expect(combats.map((c) => c.grieferPenalty)).toEqual([false, false, false, true]);
+      const combats = await db("pvp_combats")
+        .select("*")
+        .where("defender_id", defender.characterId)
+        .orderBy("created_at");
+      expect(combats.map((c) => c.griefer_penalty)).toEqual([false, false, false, true]);
     });
 
     it("should stop street cred loss after 3 defeats in a day (defeat cap)", async () => {
@@ -547,11 +539,10 @@ describe("ND-014 — PvP combat API", () => {
         expect(status).toBe(200);
       }
 
-      const [beforeCap] = await db
-        .select({ streetCred: characters.streetCred })
-        .from(characters)
-        .where(eq(characters.id, defender.characterId));
-      expect(beforeCap!.streetCred).toBe(44); // 50 − 2 per defeat × 3
+      const [beforeCap] = await db("characters")
+        .select("street_cred")
+        .where("id", defender.characterId);
+      expect(beforeCap!.street_cred).toBe(44); // 50 − 2 per defeat × 3
 
       await clearAttackLimits(attacker);
       const fourth = await server.post(
@@ -562,18 +553,16 @@ describe("ND-014 — PvP combat API", () => {
       expect(fourth.status).toBe(200);
       const fourthBody = await json<PvpCombatResult>(fourth);
 
-      const [afterCap] = await db
-        .select({ streetCred: characters.streetCred })
-        .from(characters)
-        .where(eq(characters.id, defender.characterId));
-      expect(afterCap!.streetCred).toBe(44); // defeat-capped — no SC loss on the 4th defeat
+      const [afterCap] = await db("characters")
+        .select("street_cred")
+        .where("id", defender.characterId);
+      expect(afterCap!.street_cred).toBe(44); // defeat-capped — no SC loss on the 4th defeat
 
       // Eddies are still looted on the 4th attack (grief-reduced 1% of the
       // current balance: 365 → floor(floor(365 × 0.1) × 0.1) = 3).
-      const [walletBefore4] = await db
-        .select({ balance: characterWallets.balance })
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, defender.characterId));
+      const [walletBefore4] = await db("character_wallets")
+        .select("balance")
+        .where("character_id", defender.characterId);
       const expectedGriefLoot = Math.floor(Math.floor(walletBefore4!.balance * 0.1) * 0.1);
       expect(fourthBody.lootAmount).toBe(expectedGriefLoot);
     });
@@ -603,12 +592,11 @@ describe("ND-014 — PvP combat API", () => {
       const attackerRow = await getCharacter(attacker.characterId);
       expect(attackerRow.nil).toBe(60); // 100 − 20 × 2
 
-      const combats = await db
-        .select()
-        .from(pvpCombats)
-        .where(eq(pvpCombats.attackerId, attacker.characterId));
+      const combats = await db("pvp_combats")
+        .select("*")
+        .where("attacker_id", attacker.characterId);
       expect(combats).toHaveLength(2);
-      expect(combats.map((c) => c.lootAmount)).toEqual([0, 0]); // no wallets — nothing to double-take
+      expect(combats.map((c) => c.loot_amount)).toEqual([0, 0]); // no wallets — nothing to double-take
     });
 
     it("should reject the 4th attack within an hour (rate limit)", async () => {
@@ -652,10 +640,9 @@ describe("ND-014 — PvP combat API", () => {
       const body = await json<PvpCombatResult>(res);
       expect(body.lootAmount).toBe(50);
 
-      const logs = await db
-        .select()
-        .from(transactionLog)
-        .where(eq(transactionLog.referenceId, body.combatId));
+      const logs = await db("transaction_log")
+        .select("*")
+        .where("reference_id", body.combatId);
       const reward = logs.find((l) => l.type === "PVP_REWARD");
       const loss = logs.find((l) => l.type === "PVP_LOSS");
       expect(reward).toBeDefined();
@@ -729,15 +716,15 @@ describe("ND-014 — PvP combat API", () => {
       const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
       const now = Date.now();
       for (let i = 1; i <= 3; i++) {
-        await db.insert(pvpCombats).values({
-          attackerId: attacker.characterId,
-          defenderId: defender.characterId,
-          attackerPower: 20 + i,
-          defenderPower: 10 + i,
-          winnerId: attacker.characterId,
-          lootAmount: i * 10,
-          grieferPenalty: false,
-          createdAt: new Date(now - (4 - i) * 1000), // oldest 3s ago → newest 1s ago
+        await db("pvp_combats").insert({
+          attacker_id: attacker.characterId,
+          defender_id: defender.characterId,
+          attacker_power: 20 + i,
+          defender_power: 10 + i,
+          winner_id: attacker.characterId,
+          loot_amount: i * 10,
+          griefer_penalty: false,
+          created_at: new Date(now - (4 - i) * 1000), // oldest 3s ago → newest 1s ago
         });
       }
 

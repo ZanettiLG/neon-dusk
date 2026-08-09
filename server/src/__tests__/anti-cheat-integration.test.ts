@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { and, desc, eq } from "drizzle-orm";
 import type { AuthResponse } from "@neon-dusk/shared";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
@@ -15,7 +14,6 @@ import { checkActionRateLimit, circuitBreakerConfig } from "../lib/rate-limit";
 import { requireCharacterId } from "../services/economy-service";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
-import { auditLog } from "../db/schema";
 
 // ND-053 — full anti-cheat middleware chain over real HTTP: circuit-breaker →
 // cooldown → validation → per-action rate limit → handler, with the audit
@@ -39,7 +37,16 @@ interface ErrorBody {
   retryAfter?: number;
 }
 
-type AuditRow = typeof auditLog.$inferSelect;
+interface AuditRow {
+  id: string;
+  characterId: string;
+  action: string;
+  result: string;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -177,11 +184,11 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     const deadline = Date.now() + timeoutMs;
     let rows: AuditRow[] = [];
     while (Date.now() < deadline) {
-      rows = await db
-        .select()
-        .from(auditLog)
-        .where(and(eq(auditLog.characterId, characterId), eq(auditLog.action, action)))
-        .orderBy(desc(auditLog.createdAt));
+      rows = await db("audit_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("action", action)
+        .orderBy("created_at", "desc");
       if (rows.length >= expected) return rows;
       await sleep(25);
     }

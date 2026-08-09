@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
-import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json } from "./helpers";
 import { db } from "../db";
-import { gameEvents } from "../db/schema";
 import type { AdminMetricsResponse } from "@neon-dusk/shared";
 
 // ND-007 — admin telemetry digest endpoint. Real HTTP against the app.
@@ -39,7 +37,7 @@ describe("GET /api/admin/metrics (admin telemetry digest)", () => {
   beforeEach(async () => {
     // resetDb() doesn't truncate the append-only event log — clear it here so
     // counts never leak from other files or prior tests in this file.
-    await db.execute(sql`TRUNCATE TABLE game_events`);
+    await db.raw("TRUNCATE TABLE game_events");
   });
 
   afterAll(async () => {
@@ -101,18 +99,18 @@ describe("GET /api/admin/metrics (admin telemetry digest)", () => {
   });
 
   it("should aggregate seeded game events into the digest", async () => {
-    await db.insert(gameEvents).values([
-      { eventType: "GIG_COMPLETED", actorId: "11111111-1111-4111-8111-111111111111", payload: {} },
-      { eventType: "GIG_COMPLETED", actorId: "22222222-2222-4222-8222-222222222222", payload: {} },
-      { eventType: "EDDIES_EARNED", actorId: "11111111-1111-4111-8111-111111111111", payload: {} },
-      { eventType: "NIL_SPENT", actorId: "22222222-2222-4222-8222-222222222222", payload: {} },
-      { eventType: "PVP_ATTACK", actorId: "11111111-1111-4111-8111-111111111111", payload: {} },
+    await db("game_events").insert([
+      { event_type: "GIG_COMPLETED", actor_id: "11111111-1111-4111-8111-111111111111", payload: {} },
+      { event_type: "GIG_COMPLETED", actor_id: "22222222-2222-4222-8222-222222222222", payload: {} },
+      { event_type: "EDDIES_EARNED", actor_id: "11111111-1111-4111-8111-111111111111", payload: {} },
+      { event_type: "NIL_SPENT", actor_id: "22222222-2222-4222-8222-222222222222", payload: {} },
+      { event_type: "PVP_ATTACK", actor_id: "11111111-1111-4111-8111-111111111111", payload: {} },
     ]);
 
     const res = await adminGet("/api/admin/metrics", ADMIN_KEY);
     const body = await json<AdminMetricsResponse>(res);
 
-    // All events are fresh (createdAt defaults to now) → same counts in both windows.
+    // All events are fresh (created_at defaults to now) → same counts in both windows.
     expect(body.events.last24h).toEqual({
       GIG_COMPLETED: 2,
       EDDIES_EARNED: 1,
@@ -138,11 +136,11 @@ describe("GET /api/admin/metrics (admin telemetry digest)", () => {
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
-    await db.execute(sql`
+    await db.raw(`
       INSERT INTO game_events (event_type, actor_id, payload, created_at) VALUES
-      ('EDDIES_EARNED', '11111111-1111-4111-8111-111111111111', '{"amount":100}'::jsonb, ${twoHoursAgo}::timestamp),
-      ('EDDIES_SPENT', '11111111-1111-4111-8111-111111111111', '{"amount":50}'::jsonb, ${thirtyMinAgo}::timestamp)
-    `);
+      ('EDDIES_EARNED', '11111111-1111-4111-8111-111111111111', '{"amount":100}'::jsonb, ?::timestamp),
+      ('EDDIES_SPENT', '11111111-1111-4111-8111-111111111111', '{"amount":50}'::jsonb, ?::timestamp)
+    `, [twoHoursAgo, thirtyMinAgo]);
 
     const res = await adminGet("/api/admin/metrics", ADMIN_KEY);
     expect(res.status).toBe(200);

@@ -1,12 +1,5 @@
 import { pathToFileURL } from "node:url";
-import { db, client } from "./index";
-import {
-  chromeDefinitions,
-  gigs,
-  lootTables,
-  vendorInventory,
-  vendors,
-} from "./schema";
+import { db } from "./index";
 import { CHROME_DEFINITIONS } from "../content/chrome-definitions";
 import { VENDOR_SEED } from "../content/vendor-inventories";
 import { GIG_TEMPLATES } from "../content/gig-templates";
@@ -16,8 +9,7 @@ import { LOOT_TABLES } from "../content/loot-tables";
 // ============================================================================
 // Runtime seeding of the static game catalog (chrome, vendors, gigs, loot).
 // Fully idempotent: re-running is safe (upserts + conflict-do-nothing).
-// Run with `npm run db:seed` after `db:migrate`. Mirrors db/migrate.ts:
-// plain stdout logging and an explicit client.end() before process.exit.
+// Run with `npm run db:seed` after `db:migrate`.
 
 /**
  * Insert the gig catalog from content/gig-templates.ts, deriving the
@@ -33,32 +25,32 @@ export async function seedGigs(): Promise<number> {
         : t.tier === "t3" ? 20
         : t.tier === "t4" ? 25
         : 30;
-    const rows = await db
-      .insert(gigs)
-      .values({
+    const rows = await db("gigs")
+      .insert({
         name: t.name,
         description: t.description,
         tier: t.tier,
         type: t.type,
         district: t.district,
         difficulty: t.difficulty,
-        escapeDifficulty: t.escapeDifficulty,
-        requiredStats: t.requiredStats,
-        requiredStreetCred: t.requiredStreetCred,
-        baseReward: t.baseReward,
-        nilCost: t.nilCost,
-        heatGenerated: t.heatGenerated,
-        legworkMinutes: t.legworkMinutes,
-        cooldownMinutes,
+        escape_difficulty: t.escapeDifficulty,
+        required_stats: t.requiredStats,
+        required_street_cred: t.requiredStreetCred,
+        base_reward: t.baseReward,
+        nil_cost: t.nilCost,
+        heat_generated: t.heatGenerated,
+        legwork_minutes: t.legworkMinutes,
+        cooldown_minutes: cooldownMinutes,
       })
-      .onConflictDoNothing({ target: gigs.name })
-      .returning({ id: gigs.id });
+      .onConflict("name")
+      .ignore()
+      .returning("id");
     inserted += rows.length;
   }
   return inserted;
 }
 
-/** Row counts per table from the last seed run (attempted, except gigs). */
+/** Row counts per table from the last seed run. */
 export interface SeedResult {
   chrome: number;
   vendors: number;
@@ -76,47 +68,44 @@ export async function seedAll(): Promise<SeedResult> {
   // Chrome — upsert by slug.
   let chromeCount = 0;
   for (const c of CHROME_DEFINITIONS) {
-    await db
-      .insert(chromeDefinitions)
-      .values({
+    await db("chrome_definitions")
+      .insert({
         slug: c.slug,
         name: c.name,
         slot: c.slot,
         tier: c.tier,
         bonuses: c.bonuses,
-        humanityCost: c.humanityCost,
-        basePrice: c.basePrice,
+        humanity_cost: c.humanityCost,
+        base_price: c.basePrice,
         description: c.description,
-        isActive: true,
+        is_active: true,
       })
-      .onConflictDoUpdate({
-        target: chromeDefinitions.slug,
-        set: {
-          name: c.name,
-          slot: c.slot,
-          tier: c.tier,
-          bonuses: c.bonuses,
-          humanityCost: c.humanityCost,
-          basePrice: c.basePrice,
-          description: c.description,
-        },
-      });
+      .onConflict("slug")
+      .merge([
+        "name",
+        "slot",
+        "tier",
+        "bonuses",
+        "humanity_cost",
+        "base_price",
+        "description",
+      ]);
     chromeCount++;
   }
 
   // Vendors — fixed UUIDs, skip if already present (PK conflict).
   let vendorCount = 0;
   for (const v of VENDOR_SEED) {
-    await db
-      .insert(vendors)
-      .values({
+    await db("vendors")
+      .insert({
         id: v.id,
         name: v.name,
         type: v.type,
         district: v.district,
         description: v.description,
       })
-      .onConflictDoNothing();
+      .onConflict("id")
+      .ignore();
     vendorCount++;
   }
 
@@ -124,19 +113,16 @@ export async function seedAll(): Promise<SeedResult> {
   let inventoryCount = 0;
   for (const v of VENDOR_SEED) {
     for (const inv of v.inventory) {
-      await db
-        .insert(vendorInventory)
-        .values({
-          vendorId: v.id,
-          itemType: inv.itemType,
-          itemId: inv.itemId,
+      await db("vendor_inventory")
+        .insert({
+          vendor_id: v.id,
+          item_type: inv.itemType,
+          item_id: inv.itemId,
           price: inv.price,
           stock: inv.stock,
         })
-        .onConflictDoUpdate({
-          target: [vendorInventory.vendorId, vendorInventory.itemType, vendorInventory.itemId],
-          set: { price: inv.price, stock: inv.stock },
-        });
+        .onConflict(["vendor_id", "item_type", "item_id"])
+        .merge(["price", "stock"]);
       inventoryCount++;
     }
   }
@@ -147,18 +133,18 @@ export async function seedAll(): Promise<SeedResult> {
   // Loot tables — fixed UUIDs, skip if already present (PK conflict).
   let lootCount = 0;
   for (const l of LOOT_TABLES) {
-    await db
-      .insert(lootTables)
-      .values({
+    await db("loot_tables")
+      .insert({
         id: l.id,
-        gigTier: l.gigTier,
-        itemType: l.itemType,
-        itemId: l.itemId,
+        gig_tier: l.gigTier,
+        item_type: l.itemType,
+        item_id: l.itemId,
         weight: l.weight,
-        minQuantity: l.minQuantity,
-        maxQuantity: l.maxQuantity,
+        min_quantity: l.minQuantity,
+        max_quantity: l.maxQuantity,
       })
-      .onConflictDoNothing({ target: lootTables.id });
+      .onConflict("id")
+      .ignore();
     lootCount++;
   }
 
@@ -174,8 +160,7 @@ async function main(): Promise<void> {
     `✅ Seed complete: ${result.chrome} chrome, ${result.vendors} vendors, ` +
       `${result.inventory} inventory, ${result.gigs} gigs, ${result.loot} loot rows`,
   );
-  // BF-1: close the postgres client, not `db` (same as db/migrate.ts).
-  await client.end();
+  await db.destroy();
   process.exit(0);
 }
 

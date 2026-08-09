@@ -5,7 +5,6 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb } from "./helpers";
 import { db } from "../db";
-import { vendorInventory, vendors } from "../db/schema";
 import type {
   AuthResponse,
   BuyResponse,
@@ -64,21 +63,20 @@ describe("Feature #3 — economy & vendors API", () => {
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     server = await startTestServer(app);
 
-    const [vendor] = await db
-      .insert(vendors)
-      .values({
+    const [vendor] = await db("vendors")
+      .insert({
         name: "Ripper " + Date.now(),
         type: "RIPPERDOC",
         district: "a_paraiso",
         description: "Test ripperdoc",
-        isActive: true,
+        is_active: true,
       })
-      .returning();
+      .returning("*");
     staticVendorId = vendor.id;
-    await db.insert(vendorInventory).values({
-      vendorId: vendor.id,
-      itemType: ITEM_TYPE,
-      itemId: ITEM_ID,
+    await db("vendor_inventory").insert({
+      vendor_id: vendor.id,
+      item_type: ITEM_TYPE,
+      item_id: ITEM_ID,
       price: 100,
       stock: 10,
     });
@@ -110,19 +108,18 @@ describe("Feature #3 — economy & vendors API", () => {
 
   /** Seed an isolated vendor + inventory row for a single test. */
   async function seedVendor(opts: { price?: number; stock?: number } = {}) {
-    const [vendor] = await db
-      .insert(vendors)
-      .values({
+    const [vendor] = await db("vendors")
+      .insert({
         name: `Store-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         type: "FIXER",
         district: "o_fluxo",
-        isActive: true,
+        is_active: true,
       })
-      .returning();
-    await db.insert(vendorInventory).values({
-      vendorId: vendor.id,
-      itemType: ITEM_TYPE,
-      itemId: ITEM_ID,
+      .returning("*");
+    await db("vendor_inventory").insert({
+      vendor_id: vendor.id,
+      item_type: ITEM_TYPE,
+      item_id: ITEM_ID,
       price: opts.price ?? 100,
       stock: opts.stock ?? 10,
     });
@@ -271,15 +268,14 @@ describe("Feature #3 — economy & vendors API", () => {
     });
 
     it("should exclude inactive vendors", async () => {
-      const [inactive] = await db
-        .insert(vendors)
-        .values({
+      const [inactive] = await db("vendors")
+        .insert({
           name: "Ghost Shop " + Date.now(),
           type: "BLACK_MARKET",
           district: "o_fervo",
-          isActive: false,
+          is_active: false,
         })
-        .returning();
+        .returning("*");
 
       const accessToken = await registerAndCreateCharacter();
       const res = await fetch(`${base()}/api/vendors`, { headers: authHeader(accessToken) });

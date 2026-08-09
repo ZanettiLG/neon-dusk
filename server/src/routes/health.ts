@@ -1,6 +1,5 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
-import { sql } from "drizzle-orm";
 import { db } from "../db";
 
 export interface HealthRouteOptions {
@@ -41,9 +40,8 @@ export async function healthRoutes(app: FastifyInstance, opts: HealthRouteOption
         redis: "disconnected" as string,
       };
 
-      // BUGFIX BF-2: `db.execute` requires a SQL template literal, not a raw string
       try {
-        await db.execute(sql`SELECT 1`);
+        await db.raw("SELECT 1");
         services.database = "connected";
       } catch {
         services.database = "disconnected";

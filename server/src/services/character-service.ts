@@ -1,9 +1,7 @@
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
 import { ATTRIBUTE_KEYS, ATTR_TOTAL, MAX_ATTR, MIN_ATTR, NIL_MAX_BASE, ORIGINS, ROLES } from "@neon-dusk/shared";
 import type { Character } from "@neon-dusk/shared";
 import { db } from "../db";
-import { characters } from "../db/schema";
 import { AppError } from "../middleware/error-handler";
 import { NOMAD_MAX_NIL_BONUS } from "../game/abilities";
 import { toPublicCharacter } from "../lib/transformers";
@@ -45,35 +43,37 @@ export async function createCharacter(
     );
   }
 
-  const existing = await db.select().from(characters).where(eq(characters.userId, userId)).limit(1);
+  const existing = await db("characters").select().where("user_id", userId).limit(1);
   if (existing.length) {
     throw new AppError(409, "CHARACTER_EXISTS", "Você já tem um personagem");
   }
 
-  const nameTaken = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(eq(sql`lower(${characters.name})`, input.name.trim().toLowerCase()))
+  const nameTaken = await db("characters")
+    .select("id")
+    .whereRaw("lower(name) = ?", [input.name.trim().toLowerCase()])
     .limit(1);
   if (nameTaken.length) {
     throw new AppError(409, "NAME_TAKEN", "Esse nome já está em uso");
   }
 
   try {
-    const [row] = await db
-      .insert(characters)
-      .values({
-        userId,
+    const [row] = await db("characters")
+      .insert({
+        user_id: userId,
         name: input.name.trim(),
         origin: input.origin,
         role: input.role,
-        ...attrs,
+        body: attrs.body,
+        reflexes: attrs.reflexes,
+        intelligence: attrs.intelligence,
+        technical: attrs.technical,
+        cool: attrs.cool,
         // Feature #65: nomads get +20% max NIL.
-        maxNil: input.role === "nomad"
+        max_nil: input.role === "nomad"
           ? Math.ceil(NIL_MAX_BASE * (1 + NOMAD_MAX_NIL_BONUS))
           : NIL_MAX_BASE,
       })
-      .returning();
+      .returning("*");
     return toPublicCharacter(row);
   } catch (err) {
     // Safety net for the case-insensitive unique name index (lower(name)).

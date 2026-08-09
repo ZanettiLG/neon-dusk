@@ -12,12 +12,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb } from "./helpers";
 import { db } from "../db";
-import { activeGigs } from "../db/schema";
 import type {
   AuthResponse,
   Character,
@@ -121,15 +119,14 @@ describe("ND-018 — e2e player loop", () => {
         // ponytail: bypass legwork timer via DB — waiting 5-30min per gig would
         // make this test O(hours). Backdate legwork_started_at so the timer gate
         // (ND-078) passes.
-        await db
-          .update(activeGigs)
-          .set({
+        await db("active_gigs")
+          .where("character_id", character.id)
+          .update({
             phase: "legwork" as const,
-            legworkStartedAt: new Date(Date.now() - 31 * 60_000),
-            legworkCompleted: true,
-            updatedAt: new Date(),
-          })
-          .where(eq(activeGigs.characterId, character.id));
+            legwork_started_at: new Date(Date.now() - 31 * 60_000),
+            legwork_completed: true,
+            updated_at: new Date(),
+          });
 
         // Step 5c: Execute
         const executeRes = await server.post(`/api/gigs/${gigId}/execute`, {}, headers);

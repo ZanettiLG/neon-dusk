@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
-import { characterWallets, transactionLog, vendorInventory, vendors } from "../db/schema";
 import { buyFromVendor, ensureWallet, getWallet, transfer } from "../services/economy-service";
 import { insertTestCharacter, resetDb } from "./helpers";
 
@@ -25,7 +23,7 @@ describe("economy integrity", () => {
   describe("money conservation", () => {
     it("should keep the ledger balanced across many transfers (Σ deltas = 0)", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       // 5 credits of 100, 5 debits of 100 → net zero after the seed.
       for (let i = 0; i < 5; i++) {
@@ -33,31 +31,21 @@ describe("economy integrity", () => {
         await transfer(characterId, -100, "VENDOR_PURCHASE", `buy-${i}`);
       }
 
-      const [{ sum }] = await db
-        .select({
-          sum: sql<number>`coalesce(sum(balance_after - balance_before), 0)`,
-        })
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            // Exclude the seed — it IS the capital injected into the system.
-            sql`${transactionLog.type} != 'ADMIN_ADJUSTMENT'`,
-          ),
-        );
+      const [result] = await db("transaction_log")
+        .where("character_id", characterId)
+        .andWhereNot("type", "ADMIN_ADJUSTMENT")
+        .select(db.raw("coalesce(sum(balance_after - balance_before), 0) as sum"));
 
-      expect(Number(sum)).toBe(0);
+      expect(Number(result.sum)).toBe(0);
 
       // Wallet balance must equal the running sum of ALL its transactions.
-      const [{ running }] = await db
-        .select({
-          running: sql<number>`coalesce(sum(amount), 0)`,
-        })
-        .from(transactionLog)
-        .where(eq(transactionLog.characterId, characterId));
+      const [running] = await db("transaction_log")
+        .where("character_id", characterId)
+        .select(db.raw("coalesce(sum(amount), 0) as running"));
+
       const wallet = await getWallet(characterId);
 
-      expect(Number(running)).toBe(wallet.balance);
+      expect(Number(running.running)).toBe(wallet.balance);
     });
 
     it("should conserve total eddies across multiple wallets (Σ balance = Σ credits - Σ debits)", async () => {
@@ -66,31 +54,30 @@ describe("economy integrity", () => {
 
       // Seed both wallets (2 × 500 injected).
       for (const { characterId } of [a, b]) {
-        await db.transaction((tx) => ensureWallet(characterId, tx));
+        await db.transaction((trx) => ensureWallet(characterId, trx));
       }
       // Cross-wallet movement: A earns 300, spends 100 → B receives 100.
       await transfer(a.characterId, 300, "GIG_PAYOUT", "gig");
       await transfer(a.characterId, -100, "PVP_LOSS", "pvp");
       await transfer(b.characterId, 100, "PVP_REWARD", "pvp");
 
-      const wallets = await db.select().from(characterWallets);
+      const wallets = await db("character_wallets").select("*");
       const totalBalance = wallets.reduce((acc, w) => acc + w.balance, 0);
 
       // Injected: 1000 (seed) + 300 (A earns) + 100 (B reward). Spent: 100 (A loss).
       expect(totalBalance).toBe(1000 + 300 + 100 - 100);
 
       // And the sum of every transaction amount matches the sum of balances.
-      const [{ txSum }] = await db.select({
-        txSum: sql<number>`coalesce(sum(amount), 0)`,
-      }).from(transactionLog);
-      expect(Number(txSum)).toBe(totalBalance);
+      const [txResult] = await db("transaction_log")
+        .select(db.raw("coalesce(sum(amount), 0) as tx_sum"));
+      expect(Number(txResult.tx_sum)).toBe(totalBalance);
     });
   });
 
   describe("optimistic locking under race conditions", () => {
     it("should not lose updates when many transfers race the same wallet", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       // 10 concurrent +20 transfers on a wallet starting at 500.
       const results = await Promise.allSettled(
@@ -108,7 +95,7 @@ describe("economy integrity", () => {
 
     it("should produce sequential version numbers without gaps or duplicates", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       const results = await Promise.allSettled(
         Array.from({ length: 6 }, (_, i) => transfer(characterId, 5, "GIG_PAYOUT", `v-${i}`)),
@@ -121,10 +108,9 @@ describe("economy integrity", () => {
       expect(wallet.version).toBe(ok);
 
       // And every transaction log entry is internally consistent (after - before = amount).
-      const rows = await db
-        .select()
-        .from(transactionLog)
-        .where(eq(transactionLog.characterId, characterId));
+      const rows = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId);
       for (const row of rows) {
         expect(row.balanceAfter - row.balanceBefore).toBe(row.amount);
       }
@@ -141,7 +127,7 @@ describe("economy integrity", () => {
 
     it("should keep the race-safe when mixing credits and debits concurrently", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
       const ops = Array.from({ length: 8 }, (_, i) =>
         i % 2 === 0
@@ -167,26 +153,24 @@ describe("economy integrity", () => {
   describe("atomicity", () => {
     it("should roll back the wallet debit when the stock decrement fails mid-transaction", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
-      const [vendor] = await db
-        .insert(vendors)
-        .values({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
-        .returning();
-      const [item] = await db
-        .insert(vendorInventory)
-        .values({ vendorId: vendor.id, itemType: "weapon", itemId: "nova-9", price: 100, stock: 2 })
-        .returning();
+      const [vendor] = await db("vendors")
+        .insert({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
+        .returning("*");
+      const [item] = await db("vendor_inventory")
+        .insert({ vendor_id: vendor.id, item_type: "weapon", item_id: "nova-9", price: 100, stock: 2 })
+        .returning("*");
 
       // Break the stock decrement AFTER the wallet debit: a trigger that rejects
       // the UPDATE on vendor_inventory. buyFromVendor's transaction must then
       // roll back the wallet debit and the audit entry too.
-      await db.execute(sql`
+      await db.raw(`
         CREATE OR REPLACE FUNCTION nd_test_block_stock() RETURNS trigger AS $$
         BEGIN RAISE EXCEPTION 'injected stock failure'; END;
         $$ LANGUAGE plpgsql
       `);
-      await db.execute(sql`
+      await db.raw(`
         CREATE TRIGGER nd_test_stock_guard
         BEFORE UPDATE ON vendor_inventory
         FOR EACH ROW EXECUTE FUNCTION nd_test_block_stock()
@@ -203,41 +187,34 @@ describe("economy integrity", () => {
         expect(wallet.version).toBe(0);
 
         // No audit entry for the aborted purchase.
-        const purchases = await db
-          .select()
-          .from(transactionLog)
-          .where(
-            and(
-              eq(transactionLog.characterId, characterId),
-              eq(transactionLog.type, "VENDOR_PURCHASE"),
-            ),
-          );
+        const purchases = await db("transaction_log")
+          .select("*")
+          .where("character_id", characterId)
+          .andWhere("type", "VENDOR_PURCHASE");
         expect(purchases).toHaveLength(0);
 
         // Stock untouched.
-        const [after] = await db
-          .select()
-          .from(vendorInventory)
-          .where(eq(vendorInventory.id, item.id));
+        const [after] = await db("vendor_inventory")
+          .select("*")
+          .where("id", item.id);
         expect(after.stock).toBe(2);
       } finally {
-        await db.execute(sql`DROP TRIGGER IF EXISTS nd_test_stock_guard ON vendor_inventory`);
-        await db.execute(sql`DROP FUNCTION IF EXISTS nd_test_block_stock()`);
+        await db.raw("DROP TRIGGER IF EXISTS nd_test_stock_guard ON vendor_inventory");
+        await db.raw("DROP FUNCTION IF EXISTS nd_test_block_stock()");
       }
     });
 
     it("should leave no partial state when a concurrent buyer loses the race", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db.transaction((trx) => ensureWallet(characterId, trx));
 
-      const [vendor] = await db
-        .insert(vendors)
-        .values({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
-        .returning();
-      await db.insert(vendorInventory).values({
-        vendorId: vendor.id,
-        itemType: "weapon",
-        itemId: "nova-9",
+      const [vendor] = await db("vendors")
+        .insert({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
+        .returning("*");
+      await db("vendor_inventory").insert({
+        vendor_id: vendor.id,
+        item_type: "weapon",
+        item_id: "nova-9",
         price: 100,
         stock: 3,
       });
@@ -264,21 +241,15 @@ describe("economy integrity", () => {
       expect(wallet.balance).toBe(500 - 100 * ok);
       expect(wallet.version).toBe(ok);
 
-      const purchases = await db
-        .select()
-        .from(transactionLog)
-        .where(
-          and(
-            eq(transactionLog.characterId, characterId),
-            eq(transactionLog.type, "VENDOR_PURCHASE"),
-          ),
-        );
+      const purchases = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "VENDOR_PURCHASE");
       expect(purchases).toHaveLength(ok);
 
-      const [inventory] = await db
-        .select()
-        .from(vendorInventory)
-        .where(eq(vendorInventory.vendorId, vendor.id));
+      const [inventory] = await db("vendor_inventory")
+        .select("*")
+        .where("vendor_id", vendor.id);
       expect(inventory.stock).toBe(3 - ok);
     });
   });

@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import Redis from "ioredis";
-import { sql } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json } from "./helpers";
 import { db } from "../db";
-import { gameEvents } from "../db/schema";
 
 // ND-007 — telemetry onResponse middleware. The hook persists
 // request.event_context into game_events fire-and-forget (setImmediate), so
@@ -76,7 +74,7 @@ describe("Telemetry middleware (fire-and-forget events)", () => {
   });
 
   beforeEach(async () => {
-    await db.execute(sql`TRUNCATE TABLE game_events`);
+    await db.raw("TRUNCATE TABLE game_events");
   });
 
   afterAll(async () => {
@@ -84,7 +82,7 @@ describe("Telemetry middleware (fire-and-forget events)", () => {
   });
 
   async function countEvents(): Promise<number> {
-    const rows = await db.select({ id: gameEvents.id }).from(gameEvents);
+    const rows = await db("game_events").select("id");
     return rows.length;
   }
 
@@ -99,7 +97,7 @@ describe("Telemetry middleware (fire-and-forget events)", () => {
     await server.get("/api/_test/telemetry/t1");
     await waitFor(async () => (await countEvents()) === 1);
 
-    const rows = await db.select().from(gameEvents);
+    const rows = await db("game_events").select("*");
     expect(rows).toHaveLength(1);
     expect(rows[0].eventType).toBe("GIG_COMPLETED");
     expect(rows[0].actorId).toBe(ACTOR_1);
@@ -111,7 +109,7 @@ describe("Telemetry middleware (fire-and-forget events)", () => {
     await server.get("/api/_test/telemetry/t2");
     await waitFor(async () => (await countEvents()) === 2);
 
-    const rows = await db.select().from(gameEvents);
+    const rows = await db("game_events").select("*");
     expect(rows.map((r) => r.eventType).sort()).toEqual(["EDDIES_EARNED", "GIG_COMPLETED"]);
     const earned = rows.find((r) => r.eventType === "EDDIES_EARNED")!;
     expect(earned.actorId).toBe(ACTOR_2);
