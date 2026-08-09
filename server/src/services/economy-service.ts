@@ -1,15 +1,18 @@
 import { and, desc, eq, lt } from "drizzle-orm";
 import type { TransactionRecord, TransactionType, VendorRecord } from "@neon-dusk/shared";
+import { NIL_SYN_CAFE_AMOUNT } from "@neon-dusk/shared";
 import { db, type Tx } from "../db";
 import {
   characterWallets,
   characters,
+  chromeDefinitions,
   transactionLog,
   vendorInventory,
   vendors,
 } from "../db/schema";
 import { AppError } from "../middleware/error-handler";
 import { calculatePrice, transferEddies, type WalletState } from "../game/economy";
+import { calculateRegen } from "./nil-service";
 
 // Neon Dusk — Economy service (orchestration over the pure game logic)
 // ============================================================================
@@ -322,6 +325,8 @@ export async function getVendor(vendorId: string): Promise<{
     itemId: string;
     price: number;
     stock: number;
+    chromeDefinitionId: string | null;
+    humanityCost: number | null;
   }>;
 }> {
   const [vendor] = await db.select().from(vendors).where(eq(vendors.id, vendorId)).limit(1);
@@ -329,8 +334,21 @@ export async function getVendor(vendorId: string): Promise<{
   if (!vendor) throw new AppError(404, "VENDOR_NOT_FOUND", "Vendedor não encontrado");
 
   const inventory = await db
-    .select()
+    .select({
+      id: vendorInventory.id,
+      vendorId: vendorInventory.vendorId,
+      itemType: vendorInventory.itemType,
+      itemId: vendorInventory.itemId,
+      price: vendorInventory.price,
+      stock: vendorInventory.stock,
+      chromeDefinitionId: chromeDefinitions.id,
+      humanityCost: chromeDefinitions.humanityCost,
+    })
     .from(vendorInventory)
+    .leftJoin(
+      chromeDefinitions,
+      and(eq(vendorInventory.itemType, "CHROME"), eq(vendorInventory.itemId, chromeDefinitions.slug)),
+    )
     .where(eq(vendorInventory.vendorId, vendorId));
 
   return {
@@ -456,6 +474,28 @@ export async function buyFromVendor(
         .update(vendorInventory)
         .set({ stock: item.stock - quantity })
         .where(eq(vendorInventory.id, item.id));
+    }
+
+    // 10. Paid syn-café restores +20 NIL instantly, no cooldown.
+    if (itemType === "CONSUMABLE" && itemId === "syn-cafe") {
+      const [character] = await tx
+        .select({
+          nil: characters.nil,
+          maxNil: characters.maxNil,
+          nilUpdatedAt: characters.nilUpdatedAt,
+        })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+
+      if (character) {
+        const { newNil: current } = calculateRegen(character.nil, character.maxNil, character.nilUpdatedAt);
+        const restored = Math.min(character.maxNil, current + NIL_SYN_CAFE_AMOUNT);
+        await tx
+          .update(characters)
+          .set({ nil: restored, nilUpdatedAt: new Date() })
+          .where(eq(characters.id, characterId));
+      }
     }
 
     return {

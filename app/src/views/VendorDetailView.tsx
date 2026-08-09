@@ -35,14 +35,22 @@ export default function VendorDetailView() {
     return () => { cancelled = true; };
   }, [id]);
 
-  async function onBuy(itemType: string, itemId: string) {
+  async function onBuy(item: VendorInventoryRecord) {
     if (!id) return;
     setBuyLoading(true);
     setBuyError(null);
     setBuyMsg(null);
     try {
-      await api.post(`/api/vendors/${id}/buy`, { itemType, itemId, quantity: 1 });
-      setBuyMsg("Compra realizada!");
+      if (item.itemType === "CHROME") {
+        if (!item.chromeDefinitionId) {
+          throw new Error("Definição de chrome não encontrada");
+        }
+        await api.post("/api/chrome/install", { chromeDefinitionId: item.chromeDefinitionId, vendorId: id });
+        setBuyMsg("Implante instalado!");
+      } else {
+        await api.post(`/api/vendors/${id}/buy`, { itemType: item.itemType, itemId: item.itemId, quantity: 1 });
+        setBuyMsg("Compra realizada!");
+      }
       // Refresh inventory
       const fresh = await api.get<VendorWithInventory>(`/api/vendors/${id}`);
       setData(fresh);
@@ -51,6 +59,12 @@ export default function VendorDetailView() {
     } finally {
       setBuyLoading(false);
     }
+  }
+
+  function buttonLabel(item: VendorInventoryRecord): string {
+    if (item.itemType === "CHROME") return "Comprar & Instalar";
+    if (item.itemType === "CONSUMABLE" && item.itemId === "syn-cafe") return "Restaurar NIL (+20)";
+    return "Comprar";
   }
 
   if (loading) {
@@ -101,6 +115,7 @@ export default function VendorDetailView() {
                 <th className="py-2 pr-4">Tipo</th>
                 <th className="py-2 pr-4">ID</th>
                 <th className="py-2 pr-4">Preço</th>
+                <th className="py-2 pr-4">Humanidade</th>
                 <th className="py-2 pr-4">Estoque</th>
                 <th className="py-2"></th>
               </tr>
@@ -111,6 +126,11 @@ export default function VendorDetailView() {
                   <td className="py-2 pr-4 text-nd-cyan">{item.itemType}</td>
                   <td className="py-2 pr-4 text-nd-text">{item.itemId}</td>
                   <td className="py-2 pr-4 text-nd-gold">{item.price} eds</td>
+                  <td className="py-2 pr-4 text-nd-magenta">
+                    {item.itemType === "CHROME" && item.humanityCost != null
+                      ? `-${item.humanityCost}`
+                      : "—"}
+                  </td>
                   <td className="py-2 pr-4 text-nd-text-secondary">
                     {item.stock === -1 ? "∞" : item.stock}
                   </td>
@@ -118,9 +138,9 @@ export default function VendorDetailView() {
                     <button
                       className="btn-neon text-xs px-3 py-1"
                       disabled={buyLoading || item.stock === 0}
-                      onClick={() => void onBuy(item.itemType, item.itemId)}
+                      onClick={() => void onBuy(item)}
                     >
-                      Comprar
+                      {buttonLabel(item)}
                     </button>
                   </td>
                 </tr>

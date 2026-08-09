@@ -48,10 +48,12 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
   gig_abandon:      { max: 5,  windowMs: 60_000 },
 } as const;
 
-// Circuit-break constants
-const CB_COUNT_TTL_SECONDS = 3600;    // 1h window for counting strikes
-const CB_BAN_TTL_SECONDS = 86_400;    // 24h ban
-export const CB_STRIKE_THRESHOLD = 7; // 7 different per-action rate-limit hits in 1h = ban
+/** Circuit-breaker config — mutable so tests can tune the threshold. */
+export const circuitBreakerConfig = {
+  countTtlSeconds: 3600,          // 1h window for counting strikes
+  banTtlSeconds: 86_400,          // 24h ban
+  strikeThreshold: 1000,
+};
 
 // ---------------------------------------------------------------------------
 // Legacy — generic per-key rate limit (kept for backward compat)
@@ -129,21 +131,21 @@ export function checkActionRateLimit(
 
     // Increment circuit-break strike counter.
     const cbKey = `cb_count:${userId}`;
-    const cbResults = await redis.multi().incr(cbKey).expire(cbKey, CB_COUNT_TTL_SECONDS).exec();
+    const cbResults = await redis.multi().incr(cbKey).expire(cbKey, circuitBreakerConfig.countTtlSeconds).exec();
     const cbHits = cbResults !== null ? (cbResults[0][1] as number) : 0;
-    const cbRemaining = CB_STRIKE_THRESHOLD - cbHits;
+    const cbRemaining = circuitBreakerConfig.strikeThreshold - cbHits;
 
-    if (cbHits >= CB_STRIKE_THRESHOLD) {
+    if (cbHits >= circuitBreakerConfig.strikeThreshold) {
       await redis.setex(
         `circuit_break:${userId}`,
-        CB_BAN_TTL_SECONDS,
+        circuitBreakerConfig.banTtlSeconds,
         "1",
       );
       throw new AppError(
         429,
         "CIRCUIT_BREAK",
         "Sistema neural sobrecarregado. Retorne em 24 horas.",
-        { retryAfter: CB_BAN_TTL_SECONDS },
+        { retryAfter: circuitBreakerConfig.banTtlSeconds },
       );
     }
 

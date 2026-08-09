@@ -131,7 +131,6 @@ describe("ND-011 — gigs service & API", () => {
 
       expect(board.gigs).toHaveLength(10);
       expect(board.activeGig).toBeNull();
-      expect(board.dailyCount).toBe(0);
       for (const g of board.gigs) {
         expect(g).toMatchObject({
           id: expect.any(String),
@@ -426,32 +425,6 @@ describe("ND-011 — gigs service & API", () => {
 
       const res = await acceptGig(characterId, farma.id);
       expect(res.activeGig.gigName).toBe("Corre da Farmácia");
-    });
-
-    it("should throw 400 DAILY_GIG_LIMIT once 10 gigs were completed today and roll back", async () => {
-      const { characterId } = await insertTestCharacter();
-      const farma = await farmaGig();
-      // Completed 20 minutes ago so the per-gig cooldown (10 min) has expired
-      // and the daily-limit check is the one that fires.
-      await db.insert(gigHistory).values(
-        Array.from({ length: 10 }, () => ({
-          characterId,
-          gigId: farma.id,
-          outcome: "success" as const,
-          phasesCompleted: ["meet", "execute", "escape", "wrap_up"],
-          payout: 0,
-          streetCredGained: 0,
-          heatAccumulated: 0,
-          district: farma.district,
-          completedAt: new Date(Date.now() - 20 * 60_000),
-        })),
-      );
-
-      await expect(acceptGig(characterId, farma.id)).rejects.toMatchObject({
-        statusCode: 400,
-        code: "DAILY_GIG_LIMIT",
-      });
-      expect(await getActiveGig(characterId)).toBeNull();
     });
 
     it("should throw 404 GIG_NOT_FOUND for an unknown gig", async () => {
@@ -864,7 +837,6 @@ describe("ND-011 — gigs service & API", () => {
       const body = res.json() as GigBoardResponse;
       expect(body.gigs).toHaveLength(10);
       expect(body.activeGig).toBeNull();
-      expect(body.dailyCount).toBe(0);
       // Fresh character meets the easiest gig (cool 5 ≥ 3) but not the Mula
       // Noturna (reflexes 4 < 5) nor any T2 (SC 0 < 5).
       const byName = new Map(body.gigs.map((g) => [g.name, g]));
@@ -988,7 +960,7 @@ describe("ND-011 — gigs service & API", () => {
     });
 
     it("should return 400 ALREADY_ACTIVE_GIG on a double accept", async () => {
-      const { accessToken: token, characterId } = await registerApiUser();
+      const { accessToken: token } = await registerApiUser();
       const farma = await farmaGig();
 
       await app.inject({
@@ -996,10 +968,6 @@ describe("ND-011 — gigs service & API", () => {
         url: `/api/gigs/${farma.id}/accept`,
         headers: { authorization: `Bearer ${token}` },
       });
-
-      // ND-053: clear the 30s accept cooldown so the second accept reaches the
-      // business rule (ALREADY_ACTIVE_GIG) instead of the anti-cheat gate.
-      await app.redis.del(`cooldown:${characterId}:gig_accept`);
 
       const res = await app.inject({
         method: "POST",

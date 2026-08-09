@@ -6,10 +6,9 @@ import { useGigStore } from "@/stores/gig";
 /** Escape-phase active gig (post-POST /escape). */
 function escapePhaseGig(overrides: Record<string, unknown> = {}) {
   return {
-    id: "ag-1",
-    gigId: "g-1",
-    characterId: "c-1",
-    gigName: "Corre da Farmácia",
+          id: "ag-1",
+          gigId: "g-1",
+          gigName: "Corre da Farmácia",
     gigType: "delivery",
     gigTier: "t1",
     phase: "escape",
@@ -57,7 +56,7 @@ describe("ActiveGigPanel", () => {
   });
 
   it("renders without error when activeGig is null", () => {
-    useGigStore.setState({ board: { gigs: [], activeGig: null, dailyCount: 0 } });
+    useGigStore.setState({ board: { gigs: [], activeGig: null } });
     render(<ActiveGigPanel />);
     // Component returns null when there is no active gig and no wrap-up
     expect(document.body).toBeTruthy(); // no crash
@@ -67,11 +66,9 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: {
           id: "ag-1",
           gigId: "g-1",
-          characterId: "c-1",
           gigName: "Corre da Farmácia",
           gigType: "delivery",
           gigTier: "t1",
@@ -98,11 +95,9 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: {
           id: "ag-1",
           gigId: "g-1",
-          characterId: "c-1",
           gigName: "Corre da Farmácia",
           gigType: "delivery",
           gigTier: "t1",
@@ -134,11 +129,9 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: {
           id: "ag-2",
           gigId: "g-2",
-          characterId: "c-1",
           gigName: "Encomenda Extraviada",
           gigType: "sabotage",
           gigTier: "t2",
@@ -168,7 +161,6 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: escapePhaseGig({ escapeOutcome: "success" }),
       },
     });
@@ -183,7 +175,6 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: escapePhaseGig({ escapeOutcome: "failure" }),
       },
     });
@@ -201,7 +192,6 @@ describe("ActiveGigPanel", () => {
       escapeGig,
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: escapePhaseGig(),
       },
     });
@@ -217,7 +207,6 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: escapePhaseGig({ phase: "execute", escapeOutcome: null }),
       },
     });
@@ -235,7 +224,6 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: escapePhaseGig({ phase: "execute", escapeOutcome: null }),
       },
     });
@@ -261,7 +249,6 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState({
       board: {
         gigs: [],
-        dailyCount: 0,
         activeGig: escapePhaseGig(),
       },
     });

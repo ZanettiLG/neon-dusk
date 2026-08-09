@@ -3,10 +3,12 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import {
   characterWallets,
+  characters,
   transactionLog,
   vendorInventory,
   vendors,
 } from "../db/schema";
+import { NIL_SYN_CAFE_AMOUNT } from "@neon-dusk/shared";
 import {
   buyFromVendor,
   ensureWallet,
@@ -464,6 +466,37 @@ describe("economy service", () => {
         .from(vendorInventory)
         .where(eq(vendorInventory.vendorId, vendorId));
       expect(row.stock).toBe(-1); // untouched
+    });
+
+    it("should restore +20 NIL when buying CONSUMABLE/syn-cafe", async () => {
+      const { characterId } = await insertTestCharacter();
+      await db.transaction((tx) => ensureWallet(characterId, tx));
+      await db
+        .update(characters)
+        .set({ nil: 50 })
+        .where(eq(characters.id, characterId));
+
+      const [vendor] = await db
+        .insert(vendors)
+        .values({ name: "Zé do Pó", type: "STIM_DEALER", district: "o_fervo", isActive: true })
+        .returning();
+      await db.insert(vendorInventory).values({
+        vendorId: vendor.id,
+        itemType: "CONSUMABLE",
+        itemId: "syn-cafe",
+        price: 50,
+        stock: -1,
+      });
+
+      const result = await buyFromVendor(characterId, vendor.id, "CONSUMABLE", "syn-cafe", 1);
+
+      expect(result.balanceAfter).toBe(450);
+      const [char] = await db
+        .select({ nil: characters.nil })
+        .from(characters)
+        .where(eq(characters.id, characterId))
+        .limit(1);
+      expect(char!.nil).toBe(50 + NIL_SYN_CAFE_AMOUNT);
     });
   });
 

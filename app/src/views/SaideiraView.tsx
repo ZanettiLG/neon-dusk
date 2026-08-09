@@ -64,6 +64,7 @@ export default function SaideiraView() {
   const connectChat = useSaideiraStore((s) => s.connectChat);
   const disconnectChat = useSaideiraStore((s) => s.disconnectChat);
   const fetchLegends = useSaideiraStore((s) => s.fetchLegends);
+  const fetchCrewLeaderboard = useSaideiraStore((s) => s.fetchCrewLeaderboard);
 
   const [tab, setTab] = useState<TabKey>("chat");
 
@@ -71,10 +72,10 @@ export default function SaideiraView() {
     void fetchHub();
     void fetchHistory();
     void fetchLegends();
-    // CrewLeaderboard component fetches on its own mount — no duplicate call here.
+    void fetchCrewLeaderboard();
     connectChat();
     return () => disconnectChat();
-  }, [fetchHub, fetchHistory, fetchLegends, connectChat, disconnectChat]);
+  }, [fetchHub, fetchHistory, fetchLegends, fetchCrewLeaderboard, connectChat, disconnectChat]);
 
   if (!character) return null; // RequireCharacter guards this route
   if (character.streetCred < 10) return <SaideiraGate />;

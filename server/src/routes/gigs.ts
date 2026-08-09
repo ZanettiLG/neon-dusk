@@ -13,7 +13,6 @@ import type {
 } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
-import { checkCooldown } from "../middleware/cooldown";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
 import { requireCharacterId } from "../services/economy-service";
@@ -38,7 +37,7 @@ import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
 // path and verify it against the character's active gig.
 //
 // ND-053: All POST endpoints are guarded by circuit-break, per-action rate
-// limits, and audit logging. The `accept` action also has a 30s cooldown.
+// limits, and audit logging.
 
 const uuidParam = z.object({
   id: z.string().uuid("Gig id must be a UUID"),
@@ -87,7 +86,6 @@ export async function gigRoutes(app: FastifyInstance) {
         authenticate,
         setAuditContext("gig_accept"),
         checkCircuitBreaker(redis),
-        checkCooldown(redis, "gig_accept"),
         checkActionRateLimit(redis, "gig_accept"),
       ],
     },
@@ -97,12 +95,7 @@ export async function gigRoutes(app: FastifyInstance) {
 
       request.audit_context!.payload = { gigId: id };
 
-      const result = await acceptGig(characterId, id);
-
-      // Set cooldown AFTER success (ADR-2).
-      await redis.setex(`cooldown:${characterId}:gig_accept`, 30, "1");
-
-      return result;
+      return acceptGig(characterId, id);
     },
   );
 

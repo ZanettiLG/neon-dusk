@@ -12,7 +12,6 @@ import {
   getEscapeStat,
   getRelevantStats,
   isCooldownExpired,
-  isUnderDailyLimit,
   meetsStatRequirements,
   rollGigOutcome,
   STAT_SCALING,
@@ -401,25 +400,6 @@ describe("isCooldownExpired", () => {
 
   it("should return false when the last completion is in the future", () => {
     expect(isCooldownExpired(new Date(now.getTime() + 30 * MIN), 10, now)).toBe(false);
-  });
-});
-
-describe("isUnderDailyLimit", () => {
-  it("should return true below the limit (0 and 9)", () => {
-    expect(isUnderDailyLimit(0)).toBe(true);
-    expect(isUnderDailyLimit(9)).toBe(true);
-  });
-
-  it("should return false at the limit (10)", () => {
-    expect(isUnderDailyLimit(10)).toBe(false);
-  });
-
-  it("should return false above the limit", () => {
-    expect(isUnderDailyLimit(11)).toBe(false);
-  });
-
-  it("should return true for a negative count (defensive)", () => {
-    expect(isUnderDailyLimit(-1)).toBe(true);
   });
 });
 

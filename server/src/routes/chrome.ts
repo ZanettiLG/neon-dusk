@@ -8,7 +8,6 @@ import type {
 import { CHROME_SLOTS } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
-import { checkCooldown } from "../middleware/cooldown";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
@@ -27,7 +26,7 @@ import {
 // the chrome service's transactions.
 //
 // ND-053: Install/uninstall are guarded by circuit-break, per-action rate
-// limits, validation, and audit logging. Install also has a 60s cooldown.
+// limits, validation, and audit logging.
 
 const installSchema = z.object({
   chromeDefinitionId: z.string().uuid(),
@@ -65,7 +64,6 @@ export async function chromeRoutes(app: FastifyInstance) {
         authenticate,
         setAuditContext("chrome_install"),
         checkCircuitBreaker(redis),
-        checkCooldown(redis, "chrome_install"),
         validate(installSchema),
         checkActionRateLimit(redis, "chrome_install"),
       ],
@@ -77,9 +75,6 @@ export async function chromeRoutes(app: FastifyInstance) {
       request.audit_context!.payload = { chromeDefinitionId: body.chromeDefinitionId, vendorId: body.vendorId };
 
       const result = await installChrome(characterId, body.chromeDefinitionId, body.vendorId);
-
-      // Set cooldown AFTER success (ADR-2) — 60s.
-      await redis.setex(`cooldown:${characterId}:chrome_install`, 60, "1");
 
       return reply.status(201).send(result as ChromeInstallResponse);
     },
