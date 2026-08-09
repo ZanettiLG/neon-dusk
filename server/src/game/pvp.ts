@@ -14,6 +14,8 @@ export interface CombatPowerInput {
   reflexes: number;
   chromePower: number;
   role: Role;
+  /** Feature #65: true when the solo's Combat Trance ability is active. */
+  tranceActive?: boolean;
   rng?: () => number;
 }
 
@@ -120,13 +122,17 @@ export function calculateChromePower(
  *            can trigger even at very low base values.
  */
 export function calculateCombatPower(input: CombatPowerInput): number {
-  const { body, reflexes, chromePower, role, rng = Math.random } = input;
+  const { body, reflexes, chromePower, role, tranceActive = false, rng = Math.random } = input;
 
   const randomBonus =
     Math.floor(rng() * (RANDOM_BONUS_MAX - RANDOM_BONUS_MIN + 1)) +
     RANDOM_BONUS_MIN;
 
-  let base = body + reflexes + chromePower + randomBonus;
+  // Feature #65: Combat Trance boosts body + reflexes before the solo multiplier.
+  const effectiveBody = tranceActive && role === "solo" ? Math.ceil(body * 1.25) : body;
+  const effectiveReflexes = tranceActive && role === "solo" ? Math.ceil(reflexes * 1.25) : reflexes;
+
+  let base = effectiveBody + effectiveReflexes + chromePower + randomBonus;
 
   if (role === "solo") {
     base = Math.ceil(base * SOLO_MULTIPLIER);

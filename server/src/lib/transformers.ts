@@ -1,11 +1,24 @@
-import type { Character } from "@neon-dusk/shared";
+import type { AbilityState, Character } from "@neon-dusk/shared";
+import { ROLE_TO_ABILITY } from "@neon-dusk/shared";
 import type { characters } from "../db/schema";
+import { isAbilityActive, cooldownRemainingMs } from "../game/abilities";
 
 // Neon Dusk — DB row → API shape transformers
 // ============================================================================
 
 /** Strip row internals — characters carry only public fields. */
 export function toPublicCharacter(row: typeof characters.$inferSelect): Character {
+  const abilityType = ROLE_TO_ABILITY[row.role];
+  const ability: AbilityState = {
+    abilityType,
+    isActive: isAbilityActive(row.abilityActiveUntil),
+    activeUntil: row.abilityActiveUntil?.toISOString() ?? null,
+    cooldownUntil: row.abilityCooldownUntil?.toISOString() ?? null,
+    cooldownRemainingMs: isAbilityActive(row.abilityActiveUntil)
+      ? 0
+      : cooldownRemainingMs(row.abilityCooldownUntil),
+  };
+
   return {
     id: row.id,
     userId: row.userId,
@@ -19,6 +32,7 @@ export function toPublicCharacter(row: typeof characters.$inferSelect): Characte
     cool: row.cool,
     streetCred: row.streetCred,
     maxStreetCredAchieved: row.maxStreetCredAchieved,
+    ability,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

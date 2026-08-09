@@ -29,6 +29,7 @@ import {
   validateSlotAvailability,
 } from "../game/chrome";
 import { transferEddies } from "../game/economy";
+import { getOverclockBonus, computeConsumption } from "../game/abilities";
 import { ensureWallet } from "./economy-service";
 
 // Neon Dusk — Chrome service (install / uninstall / loadout / catalog)
@@ -108,11 +109,23 @@ export async function installChrome(
   return db.transaction(async (tx) => {
     // 3. Character — humanity read fresh inside the tx (it guards the write)
     const [character] = await tx
-      .select({ humanity: characters.humanity })
+      .select({
+        humanity: characters.humanity,
+        role: characters.role,
+        abilityActiveUntil: characters.abilityActiveUntil,
+        abilityCooldownUntil: characters.abilityCooldownUntil,
+      })
       .from(characters)
       .where(eq(characters.id, characterId))
       .limit(1);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
+
+    // Feature #65: Overclock — 50% discount + 0 humanity cost for techs.
+    const overclockActive = getOverclockBonus(
+      character.role,
+      character.abilityActiveUntil,
+      character.abilityCooldownUntil,
+    );
 
     // 4. Current loadout — duplicate check + per-slot count
     const loadout = await tx
@@ -138,14 +151,16 @@ export async function installChrome(
       );
     }
 
-    // 6. Humanity cost
-    if (!validateHumanityAfterInstall(character.humanity, definition.humanityCost)) {
+    // 6. Humanity cost — overclock makes it free
+    const effectiveHumanityCost = overclockActive ? 0 : definition.humanityCost;
+    if (!validateHumanityAfterInstall(character.humanity, effectiveHumanityCost)) {
       throw new AppError(400, "HUMANITY_TOO_LOW", "Humanidade insuficiente para instalar este chrome");
     }
 
     // 7. Wallet debit with optimistic locking (pattern of buyFromVendor)
     const wallet = await ensureWallet(characterId, tx);
-    const price = stockItem.price; // vendor price is authoritative
+    // overclock: 50% discount on chrome price
+    const price = overclockActive ? Math.ceil(stockItem.price * 0.5) : stockItem.price;
     const availableFunds = wallet.balance - wallet.escrow;
     if (availableFunds < price) {
       throw new AppError(400, "INSUFFICIENT_FUNDS", `Precisa de ${price} eddies, tem ${availableFunds}`);
@@ -205,19 +220,34 @@ export async function installChrome(
       throw err;
     }
 
-    // Atomic humanity decrement — the WHERE guard `gte(humanity, cost)`
-    // re-validates at write time; a 0-row match silently no-ops (unreachable
-    // under normal operation via the wallet optimistic lock, defense in depth).
-    const effectiveHumanity = character.humanity - definition.humanityCost;
-    await tx
-      .update(characters)
-      .set({ humanity: effectiveHumanity, updatedAt: new Date() })
-      .where(
-        and(
-          eq(characters.id, characterId),
-          gte(characters.humanity, definition.humanityCost),
-        ),
-      );
+    // Atomic humanity decrement — zero when overclock is active.
+    const effectiveHumanity = character.humanity - effectiveHumanityCost;
+    if (effectiveHumanityCost > 0) {
+      await tx
+        .update(characters)
+        .set({ humanity: effectiveHumanity, updatedAt: new Date() })
+        .where(
+          and(
+            eq(characters.id, characterId),
+            gte(characters.humanity, effectiveHumanityCost),
+          ),
+        );
+    }
+
+    // Feature #65: consume Overclock after successful install.
+    if (overclockActive) {
+      const consumed = computeConsumption(character.role);
+      if (consumed) {
+        await tx
+          .update(characters)
+          .set({
+            abilityActiveUntil: consumed.activeUntil,
+            abilityCooldownUntil: consumed.cooldownUntil,
+            updatedAt: new Date(),
+          })
+          .where(eq(characters.id, characterId));
+      }
+    }
 
     // Recompute effective NIL max from all installed chrome (base 100 + nil_max bonuses).
     const installedDefs = await tx
