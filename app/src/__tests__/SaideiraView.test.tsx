@@ -79,6 +79,7 @@ function character(streetCred: number): Character {
     cool: 5,
     streetCred,
     maxStreetCredAchieved: streetCred,
+    ability: null,
     createdAt: "2085-01-01T00:00:00.000Z",
     updatedAt: "2085-01-01T00:00:00.000Z",
   };

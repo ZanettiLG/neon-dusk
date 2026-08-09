@@ -6,10 +6,9 @@ import { useGigStore } from "@/stores/gig";
 /** Escape-phase active gig (post-POST /escape). */
 function escapePhaseGig(overrides: Record<string, unknown> = {}) {
   return {
-    id: "ag-1",
-    gigId: "g-1",
-    characterId: "c-1",
-    gigName: "Corre da Farmácia",
+          id: "ag-1",
+          gigId: "g-1",
+          gigName: "Corre da Farmácia",
     gigType: "delivery",
     gigTier: "t1",
     phase: "escape",
@@ -71,7 +70,6 @@ describe("ActiveGigPanel", () => {
         activeGig: {
           id: "ag-1",
           gigId: "g-1",
-          characterId: "c-1",
           gigName: "Corre da Farmácia",
           gigType: "delivery",
           gigTier: "t1",
@@ -102,7 +100,6 @@ describe("ActiveGigPanel", () => {
         activeGig: {
           id: "ag-1",
           gigId: "g-1",
-          characterId: "c-1",
           gigName: "Corre da Farmácia",
           gigType: "delivery",
           gigTier: "t1",
@@ -138,7 +135,6 @@ describe("ActiveGigPanel", () => {
         activeGig: {
           id: "ag-2",
           gigId: "g-2",
-          characterId: "c-1",
           gigName: "Encomenda Extraviada",
           gigType: "sabotage",
           gigTier: "t2",

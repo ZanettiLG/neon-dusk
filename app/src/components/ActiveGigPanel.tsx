@@ -104,9 +104,9 @@ export default function ActiveGigPanel() {
   const phaseIndex = GIG_PHASES.indexOf(gig.phase as (typeof GIG_PHASES)[number]);
   const currentPhase = phaseIndex >= 0 ? phaseIndex : 0;
 
-  // Legwork countdown (legworkStartedAt + legworkMinutes).
+  // Legwork countdown (legworkStartedAt + legworkMinutes, now in seconds).
   const legworkStarted = gig.legworkStartedAt ? new Date(gig.legworkStartedAt).getTime() : null;
-  const legworkEndsAt = legworkStarted ? legworkStarted + gig.legworkMinutes * 60_000 : null;
+  const legworkEndsAt = legworkStarted ? legworkStarted + gig.legworkMinutes * 1_000 : null;
   const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
   const legworkDone = gig.legworkCompleted || (legworkEndsAt !== null && legworkRemaining === 0);
 
@@ -197,7 +197,7 @@ export default function ActiveGigPanel() {
               style={{
                 width: `${
                   legworkEndsAt
-                    ? Math.max(0, 100 - (legworkRemaining / (gig.legworkMinutes * 60)) * 100)
+                    ? Math.max(0, 100 - (legworkRemaining / gig.legworkMinutes) * 100)
                     : 0
                 }%`,
               }}
