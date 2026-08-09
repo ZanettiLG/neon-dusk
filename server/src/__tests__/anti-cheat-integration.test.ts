@@ -11,7 +11,7 @@ import { checkCircuitBreaker } from "../middleware/circuit-breaker";
 import { checkCooldown } from "../middleware/cooldown";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { validate } from "../middleware/validate";
-import { checkActionRateLimit } from "../lib/rate-limit";
+import { checkActionRateLimit, CB_STRIKE_THRESHOLD } from "../lib/rate-limit";
 import { requireCharacterId } from "../services/economy-service";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
@@ -261,23 +261,28 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     expect(rows.filter((r) => r.result === "allowed")).toHaveLength(10);
   });
 
-  it("should circuit-break after 3 rate-limit hits and block ALL actions", async () => {
+  it("should circuit-break after CB_STRIKE_THRESHOLD rate-limit hits and block ALL actions", async () => {
     const { accessToken, userId, characterId } = await registerApiUser();
 
     // vendor_purchase (max 10): counts 1-10 pass, then every further request
-    // exceeds — strikes land on counts 11, 12 and 13 (3rd strike = ban).
-    const responses = await hammerB(accessToken, 33);
+    // exceeds — strikes land on counts 11 through (10 + threshold). Circuit
+    // break on the (10 + threshold)-th call, when cb_count hits threshold.
+    const totalCalls = 10 + CB_STRIKE_THRESHOLD + 20;
+    const responses = await hammerB(accessToken, totalCalls);
 
     // First 10 within the limit.
     for (let i = 0; i < 10; i++) expect(responses[i].status).toBe(200);
 
-    // Strikes 1 and 2 → plain rate limit.
-    expect(responses[10].status).toBe(429);
-    const rlBody = await json<ErrorBody>(responses[10]);
-    expect(rlBody.error).toBe("RATE_LIMITED");
+    // Strikes 1 through (threshold-1) → plain rate limit.
+    for (let i = 10; i < 10 + CB_STRIKE_THRESHOLD - 1; i++) {
+      expect(responses[i].status).toBe(429);
+      const body = await json<ErrorBody>(responses[i]);
+      expect(body.error).toBe("RATE_LIMITED");
+    }
 
-    // Strike 3 → circuit-break: the ban key is set and the message changes.
-    const tripped = responses[12];
+    // Strike = threshold → circuit-break: the ban key is set, message changes.
+    const tripIdx = 10 + CB_STRIKE_THRESHOLD - 1;
+    const tripped = responses[tripIdx];
     expect(tripped.status).toBe(429);
     const cbBody = await json<ErrorBody>(tripped);
     expect(cbBody.error).toBe("CIRCUIT_BREAK");
@@ -285,7 +290,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     expect(tripped.headers.get("retry-after")).toBeTruthy();
 
     // Every subsequent request stays banned (20 more attempts).
-    expect(responses[32].status).toBe(429);
+    expect(responses[totalCalls - 1].status).toBe(429);
     expect(await redis.exists(`circuit_break:${userId}`)).toBe(1);
 
     // The ban is global: a DIFFERENT action on the same character is blocked.
@@ -297,12 +302,10 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     // The blocked request never reached the rate limiter → no counter for it.
     expect(await redis.exists(`rate:${userId}:saideira_chat`)).toBe(0);
 
-    // Audit trail: 10 allowed + 3 rate_limited (2 plain + the triggering
-    // request, tagged before the breaker threw) + 20 circuit_break (the
-    // breaker tags those from the next request onward).
-    const rows = await waitForAudit(characterId, "vendor_purchase", 33);
+    // Audit trail: 10 allowed + CB_STRIKE_THRESHOLD rate_limited + 20 circuit_break.
+    const rows = await waitForAudit(characterId, "vendor_purchase", totalCalls);
     expect(rows.filter((r) => r.result === "allowed")).toHaveLength(10);
-    expect(rows.filter((r) => r.result === "rate_limited")).toHaveLength(3);
+    expect(rows.filter((r) => r.result === "rate_limited")).toHaveLength(CB_STRIKE_THRESHOLD);
     expect(rows.filter((r) => r.result === "circuit_break")).toHaveLength(20);
   });
 });

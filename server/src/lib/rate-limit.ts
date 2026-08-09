@@ -51,7 +51,7 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
 // Circuit-break constants
 const CB_COUNT_TTL_SECONDS = 3600;    // 1h window for counting strikes
 const CB_BAN_TTL_SECONDS = 86_400;    // 24h ban
-const CB_STRIKE_THRESHOLD = 3;
+export const CB_STRIKE_THRESHOLD = 7; // 7 different per-action rate-limit hits in 1h = ban
 
 // ---------------------------------------------------------------------------
 // Legacy — generic per-key rate limit (kept for backward compat)
@@ -92,7 +92,7 @@ export async function checkRateLimit(
  * Returns a preHandler that enforces a per-character, per-action rate limit.
  *
  * On success: sets X-RateLimit-Remaining and X-RateLimit-Reset headers.
- * On limit exceeded: increments the circuit-break counter (3 strikes = 24h ban),
+ * On limit exceeded: increments the circuit-break counter (7 strikes = 24h ban),
  * then throws AppError(429, "RATE_LIMITED").
  */
 export function checkActionRateLimit(
@@ -131,6 +131,7 @@ export function checkActionRateLimit(
     const cbKey = `cb_count:${userId}`;
     const cbResults = await redis.multi().incr(cbKey).expire(cbKey, CB_COUNT_TTL_SECONDS).exec();
     const cbHits = cbResults !== null ? (cbResults[0][1] as number) : 0;
+    const cbRemaining = CB_STRIKE_THRESHOLD - cbHits;
 
     if (cbHits >= CB_STRIKE_THRESHOLD) {
       await redis.setex(
@@ -144,6 +145,10 @@ export function checkActionRateLimit(
         "Sistema neural sobrecarregado. Retorne em 24 horas.",
         { retryAfter: CB_BAN_TTL_SECONDS },
       );
+    }
+
+    if (cbRemaining > 0) {
+      reply.header("X-CircuitBreaker-Remaining", cbRemaining);
     }
 
     const retryAfterSec = windowSeconds;

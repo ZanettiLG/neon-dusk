@@ -3,17 +3,18 @@ import type Redis from "ioredis";
 import { env } from "../env";
 import { AppError } from "./error-handler";
 
-// Neon Dusk — 3-strikes circuit-breaker preHandler (ND-053)
+// Neon Dusk — N-strikes circuit-breaker preHandler (ND-053)
 // ============================================================================
-// If a character exceeds ANY rate limit 3 times within 1 hour, ALL mutating
-// actions are banned for 24 hours (ADR-4: global, not per-action). The
-// circuit-break key is SET by checkActionRateLimit when the cb_count hits 3.
+// If a character exceeds ANY rate limit CB_STRIKE_THRESHOLD times within 1 hour,
+// ALL mutating actions are banned for 24 hours (ADR-4: global, not per-action).
+// The circuit-break key is SET by checkActionRateLimit when the cb_count hits
+// CB_STRIKE_THRESHOLD.
 
 const CIRCUIT_BREAK_PREFIX = "circuit_break";
 
 /**
- * Returns a preHandler that checks whether `characterId` is under a
- * circuit-break ban. Throws AppError(429, "CIRCUIT_BREAK") if so.
+ * Returns a preHandler that checks whether the user (by JWT `sub` = userId) is
+ * under a circuit-break ban. Throws AppError(429, "CIRCUIT_BREAK") if so.
  *
  * Must run AFTER authenticate (needs request.user.sub).
  * Must run BEFORE checkCooldown and checkActionRateLimit.

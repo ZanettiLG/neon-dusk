@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import {
   checkActionRateLimit,
   rateLimitConfig,
+  CB_STRIKE_THRESHOLD,
   type ActionType,
 } from "../lib/rate-limit";
 
@@ -85,23 +86,25 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
     });
   });
 
-  it("should set circuit_break key after 3 rate-limit hits", async () => {
+  it("should set circuit_break key after CB_STRIKE_THRESHOLD rate-limit hits", async () => {
     const characterId = randomUUID();
     const preHandler = checkActionRateLimit(redis, "pvp_attack"); // max 3, window 1h
 
     // Counts 1-3 pass; every later request exceeds (count keeps growing) —
-    // strikes land on counts 4, 5 and 6 → circuit break on the 6th call.
+    // strikes land on counts 4 through (3 + threshold). Circuit break on
+    // the 10th call (7th rejection), when cb_count reaches threshold.
     for (let i = 0; i < 3; i++) {
       await preHandler(requestFor(characterId), mockReply());
     }
-    for (let i = 0; i < 2; i++) {
+    const rejectionsBeforeTrip = CB_STRIKE_THRESHOLD - 1;
+    for (let i = 0; i < rejectionsBeforeTrip; i++) {
       await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
         statusCode: 429,
         code: "RATE_LIMITED",
       });
     }
 
-    // 6th call: cb_count hits 3 → 24h ban thrown.
+    // 10th call: cb_count hits threshold → 24h ban thrown.
     await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
       statusCode: 429,
       code: "CIRCUIT_BREAK",
@@ -112,7 +115,7 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
     expect(await redis.exists(`circuit_break:${characterId}`)).toBe(1);
     const ttl = await redis.ttl(`circuit_break:${characterId}`);
     expect(ttl).toBeGreaterThan(86_000); // ~24h ban, allow second-boundary drift
-    expect(await redis.get(`cb_count:${characterId}`)).toBe("3");
+    expect(await redis.get(`cb_count:${characterId}`)).toBe(String(CB_STRIKE_THRESHOLD));
   });
 
   it("should keep counters independent across different actions", async () => {
