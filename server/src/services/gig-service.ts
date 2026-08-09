@@ -11,6 +11,7 @@ import type {
   GigHistoryResponse,
   GigListItem,
   GigTemplate,
+  GigType,
   GigWrapupResponse,
 } from "@neon-dusk/shared";
 import { NIL_REGEN_INTERVAL_MS, NIL_REGEN_RATE } from "@neon-dusk/shared";
@@ -38,13 +39,14 @@ import {
   calculateSuccessChance,
   canTransition,
   getEscapeStat,
+  getPrimaryStatKey,
   getRelevantStats,
   isCooldownExpired,
   isUnderDailyLimit,
   meetsStatRequirements,
   rollGigOutcome,
 } from "../game/gigs";
-import { calculateGigSuccessBonus } from "../game/chrome";
+import { calculateGigSuccessBonus, calculateStatBonus } from "../game/chrome";
 import { calculateCrewBonuses } from "../game/crews.js";
 import {
   getSilverTongueBonus,
@@ -147,7 +149,7 @@ function cooldownRemainingFor(lastAt: Date | string | null, cooldownMinutes: num
   const last = toDate(lastAt);
   if (!last) return 0;
   if (isCooldownExpired(last, cooldownMinutes, now)) return 0;
-  const msLeft = last.getTime() + cooldownMinutes * 60_000 - now.getTime();
+  const msLeft = last.getTime() + cooldownMinutes * 1_000 - now.getTime();
   return Math.ceil(msLeft / 1000);
 }
 
@@ -181,6 +183,26 @@ async function getGigSuccessBonus(q: Queryable, characterId: string): Promise<nu
     .from(chromeDefinitions)
     .where(inArray(chromeDefinitions.id, installed.map((i) => i.defId)));
   return calculateGigSuccessBonus(defs);
+}
+
+/** Sum of the character's installed-chrome attribute bonuses (all 5 stats). */
+async function getChromeStatBonus(
+  q: Queryable,
+  characterId: string,
+): Promise<Attributes> {
+  const installed = await q
+    .select({ defId: installedChrome.chromeDefinitionId })
+    .from(installedChrome)
+    .where(eq(installedChrome.characterId, characterId));
+  if (installed.length === 0) {
+    return { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 };
+  }
+
+  const defs = await q
+    .select()
+    .from(chromeDefinitions)
+    .where(inArray(chromeDefinitions.id, installed.map((i) => i.defId)));
+  return calculateStatBonus(defs);
 }
 
 /** Count active members in a crew. */
@@ -531,7 +553,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
     // Gate: if legwork was started, the timer must have elapsed (ND-078).
     const legworkDone =
       active.legworkStartedAt !== null &&
-      Date.now() >= active.legworkStartedAt.getTime() + gig.legworkMinutes * 60_000;
+      Date.now() >= active.legworkStartedAt.getTime() + gig.legworkMinutes * 1_000;
     if (!skippedLegwork && !legworkDone) {
       throw new AppError(
         409,
@@ -550,6 +572,9 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
     const { primary } = getRelevantStats(gig.type, toAttributes(character));
     // ponytail: sequential queries, JOIN if latency matters
     const chromeBonus = await getGigSuccessBonus(tx, characterId);
+    const chromeStatBonuses = await getChromeStatBonus(tx, characterId);
+    const primaryStatKey = getPrimaryStatKey(gig.type as GigType);
+    const chromeStatBonusValue = chromeStatBonuses[primaryStatKey];
 
     // Crew bonus: +N percentage points to gig success (ND-016).
     let crewBonus = 0;
@@ -560,7 +585,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       if (gigBonus) crewBonus = gigBonus.value;
     }
 
-    const baseChance = calculateSuccessChance(primary, chromeBonus, gig.difficulty);
+    const baseChance = calculateSuccessChance(primary, chromeBonus, gig.difficulty, undefined, chromeStatBonusValue);
     const chance = applyLegworkModifier(baseChance, { skippedLegwork, legworkDone });
     // Crew bonus adds percentage points after base chance (value=5 → +0.05).
     const chanceWithCrew = Math.min(0.95, chance + crewBonus / 100);

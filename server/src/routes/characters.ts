@@ -49,7 +49,7 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
       preHandler: [
         authenticate,
         async (request) => {
-          await checkRateLimit(redis, `nil:stim:${request.user.sub}`, 5, 60_000);
+          await checkRateLimit(redis, `nil:stim:${request.user.sub}`, 5, 30_000);
         },
       ],
     },

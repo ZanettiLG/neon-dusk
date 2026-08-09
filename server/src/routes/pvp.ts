@@ -72,7 +72,7 @@ export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
       const result = await executeAttack(redis, request.user.sub, targetId);
 
       // Set cooldown AFTER success (ADR-2) — 1h.
-      await redis.setex(`cooldown:${characterId}:pvp_attack`, 3600, "1");
+      await redis.setex(`cooldown:${characterId}:pvp_attack`, 15, "1");
 
       return result;
     },

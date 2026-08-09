@@ -44,7 +44,7 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
   economy_transact: { max: 20, windowMs: 60_000 },
   character_create: { max: 3,  windowMs: 3_600_000 },
   vendor_purchase:  { max: 10, windowMs: 60_000 },
-  stim_use:         { max: 5,  windowMs: 300_000 },
+  stim_use:         { max: 5,  windowMs: 30_000 },
   gig_abandon:      { max: 5,  windowMs: 60_000 },
 } as const;
 

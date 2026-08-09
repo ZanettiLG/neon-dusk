@@ -6,8 +6,8 @@
 // Districts spread across: O Fluxo, A Paraíso, O Fervo, A Quebrada, Babilônia.
 //
 // Balance anchors (03-mecanicas-core.md §2, 04-sistemas-e-progressao.md §5):
-//   T1 payout 500-1500, NIL 10-15, difficulty 30-55
-//   T2 payout 2000-6000, NIL 15-25, difficulty 50-75
+//   T1 payout 500-1500, NIL 10-15, difficulty 14-36
+//   T2 payout 2000-6000, NIL 15-25, difficulty 60-75
 //   requiredStats achievable by optimized starting chars (max 8 T1, max 10 T2)
 //
 // cooldownMinutes is NOT included — the seed script derives it (T1=10, T2=25).
@@ -40,8 +40,8 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     tier: "t1",
     type: "extraction",
     district: "O Fluxo",
-    difficulty: 40,
-    escapeDifficulty: 35,
+    difficulty: 24,
+    escapeDifficulty: 22,
     requiredStats: { body: 4 },
     requiredStreetCred: 0,
     baseReward: 800,
@@ -57,8 +57,8 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     tier: "t1",
     type: "delivery",
     district: "A Paraíso",
-    difficulty: 45,
-    escapeDifficulty: 40,
+    difficulty: 28,
+    escapeDifficulty: 28,
     requiredStats: { reflexes: 5, cool: 3 },
     requiredStreetCred: 0,
     baseReward: 1000,
@@ -74,8 +74,8 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     tier: "t1",
     type: "sabotage",
     district: "O Fervo",
-    difficulty: 50,
-    escapeDifficulty: 45,
+    difficulty: 32,
+    escapeDifficulty: 32,
     requiredStats: { technical: 5 },
     requiredStreetCred: 0,
     baseReward: 1200,
@@ -91,8 +91,8 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     tier: "t1",
     type: "extraction",
     district: "A Quebrada",
-    difficulty: 55,
-    escapeDifficulty: 50,
+    difficulty: 36,
+    escapeDifficulty: 36,
     requiredStats: { technical: 4, reflexes: 4 },
     requiredStreetCred: 0,
     baseReward: 1500,
@@ -108,8 +108,8 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     tier: "t1",
     type: "delivery",
     district: "Babilônia",
-    difficulty: 30,
-    escapeDifficulty: 30,
+    difficulty: 14,
+    escapeDifficulty: 18,
     requiredStats: { cool: 3 },
     requiredStreetCred: 0,
     baseReward: 500,
@@ -125,8 +125,8 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     tier: "t1",
     type: "sabotage",
     district: "A Quebrada",
-    difficulty: 35,
-    escapeDifficulty: 40,
+    difficulty: 20,
+    escapeDifficulty: 25,
     requiredStats: { technical: 3, body: 3 },
     requiredStreetCred: 0,
     baseReward: 900,

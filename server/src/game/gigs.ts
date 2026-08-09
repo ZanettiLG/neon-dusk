@@ -135,14 +135,15 @@ export function meetsStatRequirements(
 /**
  * Calculate gig execution success probability.
  *
- * Formula: `(stat × STAT_SCALING + chromeBonus + skillBonus) / difficulty`,
+ * Formula: `((stat + chromeStatBonus) × STAT_SCALING + chromeBonus + skillBonus) / difficulty`,
  * clamped to [0.05, 0.95].
  * Conforme 03-mecanicas-core.md §3 (Fórmula de sucesso) and ND-011 balance fix.
  *
- * @param stat        - The relevant primary attribute value (1-20 range).
- * @param chromeBonus - Flat success bonus from installed chrome (percentage points).
- * @param difficulty  - The gig's difficulty rating (1-100 range).
- * @param skillBonus  - Optional flat bonus from player skill perks (defaults to 0).
+ * @param stat            - The relevant primary attribute value (1-20 range).
+ * @param chromeBonus     - Flat success bonus from installed chrome (percentage points).
+ * @param difficulty      - The gig's difficulty rating (1-100 range).
+ * @param skillBonus      - Optional flat bonus from player skill perks (defaults to 0).
+ * @param chromeStatBonus - Attribute bonus from installed chrome for the relevant stat (defaults to 0).
  * @returns Probability in range [0.05, 0.95].
  *
  * @edgecases `difficulty ≤ 0` would cause division by zero → capped at 0.95.
@@ -153,9 +154,11 @@ export function calculateSuccessChance(
   chromeBonus: number,
   difficulty: number,
   skillBonus?: number,
+  chromeStatBonus?: number,
 ): number {
   if (difficulty <= 0) return SUCCESS_CAP;
-  const raw = (stat * STAT_SCALING + chromeBonus + (skillBonus ?? 0)) / difficulty;
+  const effectiveStat = stat + (chromeStatBonus ?? 0);
+  const raw = (effectiveStat * STAT_SCALING + chromeBonus + (skillBonus ?? 0)) / difficulty;
   return Math.min(SUCCESS_CAP, Math.max(SUCCESS_FLOOR, raw));
 }
 
@@ -324,7 +327,7 @@ export function isCooldownExpired(
   if (lastCompletedAt === null) return true;
   if (cooldownMinutes <= 0) return true;
   const elapsedMs = now.getTime() - lastCompletedAt.getTime();
-  return elapsedMs >= cooldownMinutes * 60_000;
+  return elapsedMs >= cooldownMinutes * 1_000;
 }
 
 /**
@@ -372,6 +375,18 @@ export function canTransition(currentPhase: string, action: string): string | nu
 export function getEscapeStat(gigType: GigType, attrs: Attributes): number {
   const key = ESCAPE_STATS[gigType];
   return (attrs as unknown as Record<string, number>)[key] ?? 0;
+}
+
+/**
+ * Return the primary attribute key used for success rolls per gig type.
+ *
+ * Extraction → body, Delivery → reflexes, Sabotage → technical.
+ *
+ * @param gigType - The gig archetype.
+ * @returns The attribute key (never null for valid GigType).
+ */
+export function getPrimaryStatKey(gigType: GigType): keyof Attributes {
+  return GIG_STATS[gigType][0];
 }
 
 // ─── Heat Decay ──────────────────────────────────────────────────────────────

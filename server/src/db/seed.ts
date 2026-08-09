@@ -29,10 +29,10 @@ export async function seedGigs(): Promise<number> {
   for (const t of GIG_TEMPLATES) {
     const cooldownMinutes =
       t.tier === "t1" ? 10
-        : t.tier === "t2" ? 25
-        : t.tier === "t3" ? 40
-        : t.tier === "t4" ? 60
-        : 90;
+        : t.tier === "t2" ? 15
+        : t.tier === "t3" ? 20
+        : t.tier === "t4" ? 25
+        : 30;
     const rows = await db
       .insert(gigs)
       .values({

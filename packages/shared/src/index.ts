@@ -141,19 +141,19 @@ export interface CreateCharacterRequest {
 }
 
 // --- NIL (Feature #2) --------------------------------------------------------
-// Energy system: regens +1 every 5 minutes, capped at max. Syn-café consumable
-// restores 20 instantly with a 1h cooldown (see 03-mecanicas-core.md §1).
+// Energy system: regens +1 every 30 seconds, capped at max. Syn-café consumable
+// restores 20 instantly with a 6 min cooldown (see 03-mecanicas-core.md §1).
 
 /** Base NIL cap for a new character (chrome raises it later). */
 export const NIL_MAX_BASE = 100;
-/** Passive regen cadence: 1 point per 5 minutes. */
-export const NIL_REGEN_INTERVAL_MS = 5 * 60 * 1000;
+/** Passive regen cadence: 1 point per 30 seconds. */
+export const NIL_REGEN_INTERVAL_MS = 5_000;
 /** NIL points restored per regen tick. */
 export const NIL_REGEN_RATE = 1;
 /** NIL restored by one syn-café. */
 export const NIL_SYN_CAFE_AMOUNT = 20;
 /** Syn-café cooldown, in seconds. */
-export const NIL_SYN_CAFE_COOLDOWN_S = 60 * 60;
+export const NIL_SYN_CAFE_COOLDOWN_S = 15;
 
 /** Live NIL readout (regen applied lazily, never written on GET). */
 export interface NilStatus {

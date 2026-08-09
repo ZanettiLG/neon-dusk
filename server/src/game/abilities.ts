@@ -31,11 +31,11 @@ export interface AbilityState {
 
 /** Cooldown durations in milliseconds, per ability. */
 export const ABILITY_COOLDOWNS: Record<AbilityType, number> = {
-  combat_trance: 4 * 60 * 60 * 1000,   // 4 hours
-  deep_dive: 8 * 60 * 60 * 1000,       // 8 hours
-  overclock: 24 * 60 * 60 * 1000,      // 24 hours
-  silver_tongue: 12 * 60 * 60 * 1000,  // 12 hours
-  long_haul: 6 * 60 * 60 * 1000,       // 6 hours
+  combat_trance: 30_000,
+  deep_dive: 30_000,
+  overclock: 30_000,
+  silver_tongue: 30_000,
+  long_haul: 30_000,
 };
 
 /**
@@ -44,7 +44,7 @@ export const ABILITY_COOLDOWNS: Record<AbilityType, number> = {
  * > 0 = duration-based (effect runs for this long, then auto-transitions).
  */
 export const ABILITY_DURATIONS: Record<AbilityType, number> = {
-  combat_trance: 30 * 60 * 1000,  // 30 minutes
+  combat_trance: 30_000,  // 30 seconds
   deep_dive: 0,                   // one-shot (framework-only in MVP)
   overclock: 0,                   // one-shot: consumed on next chrome purchase
   silver_tongue: 0,               // one-shot: consumed on next gig completion

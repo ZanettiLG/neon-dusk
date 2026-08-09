@@ -23,11 +23,11 @@ export interface CooldownEntry {
 
 export const cooldownConfig: Record<CooldownActionType, CooldownEntry> = {
   gig_accept:     { durationMs: 30_000 },
-  pvp_attack:     { durationMs: 3_600_000 },
+  pvp_attack:     { durationMs: 15_000 },
   stim_use:       { durationMs: 300_000 },
   chat_message:   { durationMs: 5_000 },
   crew_invite:    { durationMs: 60_000 },
-  chrome_install: { durationMs: 60_000 },
+  chrome_install: { durationMs: 10_000 },
 } as const;
 
 /**
