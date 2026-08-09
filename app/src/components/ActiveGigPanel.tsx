@@ -111,6 +111,8 @@ export default function ActiveGigPanel() {
   const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
   const legworkDone = gig.legworkCompleted || (legworkEndsAt !== null && legworkRemaining === 0);
 
+  const actionInFlight = useRef(false);
+
   async function onAction(action: () => Promise<unknown>): Promise<void> {
     if (actionInFlight.current) return; // guard against double-click
     actionInFlight.current = true;
