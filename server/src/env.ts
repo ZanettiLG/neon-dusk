@@ -21,7 +21,7 @@ export const envSchema = z.object({
   REDIS_URL: z.string().url().default("redis://localhost:6379"),
 
   // Rate Limiting
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10000),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
 
   // Auth

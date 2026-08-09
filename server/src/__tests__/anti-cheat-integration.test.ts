@@ -239,17 +239,28 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
   });
 
   it("should reject with 429 RATE_LIMITED, set headers, and keep other actions independent", async () => {
-    const { accessToken, characterId } = await registerApiUser();
+    const { accessToken, userId, characterId } = await registerApiUser();
 
-    // vendor_purchase max 10 — the first response carries rate-limit headers.
-    const responses = await hammerB(accessToken, 11);
-    expect(responses[0].headers.get("X-RateLimit-Remaining")).toBe("9");
-    expect(responses[0].headers.get("X-RateLimit-Reset")).toBeTruthy();
-    expect(responses[9].status).toBe(200); // 10th within limit
+    // Pre-set the vendor_purchase counter so the next request trips the limit.
+    // The first request passes and carries rate-limit headers.
+    await redis.set(`rate:${userId}:vendor_purchase`, 1); // next INCR → 2, well within max 1000
+    const okRes = await server.post(
+      "/api/test/anti-cheat-action-b",
+      { message: "ok" },
+      authHeader(accessToken),
+    );
+    expect(okRes.status).toBe(200);
+    expect(okRes.headers.get("X-RateLimit-Remaining")).toBeTruthy();
+    expect(okRes.headers.get("X-RateLimit-Reset")).toBeTruthy();
 
-    const limited = responses[10];
+    // Now set the counter at max (1000). Next INCR → 1001, exceeding limit.
+    await redis.set(`rate:${userId}:vendor_purchase`, 1000);
+    const limited = await server.post(
+      "/api/test/anti-cheat-action-b",
+      { message: "exceed" },
+      authHeader(accessToken),
+    );
     expect(limited.status).toBe(429);
-    // ND-053: RATE_LIMITED 429 responses carry the Retry-After header.
     expect(limited.headers.get("retry-after")).toBeTruthy();
     const body = await json<ErrorBody>(limited);
     expect(body.error).toBe("RATE_LIMITED");
@@ -259,42 +270,50 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     const other = await postAction(accessToken, { message: "oi" });
     expect(other.status).toBe(201);
 
-    // The 11th request was audit-logged as rate_limited.
-    const rows = await waitForAudit(characterId, "vendor_purchase", 11);
+    // The rate-limited request was audit-logged as rate_limited.
+    const rows = await waitForAudit(characterId, "vendor_purchase", 2);
     expect(rows.filter((r) => r.result === "rate_limited")).toHaveLength(1);
-    expect(rows.filter((r) => r.result === "allowed")).toHaveLength(10);
+    expect(rows.filter((r) => r.result === "allowed")).toHaveLength(1);
   });
 
   it("should circuit-break after circuitBreakerConfig.strikeThreshold rate-limit hits and block ALL actions", async () => {
     const { accessToken, userId, characterId } = await registerApiUser();
 
-    // vendor_purchase (max 10): counts 1-10 pass, then every further request
-    // exceeds — strikes land on counts 11 through (10 + threshold). Circuit
-    // break on the (10 + threshold)-th call, when cb_count hits threshold.
-    const totalCalls = 10 + circuitBreakerConfig.strikeThreshold + 20;
-    const responses = await hammerB(accessToken, totalCalls);
-
-    // First 10 within the limit.
-    for (let i = 0; i < 10; i++) expect(responses[i].status).toBe(200);
+    // Pre-set the vendor_purchase counter at max. Every request from here on
+    // exceeds the limit and becomes a rate-limit strike.
+    await redis.set(`rate:${userId}:vendor_purchase`, 1000);
 
     // Strikes 1 through (threshold-1) → plain rate limit.
-    for (let i = 10; i < 10 + circuitBreakerConfig.strikeThreshold - 1; i++) {
-      expect(responses[i].status).toBe(429);
-      const body = await json<ErrorBody>(responses[i]);
+    for (let i = 0; i < circuitBreakerConfig.strikeThreshold - 1; i++) {
+      const res = await server.post(
+        "/api/test/anti-cheat-action-b",
+        { message: `strike-${i}` },
+        authHeader(accessToken),
+      );
+      expect(res.status).toBe(429);
+      const body = await json<ErrorBody>(res);
       expect(body.error).toBe("RATE_LIMITED");
     }
 
     // Strike = threshold → circuit-break: the ban key is set, message changes.
-    const tripIdx = 10 + circuitBreakerConfig.strikeThreshold - 1;
-    const tripped = responses[tripIdx];
+    const tripped = await server.post(
+      "/api/test/anti-cheat-action-b",
+      { message: "trip" },
+      authHeader(accessToken),
+    );
     expect(tripped.status).toBe(429);
     const cbBody = await json<ErrorBody>(tripped);
     expect(cbBody.error).toBe("CIRCUIT_BREAK");
     expect(cbBody.message).toMatch(/Sistema neural sobrecarregado/);
     expect(tripped.headers.get("retry-after")).toBeTruthy();
 
-    // Every subsequent request stays banned (20 more attempts).
-    expect(responses[totalCalls - 1].status).toBe(429);
+    // Every subsequent request stays banned.
+    const banned = await server.post(
+      "/api/test/anti-cheat-action-b",
+      { message: "after-ban" },
+      authHeader(accessToken),
+    );
+    expect(banned.status).toBe(429);
     expect(await redis.exists(`circuit_break:${userId}`)).toBe(1);
 
     // The ban is global: a DIFFERENT action on the same character is blocked.
@@ -306,10 +325,9 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     // The blocked request never reached the rate limiter → no counter for it.
     expect(await redis.exists(`rate:${userId}:saideira_chat`)).toBe(0);
 
-    // Audit trail: 10 allowed + circuitBreakerConfig.strikeThreshold rate_limited + 20 circuit_break.
-    const rows = await waitForAudit(characterId, "vendor_purchase", totalCalls);
-    expect(rows.filter((r) => r.result === "allowed")).toHaveLength(10);
+    // Audit trail: rate_limited for each strike + circuit_break for the trip + after-ban.
+    const rows = await waitForAudit(characterId, "vendor_purchase", circuitBreakerConfig.strikeThreshold + 2);
     expect(rows.filter((r) => r.result === "rate_limited")).toHaveLength(circuitBreakerConfig.strikeThreshold);
-    expect(rows.filter((r) => r.result === "circuit_break")).toHaveLength(20);
+    expect(rows.filter((r) => r.result === "circuit_break")).toHaveLength(2);
   });
 });

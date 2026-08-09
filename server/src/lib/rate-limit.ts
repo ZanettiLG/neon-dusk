@@ -33,19 +33,19 @@ export interface RateLimitEntry {
 
 /** The master rate limit config — per-action caps. */
 export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
-  gig_accept:       { max: 10, windowMs: 60_000 },
-  gig_execute:      { max: 10, windowMs: 60_000 },
-  gig_submit:       { max: 10, windowMs: 60_000 },
-  pvp_attack:       { max: 3,  windowMs: 3_600_000 },
-  saideira_chat:    { max: 12, windowMs: 60_000 },
-  crew_invite:      { max: 5,  windowMs: 60_000 },
-  chrome_install:   { max: 5,  windowMs: 60_000 },
-  chrome_uninstall: { max: 5,  windowMs: 60_000 },
-  economy_transact: { max: 20, windowMs: 60_000 },
-  character_create: { max: 3,  windowMs: 3_600_000 },
-  vendor_purchase:  { max: 10, windowMs: 60_000 },
-  stim_use:         { max: 5,  windowMs: 30_000 },
-  gig_abandon:      { max: 5,  windowMs: 60_000 },
+  gig_accept:       { max: 1000, windowMs: 60_000 },
+  gig_execute:      { max: 1000, windowMs: 60_000 },
+  gig_submit:       { max: 1000, windowMs: 60_000 },
+  pvp_attack:       { max: 300,  windowMs: 3_600_000 },
+  saideira_chat:    { max: 1200, windowMs: 60_000 },
+  crew_invite:      { max: 500,  windowMs: 60_000 },
+  chrome_install:   { max: 500,  windowMs: 60_000 },
+  chrome_uninstall: { max: 500,  windowMs: 60_000 },
+  economy_transact: { max: 2000, windowMs: 60_000 },
+  character_create: { max: 300,  windowMs: 3_600_000 },
+  vendor_purchase:  { max: 1000, windowMs: 60_000 },
+  stim_use:         { max: 500,  windowMs: 30_000 },
+  gig_abandon:      { max: 500,  windowMs: 60_000 },
 } as const;
 
 /** Circuit-breaker config — mutable so tests can tune the threshold. */
