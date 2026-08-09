@@ -1,4 +1,4 @@
-import { and, eq, gte } from "drizzle-orm";
+import type { Knex } from "knex";
 import type {
   ChromeBonuses,
   ChromeDefinition,
@@ -10,14 +10,7 @@ import type {
 } from "@neon-dusk/shared";
 import { SLOT_CAPACITY, NIL_MAX_BASE } from "@neon-dusk/shared";
 import { db } from "../db";
-import {
-  characterWallets,
-  characters,
-  chromeDefinitions,
-  installedChrome,
-  transactionLog,
-  vendorInventory,
-} from "../db/schema";
+import type { Queryable } from "../db";
 import { AppError } from "../middleware/error-handler";
 import {
   calculateGigSuccessBonus,
@@ -41,18 +34,49 @@ import { ensureWallet } from "./economy-service";
 // humanity at write time, so concurrent installs that both read the same
 // value can never overwrite each other's deduction.
 
+/** Database row shape for chrome_definitions. */
+interface DbChromeDefinition {
+  id: string;
+  slug: string;
+  name: string;
+  slot: string;
+  tier: number;
+  bonuses: ChromeBonuses;
+  humanityCost: number;
+  basePrice: number;
+  description: string | null;
+  isActive: boolean;
+}
+
+/** Database row shape for installed_chrome. */
+interface DbInstalledChrome {
+  id: string;
+  characterId: string;
+  chromeDefinitionId: string;
+  installedAt: Date;
+}
+
+/** Database row shape for character_wallets. */
+interface DbWallet {
+  balance: number;
+  escrow: number;
+  lifetimeEarned: number;
+  lifetimeSpent: number;
+  version: number;
+}
+
 /** DB row → API shape (strips isActive/createdAt internals). */
-function toPublicDefinition(row: typeof chromeDefinitions.$inferSelect): ChromeDefinition {
+function toPublicDefinition(row: DbChromeDefinition): ChromeDefinition {
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
-    slot: row.slot,
+    slot: row.slot as ChromeSlot,
     tier: row.tier,
     bonuses: row.bonuses,
     humanityCost: row.humanityCost,
     basePrice: row.basePrice,
-    description: row.description,
+    description: row.description ?? undefined,
   };
 }
 
@@ -78,76 +102,56 @@ export async function installChrome(
   vendorId: string,
 ): Promise<ChromeInstallResponse> {
   // 1. Chrome definition must exist and be active
-  const [definition] = await db
+  const [definition] = await db("chrome_definitions")
     .select()
-    .from(chromeDefinitions)
-    .where(
-      and(
-        eq(chromeDefinitions.id, chromeDefinitionId),
-        eq(chromeDefinitions.isActive, true),
-      ),
-    )
+    .where("id", chromeDefinitionId)
+    .where("is_active", true)
     .limit(1);
   if (!definition) throw new AppError(404, "CHROME_NOT_FOUND", "Chrome não encontrado");
 
   // 2. Vendor must stock this chrome (item_type='CHROME', item_id=slug)
-  const [stockItem] = await db
+  const [stockItem] = await db("vendor_inventory")
     .select()
-    .from(vendorInventory)
-    .where(
-      and(
-        eq(vendorInventory.vendorId, vendorId),
-        eq(vendorInventory.itemType, "CHROME"),
-        eq(vendorInventory.itemId, definition.slug),
-      ),
-    )
+    .where("vendor_id", vendorId)
+    .where("item_type", "CHROME")
+    .where("item_id", definition.slug)
     .limit(1);
   if (!stockItem) {
     throw new AppError(404, "ITEM_NOT_FOUND", "Este ripperdoc não tem esse chrome em estoque");
   }
 
-  return db.transaction(async (tx) => {
+  return db.transaction(async (trx) => {
     // 3. Character — humanity read fresh inside the tx (it guards the write)
-    const [character] = await tx
-      .select({
-        humanity: characters.humanity,
-        role: characters.role,
-        abilityActiveUntil: characters.abilityActiveUntil,
-        abilityCooldownUntil: characters.abilityCooldownUntil,
-      })
-      .from(characters)
-      .where(eq(characters.id, characterId))
+    const [character] = await trx("characters")
+      .select("humanity", "role", "ability_active_until", "ability_cooldown_until")
+      .where("id", characterId)
       .limit(1);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
     // Feature #65: Overclock — 50% discount + 0 humanity cost for techs.
     const overclockActive = getOverclockBonus(
       character.role,
-      character.abilityActiveUntil,
-      character.abilityCooldownUntil,
+      character.ability_active_until,
+      character.ability_cooldown_until,
     );
 
     // 4. Current loadout — duplicate check + per-slot count
-    const loadout = await tx
-      .select({
-        definitionId: installedChrome.chromeDefinitionId,
-        slot: chromeDefinitions.slot,
-      })
-      .from(installedChrome)
-      .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
-      .where(eq(installedChrome.characterId, characterId));
+    const loadout = await trx("installed_chrome")
+      .select("installed_chrome.chrome_definition_id as definitionId", "chrome_definitions.slot")
+      .join("chrome_definitions", "installed_chrome.chrome_definition_id", "=", "chrome_definitions.id")
+      .where("installed_chrome.character_id", characterId);
 
-    if (loadout.some((row) => row.definitionId === chromeDefinitionId)) {
+    if (loadout.some((row: { definitionId: string }) => row.definitionId === chromeDefinitionId)) {
       throw new AppError(409, "ALREADY_INSTALLED", "Chrome já instalado");
     }
 
     // 5. Slot capacity (one definition per install, so counts never double)
-    const installedInSlot = loadout.filter((row) => row.slot === definition.slot).length;
-    if (!validateSlotAvailability(definition.slot, installedInSlot)) {
+    const installedInSlot = loadout.filter((row: { slot: string }) => row.slot === definition.slot).length;
+    if (!validateSlotAvailability(definition.slot as ChromeSlot, installedInSlot)) {
       throw new AppError(
         400,
         "SLOT_FULL",
-        `No free ${definition.slot} slot (${installedInSlot}/${SLOT_CAPACITY[definition.slot]})`,
+        `No free ${definition.slot} slot (${installedInSlot}/${SLOT_CAPACITY[definition.slot as ChromeSlot]})`,
       );
     }
 
@@ -158,7 +162,7 @@ export async function installChrome(
     }
 
     // 7. Wallet debit with optimistic locking (pattern of buyFromVendor)
-    const wallet = await ensureWallet(characterId, tx);
+    const wallet = await ensureWallet(characterId, trx as unknown as Queryable);
     // overclock: 50% discount on chrome price
     const price = overclockActive ? Math.ceil(stockItem.price * 0.5) : stockItem.price;
     const availableFunds = wallet.balance - wallet.escrow;
@@ -173,46 +177,41 @@ export async function installChrome(
       referenceId: definition.id,
     });
 
-    const [updated] = await tx
-      .update(characterWallets)
-      .set({
+    const [updatedWallet] = await trx("character_wallets")
+      .update({
         balance: result.wallet.balance,
         escrow: result.wallet.escrow,
-        lifetimeSpent: result.wallet.lifetimeSpent,
+        lifetime_spent: result.wallet.lifetimeSpent,
         version: wallet.version + 1,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       })
-      .where(
-        and(
-          eq(characterWallets.characterId, characterId),
-          eq(characterWallets.version, wallet.version),
-        ),
-      )
-      .returning();
-    if (!updated) {
+      .where("character_id", characterId)
+      .where("version", wallet.version)
+      .returning("*");
+    if (!updatedWallet) {
       throw new AppError(409, "CONCURRENCY_CONFLICT", "Modificação concorrente detectada. Tente novamente.");
     }
 
     // Audit entry
-    await tx.insert(transactionLog).values({
-      characterId,
+    await trx("transaction_log").insert({
+      character_id: characterId,
       type: "CHROME_PURCHASE",
       amount: -price,
-      balanceBefore: result.transaction.balanceBefore,
-      balanceAfter: result.transaction.balanceAfter,
+      balance_before: result.transaction.balanceBefore,
+      balance_after: result.transaction.balanceAfter,
       source: result.transaction.source,
-      referenceType: "chrome_definition",
-      referenceId: definition.id,
+      reference_type: "chrome_definition",
+      reference_id: definition.id,
     });
 
     // Implant record — unique(character, definition) is the last line of
     // defense against concurrent duplicate installs.
-    let installed: typeof installedChrome.$inferSelect;
+    let installed: DbInstalledChrome;
     try {
-      [installed] = await tx
-        .insert(installedChrome)
-        .values({ characterId, chromeDefinitionId: definition.id })
-        .returning();
+      const rows = await trx("installed_chrome")
+        .insert({ character_id: characterId, chrome_definition_id: definition.id })
+        .returning("*");
+      [installed] = rows;
     } catch (err) {
       if (isUniqueViolation(err)) {
         throw new AppError(409, "ALREADY_INSTALLED", "Chrome já instalado");
@@ -223,43 +222,37 @@ export async function installChrome(
     // Atomic humanity decrement — zero when overclock is active.
     const effectiveHumanity = character.humanity - effectiveHumanityCost;
     if (effectiveHumanityCost > 0) {
-      await tx
-        .update(characters)
-        .set({ humanity: effectiveHumanity, updatedAt: new Date() })
-        .where(
-          and(
-            eq(characters.id, characterId),
-            gte(characters.humanity, effectiveHumanityCost),
-          ),
-        );
+      await trx("characters")
+        .update({ humanity: effectiveHumanity, updated_at: new Date() })
+        .where("id", characterId)
+        .where("humanity", ">=", effectiveHumanityCost);
     }
 
     // Feature #65: consume Overclock after successful install.
     if (overclockActive) {
       const consumed = computeConsumption(character.role);
-      await tx
-        .update(characters)
-        .set({
-          abilityActiveUntil: consumed.activeUntil,
-          abilityCooldownUntil: consumed.cooldownUntil,
-          updatedAt: new Date(),
+      await trx("characters")
+        .update({
+          ability_active_until: consumed.activeUntil,
+          ability_cooldown_until: consumed.cooldownUntil,
+          updated_at: new Date(),
         })
-        .where(eq(characters.id, characterId));
+        .where("id", characterId);
     }
 
     // Recompute effective NIL max from all installed chrome (base 100 + nil_max bonuses).
-    const installedDefs = await tx
-      .select({ bonuses: chromeDefinitions.bonuses })
-      .from(installedChrome)
-      .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
-      .where(eq(installedChrome.characterId, characterId));
+    const installedDefs = await trx("chrome_definitions")
+      .select("chrome_definitions.bonuses")
+      .join("installed_chrome", "installed_chrome.chrome_definition_id", "=", "chrome_definitions.id")
+      .where("installed_chrome.character_id", characterId);
     const nilMaxBonus = calculateNilMaxBonus(
-      installedDefs.map((d) => ({ bonuses: d.bonuses as ChromeBonuses } as ChromeDefinition)),
+      installedDefs.map((d: { bonuses: ChromeBonuses }) =>
+        ({ bonuses: d.bonuses } as ChromeDefinition),
+      ),
     );
-    await tx
-      .update(characters)
-      .set({ maxNil: NIL_MAX_BASE + nilMaxBonus, updatedAt: new Date() })
-      .where(eq(characters.id, characterId));
+    await trx("characters")
+      .update({ max_nil: NIL_MAX_BASE + nilMaxBonus, updated_at: new Date() })
+      .where("id", characterId);
 
     return {
       installedChrome: {
@@ -284,55 +277,49 @@ export async function uninstallChrome(
 ): Promise<ChromeUninstallResponse> {
   // Load the implant joined with its definition; scoping by characterId makes
   // a foreign id indistinguishable from a missing one (404 either way).
-  const [row] = await db
-    .select({
-      id: installedChrome.id,
-      name: chromeDefinitions.name,
-      slot: chromeDefinitions.slot,
-    })
-    .from(installedChrome)
-    .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
-    .where(
-      and(
-        eq(installedChrome.id, installedChromeId),
-        eq(installedChrome.characterId, characterId),
-      ),
+  const [row] = await db("installed_chrome")
+    .select(
+      "installed_chrome.id",
+      "chrome_definitions.name",
+      "chrome_definitions.slot",
     )
+    .join("chrome_definitions", "installed_chrome.chrome_definition_id", "=", "chrome_definitions.id")
+    .where("installed_chrome.id", installedChromeId)
+    .where("installed_chrome.character_id", characterId)
     .limit(1);
   if (!row) throw new AppError(404, "INSTALLED_CHROME_NOT_FOUND", "Chrome instalado não encontrado");
 
-  const [character] = await db
-    .select({ humanity: characters.humanity })
-    .from(characters)
-    .where(eq(characters.id, characterId))
+  const [character] = await db("characters")
+    .select("humanity")
+    .where("id", characterId)
     .limit(1);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-  await db.transaction(async (tx) => {
-    await tx.delete(installedChrome).where(eq(installedChrome.id, installedChromeId));
+  await db.transaction(async (trx) => {
+    await trx("installed_chrome").delete().where("id", installedChromeId);
 
     // Recompute effective NIL max from remaining chrome.
-    const remaining = await tx
-      .select({ bonuses: chromeDefinitions.bonuses })
-      .from(installedChrome)
-      .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
-      .where(eq(installedChrome.characterId, characterId));
+    const remaining = await trx("chrome_definitions")
+      .select("chrome_definitions.bonuses")
+      .join("installed_chrome", "installed_chrome.chrome_definition_id", "=", "chrome_definitions.id")
+      .where("installed_chrome.character_id", characterId);
     const nilMaxBonus = calculateNilMaxBonus(
-      remaining.map((d) => ({ bonuses: d.bonuses as ChromeBonuses } as ChromeDefinition)),
+      remaining.map((d: { bonuses: ChromeBonuses }) =>
+        ({ bonuses: d.bonuses } as ChromeDefinition),
+      ),
     );
-    await tx
-      .update(characters)
-      .set({ maxNil: NIL_MAX_BASE + nilMaxBonus, updatedAt: new Date() })
-      .where(eq(characters.id, characterId));
+    await trx("characters")
+      .update({ max_nil: NIL_MAX_BASE + nilMaxBonus, updated_at: new Date() })
+      .where("id", characterId);
 
     // Audit-only entry: no wallet movement, so balanceBefore = balanceAfter.
-    const wallet = await ensureWallet(characterId, tx);
-    await tx.insert(transactionLog).values({
-      characterId,
+    const wallet = await ensureWallet(characterId, trx as unknown as Queryable);
+    await trx("transaction_log").insert({
+      character_id: characterId,
       type: "CHROME_UNINSTALL",
       amount: 0,
-      balanceBefore: wallet.balance,
-      balanceAfter: wallet.balance,
+      balance_before: wallet.balance,
+      balance_after: wallet.balance,
       source: `Uninstalled ${row.name}`,
     });
   });
@@ -345,30 +332,47 @@ export async function uninstallChrome(
  * the game logic (stat deltas, HP, gig success) and the total humanity spent.
  */
 export async function listInstalledChrome(characterId: string): Promise<InstalledChromeResponse> {
-  const [character] = await db
-    .select({ humanity: characters.humanity })
-    .from(characters)
-    .where(eq(characters.id, characterId))
+  const [character] = await db("characters")
+    .select("humanity")
+    .where("id", characterId)
     .limit(1);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-  const rows = await db
-    .select({
-      installedId: installedChrome.id,
-      installedAt: installedChrome.installedAt,
-      definition: chromeDefinitions,
-    })
-    .from(installedChrome)
-    .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
-    .where(eq(installedChrome.characterId, characterId))
-    .orderBy(installedChrome.installedAt);
+  const rows = await db("installed_chrome")
+    .select(
+      "installed_chrome.id as installedId",
+      "installed_chrome.installed_at as installedAt",
+      "chrome_definitions.*",
+    )
+    .join("chrome_definitions", "installed_chrome.chrome_definition_id", "=", "chrome_definitions.id")
+    .where("installed_chrome.character_id", characterId)
+    .orderBy("installed_chrome.installed_at");
 
-  const definitions = rows.map((row) => toPublicDefinition(row.definition));
-  const installed: InstalledChromeRecord[] = rows.map((row) => ({
-    installedId: row.installedId,
-    installedAt: row.installedAt.toISOString(),
-    definition: toPublicDefinition(row.definition),
-  }));
+  // The join output mixes installed_chrome fields with chrome_definitions.*.
+  // Map rows: split out installed metadata from the definition.
+  const definitions: ChromeDefinition[] = [];
+  const installed: InstalledChromeRecord[] = [];
+
+  for (const row of rows) {
+    const def: DbChromeDefinition = {
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      slot: row.slot,
+      tier: row.tier,
+      bonuses: row.bonuses,
+      humanityCost: row.humanity_cost,
+      basePrice: row.base_price,
+      description: row.description,
+      isActive: row.is_active,
+    };
+    definitions.push(toPublicDefinition(def));
+    installed.push({
+      installedId: row.installedId,
+      installedAt: new Date(row.installedAt).toISOString(),
+      definition: toPublicDefinition(def),
+    });
+  }
 
   return {
     installed,
@@ -388,15 +392,13 @@ export async function listChromeCatalog(filters?: {
   tier?: number;
   slot?: ChromeSlot;
 }): Promise<ChromeDefinition[]> {
-  const conditions = [eq(chromeDefinitions.isActive, true)];
-  if (filters?.tier !== undefined) conditions.push(eq(chromeDefinitions.tier, filters.tier));
-  if (filters?.slot !== undefined) conditions.push(eq(chromeDefinitions.slot, filters.slot));
-
-  const rows = await db
+  let query = db("chrome_definitions")
     .select()
-    .from(chromeDefinitions)
-    .where(and(...conditions))
-    .orderBy(chromeDefinitions.tier, chromeDefinitions.name);
+    .where("is_active", true);
 
+  if (filters?.tier !== undefined) query = query.where("tier", filters.tier);
+  if (filters?.slot !== undefined) query = query.where("slot", filters.slot);
+
+  const rows = await query.orderBy("tier").orderBy("name");
   return rows.map(toPublicDefinition);
 }

@@ -1,8 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { sql } from "drizzle-orm";
 import type { AdminMetricsResponse, GameEventType } from "@neon-dusk/shared";
 import { db } from "../db";
-import { gameEvents } from "../db/schema";
 import { requireAdmin } from "../middleware/admin-auth";
 
 // Neon Dusk — Admin telemetry endpoint (ND-007)
@@ -16,31 +14,28 @@ interface CountRow {
   count: number;
 }
 
-/** `hours` ago cutoff — computed server-side (postgres-js can't bind Date params). */
-function sinceHours(hours: number): ReturnType<typeof sql> {
-  return sql`now() - make_interval(hours => ${hours})`;
+/** `hours` ago cutoff — parameterized for safety (hours is always a literal number). */
+function sinceHours(hours: number): ReturnType<typeof db.raw> {
+  return db.raw("now() - make_interval(hours => ?)", [hours]);
 }
 
 /** Event counts grouped by type, for the last `hours`. */
 async function countEventsByType(hours: number): Promise<CountRow[]> {
-  return db
+  return db("game_events")
     .select({
-      eventType: gameEvents.eventType,
-      count: sql<number>`count(*)::int`,
+      eventType: "event_type",
+      count: db.raw("count(*)::int"),
     })
-    .from(gameEvents)
-    .where(sql`${gameEvents.createdAt} > ${sinceHours(hours)}`)
-    .groupBy(gameEvents.eventType);
+    .where("created_at", ">", sinceHours(hours))
+    .groupBy("event_type");
 }
 
 /** Distinct actors with at least one event in the last `hours`. */
 async function countDistinctActors(hours: number): Promise<number> {
-  const rows = await db
-    .select({ count: sql<number>`count(distinct ${gameEvents.actorId})::int` })
-    .from(gameEvents)
-    .where(
-      sql`${gameEvents.createdAt} > ${sinceHours(hours)} and ${gameEvents.actorId} is not null`,
-    );
+  const rows = await db("game_events")
+    .select({ count: db.raw("count(distinct actor_id)::int") })
+    .where("created_at", ">", sinceHours(hours))
+    .whereNotNull("actor_id");
   return rows[0]?.count ?? 0;
 }
 

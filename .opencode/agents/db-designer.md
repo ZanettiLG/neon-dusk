@@ -20,7 +20,7 @@ Projetar schemas PostgreSQL para sistemas de jogo. Chamado pelo architect ou dir
 
 ## Especialidades
 - Schema para jogos multiplayer (personagens, inventário, crews, economia)
-- Migrations Knex/Drizzle com up/down
+- Migrations Knex com up/down
 - Índices para queries de ranking/leaderboard
 - Constraints e triggers para integridade de economia (sem eddies negativos, sem duplicatas)
 - Soft-deletes e auditoria (log de transações de eddies)

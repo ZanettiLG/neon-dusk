@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
 import { z } from "zod";
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import type {
   SaideiraHubInfo,
@@ -22,7 +21,6 @@ import { escapeHtml } from "../lib/escape-html";
 import { sseAuthenticate } from "../lib/sse-auth";
 import { requireCharacterId } from "../services/economy-service";
 import { db } from "../db";
-import { characters, crewMembers, crews, legends, rounds } from "../db/schema";
 import { env } from "../env";
 import { UNNAMED_DRINK } from "../game/round-reset";
 
@@ -111,20 +109,19 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     // Round data comes from the rounds table (ND-017): the active round's
     // number + end time, and the last reset timestamp (most recent ended).
     const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
-    const [active] = await db.select().from(rounds).where(eq(rounds.status, "active")).limit(1);
-    const [lastEnded] = await db
-      .select({ endedAt: rounds.endedAt })
-      .from(rounds)
-      .where(isNotNull(rounds.endedAt))
-      .orderBy(desc(rounds.roundNumber))
+    const [active] = await db("rounds").select().where("status", "active").limit(1);
+    const [lastEnded] = await db("rounds")
+      .select("ended_at as endedAt")
+      .whereNotNull("ended_at")
+      .orderBy("round_number", "desc")
       .limit(1);
 
     return {
       onlineCount,
-      lastReset: lastEnded?.endedAt ? lastEnded.endedAt.toISOString() : null,
-      currentRound: active?.roundNumber ?? 1,
+      lastReset: lastEnded?.endedAt ? new Date(lastEnded.endedAt).toISOString() : null,
+      currentRound: active?.round_number ?? 1,
       roundEndsAt: active
-        ? new Date(active.startedAt.getTime() + durationMs).toISOString()
+        ? new Date(new Date(active.started_at).getTime() + durationMs).toISOString()
         : new Date(Date.now() + durationMs).toISOString(),
     };
   });
@@ -149,20 +146,18 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
       request.audit_context!.payload = { messageLength: message.length };
 
       // Resolve the character name + crew tag (direct query — 1 row).
-      const [char] = await db
-        .select({ name: characters.name, crewId: characters.crewId })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      const [char] = await db("characters")
+        .select("name", "crew_id as crewId")
+        .where("id", characterId)
         .limit(1);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
       // ND-016: attach the crew tag when the character belongs to a crew.
       let crewTag: string | null = null;
       if (char.crewId) {
-        const [crew] = await db
-          .select({ tag: crews.tag })
-          .from(crews)
-          .where(eq(crews.id, char.crewId))
+        const [crew] = await db("crews")
+          .select("tag")
+          .where("id", char.crewId)
           .limit(1);
         crewTag = crew?.tag ?? null;
       }
@@ -260,15 +255,15 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     "/saideira/legends",
     { preHandler: [authenticate] },
     async (): Promise<LegendsResponse> => {
-      const rows = await db.select().from(legends).orderBy(desc(legends.achievedAt));
+      const rows = await db("legends").select().orderBy("achieved_at", "desc");
 
       return {
-        legends: rows.map((r) => ({
-          id: r.id,
-          characterName: r.characterName,
-          drinkName: r.drinkName,
-          achievedAt: r.achievedAt.toISOString(),
-          crewName: r.crewName,
+        legends: rows.map((r: Record<string, unknown>) => ({
+          id: r.id as string,
+          characterName: r.character_name as string,
+          drinkName: r.drink_name as string,
+          achievedAt: new Date(r.achieved_at as string).toISOString(),
+          crewName: (r.crew_name as string) ?? null,
         })),
       };
     },
@@ -294,18 +289,17 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
 
       request.audit_context!.payload = { drinkName };
 
-      const [char] = await db
-        .select({ name: characters.name })
-        .from(characters)
-        .where(eq(characters.id, characterId))
+      const [char] = await db("characters")
+        .select("name")
+        .where("id", characterId)
         .limit(1);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-      const [legend] = await db
-        .update(legends)
-        .set({ drinkName })
-        .where(and(eq(legends.characterName, char.name), eq(legends.drinkName, UNNAMED_DRINK)))
-        .returning();
+      const [legend] = await db("legends")
+        .update({ drink_name: drinkName })
+        .where("character_name", char.name)
+        .where("drink_name", UNNAMED_DRINK)
+        .returning("*");
       if (!legend) {
         throw new AppError(
           404,
@@ -317,10 +311,10 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
       return reply.status(200).send({
         legend: {
           id: legend.id,
-          characterName: legend.characterName,
-          drinkName: legend.drinkName,
-          achievedAt: legend.achievedAt.toISOString(),
-          crewName: legend.crewName,
+          characterName: legend.character_name,
+          drinkName: legend.drink_name,
+          achievedAt: new Date(legend.achieved_at).toISOString(),
+          crewName: legend.crew_name,
         },
       });
     },
@@ -331,18 +325,17 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     "/saideira/leaderboard/crews",
     { preHandler: [authenticate] },
     async (): Promise<CrewLeaderboardResponse> => {
-      const totalSC = sql<number>`COALESCE(SUM(${characters.streetCred}), 0)::int`;
-      const rows = await db
+      const totalSC = db.raw("COALESCE(SUM(characters.street_cred), 0)::int");
+      const rows = await db("crews")
         .select({
-          name: crews.name,
+          name: "crews.name",
           totalSC,
-          memberCount: sql<number>`COUNT(${crewMembers.characterId})::int`,
+          memberCount: db.raw("COUNT(crew_members.character_id)::int"),
         })
-        .from(crews)
-        .leftJoin(crewMembers, eq(crewMembers.crewId, crews.id))
-        .leftJoin(characters, eq(characters.id, crewMembers.characterId))
-        .groupBy(crews.id)
-        .orderBy(desc(totalSC))
+        .leftJoin("crew_members", "crew_members.crew_id", "crews.id")
+        .leftJoin("characters", "characters.id", "crew_members.character_id")
+        .groupBy("crews.id")
+        .orderBy("totalSC", "desc")
         .limit(5);
 
       return {

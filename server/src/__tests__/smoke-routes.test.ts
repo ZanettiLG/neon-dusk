@@ -11,7 +11,6 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import Redis from "ioredis";
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
@@ -19,7 +18,6 @@ import { startTestServer, json, authHeader, resetDb, resetRounds } from "./helpe
 import type { AuthResponse, Character } from "@neon-dusk/shared";
 import { seedGigs } from "../db/seed";
 import { db } from "../db";
-import { users } from "../db/schema";
 
 // DB 0: redis:7-alpine default max 16 databases (0-15)
 const REDIS_TEST_DB = "redis://localhost:56379/0";
@@ -74,7 +72,7 @@ describe("ND-018 — smoke test (all routes)", () => {
     await json<Character>(charRes);
 
     // Promote user to admin and re-login to get a JWT with role='admin'.
-    await db.update(users).set({ role: "admin" }).where(eq(users.id, auth.user.id));
+    await db("users").where("id", auth.user.id).update({ role: "admin" });
     const adminLoginRes = await server.post("/api/auth/login", { email, password: PASSWORD });
     const adminAuth = await json<AuthResponse>(adminLoginRes);
     adminHeaders = authHeader(adminAuth.accessToken);

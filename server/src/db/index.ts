@@ -1,19 +1,35 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import knex from "knex";
+import type { Knex } from "knex";
 import { env } from "../env";
 
-// BUGFIX BF-1: `client` MUST be exported so `migrate.ts` can call `client.end()`.
-// The Drizzle `db` instance has no `.end()` — only the underlying postgres client does.
-export const client = postgres(env.DATABASE_URL, {
-  max: 20,
-  idle_timeout: 30,
-  connect_timeout: 10,
-  prepare: false,
+/**
+ * Neon Dusk database client — Knex.js with PostgreSQL.
+ *
+ * Config mirrors `knexfile.ts` so the Knex CLI (migrate/seed) and runtime
+ * use the same connection settings.
+ */
+export const db = knex({
+  client: "pg",
+  connection: env.DATABASE_URL,
+  pool: { min: 0, max: 20 },
+  acquireConnectionTimeout: 10000,
 });
 
-export const db = drizzle({ client });
+/** Queryable type alias — used for function signatures that accept `db` or a Knex transaction. */
+export type Queryable = typeof db | Knex.Transaction;
 
-/** Transaction client type — the callback arg of `db.transaction(...)`. */
-export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+/**
+ * Verify the database connection is alive.
+ * Throws on timeout/refusal so the server can hard-fail on startup.
+ */
+export async function checkConnection(): Promise<void> {
+  await db.raw("SELECT 1");
+}
 
-export * as schema from "./schema";
+/**
+ * Graceful shutdown — drain the pool and close all connections.
+ * Call during server shutdown (SIGTERM/SIGINT).
+ */
+export async function closeConnection(): Promise<void> {
+  await db.destroy();
+}

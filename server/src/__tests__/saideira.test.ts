@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
-import { characters, crewMembers, crews } from "../db/schema";
 import type {
   AuthResponse,
   SaideiraHubInfo,
@@ -142,25 +140,23 @@ describe("ND-015 — Saideira Hub API", () => {
   /**
    * Seed a crew directly in the DB (bypasses the ND-016 create flow — that is
    * covered in crews-api.test.ts). The first member is the leader; every
-   * member gets `streetCred` and their characters.crew_id set.
+   * member gets `street_cred` and their characters.crew_id set.
    */
   async function seedCrew(
     name: string,
     tag: string,
     members: { characterId: string; streetCred: number }[],
   ): Promise<void> {
-    const [crew] = await db
-      .insert(crews)
-      .values({ name, tag, leaderId: members[0].characterId })
-      .returning({ id: crews.id });
-    await db.insert(crewMembers).values(
-      members.map((m) => ({ crewId: crew!.id, characterId: m.characterId })),
+    const [crew] = await db("crews")
+      .insert({ name, tag, leader_id: members[0].characterId })
+      .returning("id");
+    await db("crew_members").insert(
+      members.map((m) => ({ crew_id: crew.id, character_id: m.characterId })),
     );
     for (const m of members) {
-      await db
-        .update(characters)
-        .set({ streetCred: m.streetCred, maxStreetCredAchieved: m.streetCred, crewId: crew!.id })
-        .where(eq(characters.id, m.characterId));
+      await db("characters")
+        .where("id", m.characterId)
+        .update({ street_cred: m.streetCred, max_street_cred_achieved: m.streetCred, crew_id: crew.id });
     }
   }
 

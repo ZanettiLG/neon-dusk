@@ -1,19 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
-import { and, eq } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { insertTestCharacter, resetDb } from "./helpers";
 import { db } from "../db";
-import {
-  activeGigs,
-  characters,
-  gigHistory,
-  gigs,
-  heat as heatTable,
-  transactionLog,
-} from "../db/schema";
 import {
   acceptGig,
   doLegwork,
@@ -86,7 +77,7 @@ describe("ND-011 — gigs service & API", () => {
 
   /** DB row of a seeded template, by display name. */
   async function gigByName(name: string) {
-    const [gig] = await db.select().from(gigs).where(eq(gigs.name, name)).limit(1);
+    const [gig] = await db("gigs").select("*").where("name", name).limit(1);
     if (!gig) throw new Error(`seeded gig not found: ${name}`);
     return gig;
   }
@@ -98,27 +89,26 @@ describe("ND-011 — gigs service & API", () => {
 
   /** Force the active gig into the escape phase with a deterministic outcome. */
   async function forceEscapePhase(characterId: string, opts: { outcome: "success" | "failure" }) {
-    await db
-      .update(activeGigs)
-      .set({
+    await db("active_gigs")
+      .where("character_id", characterId)
+      .update({
         phase: "escape",
-        executeOutcome: opts.outcome,
-        legworkCompleted: opts.outcome === "success",
-        legworkStartedAt: opts.outcome === "success" ? new Date() : null,
-        updatedAt: new Date(),
-      })
-      .where(eq(activeGigs.characterId, characterId));
+        execute_outcome: opts.outcome,
+        legwork_completed: opts.outcome === "success",
+        legwork_started_at: opts.outcome === "success" ? new Date() : null,
+        updated_at: new Date(),
+      });
   }
 
   describe("gig catalog seeding (db/seed)", () => {
     it("should seed the 10 static templates into the gigs table", async () => {
-      const rows = await db.select().from(gigs);
+      const rows = await db("gigs").select("*");
       expect(rows).toHaveLength(10);
     });
 
     it("should be idempotent — a second run inserts nothing", async () => {
       expect(await seedGigs()).toBe(0);
-      const rows = await db.select().from(gigs);
+      const rows = await db("gigs").select("*");
       expect(rows).toHaveLength(10);
     });
   });
@@ -196,14 +186,14 @@ describe("ND-011 — gigs service & API", () => {
     it("should report a running cooldown after a recent completion", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
-      await db.insert(gigHistory).values({
-        characterId,
-        gigId: farma.id,
+      await db("gig_history").insert({
+        character_id: characterId,
+        gig_id: farma.id,
         outcome: "success",
-        phasesCompleted: ["meet", "execute", "escape", "wrap_up"],
+        phases_completed: ["meet", "execute", "escape", "wrap_up"],
         payout: 500,
-        streetCredGained: 2,
-        heatAccumulated: 5,
+        street_cred_gained: 2,
+        heat_accumulated: 5,
         district: farma.district,
       });
 
@@ -216,16 +206,16 @@ describe("ND-011 — gigs service & API", () => {
     it("should report 0 cooldown once the cooldown window has elapsed", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
-      await db.insert(gigHistory).values({
-        characterId,
-        gigId: farma.id,
+      await db("gig_history").insert({
+        character_id: characterId,
+        gig_id: farma.id,
         outcome: "success",
-        phasesCompleted: ["meet", "execute", "escape", "wrap_up"],
+        phases_completed: ["meet", "execute", "escape", "wrap_up"],
         payout: 500,
-        streetCredGained: 2,
-        heatAccumulated: 5,
+        street_cred_gained: 2,
+        heat_accumulated: 5,
         district: farma.district,
-        completedAt: new Date(Date.now() - 20 * 60_000),
+        completed_at: new Date(Date.now() - 20 * 60_000),
       });
 
       const board = await listAvailableGigs(characterId);
@@ -313,7 +303,7 @@ describe("ND-011 — gigs service & API", () => {
         code: "ALREADY_ACTIVE_GIG",
       });
 
-      const [char] = await db.select({ nil: characters.nil }).from(characters).where(eq(characters.id, characterId));
+      const [char] = await db("characters").select("nil").where("id", characterId);
       expect(char!.nil).toBe(90);
       const active = await getActiveGig(characterId);
       expect(active!.gigId).toBe(farma.id);
@@ -335,7 +325,7 @@ describe("ND-011 — gigs service & API", () => {
     it("should throw 400 INSUFFICIENT_NIL and roll back the active gig when NIL is too low", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
-      await db.update(characters).set({ nil: 5 }).where(eq(characters.id, characterId));
+      await db("characters").where("id", characterId).update({ nil: 5 });
 
       await expect(acceptGig(characterId, farma.id)).rejects.toMatchObject({
         statusCode: 400,
@@ -344,7 +334,7 @@ describe("ND-011 — gigs service & API", () => {
 
       // Rolled back: no active gig row, NIL untouched.
       expect(await getActiveGig(characterId)).toBeNull();
-      const [char] = await db.select({ nil: characters.nil }).from(characters).where(eq(characters.id, characterId));
+      const [char] = await db("characters").select("nil").where("id", characterId);
       expect(char!.nil).toBe(5);
     });
 
@@ -362,11 +352,10 @@ describe("ND-011 — gigs service & API", () => {
     it("should accept a T2 gig once the character has 5 street cred and the stats", async () => {
       const { characterId } = await insertTestCharacter();
       const bagre = await gigByName("Bagre Ensaboado"); // requires {body: 6, technical: 5}
-      await db
-        .update(characters)
+      await db("characters")
+        .where("id", characterId)
         // Keep the attribute spread at 22 (characters_attrs_total CHECK).
-        .set({ streetCred: 5, body: 6, reflexes: 3, intelligence: 3, technical: 5, cool: 5 })
-        .where(eq(characters.id, characterId));
+        .update({ street_cred: 5, body: 6, reflexes: 3, intelligence: 3, technical: 5, cool: 5 });
 
       const res = await acceptGig(characterId, bagre.id);
       expect(res.activeGig.gigTier).toBe("t2");
@@ -382,23 +371,23 @@ describe("ND-011 — gigs service & API", () => {
         code: "INSUFFICIENT_STATS",
       });
       expect(await getActiveGig(characterId)).toBeNull();
-      const [char] = await db.select({ nil: characters.nil }).from(characters).where(eq(characters.id, characterId));
+      const [char] = await db("characters").select("nil").where("id", characterId);
       expect(char!.nil).toBe(100); // NIL untouched on rollback
     });
 
     it("should throw 400 GIG_COOLDOWN when the same gig was completed recently", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
-      await db.insert(gigHistory).values({
-        characterId,
-        gigId: farma.id,
+      await db("gig_history").insert({
+        character_id: characterId,
+        gig_id: farma.id,
         outcome: "success",
-        phasesCompleted: ["meet", "execute", "escape", "wrap_up"],
+        phases_completed: ["meet", "execute", "escape", "wrap_up"],
         payout: 500,
-        streetCredGained: 2,
-        heatAccumulated: 5,
+        street_cred_gained: 2,
+        heat_accumulated: 5,
         district: farma.district,
-        completedAt: new Date(), // just now — 10-min cooldown still running
+        completed_at: new Date(), // just now — 10-min cooldown still running
       });
 
       await expect(acceptGig(characterId, farma.id)).rejects.toMatchObject({
@@ -411,16 +400,16 @@ describe("ND-011 — gigs service & API", () => {
     it("should allow accepting again once the cooldown has expired", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
-      await db.insert(gigHistory).values({
-        characterId,
-        gigId: farma.id,
+      await db("gig_history").insert({
+        character_id: characterId,
+        gig_id: farma.id,
         outcome: "success",
-        phasesCompleted: ["meet", "execute", "escape", "wrap_up"],
+        phases_completed: ["meet", "execute", "escape", "wrap_up"],
         payout: 500,
-        streetCredGained: 2,
-        heatAccumulated: 5,
+        street_cred_gained: 2,
+        heat_accumulated: 5,
         district: farma.district,
-        completedAt: new Date(Date.now() - 11 * 60_000),
+        completed_at: new Date(Date.now() - 11 * 60_000),
       });
 
       const res = await acceptGig(characterId, farma.id);
@@ -524,10 +513,9 @@ describe("ND-011 — gigs service & API", () => {
       await acceptGig(characterId, farma.id);
       await doLegwork(characterId, farma.id);
       // Backdate the start so the 5-minute timer has elapsed.
-      await db
-        .update(activeGigs)
-        .set({ legworkStartedAt: new Date(Date.now() - 6 * 60_000) })
-        .where(eq(activeGigs.characterId, characterId));
+      await db("active_gigs")
+        .where("character_id", characterId)
+        .update({ legwork_started_at: new Date(Date.now() - 6 * 60_000) });
 
       const res = await executeGig(characterId, farma.id);
 
@@ -617,23 +605,22 @@ describe("ND-011 — gigs service & API", () => {
       expect(await getActiveGig(characterId)).toBeNull();
 
       // History entry recorded.
-      const [history] = await db
-        .select()
-        .from(gigHistory)
-        .where(eq(gigHistory.characterId, characterId));
+      const [history] = await db("gig_history")
+        .select("*")
+        .where("character_id", characterId);
       expect(history).toMatchObject({
-        gigId: farma.id,
+        gig_id: farma.id,
         outcome: "success",
         payout: 660,
-        streetCredGained: res.streetCredGained,
-        heatAccumulated: 5,
+        street_cred_gained: res.streetCredGained,
+        heat_accumulated: 5,
         district: "Babilônia",
       });
-      expect(history.phasesCompleted).toContain("meet");
-      expect(history.phasesCompleted).toContain("legwork");
-      expect(history.phasesCompleted).toContain("execute");
-      expect(history.phasesCompleted).toContain("escape");
-      expect(history.phasesCompleted).toContain("wrap_up");
+      expect(history.phases_completed).toContain("meet");
+      expect(history.phases_completed).toContain("legwork");
+      expect(history.phases_completed).toContain("execute");
+      expect(history.phases_completed).toContain("escape");
+      expect(history.phases_completed).toContain("wrap_up");
     });
 
     it("should credit the wallet with a GIG_PAYOUT audit entry", async () => {
@@ -643,15 +630,15 @@ describe("ND-011 — gigs service & API", () => {
       await forceEscapePhase(characterId, { outcome: "success" });
       await wrapUpGig(characterId, farma.id);
 
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(and(eq(transactionLog.characterId, characterId), eq(transactionLog.type, "GIG_PAYOUT")));
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "GIG_PAYOUT");
       expect(log).toMatchObject({
         amount: 660,
-        balanceBefore: 500,
-        balanceAfter: 1160,
-        referenceType: "gig",
+        balance_before: 500,
+        balance_after: 1160,
+        reference_type: "gig",
       });
     });
 
@@ -669,10 +656,9 @@ describe("ND-011 — gigs service & API", () => {
       expect(res.heatAccumulated).toBe(10); // 5 × 2
       expect(res.newBalance).toBe(500); // no credit
 
-      const [history] = await db
-        .select()
-        .from(gigHistory)
-        .where(eq(gigHistory.characterId, characterId));
+      const [history] = await db("gig_history")
+        .select("*")
+        .where("character_id", characterId);
       expect(history.outcome).toBe("failure");
       expect(history.payout).toBe(0);
     });
@@ -682,23 +668,22 @@ describe("ND-011 — gigs service & API", () => {
       const farma = await farmaGig();
       await acceptGig(characterId, farma.id);
       await forceEscapePhase(characterId, { outcome: "success" });
-      await db.update(characters).set({ streetCred: 99 }).where(eq(characters.id, characterId));
+      await db("characters").where("id", characterId).update({ street_cred: 99 });
 
       const res = await wrapUpGig(characterId, farma.id);
 
       expect(res.streetCredGained).toBe(1);
-      const [char] = await db
-        .select({ streetCred: characters.streetCred })
-        .from(characters)
-        .where(eq(characters.id, characterId));
-      expect(char!.streetCred).toBe(100);
+      const [char] = await db("characters")
+        .select("street_cred")
+        .where("id", characterId);
+      expect(char!.street_cred).toBe(100);
     });
 
     it("should accumulate heat into the district heat row (upsert)", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
-      await db.insert(heatTable).values({
-        characterId,
+      await db("heat").insert({
+        character_id: characterId,
         district: farma.district,
         amount: 5,
       });
@@ -707,10 +692,10 @@ describe("ND-011 — gigs service & API", () => {
 
       await wrapUpGig(characterId, farma.id);
 
-      const [heatRow] = await db
-        .select()
-        .from(heatTable)
-        .where(and(eq(heatTable.characterId, characterId), eq(heatTable.district, farma.district)));
+      const [heatRow] = await db("heat")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("district", farma.district);
       expect(heatRow!.amount).toBe(10); // 5 pre-existing + 5 from the gig
     });
 
@@ -720,10 +705,9 @@ describe("ND-011 — gigs service & API", () => {
       await acceptGig(characterId, farma.id);
       await doLegwork(characterId, farma.id);
       // Backdate legwork so the timer has elapsed (gate ND-078).
-      await db
-        .update(activeGigs)
-        .set({ legworkStartedAt: new Date(Date.now() - 6 * 60_000) })
-        .where(eq(activeGigs.characterId, characterId));
+      await db("active_gigs")
+        .where("character_id", characterId)
+        .update({ legwork_started_at: new Date(Date.now() - 6 * 60_000) });
       await executeGig(characterId, farma.id);
 
       await expect(wrapUpGig(characterId, farma.id)).rejects.toMatchObject({
@@ -771,16 +755,16 @@ describe("ND-011 — gigs service & API", () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       for (const [i, offsetMin] of [30, 20, 10].entries()) {
-        await db.insert(gigHistory).values({
-          characterId,
-          gigId: farma.id,
+        await db("gig_history").insert({
+          character_id: characterId,
+          gig_id: farma.id,
           outcome: i === 2 ? ("failure" as const) : ("success" as const),
-          phasesCompleted: ["meet", "execute", "escape", "wrap_up"],
+          phases_completed: ["meet", "execute", "escape", "wrap_up"],
           payout: i === 2 ? 0 : 500,
-          streetCredGained: 0,
-          heatAccumulated: 5,
+          street_cred_gained: 0,
+          heat_accumulated: 5,
           district: farma.district,
-          completedAt: new Date(Date.now() - offsetMin * 60_000),
+          completed_at: new Date(Date.now() - offsetMin * 60_000),
         });
       }
 
@@ -1249,10 +1233,9 @@ describe("ND-011 — gigs service & API", () => {
       });
       // Backdate the legwork start so the 5-minute timer has elapsed (payout
       // then includes the +20% legwork bonus on top of the +10% success).
-      await db
-        .update(activeGigs)
-        .set({ legworkStartedAt: new Date(Date.now() - 6 * 60_000) })
-        .where(eq(activeGigs.characterId, characterId));
+      await db("active_gigs")
+        .where("character_id", characterId)
+        .update({ legwork_started_at: new Date(Date.now() - 6 * 60_000) });
       const exec = await app.inject({
         method: "POST",
         url: `/api/gigs/${farma.id}/execute`,

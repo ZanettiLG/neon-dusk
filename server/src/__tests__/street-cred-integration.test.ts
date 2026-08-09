@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
-import { eq, sql } from "drizzle-orm";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { resetDb } from "./helpers";
 import { db } from "../db";
-import { characters, crewMembers, crews, transactionLog } from "../db/schema";
 import type {
   AuthResponse,
   AwardSCResponse,
@@ -69,7 +67,7 @@ describe("ND-013 — street-cred API", () => {
    * the rows this test seeds) and drop the cached snapshot.
    */
   async function isolateLeaderboard(): Promise<void> {
-    await db.execute(sql`TRUNCATE characters CASCADE`);
+    await db.raw("TRUNCATE characters CASCADE");
     await flushLeaderboardCache();
   }
 
@@ -102,10 +100,9 @@ describe("ND-013 — street-cred API", () => {
   describe("GET /api/street-cred", () => {
     it("should return the live readout with score, title, max, next threshold", async () => {
       const { accessToken, characterId } = await registerApiUser();
-      await db
-        .update(characters)
-        .set({ streetCred: 30, maxStreetCredAchieved: 30 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ street_cred: 30, max_street_cred_achieved: 30 });
 
       const res = await app.inject({
         method: "GET",
@@ -173,10 +170,9 @@ describe("ND-013 — street-cred API", () => {
       const ordered = [80, 50, 30];
       for (const sc of ordered) {
         const { characterId } = await registerApiUser();
-        await db
-          .update(characters)
-          .set({ streetCred: sc, maxStreetCredAchieved: sc })
-          .where(eq(characters.id, characterId));
+        await db("characters")
+          .where("id", characterId)
+          .update({ street_cred: sc, max_street_cred_achieved: sc });
       }
 
       const res = await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
@@ -198,7 +194,7 @@ describe("ND-013 — street-cred API", () => {
     it("should respect a custom limit", async () => {
       await isolateLeaderboard();
       const { characterId } = await registerApiUser();
-      await db.update(characters).set({ streetCred: 40 }).where(eq(characters.id, characterId));
+      await db("characters").where("id", characterId).update({ street_cred: 40 });
 
       const res = await app.inject({ method: "GET", url: "/api/street-cred/leaderboard?limit=1" });
 
@@ -230,30 +226,26 @@ describe("ND-013 — street-cred API", () => {
       const { characterId: leaderId } = await registerApiUser();
       const { characterId: memberId } = await registerApiUser();
       const { characterId: soloId } = await registerApiUser();
-      await db
-        .update(characters)
-        .set({ streetCred: 80, maxStreetCredAchieved: 80 })
-        .where(eq(characters.id, leaderId));
-      await db
-        .update(characters)
-        .set({ streetCred: 50, maxStreetCredAchieved: 50 })
-        .where(eq(characters.id, memberId));
-      await db
-        .update(characters)
-        .set({ streetCred: 30, maxStreetCredAchieved: 30 })
-        .where(eq(characters.id, soloId));
+      await db("characters")
+        .where("id", leaderId)
+        .update({ street_cred: 80, max_street_cred_achieved: 80 });
+      await db("characters")
+        .where("id", memberId)
+        .update({ street_cred: 50, max_street_cred_achieved: 50 });
+      await db("characters")
+        .where("id", soloId)
+        .update({ street_cred: 30, max_street_cred_achieved: 30 });
 
       // Affiliate leader + member under one crew; soloId stays unaffiliated.
-      const [crew] = await db
-        .insert(crews)
-        .values({ name: "Blade Runners", tag: "BLD", leaderId })
-        .returning({ id: crews.id });
-      await db.insert(crewMembers).values([
-        { crewId: crew!.id, characterId: leaderId },
-        { crewId: crew!.id, characterId: memberId },
+      const [crew] = await db("crews")
+        .insert({ name: "Blade Runners", tag: "BLD", leader_id: leaderId })
+        .returning("id");
+      await db("crew_members").insert([
+        { crew_id: crew.id, character_id: leaderId },
+        { crew_id: crew.id, character_id: memberId },
       ]);
-      await db.update(characters).set({ crewId: crew!.id }).where(eq(characters.id, leaderId));
-      await db.update(characters).set({ crewId: crew!.id }).where(eq(characters.id, memberId));
+      await db("characters").where("id", leaderId).update({ crew_id: crew.id });
+      await db("characters").where("id", memberId).update({ crew_id: crew.id });
 
       const res = await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
 
@@ -291,31 +283,28 @@ describe("ND-013 — street-cred API", () => {
         maxAchieved: 12,
       });
 
-      const [char] = await db
-        .select({ streetCred: characters.streetCred })
-        .from(characters)
-        .where(eq(characters.id, characterId));
-      expect(char!.streetCred).toBe(12);
+      const [char] = await db("characters")
+        .select("street_cred")
+        .where("id", characterId);
+      expect(char!.street_cred).toBe(12);
 
-      const [log] = await db
-        .select()
-        .from(transactionLog)
-        .where(eq(transactionLog.characterId, characterId));
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId);
       expect(log).toMatchObject({
         type: "STREET_CRED_AWARD",
         amount: 12,
-        balanceBefore: 0,
-        balanceAfter: 12,
+        balance_before: 0,
+        balance_after: 12,
         source: "admin-bonus",
       });
     });
 
     it("should clamp at 100 — award only the room left", async () => {
       const { accessToken, characterId } = await registerApiUser();
-      await db
-        .update(characters)
-        .set({ streetCred: 99, maxStreetCredAchieved: 99 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ street_cred: 99, max_street_cred_achieved: 99 });
 
       const res = await app.inject({
         method: "POST",
@@ -331,19 +320,17 @@ describe("ND-013 — street-cred API", () => {
       expect(body.title).toBe("Legend");
       expect(body.maxAchieved).toBe(100);
 
-      const [char] = await db
-        .select({ streetCred: characters.streetCred })
-        .from(characters)
-        .where(eq(characters.id, characterId));
-      expect(char!.streetCred).toBe(100);
+      const [char] = await db("characters")
+        .select("street_cred")
+        .where("id", characterId);
+      expect(char!.street_cred).toBe(100);
     });
 
     it("should be a no-op award at the 100 cap", async () => {
       const { accessToken, characterId } = await registerApiUser();
-      await db
-        .update(characters)
-        .set({ streetCred: 100, maxStreetCredAchieved: 100 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ street_cred: 100, max_street_cred_achieved: 100 });
 
       const res = await app.inject({
         method: "POST",
@@ -402,10 +389,9 @@ describe("ND-013 — street-cred API", () => {
     it("should invalidate the leaderboard cache after a successful SC award", async () => {
       await isolateLeaderboard();
       const { accessToken, characterId } = await registerApiUser();
-      await db
-        .update(characters)
-        .set({ streetCred: 90, maxStreetCredAchieved: 90 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ street_cred: 90, max_street_cred_achieved: 90 });
 
       // Populate the leaderboard cache so it holds a snapshot.
       await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
@@ -429,10 +415,9 @@ describe("ND-013 — street-cred API", () => {
       await isolateLeaderboard();
       const { accessToken, characterId } = await registerApiUser();
       // Set SC to 90 so the leaderboard is populated with that score.
-      await db
-        .update(characters)
-        .set({ streetCred: 90, maxStreetCredAchieved: 90 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ street_cred: 90, max_street_cred_achieved: 90 });
 
       // Seed a cache snapshot with the old score.
       await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
@@ -463,14 +448,13 @@ describe("ND-013 — street-cred API", () => {
       const { accessToken, characterId } = await registerApiUser();
       // 10 days idle → 3 days past the 7-day grace × -5/day = -15, floored at
       // the highest threshold reached (maxAchieved 60 → floor 50).
-      await db
-        .update(characters)
-        .set({
-          streetCred: 60,
-          maxStreetCredAchieved: 60,
-          lastActivityAt: new Date(Date.now() - 10 * 86_400_000),
-        })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({
+          street_cred: 60,
+          max_street_cred_achieved: 60,
+          last_activity_at: new Date(Date.now() - 10 * 86_400_000),
+        });
 
       const res = await app.inject({
         method: "GET",
@@ -485,28 +469,22 @@ describe("ND-013 — street-cred API", () => {
       expect(body.maxAchieved).toBe(60);
       expect(body.scToNext).toBe(25); // next threshold 75
 
-      const [char] = await db
-        .select({
-          streetCred: characters.streetCred,
-          lastActivityAt: characters.lastActivityAt,
-          updatedAt: characters.updatedAt,
-        })
-        .from(characters)
-        .where(eq(characters.id, characterId));
-      expect(char!.streetCred).toBe(50);
+      const [char] = await db("characters")
+        .select("street_cred", "last_activity_at", "updated_at")
+        .where("id", characterId);
+      expect(char!.street_cred).toBe(50);
       // Writeback refreshes the decay clock so repeated reads stay stable.
       // Compared against the DB clock, not Date.now() — the container clock
       // can drift from the test runner.
-      const [{ now }] = (await db.execute(sql`SELECT NOW() AS now`)) as { now: Date }[];
-      expect(Math.abs(new Date(now).getTime() - char!.updatedAt.getTime())).toBeLessThan(60_000);
+      const { rows: [{ now }] } = await db.raw("SELECT NOW() AS now");
+      expect(Math.abs(new Date(now).getTime() - char!.updated_at.getTime())).toBeLessThan(60_000);
     });
 
     it("should not write back when decay is a no-op (fresh activity)", async () => {
       const { accessToken, characterId } = await registerApiUser();
-      await db
-        .update(characters)
-        .set({ streetCred: 30, maxStreetCredAchieved: 30 })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ street_cred: 30, max_street_cred_achieved: 30 });
 
       const res = await app.inject({
         method: "GET",
@@ -516,11 +494,10 @@ describe("ND-013 — street-cred API", () => {
 
       expect(res.statusCode).toBe(200);
       expect((res.json() as StreetCredInfo).score).toBe(30);
-      const [char] = await db
-        .select({ streetCred: characters.streetCred, updatedAt: characters.updatedAt })
-        .from(characters)
-        .where(eq(characters.id, characterId));
-      expect(char!.streetCred).toBe(30);
+      const [char] = await db("characters")
+        .select("street_cred", "updated_at")
+        .where("id", characterId);
+      expect(char!.street_cred).toBe(30);
     });
   });
 });

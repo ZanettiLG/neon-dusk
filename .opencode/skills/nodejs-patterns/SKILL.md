@@ -37,7 +37,7 @@ src/server/
 | Linguagem | TypeScript | 5.x strict |
 | Framework HTTP | Fastify | 5.x |
 | Validação | Zod | 3.x |
-| ORM | Drizzle | latest |
+| Query Builder | Knex.js | latest |
 | Cache | ioredis (Redis) | 5.x |
 | Logging | Pino | latest |
 | Config | env.ts com Zod | — |
@@ -115,27 +115,86 @@ app.setErrorHandler((error, request, reply) => {
 })
 ```
 
-### Database Access (Drizzle)
-```typescript
-// Model definition
-import { pgTable, uuid, text, integer, timestamp } from 'drizzle-orm/pg-core'
+### Database Access (Knex)
 
-export const characters = pgTable('characters', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => users.id),
-  name: text('name').notNull(),
-  body: integer('body').notNull().default(3),
-  reflexes: integer('reflexes').notNull().default(3),
-  intelligence: integer('intelligence').notNull().default(3),
-  technical: integer('technical').notNull().default(3),
-  cool: integer('cool').notNull().default(3),
-  role: text('role').notNull(),
-  streetCred: integer('street_cred').notNull().default(0),
-  humanity: integer('humanity').notNull().default(100),
-  eddies: integer('eddies').notNull().default(0),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
+```typescript
+// Connection setup — src/server/db/connection.ts
+import knex, { Knex } from 'knex'
+import { env } from '@/server/env'
+
+export const db: Knex = knex({
+  client: 'pg',
+  connection: env.DATABASE_URL,
+  pool: { min: 0, max: 20 },
+  migrations: { directory: './db/migrations', extension: 'ts' },
+  seeds: { directory: './db/seeds' }
 })
+```
+
+#### Query Builder Patterns
+
+```typescript
+// Type definition
+interface Character {
+  id: string
+  user_id: string
+  name: string
+  body: number
+  role: 'solo' | 'netrunner' | 'tech' | 'fixer' | 'nomad'
+  street_cred: number
+  eddies: number
+}
+
+// SELECT with type inference
+const chars = await db<Character>('characters')
+  .select('id', 'name', 'street_cred')
+  .where('street_cred', '>', 50)
+  .orderBy('street_cred', 'desc')
+
+// INSERT returning
+const [char] = await db<Character>('characters')
+  .insert({ name: 'Vex', user_id: userId, body: 5, role: 'solo' })
+  .returning('*')
+
+// UPDATE with returning
+const [updated] = await db<Character>('characters')
+  .where({ id })
+  .update({ street_cred: db.raw('street_cred + ?', [10]) })
+  .returning('*')
+
+// JOIN
+const results = await db('gigs')
+  .join('characters', 'gigs.fixer_id', 'characters.id')
+  .select('gigs.*', 'characters.name as fixer_name')
+  .where('gigs.district', districtId)
+```
+
+#### Transaction Patterns
+
+```typescript
+// Atomic debit
+await db.transaction(async trx => {
+  const [account] = await db('characters')
+    .where({ id })
+    .where('eddies', '>=', amount) // optimistic lock
+    .transacting(trx)
+    .forUpdate()
+    .decrement('eddies', amount)
+    .returning('eddies')
+
+  if (!account) throw new AppError(400, 'INSUFFICIENT_FUNDS', 'Not enough eddies')
+
+  await db('transaction_log')
+    .insert({ character_id: id, amount: -amount, reason })
+    .transacting(trx)
+})
+```
+
+#### Raw Queries
+
+```typescript
+// For complex queries the query builder can't express cleanly
+const result = await db.raw('SELECT * FROM leaderboard(?, ?)', [district, limit])
 ```
 
 ### Redis Caching
@@ -154,4 +213,4 @@ const cached = await redis.get(`leaderboard:${district}`)
 - ❌ Rotas sem validação de input (sempre Zod)
 - ❌ Transactions longas (manter <500ms)
 - ❌ `SELECT *` (listar colunas explicitamente)
-- ❌ N+1 queries (usar JOINs ou Drizzle `with`)
+- ❌ N+1 queries (usar JOINs ou Knex eager-loading)

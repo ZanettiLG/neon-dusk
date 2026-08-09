@@ -1,16 +1,9 @@
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import { db, client } from "./index";
+import { db } from "./index";
 
 async function main() {
   console.log("Running migrations...");
-  await migrate(db, { migrationsFolder: "./migrations" });
-  console.log("Migrations complete.");
-  // BF-1: close the postgres client, not `db`
-  await client.end();
-  process.exit(0);
+  const [batchNo, migrations] = await db.migrate.latest();
+  console.log(`Batch ${batchNo} complete: ${migrations.length} migrations run.`);
+  await db.destroy();
 }
-
-main().catch((err) => {
-  console.error("Migration failed:", err);
-  process.exit(1);
-});
+main().catch((err) => { console.error(err); process.exit(1); });

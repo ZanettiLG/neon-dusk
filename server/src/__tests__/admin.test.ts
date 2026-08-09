@@ -1,14 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
 import Redis from "ioredis";
-import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, insertTestCharacter, registerTestUser } from "./helpers";
 import { db } from "../db";
-import { characters, users } from "../db/schema";
-import { sql } from "drizzle-orm";
 import type {
   AdminPlayersResponse,
   AdminEconomy,
@@ -49,7 +46,7 @@ describe("ND-052 — admin panel API", () => {
   async function createAdminUser(email: string, password = "Password123"): Promise<AuthResponse> {
     const auth = await registerTestUser(server, email, password);
     // Promote to admin directly in DB.
-    await db.update(users).set({ role: "admin" }).where(eq(users.id, auth.user.id));
+    await db("users").where("id", auth.user.id).update({ role: "admin" });
     // Re-login to get a JWT with role='admin'.
     const loginRes = await server.post("/api/auth/login", { email, password });
     return json<AuthResponse>(loginRes);
@@ -62,7 +59,7 @@ describe("ND-052 — admin panel API", () => {
 
   /** Ensure game_params has default values (may be truncated by CASCADE from other tests). */
   async function ensureGameParams(): Promise<void> {
-    await db.execute(sql`
+    await db.raw(`
       INSERT INTO game_params (key, value) VALUES
         ('ROUND_DURATION_DAYS', '14'),
         ('NIL_REGEN_MINUTES', '5'),
@@ -228,11 +225,10 @@ describe("ND-052 — admin panel API", () => {
       expect(banRes.status).toBe(200);
 
       // Verify banned in DB.
-      const [char] = await db
-        .select({ isBanned: characters.isBanned })
-        .from(characters)
-        .where(eq(characters.id, characterId));
-      expect(char?.isBanned).toBe(true);
+      const [char] = await db("characters")
+        .select("is_banned")
+        .where("id", characterId);
+      expect(char?.is_banned).toBe(true);
 
       // Ban should appear in player list as "banned".
       const playersRes = await fetch(
@@ -254,11 +250,10 @@ describe("ND-052 — admin panel API", () => {
       expect(unbanRes.status).toBe(200);
 
       // Verify unbanned in DB.
-      const [char2] = await db
-        .select({ isBanned: characters.isBanned })
-        .from(characters)
-        .where(eq(characters.id, characterId));
-      expect(char2?.isBanned).toBe(false);
+      const [char2] = await db("characters")
+        .select("is_banned")
+        .where("id", characterId);
+      expect(char2?.is_banned).toBe(false);
     });
 
     it("should return 404 when banning a nonexistent character", async () => {
@@ -489,10 +484,9 @@ describe("ND-052 — admin panel API", () => {
       });
 
       // Set both: ban + circuit_break. Banned should take priority.
-      await db
-        .update(characters)
-        .set({ isBanned: true })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_banned: true });
 
       const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
       await redis.connect();
@@ -510,10 +504,9 @@ describe("ND-052 — admin panel API", () => {
       expect(player?.status).toBe("banned");
 
       // Cleanup: unban.
-      await db
-        .update(characters)
-        .set({ isBanned: false })
-        .where(eq(characters.id, characterId));
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_banned: false });
     });
   });
 

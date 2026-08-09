@@ -30,31 +30,105 @@ Skill de design de banco de dados. Schema, migrations, índices, constraints.
 | Enums | UPPER_SNAKE_CASE | `GIG_TYPE`, `CREW_ROLE` |
 | Timestamps | `created_at`, `updated_at` | Em TODA tabela |
 
-## Migrations (Drizzle)
+## Migrations (Knex)
+
+### Migration File Pattern
 
 ```typescript
 // db/migrations/0000_create_characters.ts
-import { pgTable, uuid, text, integer, timestamp, pgEnum } from 'drizzle-orm/pg-core'
+import { Knex } from 'knex'
 
-export const roleEnum = pgEnum('role', ['solo', 'netrunner', 'tech', 'fixer', 'nomad'])
+export function up(knex: Knex): Promise<void> {
+  return knex.schema
+    .createTable('users', table => {
+      table.uuid('id').primary().notNullable()
+      table.text('email').notNullable().unique()
+    })
+    .createTable('characters', table => {
+      table.uuid('id').primary().notNullable()
+      table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('cascade')
+      table.text('name').notNullable().unique()
+      table.integer('body').notNullable().defaultTo(3)
+      table.integer('reflexes').notNullable().defaultTo(3)
+      table.integer('intelligence').notNullable().defaultTo(3)
+      table.integer('technical').notNullable().defaultTo(3)
+      table.integer('cool').notNullable().defaultTo(3)
+      table.specificType('role', 'role_type').notNullable() // enum via .raw() + .createType()
+      table.integer('street_cred').notNullable().defaultTo(0)
+      table.integer('humanity').notNullable().defaultTo(100)
+      table.integer('eddies').notNullable().defaultTo(0)
+      table.jsonb('inventory').defaultTo('[]')
+      table.jsonb('perks').defaultTo('{}')
+      table.specificType('created_at', 'timestamptz').notNullable().defaultTo(knex.fn.now())
+      table.specificType('updated_at', 'timestamptz').notNullable().defaultTo(knex.fn.now())
+    })
+}
 
-export const characters = pgTable('characters', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull().unique(),
-  body: integer('body').notNull().default(3),
-  reflexes: integer('reflexes').notNull().default(3),
-  intelligence: integer('intelligence').notNull().default(3),
-  technical: integer('technical').notNull().default(3),
-  cool: integer('cool').notNull().default(3),
-  role: roleEnum('role').notNull(),
-  streetCred: integer('street_cred').notNull().default(0),
-  humanity: integer('humanity').notNull().default(100),
-  eddies: integer('eddies').notNull().default(0),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull()
-})
+export function down(knex: Knex): Promise<void> {
+  return knex.schema.dropTable('characters').dropTable('users')
+}
 ```
+
+### Native Postgres Enums
+
+```typescript
+export function up(knex: Knex): Promise<void> {
+  return knex.schema.raw(`
+    CREATE TYPE role_type AS ENUM ('solo', 'netrunner', 'tech', 'fixer', 'nomad')
+  `)
+}
+
+export function down(knex: Knex): Promise<void> {
+  return knex.schema.raw(`DROP TYPE IF EXISTS role_type`)
+}
+```
+
+### Raw SQL for Complex Operations
+
+```typescript
+// For triggers, views, or complex DDL not covered by schema builder
+export function up(knex: Knex): Promise<void> {
+  return knex.schema.raw(`
+    CREATE OR REPLACE FUNCTION update_updated_at()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+
+    CREATE TRIGGER characters_updated_at
+      BEFORE UPDATE ON characters
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  `)
+}
+```
+
+### Seed Pattern
+
+```typescript
+// db/seeds/01_roles.ts
+import { Knex } from 'knex'
+
+export async function seed(knex: Knex): Promise<void> {
+  await knex('characters').del() // clear in dependency order
+
+  await knex('characters').insert([
+    { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Vex', body: 5, reflexes: 8 }
+  ])
+}
+```
+
+### Key Schema Builder Methods
+
+| Method | Use |
+|---|---|
+| `table.uuid('id')` | UUID column (use `.defaultTo(knex.raw('gen_random_uuid()'))` if not app-generated) |
+| `table.specificType('col', 'timestamptz')` | Native PostgreSQL types |
+| `table.jsonb('data')` | JSONB with default `'{}'` or `'[]'` |
+| `table.enu('col', [...], { useNative: true, enumName: 'type' })` | Native PG enum (alternative to raw CREATE TYPE) |
+| `table.increments('id')` | Auto-increment serial (avoid — use UUIDs) |
+| `knex.schema.raw('SQL')` | Raw DDL for triggers, views, complex types |
 
 ## Constraints & Integridade
 

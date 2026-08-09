@@ -1,6 +1,5 @@
 import type Redis from "ioredis";
 import { z } from "zod";
-import { and, eq, gte, sql } from "drizzle-orm";
 import type { NilConsumeResponse, NilStatus, NilStimResponse } from "@neon-dusk/shared";
 import {
   NIL_REGEN_INTERVAL_MS,
@@ -9,7 +8,6 @@ import {
   NIL_SYN_CAFE_COOLDOWN_S,
 } from "@neon-dusk/shared";
 import { db } from "../db";
-import { characters } from "../db/schema";
 import { AppError } from "../middleware/error-handler";
 
 // Neon Dusk — NIL (energy) service
@@ -17,6 +15,16 @@ import { AppError } from "../middleware/error-handler";
 // Lazy-write design: GET reads apply regen in memory only; only consume and
 // syn-café persist (updating `nil` + `nil_updated_at` together). Rate is
 // +1 NIL per 5 minutes, capped at `max_nil` (03-mecanicas-core.md §1).
+
+/** Database row shape for characters (subset used by NIL operations). */
+interface DbCharacter {
+  id: string;
+  userId: string;
+  role: string;
+  nil: number;
+  maxNil: number;
+  nilUpdatedAt: Date;
+}
 
 export interface RegenResult {
   newNil: number;
@@ -40,7 +48,7 @@ export function calculateRegen(currentNil: number, maxNil: number, lastUpdated: 
 }
 
 /** Map a character row to a live NIL readout, applying passive regen lazily. */
-export function toNilStatus(row: typeof characters.$inferSelect): NilStatus {
+export function toNilStatus(row: DbCharacter): NilStatus {
   const { newNil, nextTickSeconds } = calculateRegen(row.nil, row.maxNil, row.nilUpdatedAt);
   return {
     current: newNil,
@@ -52,12 +60,12 @@ export function toNilStatus(row: typeof characters.$inferSelect): NilStatus {
 }
 
 /** Load the caller's character row, 404 when none exists. */
-async function findCharacter(userId: string): Promise<typeof characters.$inferSelect> {
-  const [row] = await db.select().from(characters).where(eq(characters.userId, userId)).limit(1);
-  if (!row) {
+async function findCharacter(userId: string): Promise<DbCharacter> {
+  const rows = await db("characters").select().where("user_id", userId).limit(1);
+  if (!rows.length) {
     throw new AppError(404, "CHARACTER_NOT_FOUND", "Nenhum personagem encontrado para esta conta");
   }
-  return row;
+  return rows[0];
 }
 
 /**
@@ -93,29 +101,23 @@ export async function consumeNil(userId: string, amount: number): Promise<NilCon
   // gets INSUFFICIENT_NIL (double-spend guard).
   const elapsed = Math.max(0, Date.now() - row.nilUpdatedAt.getTime());
   const regenOffset = Math.floor(elapsed / NIL_REGEN_INTERVAL_MS) * NIL_REGEN_RATE;
-  const regened = sql`LEAST(${characters.maxNil}, ${characters.nil} + ${regenOffset})`;
 
   // Optimistic lock: capture the stored value this read saw. If a concurrent
   // transaction commits a lower `nil` before our UPDATE lands, the guard
-  // `gte(characters.nil, rawNil)` fails, the UPDATE returns no rows, and we
-  // throw INSUFFICIENT_NIL instead of double-spending.
+  // falls through to the null-check below.
   const rawNil = row.nil;
 
-  const [updated] = await db
-    .update(characters)
-    .set({
-      nil: sql`${regened} - ${amount}`,
-      nilUpdatedAt: new Date(),
+  const rows = await db("characters")
+    .update({
+      nil: db.raw("LEAST(??, ?? + ?) - ?", ["max_nil", "nil", regenOffset, amount]),
+      nil_updated_at: new Date(),
     })
-    .where(
-      and(
-        eq(characters.userId, userId),
-        gte(characters.nil, rawNil), // optimistic lock: fail if another tx modified nil
-        sql`${regened} >= ${amount}`, // belt-and-suspenders
-      ),
-    )
-    .returning();
+    .where("user_id", userId)
+    .where("nil", ">=", rawNil) // optimistic lock: fail if another tx modified nil
+    .whereRaw("LEAST(??, ?? + ?) >= ?", ["max_nil", "nil", regenOffset, amount]) // belt-and-suspenders
+    .returning("*");
 
+  const updated = rows[0];
   if (!updated) {
     throw new AppError(400, "INSUFFICIENT_NIL", "NIL insuficiente");
   }
@@ -152,21 +154,17 @@ export async function useStim(redis: Redis, userId: string): Promise<NilStimResp
 
   // Optimistic lock: capture the stored value this read saw. If a concurrent
   // consume commits a lower `nil` before our UPDATE lands, the guard
-  // `gte(characters.nil, rawNil)` fails, the UPDATE returns no rows, and we
-  // throw instead of overwriting the consumption (lost-update guard).
+  // `nil >= rawNil` fails, the UPDATE returns no rows, and we throw instead of
+  // overwriting the consumption (lost-update guard).
   const rawNil = row.nil;
 
-  const [updated] = await db
-    .update(characters)
-    .set({ nil: newNil, nilUpdatedAt: new Date() })
-    .where(
-      and(
-        eq(characters.userId, userId),
-        gte(characters.nil, rawNil), // optimistic lock: fail if another tx modified nil
-      ),
-    )
-    .returning();
+  const rows = await db("characters")
+    .update({ nil: newNil, nil_updated_at: new Date() })
+    .where("user_id", userId)
+    .where("nil", ">=", rawNil) // optimistic lock
+    .returning("*");
 
+  const updated = rows[0];
   if (!updated) {
     // Don't waste the cooldown on a failed write — let the player retry.
     await redis.del(key);

@@ -1,5 +1,4 @@
 import { db } from "../db";
-import { auditLog as auditLogTable } from "../db/schema";
 
 // Neon Dusk — Fire-and-forget audit logger (ND-053)
 // ============================================================================
@@ -32,17 +31,15 @@ export interface AuditLogEntry {
  * audit writes are independent of the game operation's outcome).
  */
 export function auditLog(entry: AuditLogEntry): void {
-  void db
-    .insert(auditLogTable)
-    .values({
-      characterId: entry.characterId,
+  void db("audit_log")
+    .insert({
+      character_id: entry.characterId,
       action: entry.action,
       ip: entry.ip,
-      userAgent: entry.userAgent,
+      user_agent: entry.userAgent,
       payload: entry.payload ?? {},
       result: entry.result,
     })
-    .execute()
     .catch((err) => {
       // Best-effort only — audit must never fail the game.
       console.error("[audit-log] Failed to write audit entry:", err);

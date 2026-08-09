@@ -1,22 +1,12 @@
 import type Redis from "ioredis";
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, gte, lt, ne, or, sql, type SQL } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
 import type {
   PvpAttackableResponse,
   PvpCombatResult,
   PvpHistoryResponse,
   PvpTarget,
 } from "@neon-dusk/shared";
-import { db, type Tx } from "../db";
-import {
-  characterWallets,
-  characters,
-  chromeDefinitions,
-  installedChrome,
-  pvpCombats,
-  transactionLog,
-} from "../db/schema";
+import { db, type Queryable } from "../db";
 import { AppError } from "../middleware/error-handler";
 import {
   calculateChromePower,
@@ -54,9 +44,6 @@ const PVP_COOLDOWN_S = 15;
 /** Account immunity window (must match game/pvp IMMUNITY_DAYS). */
 const IMMUNITY_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Queryable client union — helpers run against `db` or a transaction client. */
-type Queryable = Tx | typeof db;
-
 /** Monday 00:00 UTC of the current week — start of the grief window. */
 function startOfWeekUTC(now: Date = new Date()): Date {
   const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -71,27 +58,21 @@ function startOfDayUTC(now: Date = new Date()): Date {
 
 /** Sum of the character's installed-chrome combat bonuses (body + reflexes). */
 async function loadChromePower(q: Queryable, characterId: string): Promise<number> {
-  const rows = await q
-    .select({ bonuses: chromeDefinitions.bonuses })
-    .from(installedChrome)
-    .innerJoin(chromeDefinitions, eq(installedChrome.chromeDefinitionId, chromeDefinitions.id))
-    .where(eq(installedChrome.characterId, characterId));
+  const rows = await q("installed_chrome")
+    .select({ bonuses: "chrome_definitions.bonuses" })
+    .join("chrome_definitions", "installed_chrome.chrome_definition_id", "chrome_definitions.id")
+    .where("installed_chrome.character_id", characterId);
   return calculateChromePower(rows);
 }
 
 /** Number of times `attackerId` hit `defenderId` since the start of the week. */
 async function countWeeklyAttacks(q: Queryable, attackerId: string, defenderId: string): Promise<number> {
-  const [row] = await q
-    .select({ n: sql<number>`count(*)::int` })
-    .from(pvpCombats)
-    .where(
-      and(
-        eq(pvpCombats.attackerId, attackerId),
-        eq(pvpCombats.defenderId, defenderId),
-        gte(pvpCombats.createdAt, startOfWeekUTC()),
-      ),
-    );
-  return row?.n ?? 0;
+  const [row] = await q("pvp_combats")
+    .count("* as n")
+    .where("attacker_id", attackerId)
+    .where("defender_id", defenderId)
+    .where("created_at", ">=", startOfWeekUTC());
+  return Number(row?.n ?? 0);
 }
 
 /**
@@ -110,7 +91,7 @@ export async function getAttackableTargets(
   // cursor field, so the list is always a single page.
   void cursor;
 
-  const [attacker] = await db.select().from(characters).where(eq(characters.userId, userId)).limit(1);
+  const [attacker] = await db("characters").select().where("user_id", userId).limit(1);
   if (!attacker) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
   if (await redis.get(`${PVP_COOLDOWN_KEY}${attacker.id}`)) {
@@ -122,23 +103,18 @@ export async function getAttackableTargets(
   const maxPower = attacker.body + attacker.reflexes + attackerChrome + POWER_RANGE;
   const immunityCutoff = new Date(Date.now() - IMMUNITY_MS);
 
-  const rows = await db
+  const rows = await db("characters")
     .select({
-      id: characters.id,
-      name: characters.name,
-      streetCred: characters.streetCred,
-      body: characters.body,
-      reflexes: characters.reflexes,
+      id: "id",
+      name: "name",
+      streetCred: "street_cred",
+      body: "body",
+      reflexes: "reflexes",
     })
-    .from(characters)
-    .where(
-      and(
-        ne(characters.id, attacker.id),
-        lt(characters.createdAt, immunityCutoff),
-        sql`(${characters.body} + ${characters.reflexes}) between ${minPower} and ${maxPower}`,
-      ),
-    )
-    .orderBy(desc(characters.streetCred))
+    .whereNot("id", attacker.id)
+    .where("created_at", "<", immunityCutoff)
+    .whereRaw("(body + reflexes) between ? and ?", [minPower, maxPower])
+    .orderBy("street_cred", "desc")
     .limit(limit);
 
   // Re-filter with chrome power (the SQL filter is base-power only) and
@@ -174,7 +150,7 @@ export async function executeAttack(
   targetId: string,
 ): Promise<PvpCombatResult> {
   // Cheap, non-transactional guards first — fail fast before locking rows.
-  const [attackerRow] = await db.select().from(characters).where(eq(characters.userId, userId)).limit(1);
+  const [attackerRow] = await db("characters").select().where("user_id", userId).limit(1);
   if (!attackerRow) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
   const attackerId = attackerRow.id;
 
@@ -186,24 +162,22 @@ export async function executeAttack(
     throw new AppError(429, "PVP_COOLDOWN", "Você ainda está em cooldown de ataque");
   }
 
-  const result = await db.transaction(async (tx) => {
-    const [attacker] = await tx
+  const result = await db.transaction(async (trx) => {
+    const [attacker] = await trx("characters")
       .select()
-      .from(characters)
-      .where(eq(characters.id, attackerId))
-      .for("update")
+      .where("id", attackerId)
+      .forUpdate()
       .limit(1);
     if (!attacker) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
-    const [defender] = await tx
+    const [defender] = await trx("characters")
       .select()
-      .from(characters)
-      .where(eq(characters.id, targetId))
-      .for("update")
+      .where("id", targetId)
+      .forUpdate()
       .limit(1);
     if (!defender) throw new AppError(404, "TARGET_NOT_FOUND", "Personagem alvo não encontrado");
 
-    if (isImmune(defender.createdAt)) {
+    if (isImmune(new Date(defender.created_at))) {
       throw new AppError(400, "TARGET_IMMUNE", "Este jogador está imune a ataques");
     }
 
@@ -212,8 +186,8 @@ export async function executeAttack(
     }
 
     // Power bracket: effective (non-random) power must be within ±10.
-    const attackerChrome = await loadChromePower(tx, attackerId);
-    const defenderChrome = await loadChromePower(tx, targetId);
+    const attackerChrome = await loadChromePower(trx, attackerId);
+    const defenderChrome = await loadChromePower(trx, targetId);
     const attackerBase = attacker.body + attacker.reflexes + attackerChrome;
     const defenderBase = defender.body + defender.reflexes + defenderChrome;
     if (Math.abs(attackerBase - defenderBase) > POWER_RANGE) {
@@ -221,7 +195,7 @@ export async function executeAttack(
     }
 
     // Anti-grief limits (design: weekly attacks on the target).
-    const weeklyAttacks = await countWeeklyAttacks(tx, attackerId, targetId);
+    const weeklyAttacks = await countWeeklyAttacks(trx, attackerId, targetId);
     const grieferPenalty = isGriefLimited(weeklyAttacks);
 
     // Resolve the fight (game logic incl. solo role multiplier + crit).
@@ -233,8 +207,8 @@ export async function executeAttack(
         role: attacker.role,
         tranceActive: getCombatTranceBonus(
           attacker.role,
-          attacker.abilityActiveUntil,
-          attacker.abilityCooldownUntil,
+          attacker.ability_active_until ? new Date(attacker.ability_active_until) : null,
+          attacker.ability_cooldown_until ? new Date(attacker.ability_cooldown_until) : null,
         ) !== null,
       },
       defender: {
@@ -244,8 +218,8 @@ export async function executeAttack(
         role: defender.role,
         tranceActive: getCombatTranceBonus(
           defender.role,
-          defender.abilityActiveUntil,
-          defender.abilityCooldownUntil,
+          defender.ability_active_until ? new Date(defender.ability_active_until) : null,
+          defender.ability_cooldown_until ? new Date(defender.ability_cooldown_until) : null,
         ) !== null,
       },
     });
@@ -255,39 +229,31 @@ export async function executeAttack(
 
     // Street cred deltas. The defeat cap (≥3 losses today) protects the
     // actual loser — regardless of whether they were attacker or defender.
-    const [loserDefeats] = await tx
-      .select({ n: sql<number>`count(*)::int` })
-      .from(pvpCombats)
-      .where(
-        and(
-          or(
-            eq(pvpCombats.attackerId, loserId),
-            eq(pvpCombats.defenderId, loserId),
-          ),
-          ne(pvpCombats.winnerId, loserId),
-          gte(pvpCombats.createdAt, startOfDayUTC()),
-        ),
-      );
-    const loserDefeatsToday = loserDefeats?.n ?? 0;
-    const winnerSC = calculateWinnerSC(attackerWon ? attacker.streetCred : defender.streetCred);
+    const [loserDefeats] = await trx("pvp_combats")
+      .count("* as n")
+      .where(function () {
+        this.where("attacker_id", loserId).orWhere("defender_id", loserId);
+      })
+      .whereNot("winner_id", loserId)
+      .where("created_at", ">=", startOfDayUTC());
+    const loserDefeatsToday = Number(loserDefeats?.n ?? 0);
+    const winnerSC = calculateWinnerSC(attackerWon ? attacker.street_cred : defender.street_cred);
     const loserSC = calculateLoserSC(
-      attackerWon ? defender.streetCred : attacker.streetCred,
+      attackerWon ? defender.street_cred : attacker.street_cred,
       loserDefeatsToday,
     );
 
     // Lock both wallets; loot is 10% of the loser's spendable balance (escrow
     // excluded — a fully escrowed wallet can't pay out). No wallet → no loot.
-    const [loserWalletRow] = await tx
+    const [loserWalletRow] = await trx("character_wallets")
       .select()
-      .from(characterWallets)
-      .where(eq(characterWallets.characterId, loserId))
-      .for("update")
+      .where("character_id", loserId)
+      .forUpdate()
       .limit(1);
-    const [winnerWalletRow] = await tx
+    const [winnerWalletRow] = await trx("character_wallets")
       .select()
-      .from(characterWallets)
-      .where(eq(characterWallets.characterId, winnerId))
-      .for("update")
+      .where("character_id", winnerId)
+      .forUpdate()
       .limit(1);
 
     const lootAmount = loserWalletRow
@@ -298,29 +264,26 @@ export async function executeAttack(
     const combatId = randomUUID();
 
     // Attacker always pays the NIL cost.
-    await tx
-      .update(characters)
-      .set({ nil: attacker.nil - PVP_NIL_COST, updatedAt: new Date() })
-      .where(eq(characters.id, attackerId));
+    await trx("characters")
+      .update({ nil: attacker.nil - PVP_NIL_COST, updated_at: new Date() })
+      .where("id", attackerId);
 
     // Winner: +SC (capped at 100, lifetime max tracked). No-op when already capped.
     if (winnerSC.change > 0) {
-      await tx
-        .update(characters)
-        .set({
-          streetCred: winnerSC.newSC,
-          maxStreetCredAchieved: sql`GREATEST(max_street_cred_achieved, ${winnerSC.newSC})`,
-          updatedAt: new Date(),
+      await trx("characters")
+        .update({
+          street_cred: winnerSC.newSC,
+          max_street_cred_achieved: db.raw("GREATEST(max_street_cred_achieved, ?)", [winnerSC.newSC]),
+          updated_at: new Date(),
         })
-        .where(eq(characters.id, winnerId));
+        .where("id", winnerId);
     }
 
     // Loser: −SC unless the defeat cap protects them (change is 0 then).
     if (loserSC.change !== 0) {
-      await tx
-        .update(characters)
-        .set({ streetCred: loserSC.newSC, updatedAt: new Date() })
-        .where(eq(characters.id, loserId));
+      await trx("characters")
+        .update({ street_cred: loserSC.newSC, updated_at: new Date() })
+        .where("id", loserId);
     }
 
     // Loot: debit loser, credit winner — both with version CAS, audited.
@@ -329,8 +292,8 @@ export async function executeAttack(
       const loserWallet: WalletState = {
         balance: loserWalletRow!.balance,
         escrow: loserWalletRow!.escrow,
-        lifetimeEarned: loserWalletRow!.lifetimeEarned,
-        lifetimeSpent: loserWalletRow!.lifetimeSpent,
+        lifetimeEarned: loserWalletRow!.lifetime_earned,
+        lifetimeSpent: loserWalletRow!.lifetime_spent,
         version: loserWalletRow!.version,
       };
       const debit = transferEddies(loserWallet, -lootAmount, {
@@ -339,29 +302,29 @@ export async function executeAttack(
         referenceType: "pvp",
         referenceId: combatId,
       });
-      const [updatedLoser] = await tx
-        .update(characterWallets)
-        .set({
+      const [updatedLoser] = await trx("character_wallets")
+        .update({
           balance: debit.wallet.balance,
           escrow: debit.wallet.escrow,
-          lifetimeSpent: debit.wallet.lifetimeSpent,
+          lifetime_spent: debit.wallet.lifetimeSpent,
           version: loserWallet.version + 1,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
-        .where(and(eq(characterWallets.id, loserWalletRow!.id), eq(characterWallets.version, loserWallet.version)))
-        .returning();
+        .where("id", loserWalletRow!.id)
+        .where("version", loserWallet.version)
+        .returning("*");
       if (!updatedLoser) {
         throw new AppError(409, "CONCURRENCY_CONFLICT", "Carteira alterada concorrentemente. Tente novamente.");
       }
-      await tx.insert(transactionLog).values({
-        characterId: loserId,
+      await trx("transaction_log").insert({
+        character_id: loserId,
         type: "PVP_LOSS",
         amount: -lootAmount,
-        balanceBefore: debit.transaction.balanceBefore,
-        balanceAfter: debit.transaction.balanceAfter,
+        balance_before: debit.transaction.balanceBefore,
+        balance_after: debit.transaction.balanceAfter,
         source: debit.transaction.source,
-        referenceType: "pvp",
-        referenceId: combatId,
+        reference_type: "pvp",
+        reference_id: combatId,
       });
 
       // Credit the winner; a first-ever win without a wallet seeds it (the
@@ -370,66 +333,64 @@ export async function executeAttack(
         ? {
             balance: winnerWalletRow.balance,
             escrow: winnerWalletRow.escrow,
-            lifetimeEarned: winnerWalletRow.lifetimeEarned,
-            lifetimeSpent: winnerWalletRow.lifetimeSpent,
+            lifetimeEarned: winnerWalletRow.lifetime_earned,
+            lifetimeSpent: winnerWalletRow.lifetime_spent,
             version: winnerWalletRow.version,
           }
-        : await ensureWallet(winnerId, tx);
+        : await ensureWallet(winnerId, trx);
       const credit = transferEddies(winnerWallet, lootAmount, {
         type: "PVP_REWARD",
         source: "Loot won in PvP",
         referenceType: "pvp",
         referenceId: combatId,
       });
-      const [updatedWinner] = await tx
-        .update(characterWallets)
-        .set({
+      const [updatedWinner] = await trx("character_wallets")
+        .update({
           balance: credit.wallet.balance,
-          lifetimeEarned: credit.wallet.lifetimeEarned,
+          lifetime_earned: credit.wallet.lifetimeEarned,
           version: winnerWallet.version + 1,
-          updatedAt: new Date(),
+          updated_at: new Date(),
         })
-        .where(and(eq(characterWallets.characterId, winnerId), eq(characterWallets.version, winnerWallet.version)))
-        .returning();
+        .where("character_id", winnerId)
+        .where("version", winnerWallet.version)
+        .returning("*");
       if (!updatedWinner) {
         throw new AppError(409, "CONCURRENCY_CONFLICT", "Carteira alterada concorrentemente. Tente novamente.");
       }
-      await tx.insert(transactionLog).values({
-        characterId: winnerId,
+      await trx("transaction_log").insert({
+        character_id: winnerId,
         type: "PVP_REWARD",
         amount: lootAmount,
-        balanceBefore: credit.transaction.balanceBefore,
-        balanceAfter: credit.transaction.balanceAfter,
+        balance_before: credit.transaction.balanceBefore,
+        balance_after: credit.transaction.balanceAfter,
         source: credit.transaction.source,
-        referenceType: "pvp",
-        referenceId: combatId,
+        reference_type: "pvp",
+        reference_id: combatId,
       });
 
       newBalance = attackerWon ? updatedWinner.balance : updatedLoser.balance;
     } else {
       // No loot — report the attacker's current balance (0 with no wallet).
-      const [attackerWallet] = await tx
-        .select({ balance: characterWallets.balance })
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, attackerId))
+      const [attackerWallet] = await trx("character_wallets")
+        .select("balance")
+        .where("character_id", attackerId)
         .limit(1);
       newBalance = attackerWallet?.balance ?? 0;
     }
 
     // Append-only combat record (id doubles as the loot audit reference).
-    const [combat] = await tx
-      .insert(pvpCombats)
-      .values({
+    const [combat] = await trx("pvp_combats")
+      .insert({
         id: combatId,
-        attackerId,
-        defenderId: targetId,
-        attackerPower,
-        defenderPower,
-        winnerId,
-        lootAmount,
-        grieferPenalty,
+        attacker_id: attackerId,
+        defender_id: targetId,
+        attacker_power: attackerPower,
+        defender_power: defenderPower,
+        winner_id: winnerId,
+        loot_amount: lootAmount,
+        griefer_penalty: grieferPenalty,
       })
-      .returning();
+      .returning("*");
 
     return {
       combatId: combat.id,
@@ -468,38 +429,37 @@ export async function getCombatHistory(
   limit: number = 20,
   cursor?: string,
 ): Promise<PvpHistoryResponse> {
-  const [character] = await db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(eq(characters.userId, userId))
+  const [character] = await db("characters")
+    .select("id")
+    .where("user_id", userId)
     .limit(1);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
-  const attackerChar = alias(characters, "attacker");
-  const defenderChar = alias(characters, "defender");
-
-  const conditions: SQL[] = [
-    or(eq(pvpCombats.attackerId, character.id), eq(pvpCombats.defenderId, character.id))!,
-  ];
-  if (cursor) conditions.push(lt(pvpCombats.createdAt, new Date(cursor)));
-
-  const rows = await db
+  let query = db("pvp_combats")
     .select({
-      id: pvpCombats.id,
-      attackerName: attackerChar.name,
-      defenderName: defenderChar.name,
-      attackerPower: pvpCombats.attackerPower,
-      defenderPower: pvpCombats.defenderPower,
-      winnerId: pvpCombats.winnerId,
-      lootAmount: pvpCombats.lootAmount,
-      grieferPenalty: pvpCombats.grieferPenalty,
-      createdAt: pvpCombats.createdAt,
+      id: "pvp_combats.id",
+      attackerName: "a.name",
+      defenderName: "d.name",
+      attackerPower: "pvp_combats.attacker_power",
+      defenderPower: "pvp_combats.defender_power",
+      winnerId: "pvp_combats.winner_id",
+      lootAmount: "pvp_combats.loot_amount",
+      grieferPenalty: "pvp_combats.griefer_penalty",
+      createdAt: "pvp_combats.created_at",
     })
-    .from(pvpCombats)
-    .innerJoin(attackerChar, eq(pvpCombats.attackerId, attackerChar.id))
-    .innerJoin(defenderChar, eq(pvpCombats.defenderId, defenderChar.id))
-    .where(and(...conditions))
-    .orderBy(desc(pvpCombats.createdAt))
+    .join({ a: "characters" }, "a.id", "pvp_combats.attacker_id")
+    .join({ d: "characters" }, "d.id", "pvp_combats.defender_id")
+    .where(function () {
+      this.where("pvp_combats.attacker_id", character.id)
+        .orWhere("pvp_combats.defender_id", character.id);
+    });
+
+  if (cursor) {
+    query = query.where("pvp_combats.created_at", "<", new Date(cursor));
+  }
+
+  const rows = await query
+    .orderBy("pvp_combats.created_at", "desc")
     .limit(limit + 1);
 
   const hasMore = rows.length > limit;
@@ -516,8 +476,8 @@ export async function getCombatHistory(
       won: row.winnerId === character.id,
       lootAmount: row.lootAmount,
       grieferPenalty: row.grieferPenalty,
-      createdAt: row.createdAt.toISOString(),
+      createdAt: new Date(row.createdAt).toISOString(),
     })),
-    nextCursor: hasMore ? page[page.length - 1].createdAt.toISOString() : null,
+    nextCursor: hasMore ? new Date(page[page.length - 1].createdAt).toISOString() : null,
   };
 }

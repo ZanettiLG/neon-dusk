@@ -4,15 +4,13 @@
 // lives in game/round-reset.ts (pure functions); this module sequences the
 // reset inside a single transaction and answers round-info/history queries.
 
-import { and, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import type {
   RoundHistoryEntry,
   RoundHistoryResponse,
   RoundInfoResponse,
   RoundStatsSnapshot,
 } from "@neon-dusk/shared";
-import { db, type Tx } from "../db";
-import { rounds, roundStats } from "../db/schema";
+import { db, type Queryable } from "../db";
 import { env } from "../env";
 import { AppError } from "../middleware/error-handler";
 import {
@@ -61,11 +59,10 @@ type LegendRow = {
  * Throws AppError(409) when there is no active round to reset.
  */
 export async function performRoundReset(): Promise<RoundResetResult> {
-  return db.transaction(async (tx) => {
-    const [activeRound] = await tx
+  return db.transaction(async (trx) => {
+    const [activeRound] = await trx("rounds")
       .select()
-      .from(rounds)
-      .where(eq(rounds.status, "active"))
+      .where("status", "active")
       .limit(1);
     if (!activeRound) {
       throw new AppError(409, "NO_ACTIVE_ROUND", "Não há rodada ativa para resetar");
@@ -89,14 +86,15 @@ export async function performRoundReset(): Promise<RoundResetResult> {
       // affiliation) are both gone after wipe_crew_members/detach/wipe_crews
       // and the reset_characters step. Hook right before the crew wipe.
       if (step.description === "wipe_crew_members") {
-        legendsInducted = await inductLegends(tx, activeRound.roundNumber);
+        legendsInducted = await inductLegends(trx, activeRound.round_number);
       }
 
-      const rows = await tx.execute<SnapshotRow>(step.sql);
+      // Execute the step's SQL directly via Knex raw.
+      const result = await trx.raw(step.sql);
 
       // Capture the snapshot row (step 1) for caller observability.
-      if (step.description === "capture_round_stats" && rows[0]) {
-        const row = rows[0];
+      if (step.description === "capture_round_stats" && result.rows?.[0]) {
+        const row = result.rows[0] as SnapshotRow;
         stats = calculateRoundStats({
           totalGigsCompleted: Number(row.total_gigs_completed ?? 0),
           totalEddiesEarned: Number(row.total_eddies_earned ?? 0),
@@ -113,8 +111,8 @@ export async function performRoundReset(): Promise<RoundResetResult> {
     }
 
     return {
-      endedRound: activeRound.roundNumber,
-      newRound: activeRound.roundNumber + 1,
+      endedRound: activeRound.round_number,
+      newRound: activeRound.round_number + 1,
       legendsInducted,
       stats,
     };
@@ -125,14 +123,15 @@ export async function performRoundReset(): Promise<RoundResetResult> {
  * Insert Legends rows for every character at street_cred 100, before the
  * reset wipes reputation. Returns the number of inducted legends.
  */
-async function inductLegends(tx: Tx, roundNumber: number): Promise<number> {
-  const rows = await tx.execute<LegendRow>(sql`
+async function inductLegends(tx: Queryable, roundNumber: number): Promise<number> {
+  const result = await tx.raw(`
     SELECT ch."name" AS "character_name", c."name" AS "crew_name"
     FROM "characters" ch
     LEFT JOIN "crews" c ON c."id" = ch."crew_id"
     WHERE ch."street_cred" = 100
   `);
 
+  const rows = result.rows as LegendRow[];
   const candidates: LegendCandidate[] = rows.map((r) => ({
     characterName: r.character_name,
     crewName: r.crew_name ?? null,
@@ -140,7 +139,7 @@ async function inductLegends(tx: Tx, roundNumber: number): Promise<number> {
   }));
 
   const legendStep = buildLegendInserts(candidates);
-  if (legendStep) await tx.execute(legendStep.sql);
+  if (legendStep) await tx.raw(legendStep.sql);
   return candidates.length;
 }
 
@@ -154,28 +153,28 @@ export async function getCurrentRound(): Promise<RoundInfoResponse> {
   const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
   const now = Date.now();
 
-  const [active] = await db.select().from(rounds).where(eq(rounds.status, "active")).limit(1);
+  const [active] = await db("rounds").select().where("status", "active").limit(1);
 
   if (active) {
-    const started = active.startedAt.getTime();
+    const started = new Date(active.started_at).getTime();
     const endsAt = started + durationMs;
 
     if (started > now) {
       // The next round exists but has not started — we are in the intermission.
       return {
-        roundNumber: active.roundNumber,
+        roundNumber: active.round_number,
         status: "intermission",
-        startedAt: active.startedAt.toISOString(),
+        startedAt: new Date(active.started_at).toISOString(),
         endsAt: new Date(endsAt).toISOString(),
         timeRemainingSeconds: 0,
-        intermissionUntil: active.startedAt.toISOString(),
+        intermissionUntil: new Date(active.started_at).toISOString(),
       };
     }
 
     return {
-      roundNumber: active.roundNumber,
+      roundNumber: active.round_number,
       status: "active",
-      startedAt: active.startedAt.toISOString(),
+      startedAt: new Date(active.started_at).toISOString(),
       endsAt: new Date(endsAt).toISOString(),
       timeRemainingSeconds: Math.max(0, Math.floor((endsAt - now) / 1000)),
       intermissionUntil: null,
@@ -184,13 +183,13 @@ export async function getCurrentRound(): Promise<RoundInfoResponse> {
 
   // Degenerate state (no active round — pre-seed or manual DB edit). Fall
   // back to intermission with unknown start, anchored on the latest round.
-  const [latest] = await db.select().from(rounds).orderBy(desc(rounds.roundNumber)).limit(1);
-  const anchor = latest?.endedAt ?? latest?.startedAt ?? new Date(now);
+  const [latest] = await db("rounds").select().orderBy("round_number", "desc").limit(1);
+  const anchor = latest?.ended_at ?? latest?.started_at ?? new Date(now);
   return {
-    roundNumber: (latest?.roundNumber ?? 0) + 1,
+    roundNumber: (latest?.round_number ?? 0) + 1,
     status: "intermission",
-    startedAt: anchor.toISOString(),
-    endsAt: new Date(anchor.getTime() + durationMs).toISOString(),
+    startedAt: new Date(anchor).toISOString(),
+    endsAt: new Date(new Date(anchor).getTime() + durationMs).toISOString(),
     timeRemainingSeconds: 0,
     intermissionUntil: null,
   };
@@ -205,26 +204,28 @@ export async function getRoundHistory(
   cursor: number | undefined,
   limit: number,
 ): Promise<RoundHistoryResponse> {
-  const conditions = [isNotNull(rounds.endedAt)];
-  if (cursor !== undefined) conditions.push(lt(rounds.roundNumber, cursor));
-
-  const rows = await db
+  let query = db("rounds")
     .select({
-      roundNumber: rounds.roundNumber,
-      startedAt: rounds.startedAt,
-      endedAt: rounds.endedAt,
-      totalGigsCompleted: roundStats.totalGigsCompleted,
-      totalEddiesEarned: roundStats.totalEddiesEarned,
-      totalPvpFights: roundStats.totalPvpFights,
-      totalActiveCharacters: roundStats.totalActiveCharacters,
-      topCrewName: roundStats.topCrewName,
-      topScCharacterName: roundStats.topScCharacterName,
-      topScValue: roundStats.topScValue,
+      roundNumber: "rounds.round_number",
+      startedAt: "rounds.started_at",
+      endedAt: "rounds.ended_at",
+      totalGigsCompleted: "round_stats.total_gigs_completed",
+      totalEddiesEarned: "round_stats.total_eddies_earned",
+      totalPvpFights: "round_stats.total_pvp_fights",
+      totalActiveCharacters: "round_stats.total_active_characters",
+      topCrewName: "round_stats.top_crew_name",
+      topScCharacterName: "round_stats.top_sc_character_name",
+      topScValue: "round_stats.top_sc_value",
     })
-    .from(rounds)
-    .innerJoin(roundStats, eq(roundStats.roundId, rounds.id))
-    .where(and(...conditions))
-    .orderBy(desc(rounds.roundNumber))
+    .join("round_stats", "round_stats.round_id", "rounds.id")
+    .whereNotNull("rounds.ended_at");
+
+  if (cursor !== undefined) {
+    query = query.where("rounds.round_number", "<", cursor);
+  }
+
+  const rows = await query
+    .orderBy("rounds.round_number", "desc")
     .limit(limit + 1);
 
   const hasMore = rows.length > limit;
@@ -232,9 +233,9 @@ export async function getRoundHistory(
 
   const entries: RoundHistoryEntry[] = page.map((row) => ({
     roundNumber: row.roundNumber,
-    startedAt: row.startedAt.toISOString(),
+    startedAt: new Date(row.startedAt).toISOString(),
     // Non-null: the query filters on rounds.ended_at IS NOT NULL.
-    endedAt: row.endedAt!.toISOString(),
+    endedAt: new Date(row.endedAt!).toISOString(),
     stats: {
       totalGigsCompleted: row.totalGigsCompleted,
       totalEddiesEarned: row.totalEddiesEarned,

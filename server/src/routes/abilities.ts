@@ -1,9 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { eq } from "drizzle-orm";
 import type { AbilityState } from "@neon-dusk/shared";
 import { ROLE_TO_ABILITY } from "@neon-dusk/shared";
 import { db } from "../db";
-import { characters } from "../db/schema";
 import { AppError } from "../middleware/error-handler";
 import { authenticate } from "../middleware/auth";
 import { requireCharacterId } from "../services/economy-service";
@@ -20,13 +18,22 @@ import { emitEvent } from "../telemetry/emit-event";
 // POST /api/abilities/activate — activate the character's role ability.
 // GET  /api/abilities/status  — current ability state (active/cooldown/ready).
 
+/** Database row subset for abilities route. */
+interface AbilitiesCharacterRow {
+  id: string;
+  userId: string;
+  role: string;
+  abilityActiveUntil: Date | null;
+  abilityCooldownUntil: Date | null;
+}
+
 /** Build AbilityState from character timestamps. */
 function buildAbilityState(
-  role: (typeof characters.$inferSelect)["role"],
+  role: string,
   activeUntil: Date | null,
   cooldownUntil: Date | null,
 ): AbilityState {
-  const abilityType = ROLE_TO_ABILITY[role];
+  const abilityType = ROLE_TO_ABILITY[role as keyof typeof ROLE_TO_ABILITY];
   const active = isAbilityActive(activeUntil);
   return {
     abilityType,
@@ -51,20 +58,22 @@ export async function abilitiesRoutes(app: FastifyInstance) {
     }> => {
       const characterId = await requireCharacterId(request.user.sub);
 
-      const [character] = await db
+      const rows = await db("characters")
         .select()
-        .from(characters)
-        .where(eq(characters.id, characterId))
+        .where("id", characterId)
         .limit(1);
+      const character = rows[0] as AbilitiesCharacterRow | undefined;
       if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
+      const role = character.role as "solo" | "netrunner" | "tech" | "fixer" | "nomad";
+
       // Netrunner deep_dive is phase-2 — not implemented in MVP.
-      if (character.role === "netrunner") {
+      if (role === "netrunner") {
         throw new AppError(503, "ABILITY_PHASE_2", "Deep Dive será implementado na Fase 2 (hacking)");
       }
 
       const { canActivate, reason } = canActivateAbility(
-        character.role,
+        role,
         character.abilityActiveUntil,
         character.abilityCooldownUntil,
       );
@@ -75,22 +84,21 @@ export async function abilitiesRoutes(app: FastifyInstance) {
         throw new AppError(400, "ABILITY_COOLDOWN", "Habilidade ainda está em cooldown");
       }
 
-      const activation = computeActivation(character.role);
+      const activation = computeActivation(role);
 
-      await db
-        .update(characters)
-        .set({
-          abilityActiveUntil: activation.activeUntil,
-          abilityCooldownUntil: activation.cooldownUntil,
-          updatedAt: new Date(),
+      await db("characters")
+        .update({
+          ability_active_until: activation.activeUntil,
+          ability_cooldown_until: activation.cooldownUntil,
+          updated_at: new Date(),
         })
-        .where(eq(characters.id, characterId));
+        .where("id", characterId);
 
       // Fire-and-forget telemetry.
       void emitEvent({
         eventType: "ABILITY_ACTIVATED",
         actorId: characterId,
-        payload: { abilityType: activation.abilityType, role: character.role },
+        payload: { abilityType: activation.abilityType, role },
       }).catch(() => {});
 
       return {
@@ -110,11 +118,11 @@ export async function abilitiesRoutes(app: FastifyInstance) {
     async (request): Promise<AbilityState> => {
       const characterId = await requireCharacterId(request.user.sub);
 
-      const [character] = await db
+      const rows = await db("characters")
         .select()
-        .from(characters)
-        .where(eq(characters.id, characterId))
+        .where("id", characterId)
         .limit(1);
+      const character = rows[0] as AbilitiesCharacterRow | undefined;
       if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
       return buildAbilityState(

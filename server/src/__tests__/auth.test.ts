@@ -34,19 +34,21 @@ describe("Feature #1 — auth API", () => {
   let app: FastifyInstance;
   let server: Awaited<ReturnType<typeof startTestServer>>;
 
+  let redis: Redis;
+
   beforeAll(async () => {
     // Fresh counters on the dedicated db so repeated runs within a window
     // never trip the global rate limit (and the 429 tests are deterministic).
-    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
     await redis.connect();
     await redis.flushdb();
-    redis.disconnect();
 
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     server = await startTestServer(app);
   });
 
   afterAll(async () => {
+    redis.disconnect();
     await app.close();
   });
 

@@ -33,7 +33,7 @@ Handoff do architect (`design.md`) + descrição da feature.
 
 ## Self-Review (33 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
-- [ ] Queries SQL com parameterized queries (Knex/Drizzle; nunca string interpolation)
+- [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
 - [ ] Tratamento de erro em TODAS as rotas (try/catch + error middleware)
 - [ ] Validação de input (Zod schema com constraints reais: complexidade de senha, ranges, formatos)
@@ -68,7 +68,7 @@ Handoff do architect (`design.md`) + descrição da feature.
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino
-- ORM: Drizzle (migrations + queries)
+- Query Builder: Knex.js (migrations + queries)
 - Cache: ioredis (Redis)
 - Frontend: React 19 + functional components + hooks + Zustand 5 + Tailwind CSS
 - PWA: vite-plugin-pwa

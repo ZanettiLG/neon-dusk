@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
 import { z } from "zod";
-import { desc, eq, sql } from "drizzle-orm";
 import type {
   AwardSCResponse,
   LeaderboardResponse,
@@ -10,7 +9,6 @@ import type {
 import { authenticate } from "../middleware/auth";
 import { AppError } from "../middleware/error-handler";
 import { db } from "../db";
-import { characters, crews, transactionLog } from "../db/schema";
 import { requireCharacterId } from "../services/economy-service";
 import { calculateDecay, getNextThreshold, getTitle } from "../game/street-cred";
 import { invalidateLeaderboardCache, LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
@@ -46,30 +44,29 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
   // GET /api/street-cred — live readout, decay applied (and written back)
   app.get("/street-cred", { preHandler: [authenticate] }, async (request): Promise<StreetCredInfo> => {
     const characterId = await requireCharacterId(request.user.sub);
-    const [row] = await db.select().from(characters).where(eq(characters.id, characterId)).limit(1);
+    const [row] = await db("characters").select().where("id", characterId).limit(1);
     if (!row) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
     const now = new Date();
     const { effectiveScore } = calculateDecay(
-      row.lastActivityAt,
-      row.streetCred,
-      row.maxStreetCredAchieved,
+      new Date(row.last_activity_at),
+      row.street_cred,
+      row.max_street_cred_achieved,
       now,
     );
 
     // Persist the decayed score once it actually moved (writeback on read).
-    if (effectiveScore < row.streetCred) {
-      await db
-        .update(characters)
-        .set({ streetCred: effectiveScore, updatedAt: now })
-        .where(eq(characters.id, characterId));
+    if (effectiveScore < row.street_cred) {
+      await db("characters")
+        .update({ street_cred: effectiveScore, updated_at: now })
+        .where("id", characterId);
     }
 
     const next = getNextThreshold(effectiveScore);
     return {
       score: effectiveScore,
       title: getTitle(effectiveScore),
-      maxAchieved: row.maxStreetCredAchieved,
+      maxAchieved: row.max_street_cred_achieved,
       nextThreshold: next,
       scToNext: next ? next.score - effectiveScore : null,
     };
@@ -89,24 +86,23 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
     // Always materialize the full 50 (the max allowed) so the cached snapshot
     // serves any requested limit, and fetch the decay inputs so each row's
     // effective score matches GET /api/street-cred.
-    const rows = await db
+    const rows = await db("characters")
       .select({
-        name: characters.name,
-        streetCred: characters.streetCred,
-        maxStreetCredAchieved: characters.maxStreetCredAchieved,
-        lastActivityAt: characters.lastActivityAt,
-        crewName: crews.name,
+        name: "characters.name",
+        streetCred: "characters.street_cred",
+        maxStreetCredAchieved: "characters.max_street_cred_achieved",
+        lastActivityAt: "characters.last_activity_at",
+        crewName: "crews.name",
       })
-      .from(characters)
-      .leftJoin(crews, eq(crews.id, characters.crewId))
-      .orderBy(desc(characters.streetCred))
+      .leftJoin("crews", "crews.id", "characters.crew_id")
+      .orderBy("characters.street_cred", "desc")
       .limit(50);
 
     const leaderboard = rows
       .map((row) => ({
         name: row.name,
         crewName: row.crewName,
-        score: calculateDecay(row.lastActivityAt, row.streetCred, row.maxStreetCredAchieved).effectiveScore,
+        score: calculateDecay(new Date(row.lastActivityAt), row.streetCred, row.maxStreetCredAchieved).effectiveScore,
       }))
       .sort((a, b) => b.score - a.score)
       .map((row, index) => ({
@@ -130,41 +126,39 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
       const body = awardSchema.parse(request.body);
       const characterId = await requireCharacterId(request.user.sub);
 
-      return db.transaction(async (tx) => {
-        const [row] = await tx
+      return db.transaction(async (trx) => {
+        const [row] = await trx("characters")
           .select()
-          .from(characters)
-          .where(eq(characters.id, characterId))
+          .where("id", characterId)
           .limit(1);
         if (!row) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
         // Clamp to [1, 100 - current]; already at the cap → 0 (no-op award).
-        const room = 100 - row.streetCred;
+        const room = 100 - row.street_cred;
         const gained = Math.max(0, Math.min(body.amount, room));
-        const newScore = row.streetCred + gained;
+        const newScore = row.street_cred + gained;
 
         if (gained > 0) {
-          const [updated] = await tx
-            .update(characters)
-            .set({
-              streetCred: newScore,
-              maxStreetCredAchieved: sql`GREATEST(max_street_cred_achieved, ${newScore})`,
-              lastActivityAt: sql`NOW()`,
-              updatedAt: sql`NOW()`,
+          const [updated] = await trx("characters")
+            .update({
+              street_cred: newScore,
+              max_street_cred_achieved: db.raw("GREATEST(max_street_cred_achieved, ?)", [newScore]),
+              last_activity_at: db.fn.now(),
+              updated_at: db.fn.now(),
             })
-            .where(eq(characters.id, characterId))
-            .returning({ streetCred: characters.streetCred, maxStreetCredAchieved: characters.maxStreetCredAchieved });
+            .where("id", characterId)
+            .returning(["street_cred as streetCred", "max_street_cred_achieved as maxStreetCredAchieved"]);
 
           if (!updated) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
           // Audit trail. transaction_log's CHECK requires
           // balance_after - balance_before = amount — the SC delta satisfies it.
-          await tx.insert(transactionLog).values({
-            characterId,
+          await trx("transaction_log").insert({
+            character_id: characterId,
             type: "STREET_CRED_AWARD",
             amount: gained,
-            balanceBefore: row.streetCred,
-            balanceAfter: newScore,
+            balance_before: row.street_cred,
+            balance_after: newScore,
             source: body.source,
           });
 
@@ -180,7 +174,7 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
           };
         }
 
-        return { score: row.streetCred, title: getTitle(row.streetCred), gained: 0, maxAchieved: row.maxStreetCredAchieved };
+        return { score: row.street_cred, title: getTitle(row.street_cred), gained: 0, maxAchieved: row.max_street_cred_achieved };
       });
     },
   );
