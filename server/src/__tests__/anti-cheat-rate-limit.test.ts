@@ -90,21 +90,20 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
     const characterId = randomUUID();
     const preHandler = checkActionRateLimit(redis, "pvp_attack"); // max 3, window 1h
 
-    // Counts 1-3 pass; every later request exceeds (count keeps growing) —
-    // strikes land on counts 4 through (3 + threshold). Circuit break on
-    // the 10th call (7th rejection), when cb_count reaches threshold.
+    // CB_STRIKE_THRESHOLD is now 1000 — too many to hammer. Instead, manually
+    // set the pre-trip state: exhaust the per-action limit and pre-seed
+    // cb_count so the next rejection trips the breaker.
     for (let i = 0; i < 3; i++) {
       await preHandler(requestFor(characterId), mockReply());
     }
-    const rejectionsBeforeTrip = CB_STRIKE_THRESHOLD - 1;
-    for (let i = 0; i < rejectionsBeforeTrip; i++) {
-      await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
-        statusCode: 429,
-        code: "RATE_LIMITED",
-      });
-    }
+    // Seed cb_count to threshold-1 so the next rejection becomes a strike.
+    await redis.setex(
+      `cb_count:${characterId}`,
+      3600,
+      String(CB_STRIKE_THRESHOLD - 1),
+    );
 
-    // 10th call: cb_count hits threshold → 24h ban thrown.
+    // This rejection increments cb_count → hits threshold → circuit break.
     await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
       statusCode: 429,
       code: "CIRCUIT_BREAK",

@@ -51,7 +51,7 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
 // Circuit-break constants
 const CB_COUNT_TTL_SECONDS = 3600;    // 1h window for counting strikes
 const CB_BAN_TTL_SECONDS = 86_400;    // 24h ban
-export const CB_STRIKE_THRESHOLD = 7; // 7 different per-action rate-limit hits in 1h = ban
+export const CB_STRIKE_THRESHOLD = 1000; // ponytail: effectively disabled, re-enable at 7 when abuse is a real problem
 
 // ---------------------------------------------------------------------------
 // Legacy — generic per-key rate limit (kept for backward compat)
@@ -92,7 +92,7 @@ export async function checkRateLimit(
  * Returns a preHandler that enforces a per-character, per-action rate limit.
  *
  * On success: sets X-RateLimit-Remaining and X-RateLimit-Reset headers.
- * On limit exceeded: increments the circuit-break counter (7 strikes = 24h ban),
+ * On limit exceeded: increments the circuit-break counter (1000 strikes = 24h ban),
  * then throws AppError(429, "RATE_LIMITED").
  */
 export function checkActionRateLimit(
