@@ -60,13 +60,13 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
  * reconnect so the server can resume from where the stream dropped. */
 let lastEventId: string | null = null;
 
-/** Backoff: 1s, 2s, 4s, 8s, 16s (max). */
-const BACKOFF_BASE_MS = 1000;
-const BACKOFF_MAX_MS = 16_000;
-const OFFLINE_THRESHOLD = 3;
+/** Backoff: 5s, 10s, 20s, 40s, 60s (max) with ±500ms jitter. */
+const BACKOFF_BASE_MS = 5_000;
+const BACKOFF_MAX_MS = 60_000;
+const OFFLINE_THRESHOLD = 5;
 
 function backoffDelay(attempts: number): number {
-  return Math.min(BACKOFF_BASE_MS * 2 ** (attempts - 1), BACKOFF_MAX_MS);
+  return Math.min(BACKOFF_BASE_MS * 2 ** (attempts - 1) + Math.random() * 1_000, BACKOFF_MAX_MS);
 }
 
 function clearReconnectTimer(): void {

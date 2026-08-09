@@ -31,6 +31,19 @@ interface GigState {
   fetchHistory: (opts?: { limit?: number; cursor?: string }) => Promise<void>;
 }
 
+// --- Debounce helper: prevents duplicate side-effect API calls within a window ---
+
+const _lastFetch: Record<string, number> = {};
+
+/** Skip calls to the same fetch within `minIntervalMs`. Good for side-effects
+ *  that fire from multiple store actions in rapid succession. */
+function debouncedFetch(key: string, fn: () => Promise<void>, minIntervalMs = 2_000): void {
+  const now = Date.now();
+  if (now - (_lastFetch[key] ?? 0) < minIntervalMs) return;
+  _lastFetch[key] = now;
+  fn().catch(() => {});
+}
+
 /**
  * Gigs store (Zustand singleton) — Fixer Cupim board, the 5-phase loop of the
  * active gig and cursor-paginated history. Phase actions patch `board.activeGig`
@@ -65,7 +78,7 @@ export const useGigStore = create<GigState>((set, get) => ({
       const res = await api.post<{ activeGig: ActiveGig }>(`/api/gigs/${id}/accept`, {});
       set((s) => ({ board: s.board ? { ...s.board, activeGig: res.activeGig } : null }));
       // NIL was spent — keep the dashboard bar honest.
-      void useAuthStore.getState().fetchNil();
+      debouncedFetch('nil', () => useAuthStore.getState().fetchNil());
       return res.activeGig;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao aceitar gig" });
@@ -124,8 +137,8 @@ export const useGigStore = create<GigState>((set, get) => ({
       set((s) => ({ lastWrapup: res, board: s.board ? { ...s.board, activeGig: null } : null }));
       // Payout/street-cred changed — refresh the board so cooldowns + count
       // reflect the completed gig (best-effort; the wrapup already resolved).
-      void get().fetchBoard();
-      void useAuthStore.getState().fetchNil();
+      debouncedFetch('board', () => get().fetchBoard());
+      debouncedFetch('nil', () => useAuthStore.getState().fetchNil());
       return res;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao concluir gig" });
@@ -140,9 +153,9 @@ export const useGigStore = create<GigState>((set, get) => ({
     try {
       await api.post(`/api/gigs/${id}/abandon`, {});
       set((s) => ({ board: s.board ? { ...s.board, activeGig: null } : null }));
-      void get().fetchBoard();
+      debouncedFetch('board', () => get().fetchBoard());
       // NIL is refunded — keep the dashboard bar honest.
-      void useAuthStore.getState().fetchNil();
+      debouncedFetch('nil', () => useAuthStore.getState().fetchNil());
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao abandonar gig" });
     } finally {
