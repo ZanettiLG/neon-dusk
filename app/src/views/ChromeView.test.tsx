@@ -77,7 +77,7 @@ describe("ChromeView", () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
-      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
       return Promise.resolve([]);
     });
 
@@ -108,7 +108,7 @@ describe("ChromeView", () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
-      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
       return Promise.resolve([]);
     });
     mocks.api.post.mockRejectedValue(new Error("Eds insuficientes."));
@@ -128,7 +128,7 @@ describe("ChromeView", () => {
   it("should reset mounted ref after StrictMode remount and show empty state", async () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([]);
-      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "ripperdoc" }]);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
       if (url === "/api/chrome/installed") return Promise.resolve({
         installed: [],
         effectiveHumanity: 75,

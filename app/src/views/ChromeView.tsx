@@ -68,7 +68,7 @@ export default function ChromeView() {
     fetchInstalled();
     api.get<Array<{ id: string; type: string }>>("/api/vendors")
       .then((vendors) => {
-        const ripper = vendors.find((v) => v.type === "ripperdoc");
+        const ripper = vendors.find((v) => v.type === "RIPPERDOC");
         if (ripper && mountedRef.current) setVendorId(ripper.id);
       })
       .catch(() => {}); // non-blocking — catalog still renders without a vendor
