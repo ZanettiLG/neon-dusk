@@ -27,6 +27,7 @@ interface GigState {
   executeGig: (id: string) => Promise<GigExecuteResponse>;
   escapeGig: (id: string) => Promise<GigEscapeResponse>;
   wrapUpGig: (id: string) => Promise<GigWrapupResponse>;
+  abandonGig: (id: string) => Promise<void>;
   fetchHistory: (opts?: { limit?: number; cursor?: string }) => Promise<void>;
 }
 
@@ -129,6 +130,21 @@ export const useGigStore = create<GigState>((set, get) => ({
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao concluir gig" });
       throw err;
+    } finally {
+      set({ actionLoading: false });
+    }
+  },
+
+  abandonGig: async (id) => {
+    set({ actionLoading: true, actionError: null });
+    try {
+      await api.post(`/api/gigs/${id}/abandon`, {});
+      set((s) => ({ board: s.board ? { ...s.board, activeGig: null } : null }));
+      void get().fetchBoard();
+      // Refresh NIL display — keep the dashboard bar honest.
+      void useAuthStore.getState().fetchNil();
+    } catch (err) {
+      set({ actionError: err instanceof Error ? err.message : "Falha ao abandonar gig" });
     } finally {
       set({ actionLoading: false });
     }

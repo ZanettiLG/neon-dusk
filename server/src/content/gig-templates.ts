@@ -16,7 +16,7 @@
 export interface GigTemplateSeed {
   name: string;
   description: string;
-  tier: 't1' | 't2';
+  tier: 't1' | 't2' | 't3' | 't4' | 't5';
   type: 'extraction' | 'delivery' | 'sabotage';
   district: string;
   difficulty: number;
@@ -204,5 +204,167 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     nilCost: 25,
     heatGenerated: 50,
     legworkMinutes: 30,
+  },
+
+  // ═══ T3 — Pro (SC 15+) ═══════════════════════════════════════════════════
+
+  {
+    name: "Fantasma no Sistema",
+    description:
+      "Os servidores do Instituto Paraíso estão blindados. Plante o vírus " +
+      "antes que o ICE adaptativo detecte sua presença.",
+    tier: "t3",
+    type: "sabotage",
+    district: "A Paraíso",
+    difficulty: 65,
+    escapeDifficulty: 60,
+    requiredStats: { technical: 10, intelligence: 8 },
+    requiredStreetCred: 15,
+    baseReward: 12000,
+    nilCost: 28,
+    heatGenerated: 40,
+    legworkMinutes: 20,
+  },
+  {
+    name: "Transplante Corporativo",
+    description:
+      "Um engenheiro da Aço Paulista quer sair. Extraia ele do complexo " +
+      "industrial antes que a segurança perceba.",
+    tier: "t3",
+    type: "extraction",
+    district: "O Fervo",
+    difficulty: 70,
+    escapeDifficulty: 65,
+    requiredStats: { body: 10, reflexes: 8 },
+    requiredStreetCred: 15,
+    baseReward: 15000,
+    nilCost: 30,
+    heatGenerated: 45,
+    legworkMinutes: 25,
+  },
+  {
+    name: "Rota do Deserto",
+    description:
+      "Transporte um carregamento de chrome ilegal pelas rotas do deserto. " +
+      "As milícias de fronteira estão com scanners novos.",
+    tier: "t3",
+    type: "delivery",
+    district: "Babilônia",
+    difficulty: 60,
+    escapeDifficulty: 55,
+    requiredStats: { reflexes: 9, cool: 7 },
+    requiredStreetCred: 15,
+    baseReward: 8000,
+    nilCost: 25,
+    heatGenerated: 20,
+    legworkMinutes: 15,
+  },
+
+  // ═══ T4 — Elite (SC 30+) ══════════════════════════════════════════════════
+
+  {
+    name: "Cofre Blindado",
+    description:
+      "O cofre subterrâneo da Concreta guarda protótipos militares. Abra ele " +
+      "antes que o lockdown do distrito seja ativado.",
+    tier: "t4",
+    type: "extraction",
+    district: "O Fluxo",
+    difficulty: 80,
+    escapeDifficulty: 75,
+    requiredStats: { body: 13, technical: 10 },
+    requiredStreetCred: 30,
+    baseReward: 40000,
+    nilCost: 38,
+    heatGenerated: 60,
+    legworkMinutes: 25,
+  },
+  {
+    name: "Protocolo Zero",
+    description:
+      "Desative a grade de defesa automatizada do complexo. Se o protocolo " +
+      "zero for ativado, nada sai vivo.",
+    tier: "t4",
+    type: "sabotage",
+    district: "A Quebrada",
+    difficulty: 85,
+    escapeDifficulty: 80,
+    requiredStats: { technical: 14, intelligence: 11 },
+    requiredStreetCred: 30,
+    baseReward: 55000,
+    nilCost: 42,
+    heatGenerated: 70,
+    legworkMinutes: 30,
+  },
+  {
+    name: "Última Milha",
+    description:
+      "Entregue o pacote no último andar da torre abandonada. Não olhe " +
+      "dentro. Não faça perguntas.",
+    tier: "t4",
+    type: "delivery",
+    district: "As Mortas",
+    difficulty: 75,
+    escapeDifficulty: 70,
+    requiredStats: { reflexes: 12, cool: 10 },
+    requiredStreetCred: 30,
+    baseReward: 30000,
+    nilCost: 35,
+    heatGenerated: 35,
+    legworkMinutes: 20,
+  },
+
+  // ═══ T5 — Legend (SC 50+) ═════════════════════════════════════════════════
+
+  {
+    name: "Inimigo do Estado",
+    description:
+      "Um whistleblower corporativo está escondido na zona mais vigiada da " +
+      "cidade. Extraia ele antes que a MaxTac chegue.",
+    tier: "t5",
+    type: "extraction",
+    district: "O Ponto",
+    difficulty: 95,
+    escapeDifficulty: 90,
+    requiredStats: { body: 17, cool: 14 },
+    requiredStreetCred: 50,
+    baseReward: 120000,
+    nilCost: 55,
+    heatGenerated: 90,
+    legworkMinutes: 30,
+  },
+  {
+    name: "Apocalipse Programado",
+    description:
+      "O mainframe central controla todas as defesas do distrito. Plante o " +
+      "worm e assista o paraíso queimar.",
+    tier: "t5",
+    type: "sabotage",
+    district: "A Paraíso",
+    difficulty: 100,
+    escapeDifficulty: 95,
+    requiredStats: { technical: 18, intelligence: 16 },
+    requiredStreetCred: 50,
+    baseReward: 150000,
+    nilCost: 60,
+    heatGenerated: 100,
+    legworkMinutes: 30,
+  },
+  {
+    name: "Herança Nuclear",
+    description:
+      "Transporte o núcleo de fusão portátil através do território " +
+      "radioativo. A radiação é o menor dos seus problemas.",
+    tier: "t5",
+    type: "delivery",
+    district: "As Mortas",
+    difficulty: 90,
+    escapeDifficulty: 85,
+    requiredStats: { reflexes: 16, cool: 15 },
+    requiredStreetCred: 50,
+    baseReward: 100000,
+    nilCost: 50,
+    heatGenerated: 60,
+    legworkMinutes: 25,
   },
 ];

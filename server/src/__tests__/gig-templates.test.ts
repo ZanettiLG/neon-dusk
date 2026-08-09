@@ -2,35 +2,44 @@ import { describe, it, expect } from "vitest";
 import { GIG_TEMPLATES } from "../content/gig-templates";
 import type { GigType } from "../game/gigs";
 
-// ND-011 — seed data integrity for the 10 hand-crafted gig templates.
+// ND-011 — seed data integrity for the 19 hand-crafted gig templates (T1-T5).
 // Guards the balance anchors from 03-mecanicas-core.md §2 and the DB CHECK
 // constraints in schema.ts (gigs_*): any template that violates one of these
 // would fail at INSERT time, so this suite catches drift before seeding.
 
 const VALID_TYPES: readonly GigType[] = ["extraction", "delivery", "sabotage"];
-const VALID_TIERS = ["t1", "t2"] as const;
-const VALID_DISTRICTS = ["A Paraíso", "O Fervo", "O Fluxo", "A Quebrada", "Babilônia"];
+const VALID_TIERS = ["t1", "t2", "t3", "t4", "t5"] as const;
+const VALID_DISTRICTS = [
+  "A Paraíso",
+  "O Fervo",
+  "O Fluxo",
+  "A Quebrada",
+  "Babilônia",
+  "As Mortas",
+  "O Ponto",
+];
 const VALID_ATTR_KEYS = ["body", "reflexes", "intelligence", "technical", "cool"];
 
 describe("GIG_TEMPLATES", () => {
-  it("should contain exactly 10 templates", () => {
-    expect(GIG_TEMPLATES).toHaveLength(10);
+  it("should contain exactly 19 templates", () => {
+    expect(GIG_TEMPLATES).toHaveLength(19);
   });
 
-  it("should have 6 T1 and 4 T2 templates", () => {
-    const t1 = GIG_TEMPLATES.filter((t) => t.tier === "t1");
-    const t2 = GIG_TEMPLATES.filter((t) => t.tier === "t2");
-    expect(t1).toHaveLength(6);
-    expect(t2).toHaveLength(4);
+  it("should have 6 T1, 4 T2, 3 T3, 3 T4, and 3 T5 templates", () => {
+    expect(GIG_TEMPLATES.filter((t) => t.tier === "t1")).toHaveLength(6);
+    expect(GIG_TEMPLATES.filter((t) => t.tier === "t2")).toHaveLength(4);
+    expect(GIG_TEMPLATES.filter((t) => t.tier === "t3")).toHaveLength(3);
+    expect(GIG_TEMPLATES.filter((t) => t.tier === "t4")).toHaveLength(3);
+    expect(GIG_TEMPLATES.filter((t) => t.tier === "t5")).toHaveLength(3);
   });
 
-  it("should use only valid gig types with the designed distribution (4/3/3)", () => {
+  it("should use only valid gig types with the designed distribution (7/6/6)", () => {
     for (const t of GIG_TEMPLATES) {
       expect(VALID_TYPES).toContain(t.type);
     }
-    expect(GIG_TEMPLATES.filter((t) => t.type === "extraction")).toHaveLength(4);
-    expect(GIG_TEMPLATES.filter((t) => t.type === "delivery")).toHaveLength(3);
-    expect(GIG_TEMPLATES.filter((t) => t.type === "sabotage")).toHaveLength(3);
+    expect(GIG_TEMPLATES.filter((t) => t.type === "extraction")).toHaveLength(7);
+    expect(GIG_TEMPLATES.filter((t) => t.type === "delivery")).toHaveLength(6);
+    expect(GIG_TEMPLATES.filter((t) => t.type === "sabotage")).toHaveLength(6);
   });
 
   it("should use only valid tiers", () => {
@@ -53,12 +62,33 @@ describe("GIG_TEMPLATES", () => {
     }
   });
 
-  it("should use only valid districts and cover all five of them", () => {
+  it("should keep T3 rewards within 8000-20000 eddies", () => {
+    for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t3")) {
+      expect(t.baseReward).toBeGreaterThanOrEqual(8000);
+      expect(t.baseReward).toBeLessThanOrEqual(20000);
+    }
+  });
+
+  it("should keep T4 rewards within 20000-60000 eddies", () => {
+    for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t4")) {
+      expect(t.baseReward).toBeGreaterThanOrEqual(20000);
+      expect(t.baseReward).toBeLessThanOrEqual(60000);
+    }
+  });
+
+  it("should keep T5 rewards within 60000-200000 eddies", () => {
+    for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t5")) {
+      expect(t.baseReward).toBeGreaterThanOrEqual(60000);
+      expect(t.baseReward).toBeLessThanOrEqual(200000);
+    }
+  });
+
+  it("should use only valid districts and cover all seven of them", () => {
     const districts = new Set(GIG_TEMPLATES.map((t) => t.district));
     for (const t of GIG_TEMPLATES) {
       expect(VALID_DISTRICTS).toContain(t.district);
     }
-    expect(districts.size).toBe(5);
+    expect(districts.size).toBe(7);
     for (const d of VALID_DISTRICTS) {
       expect(districts.has(d)).toBe(true);
     }
@@ -86,12 +116,21 @@ describe("GIG_TEMPLATES", () => {
     }
   });
 
-  it("should gate T1 at 0 street cred and T2 at 5", () => {
+  it("should gate T1 at SC 0, T2 at 5, T3 at 15, T4 at 30, T5 at 50", () => {
     for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t1")) {
       expect(t.requiredStreetCred).toBe(0);
     }
     for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t2")) {
       expect(t.requiredStreetCred).toBe(5);
+    }
+    for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t3")) {
+      expect(t.requiredStreetCred).toBe(15);
+    }
+    for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t4")) {
+      expect(t.requiredStreetCred).toBe(30);
+    }
+    for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t5")) {
+      expect(t.requiredStreetCred).toBe(50);
     }
   });
 

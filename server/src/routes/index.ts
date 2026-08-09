@@ -13,6 +13,7 @@ import { crewRoutes } from "./crews";
 import { roundRoutes } from "./round";
 import { adminMetricsRoutes } from "../telemetry/admin-metrics";
 import { adminRoutes } from "./admin";
+import { abilitiesRoutes } from "./abilities";
 
 export interface ApiRoutesOptions {
   redis: Redis;
@@ -35,4 +36,6 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(adminMetricsRoutes);
   // Admin panel — /api/admin/* (JWT role protected, ND-052)
   await app.register(adminRoutes);
+  // Role abilities — /api/abilities/*
+  await app.register(abilitiesRoutes);
 }

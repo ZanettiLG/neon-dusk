@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
-import { ATTRIBUTE_KEYS, ATTR_TOTAL, MAX_ATTR, MIN_ATTR, ORIGINS, ROLES } from "@neon-dusk/shared";
+import { ATTRIBUTE_KEYS, ATTR_TOTAL, MAX_ATTR, MIN_ATTR, NIL_MAX_BASE, ORIGINS, ROLES } from "@neon-dusk/shared";
 import type { Character } from "@neon-dusk/shared";
 import { db } from "../db";
 import { characters } from "../db/schema";
 import { AppError } from "../middleware/error-handler";
+import { NOMAD_MAX_NIL_BONUS } from "../game/abilities";
 import { toPublicCharacter } from "../lib/transformers";
 
 // Neon Dusk — Character service
@@ -67,6 +68,10 @@ export async function createCharacter(
         origin: input.origin,
         role: input.role,
         ...attrs,
+        // Feature #65: nomads get +20% max NIL.
+        maxNil: input.role === "nomad"
+          ? Math.ceil(NIL_MAX_BASE * (1 + NOMAD_MAX_NIL_BONUS))
+          : NIL_MAX_BASE,
       })
       .returning();
     return toPublicCharacter(row);

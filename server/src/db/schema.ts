@@ -71,7 +71,7 @@ export const gameEventTypeEnum = pgEnum("game_event_type", [...GAME_EVENT_TYPES]
 // Feature #4 (ND-011): Gigs. The `gig_phase` enum mirrors the phase machine in
 // game/gigs.ts — the terminal phase is `wrap_up`, never `wrapup`.
 export const gigTypeEnum = pgEnum("gig_type", ["extraction", "delivery", "sabotage"]);
-export const gigTierEnum = pgEnum("gig_tier", ["t1", "t2"]);
+export const gigTierEnum = pgEnum("gig_tier", ["t1", "t2", "t3", "t4", "t5"]);
 export const gigPhaseEnum = pgEnum("gig_phase", [
   "meet",
   "legwork",
@@ -156,6 +156,9 @@ export const characters = pgTable(
     crewId: uuid("crew_id"),
     // ND-052: manual admin ban (separate from circuit breaker — ADR-3).
     isBanned: boolean("is_banned").notNull().default(false),
+    // Feature #65: role abilities — 30-min active window, 2h cooldown.
+    abilityActiveUntil: timestamp("ability_active_until", { withTimezone: true }),
+    abilityCooldownUntil: timestamp("ability_cooldown_until", { withTimezone: true }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

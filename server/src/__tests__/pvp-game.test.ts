@@ -152,6 +152,31 @@ describe("calculateCombatPower — solo role bonus", () => {
     });
     expect(solo).toBe(22); // ceil(20 * 1.1)
   });
+
+  it("should apply Combat Trance +25% (rounded up) to body and reflexes before the solo multiplier", () => {
+    // Feature #65: tranceActive boosts body and reflexes first: ceil(10 * 1.25) = 13 each
+    const trance = calculateCombatPower({
+      body: 10,
+      reflexes: 10,
+      chromePower: 0,
+      role: "solo",
+      tranceActive: true,
+      rng: () => 0.5, // random bonus 6 → base 32
+    });
+    expect(trance).toBe(36); // ceil(32 * 1.1), no crit at 0.5
+  });
+
+  it("should ignore tranceActive for a non-solo role", () => {
+    const fixer = calculateCombatPower({
+      body: 10,
+      reflexes: 10,
+      chromePower: 0,
+      role: "fixer",
+      tranceActive: true,
+      rng: () => 0.5, // random bonus 6 → base 26, no multipliers
+    });
+    expect(fixer).toBe(26);
+  });
 });
 
 describe("calculateCombatPower — solo crit", () => {

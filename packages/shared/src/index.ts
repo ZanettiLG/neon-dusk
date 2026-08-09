@@ -62,6 +62,37 @@ export interface User {
   updatedAt: string;
 }
 
+// ─── Role Abilities (Feature #65) ──────────────────────────────────────────
+// Each role has a unique active ability with a 30-min window and 2h cooldown.
+
+/** Active ability types — one per role. */
+export const ABILITY_TYPES = [
+  "combat_trance",
+  "deep_dive",
+  "overclock",
+  "silver_tongue",
+  "long_haul",
+] as const;
+export type AbilityType = (typeof ABILITY_TYPES)[number];
+
+/** Maps each role to its signature ability. */
+export const ROLE_TO_ABILITY: Record<Role, AbilityType> = {
+  solo: "combat_trance",
+  netrunner: "deep_dive",
+  tech: "overclock",
+  fixer: "silver_tongue",
+  nomad: "long_haul",
+};
+
+/** API readout of a character's current ability state. */
+export interface AbilityState {
+  abilityType: AbilityType;
+  isActive: boolean;
+  activeUntil: string | null;
+  cooldownUntil: string | null;
+  cooldownRemainingMs: number;
+}
+
 /** Character owned by a user (1 user ↔ 1 character). */
 export interface Character extends Attributes {
   id: string;
@@ -73,6 +104,8 @@ export interface Character extends Attributes {
   streetCred: number;
   /** Highest street cred ever reached — the decay floor (§5). */
   maxStreetCredAchieved: number;
+  /** Active role ability state (null when no ability timeline exists). */
+  ability: AbilityState | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -273,6 +306,8 @@ export const GAME_EVENT_TYPES = [
   "NIL_SPENT",
   "NIL_RESTORED",
   "VENDOR_PURCHASE",
+  "ABILITY_ACTIVATED",
+  "ABILITY_CONSUMED",
 ] as const;
 export type GameEventType = (typeof GAME_EVENT_TYPES)[number];
 
@@ -394,7 +429,7 @@ export interface ChromeUninstallResponse {
 export const GIG_TYPES = ["extraction", "delivery", "sabotage"] as const;
 export type GigType = (typeof GIG_TYPES)[number];
 
-export const GIG_TIERS = ["t1", "t2"] as const;
+export const GIG_TIERS = ["t1", "t2", "t3", "t4", "t5"] as const;
 export type GigTier = (typeof GIG_TIERS)[number];
 
 export const GIG_PHASES = ["meet", "legwork", "execute", "escape", "wrap_up"] as const;
@@ -511,6 +546,11 @@ export interface GigWrapupResponse {
 export interface GigHistoryResponse {
   history: GigHistoryEntry[];
   nextCursor: string | null;
+}
+
+export interface GigAbandonResponse {
+  outcome: "abandoned";
+  message: string;
 }
 
 // ─── Street Cred (ND-011.2) ─────────────────────────────────────────────────

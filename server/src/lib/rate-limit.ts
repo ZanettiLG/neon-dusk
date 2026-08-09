@@ -22,7 +22,8 @@ export type ActionType =
   | "economy_transact"
   | "character_create"
   | "vendor_purchase"
-  | "stim_use";
+  | "stim_use"
+  | "gig_abandon";
 
 /** Per-action rate limit configuration. */
 export interface RateLimitEntry {
@@ -44,6 +45,7 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
   character_create: { max: 3,  windowMs: 3_600_000 },
   vendor_purchase:  { max: 10, windowMs: 60_000 },
   stim_use:         { max: 5,  windowMs: 300_000 },
+  gig_abandon:      { max: 5,  windowMs: 60_000 },
 } as const;
 
 // Circuit-break constants

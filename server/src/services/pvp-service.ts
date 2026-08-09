@@ -28,6 +28,7 @@ import {
   isImmune,
   resolveCombat,
 } from "../game/pvp";
+import { getCombatTranceBonus } from "../game/abilities";
 import { transferEddies, type WalletState } from "../game/economy";
 import { ensureWallet } from "./economy-service";
 import { instrument } from "../telemetry/instrument";
@@ -225,8 +226,28 @@ export async function executeAttack(
 
     // Resolve the fight (game logic incl. solo role multiplier + crit).
     const { winner, attackerPower, defenderPower } = resolveCombat({
-      attacker: { body: attacker.body, reflexes: attacker.reflexes, chromePower: attackerChrome, role: attacker.role },
-      defender: { body: defender.body, reflexes: defender.reflexes, chromePower: defenderChrome, role: defender.role },
+      attacker: {
+        body: attacker.body,
+        reflexes: attacker.reflexes,
+        chromePower: attackerChrome,
+        role: attacker.role,
+        tranceActive: getCombatTranceBonus(
+          attacker.role,
+          attacker.abilityActiveUntil,
+          attacker.abilityCooldownUntil,
+        ) !== null,
+      },
+      defender: {
+        body: defender.body,
+        reflexes: defender.reflexes,
+        chromePower: defenderChrome,
+        role: defender.role,
+        tranceActive: getCombatTranceBonus(
+          defender.role,
+          defender.abilityActiveUntil,
+          defender.abilityCooldownUntil,
+        ) !== null,
+      },
     });
     const attackerWon = winner === "attacker";
     const winnerId = attackerWon ? attackerId : targetId;

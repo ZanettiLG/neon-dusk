@@ -48,6 +48,7 @@ export default function ActiveGigPanel() {
   const executeGig = useGigStore((s) => s.executeGig);
   const escapeGig = useGigStore((s) => s.escapeGig);
   const wrapUpGig = useGigStore((s) => s.wrapUpGig);
+  const abandonGig = useGigStore((s) => s.abandonGig);
 
   // Roll details live only in the action responses (the gig row keeps outcomes).
   const [lastExecute, setLastExecute] = useState<GigExecuteResponse | null>(null);
@@ -298,6 +299,24 @@ export default function ActiveGigPanel() {
           </button>
         </div>
       )}
+
+      {/* Abandon — visible in all phases */}
+      <button
+        onClick={() => {
+          if (
+            gig &&
+            window.confirm(
+              "Tem certeza que quer abandonar este gig? O fixer não vai gostar.",
+            )
+          ) {
+            void abandonGig(gig.gigId);
+          }
+        }}
+        disabled={actionLoading}
+        className="px-3 py-1.5 text-sm border border-red-500/50 text-red-400 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+      >
+        Abandonar Gig
+      </button>
 
       {actionError && <p className="font-data text-xs text-nd-magenta">✗ {actionError}</p>}
     </div>
