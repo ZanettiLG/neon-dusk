@@ -110,13 +110,19 @@ export default function ActiveGigPanel() {
   const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
   const legworkDone = gig.legworkCompleted || (legworkEndsAt !== null && legworkRemaining === 0);
 
+  const actionInFlight = useRef(false);
+
   async function onAction(action: () => Promise<unknown>): Promise<void> {
+    if (actionInFlight.current) return; // guard against double-click
+    actionInFlight.current = true;
     try {
       const res = (await action()) as GigExecuteResponse | GigEscapeResponse;
       if ("outcome" in res && "heatGenerated" in res) setLastEscape(res as GigEscapeResponse);
       else if ("outcome" in res) setLastExecute(res as GigExecuteResponse);
     } catch {
       // error already surfaced through actionError
+    } finally {
+      actionInFlight.current = false;
     }
   }
 
