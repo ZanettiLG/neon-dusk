@@ -155,7 +155,7 @@ const PT_BR_ERRORS: Record<string, string> = {
   // Anti-cheat
   RATE_LIMITED: "Muitas requisições. Aguarde.",
   COOLDOWN_ACTIVE: "Ação em cooldown. Aguarde.",
-  CIRCUIT_BREAK: "Conta suspensa temporariamente por atividades suspeitas.",
+  CIRCUIT_BREAK: "Sistema neural sobrecarregado. Retorne em algumas horas.",
 
   // Concurrency
   CONCURRENCY_CONFLICT: "Conflito de concorrência. Tente novamente.",
