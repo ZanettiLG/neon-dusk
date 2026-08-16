@@ -240,3 +240,4 @@ render(<MemoryRouter initialEntries={['/gigs/42']}><GigPage /></MemoryRouter>)
 - ❌ Dependências externas não mockadas (APIs, Redis) em testes unitários
 - ❌ Seeds de teste que poluem dados de desenvolvimento
 - ❌ Descrever o que o código faz (`it('calls validateToken')`) em vez do comportamento (`it('should reject expired tokens')`)
+- ❌ Verificar import/estrutura de config em artefato compilado (`dist/`, CSS/JS gerado) — **qa-browser/verificadores**: SEMPRE valide no source (`tailwind.config.*`, `tsconfig.*`, `*.ts`). Artefato compilado reflete o build, não o source.

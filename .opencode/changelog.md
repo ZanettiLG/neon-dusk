@@ -2,6 +2,22 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-16 — N2: Pipelines em paralelo + verificação de config no source
+
+### Trigger
+Dois pipelines de feature rodando em paralelo (issues #133 e #136) no mesmo working directory. Padrões observados (ACT→OBSERVE):
+1. **Race de branches** — test-writer e fixer precisaram fazer stash/pop de arquivos do pipeline alheio (2 colisões). Risco real de perda de trabalho.
+2. **Retornos vazios de subagente** — 2 execuções de developer retornaram `task_result` vazio/cancelado; re-execução pelo orquestrador recuperou sem perda.
+3. **Falso positivo de QA** — qa-browser reportou "tailwind.config não importa tokens.ts" inspecionando CSS compilado (`dist/`), quando o source importava corretamente.
+4. Saldo positivo: listas explícitas de arquivos por commit evitaram contaminação cruzada nos 4 commits de 2 branches (scores 5.0 e 4.5).
+
+### Change
+- **`github-workflow` skill**: nova seção "Pipelines em paralelo" — (a) fases read-only em paralelo real; (b) fases que escrevem no workdir em branches diferentes devem ser serializadas (ou `git worktree add`); (c) commits via github-ops com listas explícitas de arquivos; (d) `git stash push -m "wip:<branch-dona>"` ao trocar de branch com mudanças alheias, registrando no handoff; (e) regra de re-execução quando `task_result` vazio.
+- **`testing-patterns` skill**: anti-padrão adicionado — verificar import/estrutura de config SEMPRE no source, nunca em artefato compilado (`dist/`).
+
+### Impact
+Esperado: eliminar colisões de branches e perda de trabalho em pipelines paralelos; reduzir falso-positivos de QA que inspecionam build em vez de source; formalizar a re-execução de subagentes com retorno vazio.
+
 ## 2026-08-08 — N3: Pipeline GitHub-Native Default + Capability Gate + Commit Step
 
 ### Trigger
