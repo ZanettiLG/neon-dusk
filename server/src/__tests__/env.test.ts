@@ -14,6 +14,7 @@ function unsetEnvKeys() {
       key.startsWith("REDIS_URL") ||
       key.startsWith("RATE_LIMIT") ||
       key.startsWith("JWT") ||
+      key.startsWith("ADMIN") ||
       key.startsWith("CORS_ORIGIN")
     ) {
       delete process.env[key];
@@ -25,9 +26,11 @@ describe("env schema", () => {
   beforeEach(() => {
     process.env = { ...ORIGINAL_ENV };
     unsetEnvKeys();
-    // JWT secrets are required (no defaults) — provide them for parse-based tests.
+    // Required keys without defaults — set them explicitly so these tests
+    // don't implicitly depend on whatever setup.ts happens to provide.
     process.env.JWT_SECRET = "x".repeat(32);
     process.env.JWT_REFRESH_SECRET = "x".repeat(32);
+    process.env.ADMIN_API_KEY = "x".repeat(32);
   });
 
   it("should apply default values when env vars are missing", () => {
@@ -83,5 +86,23 @@ describe("env schema", () => {
     const env = envSchema.parse(process.env) as Env;
     expect(env).toHaveProperty("PORT");
     expect(env).toHaveProperty("DATABASE_URL");
+  });
+
+  it("should reject a missing ADMIN_API_KEY", () => {
+    delete process.env.ADMIN_API_KEY;
+    const result = envSchema.safeParse(process.env);
+    expect(result.success).toBe(false);
+  });
+
+  it("should reject an ADMIN_API_KEY shorter than 32 characters", () => {
+    process.env.ADMIN_API_KEY = "x".repeat(31);
+    const result = envSchema.safeParse(process.env);
+    expect(result.success).toBe(false);
+  });
+
+  it("should accept an ADMIN_API_KEY with 32 or more characters", () => {
+    process.env.ADMIN_API_KEY = "x".repeat(32);
+    const result = envSchema.safeParse(process.env);
+    expect(result.success).toBe(true);
   });
 });
