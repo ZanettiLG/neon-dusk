@@ -54,8 +54,8 @@ describe("economy service", () => {
       expect(seed).toMatchObject({
         type: "ADMIN_ADJUSTMENT",
         amount: 500,
-        balanceBefore: 0,
-        balanceAfter: 500,
+        balance_before: 0,
+        balance_after: 500,
         source: "Initial seed capital",
       });
     });
@@ -164,13 +164,13 @@ describe("economy service", () => {
         .where("type", "VENDOR_PURCHASE");
 
       expect(log).toMatchObject({
-        characterId,
+        character_id: characterId,
         amount: -120,
-        balanceBefore: 500,
-        balanceAfter: 380,
+        balance_before: 500,
+        balance_after: 380,
         source: "vendor",
-        referenceType: "vendor",
-        referenceId: "11111111-2222-4333-8444-555555555555",
+        reference_type: "vendor",
+        reference_id: "11111111-2222-4333-8444-555555555555",
       });
     });
 
@@ -423,8 +423,8 @@ describe("economy service", () => {
 
       expect(log).toMatchObject({
         amount: -100,
-        balanceBefore: 500,
-        balanceAfter: 400,
+        balance_before: 500,
+        balance_after: 400,
       });
     });
 

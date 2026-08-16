@@ -39,28 +39,28 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 
-/** Database row shape for the `users` table. */
+/** Database row shape for the `users` table (snake_case columns). */
 interface DbUser {
   id: string;
   email: string;
-  passwordHash: string;
+  password_hash: string;
   role: "player" | "admin";
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 const BCRYPT_ROUNDS = 12;
 const LOGIN_RATE_LIMIT = { max: 500, windowMs: 60_000 };
 const REGISTER_RATE_LIMIT = { max: 300, windowMs: 60_000 };
 
-/** Strip the password hash off a DB user row. */
+/** Strip the password hash off a DB user row (snake → public camelCase). */
 function toPublicUser(row: DbUser): User {
   return {
     id: row.id,
     email: row.email,
     role: row.role,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
   };
 }
 
@@ -103,7 +103,7 @@ export async function registerUser(
   }
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
-  const [user] = await db("users").insert({ email: input.email, passwordHash }).returning("*");
+  const [user] = await db("users").insert({ email: input.email, password_hash: passwordHash }).returning("*");
 
   return buildAuthResponse(app, redis, user);
 }
@@ -118,7 +118,7 @@ export async function loginUser(
 
   const user = await findUserByEmail(input.email);
   // Same error for unknown email vs wrong password (no account enumeration).
-  if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) {
+  if (!user || !(await bcrypt.compare(input.password, user.password_hash))) {
     throw new AppError(401, "INVALID_CREDENTIALS", "Email ou senha inválidos");
   }
 

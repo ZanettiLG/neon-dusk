@@ -18,13 +18,13 @@ import { emitEvent } from "../telemetry/emit-event";
 // POST /api/abilities/activate — activate the character's role ability.
 // GET  /api/abilities/status  — current ability state (active/cooldown/ready).
 
-/** Database row subset for abilities route. */
+/** Database row subset for abilities route (snake_case columns). */
 interface AbilitiesCharacterRow {
   id: string;
-  userId: string;
+  user_id: string;
   role: string;
-  abilityActiveUntil: Date | null;
-  abilityCooldownUntil: Date | null;
+  ability_active_until: Date | null;
+  ability_cooldown_until: Date | null;
 }
 
 /** Build AbilityState from character timestamps. */
@@ -74,8 +74,8 @@ export async function abilitiesRoutes(app: FastifyInstance) {
 
       const { canActivate, reason } = canActivateAbility(
         role,
-        character.abilityActiveUntil,
-        character.abilityCooldownUntil,
+        character.ability_active_until,
+        character.ability_cooldown_until,
       );
       if (!canActivate) {
         if (reason === "already_active") {
@@ -127,8 +127,8 @@ export async function abilitiesRoutes(app: FastifyInstance) {
 
       return buildAbilityState(
         character.role,
-        character.abilityActiveUntil,
-        character.abilityCooldownUntil,
+        character.ability_active_until,
+        character.ability_cooldown_until,
       );
     },
   );

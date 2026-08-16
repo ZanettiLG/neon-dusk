@@ -34,7 +34,7 @@ import { ensureWallet } from "./economy-service";
 // humanity at write time, so concurrent installs that both read the same
 // value can never overwrite each other's deduction.
 
-/** Database row shape for chrome_definitions. */
+/** Database row shape for chrome_definitions (snake_case columns). */
 interface DbChromeDefinition {
   id: string;
   slug: string;
@@ -42,30 +42,21 @@ interface DbChromeDefinition {
   slot: string;
   tier: number;
   bonuses: ChromeBonuses;
-  humanityCost: number;
-  basePrice: number;
+  humanity_cost: number;
+  base_price: number;
   description: string | null;
-  isActive: boolean;
+  is_active: boolean;
 }
 
-/** Database row shape for installed_chrome. */
+/** Database row shape for installed_chrome (snake_case columns). */
 interface DbInstalledChrome {
   id: string;
-  characterId: string;
-  chromeDefinitionId: string;
-  installedAt: Date;
+  character_id: string;
+  chrome_definition_id: string;
+  installed_at: Date;
 }
 
-/** Database row shape for character_wallets. */
-interface DbWallet {
-  balance: number;
-  escrow: number;
-  lifetimeEarned: number;
-  lifetimeSpent: number;
-  version: number;
-}
-
-/** DB row → API shape (strips isActive/createdAt internals). */
+/** DB row → API shape (snake → camel; strips is_active internals). */
 function toPublicDefinition(row: DbChromeDefinition): ChromeDefinition {
   return {
     id: row.id,
@@ -74,8 +65,8 @@ function toPublicDefinition(row: DbChromeDefinition): ChromeDefinition {
     slot: row.slot as ChromeSlot,
     tier: row.tier,
     bonuses: row.bonuses,
-    humanityCost: row.humanityCost,
-    basePrice: row.basePrice,
+    humanityCost: row.humanity_cost,
+    basePrice: row.base_price,
     description: row.description ?? undefined,
   };
 }
@@ -156,7 +147,7 @@ export async function installChrome(
     }
 
     // 6. Humanity cost — overclock makes it free
-    const effectiveHumanityCost = overclockActive ? 0 : definition.humanityCost;
+    const effectiveHumanityCost = overclockActive ? 0 : definition.humanity_cost;
     if (!validateHumanityAfterInstall(character.humanity, effectiveHumanityCost)) {
       throw new AppError(400, "HUMANITY_TOO_LOW", "Humanidade insuficiente para instalar este chrome");
     }
@@ -257,7 +248,7 @@ export async function installChrome(
     return {
       installedChrome: {
         installedId: installed.id,
-        installedAt: installed.installedAt.toISOString(),
+        installedAt: installed.installed_at.toISOString(),
         definition: toPublicDefinition(definition),
       },
       effectiveHumanity,
@@ -349,7 +340,8 @@ export async function listInstalledChrome(characterId: string): Promise<Installe
     .orderBy("installed_chrome.installed_at");
 
   // The join output mixes installed_chrome fields with chrome_definitions.*.
-  // Map rows: split out installed metadata from the definition.
+  // The definition columns come back as-is (snake_case); installed metadata
+  // is aliased. Map rows: split out installed metadata from the definition.
   const definitions: ChromeDefinition[] = [];
   const installed: InstalledChromeRecord[] = [];
 
@@ -361,10 +353,10 @@ export async function listInstalledChrome(characterId: string): Promise<Installe
       slot: row.slot,
       tier: row.tier,
       bonuses: row.bonuses,
-      humanityCost: row.humanity_cost,
-      basePrice: row.base_price,
+      humanity_cost: row.humanity_cost,
+      base_price: row.base_price,
       description: row.description,
-      isActive: row.is_active,
+      is_active: row.is_active,
     };
     definitions.push(toPublicDefinition(def));
     installed.push({

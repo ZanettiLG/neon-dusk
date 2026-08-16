@@ -88,13 +88,13 @@ export async function getPlayers(
     .leftJoin(
       db("game_events")
         .select({
-          characterId: "actor_id",
-          lastEvent: db.raw("max(game_events.created_at)"),
+          character_id: "actor_id",
+          last_event: db.raw("max(game_events.created_at)"),
         })
         .whereNotNull("actor_id")
         .groupBy("actor_id")
         .as("le"),
-      "le.characterId",
+      "le.character_id",
       "characters.id",
     );
 

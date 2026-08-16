@@ -37,15 +37,16 @@ interface ErrorBody {
   retryAfter?: number;
 }
 
+/** Raw audit_log row shape (snake_case — as returned by Knex). */
 interface AuditRow {
   id: string;
-  characterId: string;
+  character_id: string | null;
   action: string;
   result: string;
   ip: string | null;
-  userAgent: string | null;
-  createdAt: string;
-  updatedAt: string;
+  user_agent: string | null;
+  payload: Record<string, unknown>;
+  created_at: string;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -205,10 +206,10 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
 
     const [row] = await waitForAudit(characterId, "saideira_chat", 1);
     expect(row).toBeDefined();
-    expect(row.characterId).toBe(characterId);
+    expect(row.character_id).toBe(characterId);
     expect(row.result).toBe("allowed");
     expect(row.ip).toBe("127.0.0.1");
-    expect(row.userAgent).toBe("anti-cheat-test/1.0");
+    expect(row.user_agent).toBe("anti-cheat-test/1.0");
   });
 
   it("should return 400 with validation details and NOT set the cooldown on failure", async () => {

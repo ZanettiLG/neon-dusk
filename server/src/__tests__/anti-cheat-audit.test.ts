@@ -11,19 +11,21 @@ const auditMocks = vi.hoisted(() => ({
   consoleError: vi.fn(),
 }));
 
+// Knex chain mock: db("audit_log").insert(values).catch(handler).
+// `execute` stands in for the query promise — reject it to simulate a DB failure.
 vi.mock("../db", () => ({
-  db: {
-    insert: () => ({
-      values: (values: unknown) => {
-        auditMocks.values(values);
-        return { execute: auditMocks.execute };
-      },
-    }),
-  },
-}));
-
-vi.mock("../db/schema", () => ({
-  auditLog: {},
+  db: vi.fn((_table: string) => ({
+    insert: (values: unknown) => {
+      auditMocks.values(values);
+      return {
+        catch: (handler: (err: unknown) => void) => {
+          const promise = auditMocks.execute();
+          promise.catch(handler);
+          return promise;
+        },
+      };
+    },
+  })),
 }));
 
 import { auditLog } from "../lib/audit-log";
@@ -60,11 +62,12 @@ describe("auditLog (fire-and-forget audit logger)", () => {
     auditLog(entry({ result: "rate_limited", action: "pvp_attack" }));
 
     const values = auditMocks.values.mock.calls[0][0] as Record<string, unknown>;
+    // audit-log.ts maps its camelCase entry to snake_case DB columns.
     expect(values).toEqual({
-      characterId: CHARACTER_ID,
+      character_id: CHARACTER_ID,
       action: "pvp_attack",
       ip: "127.0.0.1",
-      userAgent: "Mozilla/5.0 (test)",
+      user_agent: "Mozilla/5.0 (test)",
       payload: { messageLength: 42 },
       result: "rate_limited",
     });

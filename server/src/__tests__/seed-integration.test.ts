@@ -251,7 +251,9 @@ describe("ND-054 — seed executor (db/seed)", () => {
 
       const wallet = await db.transaction(async (trx) => ensureWallet(characterId, trx));
 
-      expect(wallet).toMatchObject({ balance: 500, escrow: 0, lifetime_earned: 500, lifetime_spent: 0 });
+      // ensureWallet returns the internal camelCase WalletState (public API
+      // contract); the raw DB row is snake_case (asserted below).
+      expect(wallet).toMatchObject({ balance: 500, escrow: 0, lifetimeEarned: 500, lifetimeSpent: 0 });
       const [log] = await db("transaction_log")
         .select("*")
         .where("character_id", characterId);

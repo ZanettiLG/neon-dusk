@@ -5,10 +5,10 @@ import { isAbilityActive, cooldownRemainingMs } from "../game/abilities";
 // Neon Dusk — DB row → API shape transformers
 // ============================================================================
 
-/** Database row shape for characters (subset used by transformers). */
+/** Database row shape for characters (snake_case columns, subset used by transformers). */
 interface DbCharacter {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
   origin: string;
   role: string;
@@ -17,30 +17,30 @@ interface DbCharacter {
   intelligence: number;
   technical: number;
   cool: number;
-  streetCred: number;
-  maxStreetCredAchieved: number;
-  abilityActiveUntil: Date | null;
-  abilityCooldownUntil: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  street_cred: number;
+  max_street_cred_achieved: number;
+  ability_active_until: Date | null;
+  ability_cooldown_until: Date | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
-/** Strip row internals — characters carry only public fields. */
+/** Strip row internals — snake_case row → public camelCase Character. */
 export function toPublicCharacter(row: DbCharacter): Character {
   const abilityType = ROLE_TO_ABILITY[row.role as keyof typeof ROLE_TO_ABILITY];
   const ability: AbilityState = {
     abilityType,
-    isActive: isAbilityActive(row.abilityActiveUntil),
-    activeUntil: row.abilityActiveUntil?.toISOString() ?? null,
-    cooldownUntil: row.abilityCooldownUntil?.toISOString() ?? null,
-    cooldownRemainingMs: isAbilityActive(row.abilityActiveUntil)
+    isActive: isAbilityActive(row.ability_active_until),
+    activeUntil: row.ability_active_until?.toISOString() ?? null,
+    cooldownUntil: row.ability_cooldown_until?.toISOString() ?? null,
+    cooldownRemainingMs: isAbilityActive(row.ability_active_until)
       ? 0
-      : cooldownRemainingMs(row.abilityCooldownUntil),
+      : cooldownRemainingMs(row.ability_cooldown_until),
   };
 
   return {
     id: row.id,
-    userId: row.userId,
+    userId: row.user_id,
     name: row.name,
     origin: row.origin as Character["origin"],
     role: row.role as Character["role"],
@@ -49,10 +49,10 @@ export function toPublicCharacter(row: DbCharacter): Character {
     intelligence: row.intelligence,
     technical: row.technical,
     cool: row.cool,
-    streetCred: row.streetCred,
-    maxStreetCredAchieved: row.maxStreetCredAchieved,
+    streetCred: row.street_cred,
+    maxStreetCredAchieved: row.max_street_cred_achieved,
     ability,
-    createdAt: row.createdAt.toISOString(),
-    updatedAt: row.updatedAt.toISOString(),
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
   };
 }

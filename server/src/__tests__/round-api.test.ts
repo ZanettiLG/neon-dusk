@@ -233,9 +233,9 @@ describe("ND-017 — Round & Legends API", () => {
       // Round 1 closed, round 2 opened (scheduled after the intermission).
       const allRounds = await db("rounds").select("*").orderBy("round_number");
       expect(allRounds).toHaveLength(2);
-      expect(allRounds[0]).toMatchObject({ roundNumber: 1, status: "ended" });
-      expect(allRounds[0].endedAt).not.toBeNull();
-      expect(allRounds[1]).toMatchObject({ roundNumber: 2, status: "active" });
+      expect(allRounds[0]).toMatchObject({ round_number: 1, status: "ended" });
+      expect(allRounds[0].ended_at).not.toBeNull();
+      expect(allRounds[1]).toMatchObject({ round_number: 2, status: "active" });
     });
   });
 
@@ -258,8 +258,8 @@ describe("ND-017 — Round & Legends API", () => {
       expect(body.legend.drinkName).toBe("Sangue de Mercúrio");
 
       const [row] = await db("legends").select("*").where("character_name", user.characterName);
-      expect(row!.drinkName).toBe("Sangue de Mercúrio");
-      expect(row!.crewName).toBeNull();
+      expect(row!.drink_name).toBe("Sangue de Mercúrio");
+      expect(row!.crew_name).toBeNull();
 
       await db("legends").where("character_name", user.characterName).del();
     });
