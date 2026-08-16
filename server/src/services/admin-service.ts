@@ -187,6 +187,7 @@ export async function banPlayer(
       payload: { reason, adminUserId },
       result: "allowed",
     })
+    // fora de contexto de request — logger injetável seria over-engineering para o path de falha de audit
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 }
 
@@ -215,6 +216,7 @@ export async function unbanPlayer(
       payload: { adminUserId },
       result: "allowed",
     })
+    // fora de contexto de request — logger injetável seria over-engineering para o path de falha de audit
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 }
 
@@ -404,6 +406,7 @@ export async function updateParams(
       payload: { diffs, adminUserId },
       result: "allowed",
     })
+    // fora de contexto de request — logger injetável seria over-engineering para o path de falha de audit
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 
   return getParams();
