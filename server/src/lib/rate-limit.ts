@@ -124,11 +124,6 @@ export function checkActionRateLimit(
 
     // --- RATE LIMIT EXCEEDED ---
 
-    // Tag audit context before throwing.
-    if (request.audit_context) {
-      request.audit_context.result = "rate_limited";
-    }
-
     // Increment circuit-break strike counter.
     const cbKey = `cb_count:${userId}`;
     const cbResults = await redis.multi().incr(cbKey).expire(cbKey, circuitBreakerConfig.countTtlSeconds).exec();
@@ -141,12 +136,22 @@ export function checkActionRateLimit(
         circuitBreakerConfig.banTtlSeconds,
         "1",
       );
+      // Tag the audit context as circuit_break (not rate_limited) so the
+      // onResponse hook logs the actual outcome — see audit-middleware.
+      if (request.audit_context) {
+        request.audit_context.result = "circuit_break";
+      }
       throw new AppError(
         429,
         "CIRCUIT_BREAK",
         "Sistema neural sobrecarregado. Retorne em 24 horas.",
         { retryAfter: circuitBreakerConfig.banTtlSeconds },
       );
+    }
+
+    // Below the threshold: this is a plain rate-limit strike.
+    if (request.audit_context) {
+      request.audit_context.result = "rate_limited";
     }
 
     if (cbRemaining > 0) {

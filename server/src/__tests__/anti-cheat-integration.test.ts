@@ -333,9 +333,14 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     // The blocked request never reached the rate limiter → no counter for it.
     expect(await redis.exists(`rate:${userId}:saideira_chat`)).toBe(0);
 
-    // Audit trail: rate_limited for each strike + circuit_break for the trip + after-ban.
-    const rows = await waitForAudit(characterId, "vendor_purchase", circuitBreakerConfig.strikeThreshold + 2);
-    expect(rows.filter((r) => r.result === "rate_limited")).toHaveLength(circuitBreakerConfig.strikeThreshold);
+    // Audit trail: rate_limited for each of the (threshold - 1) plain strikes
+    // + circuit_break for the trip request AND the after-ban request.
+    const expectedTotal = circuitBreakerConfig.strikeThreshold + 1;
+    const rows = await waitForAudit(characterId, "vendor_purchase", expectedTotal);
+    expect(rows).toHaveLength(expectedTotal);
+    expect(rows.filter((r) => r.result === "rate_limited")).toHaveLength(
+      circuitBreakerConfig.strikeThreshold - 1,
+    );
     expect(rows.filter((r) => r.result === "circuit_break")).toHaveLength(2);
   });
 });

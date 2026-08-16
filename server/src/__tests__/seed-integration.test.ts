@@ -16,7 +16,7 @@ import { ensureWallet } from "../services/economy-service";
 // for the same reason.
 
 const CONTENT_COUNTS = {
-  gigs: 10,
+  gigs: 19,
   chrome: 5,
   vendors: 4,
   inventory: 8,
@@ -142,13 +142,22 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(kiroshi.price).toBe(1800);
     });
 
-    it("should derive the gig cooldown from tier (T1=10, T2=25)", async () => {
-      const t1 = await db("gigs").select("cooldown_minutes").where("tier", "t1");
-      const t2 = await db("gigs").select("cooldown_minutes").where("tier", "t2");
-      expect(t1).toHaveLength(6);
-      expect(t2).toHaveLength(4);
-      expect(t1.every((g) => g.cooldown_minutes === 10)).toBe(true);
-      expect(t2.every((g) => g.cooldown_minutes === 25)).toBe(true);
+    it("should derive the gig cooldown from tier (10/15/20/25/30 min)", async () => {
+      // seed.ts derives cooldown per tier (balance pass #114: T1=10, T2=15,
+      // T3=20, T4=25, T5=30 — "cap all gameplay wait timers at 30s" scaled
+      // back to the doc progression anchors).
+      const byTier = {
+        t1: { count: 6, cooldown: 10 },
+        t2: { count: 4, cooldown: 15 },
+        t3: { count: 3, cooldown: 20 },
+        t4: { count: 3, cooldown: 25 },
+        t5: { count: 3, cooldown: 30 },
+      } as const;
+      for (const [tier, expected] of Object.entries(byTier)) {
+        const rows = await db("gigs").select("cooldown_minutes").where("tier", tier);
+        expect(rows).toHaveLength(expected.count);
+        expect(rows.every((g) => g.cooldown_minutes === expected.cooldown)).toBe(true);
+      }
     });
 
     it("should seed 9 loot tables (4 T1, 5 T2) with weights intact", async () => {

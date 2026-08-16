@@ -6,6 +6,7 @@ import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, registerTestUser, type TestServer } from "./helpers";
 import { db } from "../db";
 import { ensureWallet } from "../services/economy-service";
+import { rateLimitConfig } from "../lib/rate-limit";
 import type {
   PvpAttackableResponse,
   PvpCombatResult,
@@ -599,20 +600,22 @@ describe("ND-014 — PvP combat API", () => {
       expect(combats.map((c) => c.loot_amount)).toEqual([0, 0]); // no wallets — nothing to double-take
     });
 
-    it("should reject the 4th attack within an hour (rate limit)", async () => {
+    it("should reject attacks beyond the hourly rate limit (rateLimitConfig.pvp_attack)", async () => {
       const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
       const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
 
+      // Real attacks within the per-character hourly limit are allowed.
       for (let i = 0; i < 3; i++) {
-        // Clear only the cooldowns — the per-character rate counter must accumulate.
+        // Clear only the cooldowns - the per-character rate counter must accumulate.
         await redis.del(middlewareCooldownKey(attacker.characterId));
         await redis.del(serviceCooldownKey(attacker.characterId));
         const { status } = await attack(attacker, defender.characterId);
         expect(status).toBe(200);
       }
 
-      // The 4th attack: rate limiter (max 3/h) must fire — clear the cooldown
-      // keys (set by attack 3) so the request reaches the limiter.
+      // Exhaust the counter at the configured max (300/h per rateLimitConfig,
+      // was 3/h before the 100x pass #121). The next attack trips the limiter.
+      await redis.set(attackRateKey(attacker.userId), rateLimitConfig.pvp_attack.max);
       await redis.del(middlewareCooldownKey(attacker.characterId));
       await redis.del(serviceCooldownKey(attacker.characterId));
       const fourth = await server.post(

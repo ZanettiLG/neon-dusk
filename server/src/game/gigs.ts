@@ -326,7 +326,7 @@ export function isCooldownExpired(
   if (lastCompletedAt === null) return true;
   if (cooldownMinutes <= 0) return true;
   const elapsedMs = now.getTime() - lastCompletedAt.getTime();
-  return elapsedMs >= cooldownMinutes * 1_000;
+  return elapsedMs >= cooldownMinutes * 60_000;
 }
 
 /**

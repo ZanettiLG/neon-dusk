@@ -1,16 +1,22 @@
 // Neon Dusk — Gig Template Seeds (ND-054 Data Seeding)
 // ============================================================================
-// 10 hand-crafted gig templates for MVP T1-T2.
-// 6 × T1 (SC 0+), 4 × T2 (SC 5+).
-// Types: 4 extraction, 3 delivery, 3 sabotage.
-// Districts spread across: O Fluxo, A Paraíso, O Fervo, A Quebrada, Babilônia.
+// 19 hand-crafted gig templates spanning T1-T5 (6 × T1, 4 × T2, 3 × T3,
+// 3 × T4, 3 × T5). The T3-T5 tiers were added in the T3-T5 progression pass
+// (PR #111, closes #110) with SC gates 15/30/50 — see 03-mecanicas-core.md §2.
+// Types: 7 extraction, 6 delivery, 6 sabotage.
+// Districts spread across: O Fluxo, A Paraíso, O Fervo, A Quebrada, Babilônia,
+// As Mortas, O Ponto.
 //
 // Balance anchors (03-mecanicas-core.md §2, 04-sistemas-e-progressao.md §5):
-//   T1 payout 500-1500, NIL 10-15, difficulty 14-36
-//   T2 payout 2000-6000, NIL 15-25, difficulty 60-75
+//   T1 payout 500-2.000, NIL 10-15, difficulty 14-36, SC 0
+//   T2 payout 2.000-8.000, NIL 15-25, difficulty 60-75, SC 5
+//   T3 payout 8.000-30.000, NIL 25-40, difficulty 60-70, SC 15
+//   T4 payout 30.000-100.000, NIL 35-42, difficulty 75-85, SC 30
+//   T5 payout 100.000+, NIL 50-60, difficulty 90-100, SC 50
 //   requiredStats achievable by optimized starting chars (max 8 T1, max 10 T2)
 //
-// cooldownMinutes is NOT included — the seed script derives it (T1=10, T2=25).
+// cooldownMinutes is NOT included — the seed script derives it
+// (T1=10, T2=15, T3=20, T4=25, T5=30, per balance pass #114).
 
 /** Static seed data for a gig template. */
 export interface GigTemplateSeed {
