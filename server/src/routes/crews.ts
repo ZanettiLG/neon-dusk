@@ -114,7 +114,7 @@ async function requireMember(crewId: string, characterId: string): Promise<void>
 }
 
 /** Throw AppError(403) unless the character is the crew leader. */
-function requireLeader(crew: { leaderId?: string; leader_id?: string }, characterId: string): void {
+function requireLeader(crew: { leader_id?: string }, characterId: string): void {
   const leaderId = crew.leader_id;
   if (leaderId !== characterId) {
     throw new AppError(403, "NOT_CREW_LEADER", "Apenas o líder da crew pode fazer isso");
