@@ -1,0 +1,59 @@
+{
+  "$schema": "asset-manifest",
+  "version": "0.1.0",
+  "status": "planned",
+  "categories": {
+    "p0_sistema_visual": [
+      "icones-atributos (5)",
+      "icones-roles (5)",
+      "icones-acoes",
+      "icones-recursos",
+      "molduras-cards",
+      "badges-tier",
+      "indicadores-estado"
+    ],
+    "p1_identidade_mundo": [
+      "banners-distritos (7)",
+      "retratos-fixers (8)",
+      "icones-stims (8)",
+      "icones-chrome",
+      "icones-tipos-gig (7)",
+      "drinks-saideira",
+      "mapa-metro-sp-2087",
+      "body-map-chrome"
+    ],
+    "p2_expansao": [
+      "retratos-origem-role",
+      "gangues (8)",
+      "corporacoes (6)",
+      "vendors-npcs",
+      "missoes-especiais",
+      "eventos-temporada",
+      "planos-seguro",
+      "territorios-crew-wars",
+      "cenas-reset-flatline-rankup"
+    ]
+  },
+  "rules": {
+    "no_text_in_image": true,
+    "no_watermarks": true,
+    "no_ip_references": true,
+    "dark_background": "#0a0a0f",
+    "small_icon_readable": "24px",
+    "formats": ["svg", "webp", "avif"],
+    "language": "pt-BR"
+  },
+  "production": {
+    "order": [
+      "icones",
+      "banners-distritos",
+      "retratos-fixers",
+      "stims",
+      "chrome",
+      "drinks",
+      "eventos",
+      "personagens-missoes"
+    ],
+    "next_batch": "p0_sistema_visual"
+  }
+}
