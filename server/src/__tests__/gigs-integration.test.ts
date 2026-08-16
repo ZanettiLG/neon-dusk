@@ -101,31 +101,31 @@ describe("ND-011 — gigs service & API", () => {
   }
 
   describe("gig catalog seeding (db/seed)", () => {
-    it("should seed the 10 static templates into the gigs table", async () => {
+    it("should seed the 19 static templates (T1-T5) into the gigs table", async () => {
       const rows = await db("gigs").select("*");
-      expect(rows).toHaveLength(10);
+      expect(rows).toHaveLength(19);
     });
 
     it("should be idempotent — a second run inserts nothing", async () => {
       expect(await seedGigs()).toBe(0);
       const rows = await db("gigs").select("*");
-      expect(rows).toHaveLength(10);
+      expect(rows).toHaveLength(19);
     });
   });
 
   describe("listAvailableGigs", () => {
-    it("should return the full board for a fresh character: 10 gigs, no active gig, 0 daily", async () => {
+    it("should return the full board for a fresh character: 19 gigs, no active gig", async () => {
       const { characterId } = await insertTestCharacter();
 
       const board = await listAvailableGigs(characterId);
 
-      expect(board.gigs).toHaveLength(10);
+      expect(board.gigs).toHaveLength(19);
       expect(board.activeGig).toBeNull();
       for (const g of board.gigs) {
         expect(g).toMatchObject({
           id: expect.any(String),
           name: expect.any(String),
-          tier: expect.stringMatching(/^t[12]$/),
+          tier: expect.stringMatching(/^t[1-5]$/),
           type: expect.stringMatching(/^(extraction|delivery|sabotage)$/),
           baseReward: expect.any(Number),
           nilCost: expect.any(Number),
@@ -135,15 +135,27 @@ describe("ND-011 — gigs service & API", () => {
       }
     });
 
-    it("should sort by tier then difficulty (easiest T1 first)", async () => {
+    it("should sort by tier then difficulty (grouped t1 → t2 → t3 → t4 → t5)", async () => {
       const { characterId } = await insertTestCharacter();
       const board = await listAvailableGigs(characterId);
 
-      expect(board.gigs[0].name).toBe("Corre da Farmácia"); // T1, difficulty 30
+      expect(board.gigs[0].name).toBe("Corre da Farmácia"); // T1, difficulty 14
       const firstT2 = board.gigs.findIndex((g) => g.tier === "t2");
-      expect(firstT2).toBeGreaterThanOrEqual(6);
-      for (let i = firstT2; i < board.gigs.length; i++) {
-        expect(board.gigs[i].tier).toBe("t2");
+      // All 6 T1 templates sort first (lowest difficulty first).
+      expect(firstT2).toBe(6);
+      // The board is grouped by tier in ascending order: 6 T1, 4 T2, 3 T3, 3 T4, 3 T5.
+      const tierGroups = board.gigs.map((g) => g.tier);
+      expect(tierGroups.slice(0, 6)).toEqual(Array(6).fill("t1"));
+      expect(tierGroups.slice(6, 10)).toEqual(Array(4).fill("t2"));
+      expect(tierGroups.slice(10, 13)).toEqual(Array(3).fill("t3"));
+      expect(tierGroups.slice(13, 16)).toEqual(Array(3).fill("t4"));
+      expect(tierGroups.slice(16)).toEqual(Array(3).fill("t5"));
+      // Within each tier, difficulty is non-decreasing.
+      const difficulties = board.gigs.map((g) => g.difficulty);
+      for (let i = 1; i < difficulties.length; i++) {
+        if (tierGroups[i] === tierGroups[i - 1]) {
+          expect(difficulties[i]).toBeGreaterThanOrEqual(difficulties[i - 1]);
+        }
       }
     });
 
@@ -254,7 +266,7 @@ describe("ND-011 — gigs service & API", () => {
         executeOutcome: null,
         escapeOutcome: null,
         actualPayout: null,
-        escapeDifficulty: 30,
+        escapeDifficulty: 18,
       });
       expect(active!.legworkStartedAt).toBeNull();
     });
@@ -819,7 +831,7 @@ describe("ND-011 — gigs service & API", () => {
 
       expect(res.statusCode).toBe(200);
       const body = res.json() as GigBoardResponse;
-      expect(body.gigs).toHaveLength(10);
+      expect(body.gigs).toHaveLength(19);
       expect(body.activeGig).toBeNull();
       // Fresh character meets the easiest gig (cool 5 ≥ 3) but not the Mula
       // Noturna (reflexes 4 < 5) nor any T2 (SC 0 < 5).

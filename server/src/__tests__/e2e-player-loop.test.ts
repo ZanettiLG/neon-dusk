@@ -81,13 +81,20 @@ describe("ND-018 — e2e player loop", () => {
       expect(charRes.status, "create character").toBe(201);
       const character = await json<Character>(charRes);
 
-      // ---- STEP 3: Verify NIL=100, eddies=500 ----
-      const meRes = await server.get("/api/auth/me", headers);
-      expect(meRes.status, "me").toBe(200);
-      const meBody = await json<{ character: { nil: number; eddies: number } | null }>(meRes);
-      expect(meBody.character).toBeTruthy();
-      expect(meBody.character!.nil).toBe(100);
-      expect(meBody.character!.eddies).toBe(500);
+      // ---- STEP 3: Verify NIL=100, eddies=500 via the dedicated readouts ----
+      // GET /api/auth/me returns the public Character contract (shared
+      // `Character` type), which has no `nil`/`eddies` fields — NIL and the
+      // wallet live in their own endpoints.
+      const nilRes = await server.get("/api/characters/me/nil", headers);
+      expect(nilRes.status, "nil readout").toBe(200);
+      const nilBody = await json<{ current: number; max: number }>(nilRes);
+      expect(nilBody.current).toBe(100);
+      expect(nilBody.max).toBe(100);
+
+      const balRes = await server.get("/api/economy/balance", headers);
+      expect(balRes.status, "balance").toBe(200);
+      const balBody = await json<{ balance: number }>(balRes);
+      expect(balBody.balance).toBe(500); // seed capital
 
       // ---- STEP 4: List gigs ----
       const boardRes = await server.get("/api/gigs", headers);
@@ -153,9 +160,9 @@ describe("ND-018 — e2e player loop", () => {
       }
 
       // ---- STEP 6: Verify NIL spent, eddies earned, SC increased ----
-      const afterGigs = await server.get("/api/auth/me", headers);
-      const afterBody = await json<{ character: { nil: number; eddies: number } | null }>(afterGigs);
-      expect(afterBody.character!.eddies, "eddies after gigs").toBeGreaterThan(500);
+      const afterGigs = await server.get("/api/economy/balance", headers);
+      const afterBody = await json<{ balance: number }>(afterGigs);
+      expect(afterBody.balance, "eddies after gigs").toBeGreaterThan(500);
 
       const scRes = await server.get("/api/street-cred", headers);
       expect(scRes.status, "street cred").toBe(200);
@@ -163,23 +170,24 @@ describe("ND-018 — e2e player loop", () => {
       // ---- STEP 7: Buy chrome (Kiroshi Optics) ----
       const chromeRes = await server.get("/api/chrome", headers);
       expect(chromeRes.status, "chrome catalog").toBe(200);
-      const chromeCatalog = await json<{ items: Array<{ id: string; slug: string; name: string }> }>(
+      // GET /api/chrome returns a bare ChromeDefinition[] (shared contract).
+      const chromeCatalog = await json<Array<{ id: string; slug: string; name: string }>>(
         chromeRes,
       );
 
       // Find Kiroshi Optics or any ocular chrome
       const kiroshi =
-        chromeCatalog.items.find((c) => c.slug.includes("kiroshi")) ??
-        chromeCatalog.items.find((c) => c.slug.includes("optic")) ??
-        chromeCatalog.items[0];
+        chromeCatalog.find((c) => c.slug.includes("kiroshi")) ??
+        chromeCatalog.find((c) => c.slug.includes("optic")) ??
+        chromeCatalog[0];
 
       if (kiroshi) {
-        // Get a vendor that sells chrome
+        // Get a vendor that sells chrome (bare VendorRecord[] contract).
         const vendorRes = await server.get("/api/vendors", headers);
         expect(vendorRes.status, "vendors").toBe(200);
-        const vendors = await json<{ vendors: Array<{ id: string }> }>(vendorRes);
+        const vendors = await json<Array<{ id: string }>>(vendorRes);
 
-        const ripperdoc = vendors.vendors[0];
+        const ripperdoc = vendors[0];
         if (ripperdoc && kiroshi) {
           const installRes = await server.post(
             "/api/chrome/install",

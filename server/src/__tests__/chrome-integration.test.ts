@@ -499,8 +499,8 @@ describe("Feature #4 — chrome API", () => {
         .andWhere("type", "CHROME_UNINSTALL");
       expect(log).toMatchObject({
         amount: 0,
-        balanceBefore: 200,
-        balanceAfter: 200,
+        balance_before: 200,
+        balance_after: 200,
       });
     });
 
@@ -594,8 +594,8 @@ describe("Feature #4 — chrome API", () => {
         .andWhere("type", "CHROME_PURCHASE");
       expect(log).toMatchObject({
         amount: -300,
-        balanceBefore: 500,
-        balanceAfter: 200,
+        balance_before: 500,
+        balance_after: 200,
       });
     });
 

@@ -112,16 +112,16 @@ describe("economy integrity", () => {
         .select("*")
         .where("character_id", characterId);
       for (const row of rows) {
-        expect(row.balanceAfter - row.balanceBefore).toBe(row.amount);
+        expect(row.balance_after - row.balance_before).toBe(row.amount);
       }
 
       // Consecutive audit entries must chain: each row's balance_before equals
       // the previous row's balance_after (in ascending order).
       const asc = [...rows].sort(
-        (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
       for (let i = 1; i < asc.length; i++) {
-        expect(asc[i].balanceBefore).toBe(asc[i - 1].balanceAfter);
+        expect(asc[i].balance_before).toBe(asc[i - 1].balance_after);
       }
     });
 

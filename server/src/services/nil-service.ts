@@ -16,14 +16,12 @@ import { AppError } from "../middleware/error-handler";
 // syn-café persist (updating `nil` + `nil_updated_at` together). Rate is
 // +1 NIL per 5 minutes, capped at `max_nil` (03-mecanicas-core.md §1).
 
-/** Database row shape for characters (subset used by NIL operations). */
+/** Database row shape for characters (snake_case subset used by NIL operations). */
 interface DbCharacter {
   id: string;
-  userId: string;
-  role: string;
   nil: number;
-  maxNil: number;
-  nilUpdatedAt: Date;
+  max_nil: number;
+  nil_updated_at: Date;
 }
 
 export interface RegenResult {
@@ -49,13 +47,13 @@ export function calculateRegen(currentNil: number, maxNil: number, lastUpdated: 
 
 /** Map a character row to a live NIL readout, applying passive regen lazily. */
 export function toNilStatus(row: DbCharacter): NilStatus {
-  const { newNil, nextTickSeconds } = calculateRegen(row.nil, row.maxNil, row.nilUpdatedAt);
+  const { newNil, nextTickSeconds } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
   return {
     current: newNil,
-    max: row.maxNil,
+    max: row.max_nil,
     nextTickSeconds,
-    regenerating: newNil < row.maxNil,
-    updatedAt: row.nilUpdatedAt.toISOString(),
+    regenerating: newNil < row.max_nil,
+    updatedAt: row.nil_updated_at.toISOString(),
   };
 }
 
@@ -89,7 +87,7 @@ export const consumeNilSchema = z.object({
 /** Deduct NIL (e.g. a gig) from the user's character and persist the new snapshot. */
 export async function consumeNil(userId: string, amount: number): Promise<NilConsumeResponse> {
   const row = await findCharacter(userId);
-  const { newNil: current } = calculateRegen(row.nil, row.maxNil, row.nilUpdatedAt);
+  const { newNil: current } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
 
   if (amount > current) {
     throw new AppError(400, "INSUFFICIENT_NIL", `NIL insuficiente (tem ${current}, precisa de ${amount})`);
@@ -99,7 +97,7 @@ export async function consumeNil(userId: string, amount: number): Promise<NilCon
   // re-evaluated inside the row lock against the live row, so a concurrent
   // consume that passed the fail-fast check still loses the WHERE race and
   // gets INSUFFICIENT_NIL (double-spend guard).
-  const elapsed = Math.max(0, Date.now() - row.nilUpdatedAt.getTime());
+  const elapsed = Math.max(0, Date.now() - row.nil_updated_at.getTime());
   const regenOffset = Math.floor(elapsed / NIL_REGEN_INTERVAL_MS) * NIL_REGEN_RATE;
 
   // Optimistic lock: capture the stored value this read saw. If a concurrent
@@ -131,7 +129,7 @@ export async function consumeNil(userId: string, amount: number): Promise<NilCon
  */
 export async function useStim(redis: Redis, userId: string): Promise<NilStimResponse> {
   const row = await findCharacter(userId);
-  const { newNil: current } = calculateRegen(row.nil, row.maxNil, row.nilUpdatedAt);
+  const { newNil: current } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
 
   // Atomic cooldown gate — SET NX succeeds only when the key is absent, so two
   // concurrent stims can't both pass the guard (the loser gets COOLDOWN).
@@ -144,13 +142,13 @@ export async function useStim(redis: Redis, userId: string): Promise<NilStimResp
     });
   }
 
-  if (current >= row.maxNil) {
+  if (current >= row.max_nil) {
     // Don't burn the cooldown for a zero-gain stim.
     await redis.del(key);
     throw new AppError(400, "NIL_FULL", "NIL já está cheio");
   }
 
-  const newNil = Math.min(row.maxNil, current + NIL_SYN_CAFE_AMOUNT);
+  const newNil = Math.min(row.max_nil, current + NIL_SYN_CAFE_AMOUNT);
 
   // Optimistic lock: capture the stored value this read saw. If a concurrent
   // consume commits a lower `nil` before our UPDATE lands, the guard

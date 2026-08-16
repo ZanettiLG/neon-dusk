@@ -29,13 +29,13 @@ export interface AbilityState {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-/** Cooldown durations in milliseconds, per ability. */
+/** Cooldown durations in milliseconds, per ability (04-sistemas-e-progressao.md §2). */
 export const ABILITY_COOLDOWNS: Record<AbilityType, number> = {
-  combat_trance: 30_000,
-  deep_dive: 30_000,
-  overclock: 30_000,
-  silver_tongue: 30_000,
-  long_haul: 30_000,
+  combat_trance: 4 * 3_600_000,  // 4h  (docs: "4h cooldown")
+  deep_dive: 8 * 3_600_000,      // 8h  (docs: "8h cooldown")
+  overclock: 24 * 3_600_000,     // 24h (docs: "24h cooldown")
+  silver_tongue: 12 * 3_600_000, // 12h (docs: "12h cooldown")
+  long_haul: 6 * 3_600_000,      // 6h  (docs: "6h cooldown")
 };
 
 /**
@@ -44,11 +44,11 @@ export const ABILITY_COOLDOWNS: Record<AbilityType, number> = {
  * > 0 = duration-based (effect runs for this long, then auto-transitions).
  */
 export const ABILITY_DURATIONS: Record<AbilityType, number> = {
-  combat_trance: 30_000,  // 30 seconds
-  deep_dive: 0,                   // one-shot (framework-only in MVP)
-  overclock: 0,                   // one-shot: consumed on next chrome purchase
-  silver_tongue: 0,               // one-shot: consumed on next gig completion
-  long_haul: 0,                   // one-shot: consumed when second gig starts
+  combat_trance: 30 * 60_000, // 30 minutes (docs: "ativa por 30min")
+  deep_dive: 0,               // one-shot (framework-only in MVP)
+  overclock: 0,               // one-shot: consumed on next chrome purchase
+  silver_tongue: 0,           // one-shot: consumed on next gig completion
+  long_haul: 0,               // one-shot: consumed when second gig starts
 };
 
 /** Passive bonuses — always active, independent of ability state. */

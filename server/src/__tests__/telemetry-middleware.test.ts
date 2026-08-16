@@ -99,8 +99,8 @@ describe("Telemetry middleware (fire-and-forget events)", () => {
 
     const rows = await db("game_events").select("*");
     expect(rows).toHaveLength(1);
-    expect(rows[0].eventType).toBe("GIG_COMPLETED");
-    expect(rows[0].actorId).toBe(ACTOR_1);
+    expect(rows[0].event_type).toBe("GIG_COMPLETED");
+    expect(rows[0].actor_id).toBe(ACTOR_1);
     expect(rows[0].payload).toEqual({ tier: "t1", outcome: "success" });
   });
 
@@ -110,9 +110,9 @@ describe("Telemetry middleware (fire-and-forget events)", () => {
     await waitFor(async () => (await countEvents()) === 2);
 
     const rows = await db("game_events").select("*");
-    expect(rows.map((r) => r.eventType).sort()).toEqual(["EDDIES_EARNED", "GIG_COMPLETED"]);
-    const earned = rows.find((r) => r.eventType === "EDDIES_EARNED")!;
-    expect(earned.actorId).toBe(ACTOR_2);
+    expect(rows.map((r) => r.event_type).sort()).toEqual(["EDDIES_EARNED", "GIG_COMPLETED"]);
+    const earned = rows.find((r) => r.event_type === "EDDIES_EARNED")!;
+    expect(earned.actor_id).toBe(ACTOR_2);
     expect(earned.payload).toEqual({ amount: 500, source: "gig" });
   });
 

@@ -88,13 +88,13 @@ export async function getPlayers(
     .leftJoin(
       db("game_events")
         .select({
-          characterId: "actor_id",
-          lastEvent: db.raw("max(game_events.created_at)"),
+          character_id: "actor_id",
+          last_event: db.raw("max(game_events.created_at)"),
         })
         .whereNotNull("actor_id")
         .groupBy("actor_id")
         .as("le"),
-      "le.characterId",
+      "le.character_id",
       "characters.id",
     );
 
@@ -187,6 +187,7 @@ export async function banPlayer(
       payload: { reason, adminUserId },
       result: "allowed",
     })
+    // fora de contexto de request — logger injetável seria over-engineering para o path de falha de audit
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 }
 
@@ -215,6 +216,7 @@ export async function unbanPlayer(
       payload: { adminUserId },
       result: "allowed",
     })
+    // fora de contexto de request — logger injetável seria over-engineering para o path de falha de audit
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 }
 
@@ -404,6 +406,7 @@ export async function updateParams(
       payload: { diffs, adminUserId },
       result: "allowed",
     })
+    // fora de contexto de request — logger injetável seria over-engineering para o path de falha de audit
     .catch((err) => console.error("[admin] audit-log write failed:", err));
 
   return getParams();

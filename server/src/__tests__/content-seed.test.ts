@@ -10,7 +10,7 @@ import { LOOT_TABLES } from "../content/loot-tables";
 // tests lock the shape, cardinality and balance anchors so a bad edit to a
 // content file fails the suite instead of shipping a broken catalog.
 
-const VALID_GIG_TIERS = ["t1", "t2"] as const;
+const VALID_GIG_TIERS = ["t1", "t2", "t3", "t4", "t5"] as const;
 const VALID_GIG_TYPES = ["extraction", "delivery", "sabotage"] as const;
 const VALID_ORIGINS = [
   "a_paraiso",
@@ -41,17 +41,20 @@ const KEBAB_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // ─── GIG_TEMPLATES ─────────────────────────────────────────────────────────
 
 describe("GIG_TEMPLATES (content/gig-templates.ts)", () => {
-  it("should contain 10 entries (6 T1, 4 T2)", () => {
-    expect(GIG_TEMPLATES).toHaveLength(10);
+  it("should contain 19 entries (6 T1, 4 T2, 3 T3, 3 T4, 3 T5)", () => {
+    expect(GIG_TEMPLATES).toHaveLength(19);
     expect(GIG_TEMPLATES.filter((g) => g.tier === "t1")).toHaveLength(6);
     expect(GIG_TEMPLATES.filter((g) => g.tier === "t2")).toHaveLength(4);
+    expect(GIG_TEMPLATES.filter((g) => g.tier === "t3")).toHaveLength(3);
+    expect(GIG_TEMPLATES.filter((g) => g.tier === "t4")).toHaveLength(3);
+    expect(GIG_TEMPLATES.filter((g) => g.tier === "t5")).toHaveLength(3);
   });
 
   it("should spread across the 3 gig types", () => {
     const byType = (t: string) => GIG_TEMPLATES.filter((g) => g.type === t).length;
-    expect(byType("extraction")).toBe(4);
-    expect(byType("delivery")).toBe(3);
-    expect(byType("sabotage")).toBe(3);
+    expect(byType("extraction")).toBe(7);
+    expect(byType("delivery")).toBe(6);
+    expect(byType("sabotage")).toBe(6);
   });
 
   it("should give every entry a name, description and required fields", () => {
@@ -84,25 +87,32 @@ describe("GIG_TEMPLATES (content/gig-templates.ts)", () => {
     }
   });
 
-  it("should pay T1 gigs 500-2000 and T2 gigs 2000-8000", () => {
+  it("should pay per-tier brackets per 03-mecanicas-core.md §2 (T1 500-2k, T2 2k-8k, T3 8k-30k, T4 30k-100k, T5 100k+)", () => {
+    // Balance anchors from the progression table in 03-mecanicas-core.md §2.
+    const BRACKETS: Record<(typeof VALID_GIG_TIERS)[number], [number, number]> = {
+      t1: [500, 2000],
+      t2: [2000, 8000],
+      t3: [8000, 30000],
+      t4: [30000, 100000],
+      t5: [100000, Number.POSITIVE_INFINITY],
+    };
     for (const g of GIG_TEMPLATES) {
-      if (g.tier === "t1") {
-        expect(g.baseReward).toBeGreaterThanOrEqual(500);
-        expect(g.baseReward).toBeLessThanOrEqual(2000);
-      } else {
-        expect(g.baseReward).toBeGreaterThanOrEqual(2000);
-        expect(g.baseReward).toBeLessThanOrEqual(8000);
-      }
+      const [min, max] = BRACKETS[g.tier];
+      expect(g.baseReward).toBeGreaterThanOrEqual(min);
+      expect(g.baseReward).toBeLessThanOrEqual(max);
     }
   });
 
-  it("should require street cred 0 on T1 and 5+ on T2", () => {
+  it("should require the canonical street cred gate per tier (0/5/15/30/50)", () => {
+    const GATES: Record<(typeof VALID_GIG_TIERS)[number], number> = {
+      t1: 0,
+      t2: 5,
+      t3: 15,
+      t4: 30,
+      t5: 50,
+    };
     for (const g of GIG_TEMPLATES) {
-      if (g.tier === "t1") {
-        expect(g.requiredStreetCred).toBe(0);
-      } else {
-        expect(g.requiredStreetCred).toBeGreaterThanOrEqual(5);
-      }
+      expect(g.requiredStreetCred).toBe(GATES[g.tier]);
     }
   });
 

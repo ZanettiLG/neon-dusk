@@ -114,8 +114,8 @@ async function requireMember(crewId: string, characterId: string): Promise<void>
 }
 
 /** Throw AppError(403) unless the character is the crew leader. */
-function requireLeader(crew: { leaderId?: string; leader_id?: string }, characterId: string): void {
-  const leaderId = crew.leaderId ?? crew.leader_id;
+function requireLeader(crew: { leader_id?: string }, characterId: string): void {
+  const leaderId = crew.leader_id;
   if (leaderId !== characterId) {
     throw new AppError(403, "NOT_CREW_LEADER", "Apenas o líder da crew pode fazer isso");
   }
@@ -322,7 +322,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
           id: crew.id as string,
           name: crew.name as string,
           tag: crew.tag as string,
-          leaderId: (crew.leader_id ?? crew.leaderId) as string,
+          leaderId: crew.leader_id as string,
           createdAt: new Date(crew.created_at as string).toISOString(),
         },
         members: memberRows.map((member: Record<string, unknown>) => ({
@@ -494,7 +494,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
 
       request.audit_context!.payload = { crewId };
 
-      if ((crew.leader_id ?? crew.leaderId) === characterId) {
+      if (crew.leader_id === characterId) {
         throw new AppError(400, "LEADER_CANNOT_LEAVE", "O líder deve dissolver a crew para sair");
       }
       await requireMember(crewId, characterId);
@@ -533,7 +533,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       request.audit_context!.payload = { crewId, targetCharacterId: targetId };
 
       requireLeader(crew, characterId);
-      if (targetId === (crew.leader_id ?? crew.leaderId)) {
+      if (targetId === crew.leader_id) {
         throw new AppError(400, "CANNOT_KICK_LEADER", "Não é possível remover o líder");
       }
       await requireMember(crewId, targetId);
@@ -631,7 +631,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       const chatMessage: ChatMessage = {
         id: randomUUID(),
         characterName: char.name,
-        crewTag: (crew.tag ?? crew.tag) as string,
+        crewTag: crew.tag as string,
         message: escapeHtml(message),
         createdAt: new Date().toISOString(),
       };

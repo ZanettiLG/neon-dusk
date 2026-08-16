@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
+import bcrypt from "bcrypt";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader } from "./helpers";
+import { db } from "../db";
 import type { AuthResponse, UserWithCharacter } from "@neon-dusk/shared";
 
 // Feature #1 — account API integration tests. Each `it` performs a real HTTP
@@ -84,6 +86,26 @@ describe("Feature #1 — auth API", () => {
       expect(res.status).toBe(409);
       const body = await json<ErrorBody>(res);
       expect(body.error).toBe("EMAIL_TAKEN");
+    });
+
+    it("should persist a bcrypt password_hash (never plaintext) for the new user", async () => {
+      const email = uniqueEmail();
+      const res = await server.post("/api/auth/register", { email, password: PASSWORD });
+      expect(res.status).toBe(201);
+      const body = await json<AuthResponse>(res);
+
+      // Direct DB read — the users row must carry a hash, not the plaintext.
+      const [row] = await db("users")
+        .select("password_hash")
+        .where("id", body.user.id)
+        .limit(1);
+      expect(row).toBeDefined();
+      expect(row.password_hash).toBeTruthy();
+      expect(row.password_hash).not.toBe(PASSWORD);
+      // bcrypt format: $2b$<rounds>$<53-char salt+hash> (60 chars total).
+      expect(row.password_hash).toMatch(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/);
+      // And it verifies against the known password (bcrypt round-trip).
+      expect(await bcrypt.compare(PASSWORD, row.password_hash)).toBe(true);
     });
 
     it("should return 400 with a validation error for an invalid email", async () => {

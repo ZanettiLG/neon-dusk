@@ -449,9 +449,23 @@ describe("ND-015 — Saideira Hub API", () => {
 
       expect(res.status).toBe(200);
       const body = await json<LegendsResponse>(res);
-      const years = body.legends.map((l) => new Date(l.achievedAt).getUTCFullYear());
-      expect(years[0]).toBe(2087); // Mão Fria — newest
-      expect(years[years.length - 1]).toBe(2085); // Razorback/Ghostwire — oldest
+
+      // Order property: the ENTIRE list is sorted newest-first. Other suites
+      // may leave induction artifacts (legends with the current year, 2026) in
+      // the shared DB — the sort must still hold over the full list.
+      const timestamps = body.legends.map((l) => new Date(l.achievedAt).getTime());
+      for (let i = 1; i < timestamps.length; i++) {
+        expect(timestamps[i - 1]).toBeGreaterThanOrEqual(timestamps[i]);
+      }
+
+      // Seed legends keep their canonical relative order (migration 0009):
+      // Mão Fria (2087) → Zé do Gatilho (2086) → Dama de Paus (2086) →
+      // Ghostwire (2085) → Razorback (2085).
+      const seedNames = ["Mão Fria", "Zé do Gatilho", "Dama de Paus", "Ghostwire", "Razorback"];
+      const seedOrder = body.legends
+        .filter((l) => seedNames.includes(l.characterName))
+        .map((l) => l.characterName);
+      expect(seedOrder).toEqual(seedNames);
     });
 
     it("should return crew names for legends that have one", async () => {

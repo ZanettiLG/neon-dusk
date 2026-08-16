@@ -232,14 +232,14 @@ describe("ND-016 — Crews Básicas API", () => {
 
       const [wallet] = await db("character_wallets").select("*").where("character_id", leader.characterId);
       expect(wallet!.balance).toBe(1000);
-      expect(wallet!.lifetimeSpent).toBe(5000);
+      expect(wallet!.lifetime_spent).toBe(5000);
 
       const [log] = await db("transaction_log").select("*").where("character_id", leader.characterId).andWhere("type", "CREW_CREATION");
       expect(log).toMatchObject({
         type: "CREW_CREATION",
         amount: -5000,
-        balanceBefore: 6000,
-        balanceAfter: 1000,
+        balance_before: 6000,
+        balance_after: 1000,
       });
     });
 

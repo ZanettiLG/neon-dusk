@@ -1,5 +1,8 @@
 import knex from "knex";
 import type { Knex } from "knex";
+// Must run before any connection is established: registers the BIGINT →
+// number parser on the shared pg-types instance (see pg-types.ts).
+import "./pg-types";
 import { env } from "../env";
 
 /**

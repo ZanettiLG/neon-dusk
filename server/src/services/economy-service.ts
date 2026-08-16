@@ -21,6 +21,33 @@ const MAX_RETRIES = 3;
 /** Sleep helper for retry backoff. */
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Map a raw transaction_log row (snake_case) to the public camelCase contract. */
+function toPublicTransaction(row: {
+  id: string;
+  character_id: string;
+  type: string;
+  amount: number;
+  balance_before: number;
+  balance_after: number;
+  source: string;
+  reference_type: string | null;
+  reference_id: string | null;
+  created_at: Date;
+}): TransactionRecord {
+  return {
+    id: row.id,
+    characterId: row.character_id,
+    type: row.type,
+    amount: row.amount,
+    balanceBefore: row.balance_before,
+    balanceAfter: row.balance_after,
+    source: row.source,
+    referenceType: row.reference_type ?? null,
+    referenceId: row.reference_id ?? null,
+    createdAt: new Date(row.created_at).toISOString(),
+  };
+}
+
 /**
  * Ensure a character has a wallet. Creates one with INITIAL_BALANCE (and an
  * ADMIN_ADJUSTMENT audit entry) the first time; otherwise returns it as-is.
@@ -222,10 +249,7 @@ export async function transfer(
 
         return {
           wallet: { ...result.wallet, version: updated.version },
-          transaction: {
-            ...txLog,
-            createdAt: new Date(txLog.created_at).toISOString(),
-          },
+          transaction: toPublicTransaction(txLog),
         };
       });
     } catch (err) {
@@ -281,10 +305,7 @@ export async function getTransactions(
     : null;
 
   return {
-    transactions: page.map((row) => ({
-      ...row,
-      createdAt: new Date(row.created_at).toISOString(),
-    })),
+    transactions: page.map(toPublicTransaction),
     nextCursor,
   };
 }

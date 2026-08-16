@@ -102,8 +102,10 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
       code: "RATE_LIMITED",
     });
 
-    // Send (threshold - 1) more rate-limited requests — each is a strike.
-    for (let i = 0; i < circuitBreakerConfig.strikeThreshold - 1; i++) {
+    // Send (threshold - 2) more rate-limited requests — the initial call was
+    // already strike 1, so these are strikes 2..(threshold-1) → plain
+    // RATE_LIMITED. The NEXT call trips the circuit (strike = threshold).
+    for (let i = 0; i < circuitBreakerConfig.strikeThreshold - 2; i++) {
       await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
         statusCode: 429,
         code: "RATE_LIMITED",

@@ -164,7 +164,9 @@ describe("Rate limit stress test — auth endpoints (#81)", () => {
       // All 100 should pass (all < 500 limit), getting 401 for wrong password.
       expect(status401.length).toBe(CONCURRENT_COUNT);
       expect(status429.length).toBe(0);
-    });
+      // 100 concurrent logins each run bcrypt.compare (12 rounds) + Postgres +
+      // Redis round-trips on one event loop — 5s is too tight on shared hosts.
+    }, 30_000);
   });
 
   describe("rate limit headers", () => {
