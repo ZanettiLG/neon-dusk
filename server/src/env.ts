@@ -1,8 +1,22 @@
 import { config } from "dotenv";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
+// Deterministic .env path: always <repo>/server/.env, regardless of the
+// process working directory (dotenv's default cwd-relative resolution breaks
+// when the server is launched from the repo root, e.g. `tsx server/src/server.ts`).
+export const ENV_FILE_PATH = fileURLToPath(new URL("../.env", import.meta.url));
+
+/**
+ * Loads the .env file from the deterministic path. Seam exported for tests
+ * so they can point dotenv at a fixture file.
+ */
+export function loadDotenv(path = ENV_FILE_PATH) {
+  return config({ path });
+}
+
 // Load .env before schema parsing
-config();
+loadDotenv();
 
 export const envSchema = z.object({
   // Server
@@ -62,6 +76,8 @@ function loadEnv(): Env {
   if (!result.success) {
     console.error("Invalid environment variables:");
     console.error(result.error.format());
+    console.error(`Checked env file: ${ENV_FILE_PATH}`);
+    console.error("Tip: copy server/.env.example to server/.env and fill the required values.");
     process.exit(1);
   }
 

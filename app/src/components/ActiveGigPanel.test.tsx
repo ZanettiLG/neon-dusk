@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import type { GigEscapeResponse } from "@neon-dusk/shared";
 import ActiveGigPanel from "@/components/ActiveGigPanel";
 import { useGigStore } from "@/stores/gig";
 
@@ -199,6 +200,45 @@ describe("ActiveGigPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /concluir gig \(receber\)/i }));
     expect(wrapUpGig).toHaveBeenCalledWith("g-1");
     expect(escapeGig).not.toHaveBeenCalled();
+  });
+
+  it("should call escapeGig exactly once when Fugir / Extração is double-clicked synchronously", async () => {
+    // Escape action that stays pending until the test resolves it — keeps the
+    // actionInFlight ref armed across both synchronous clicks (the mocked
+    // escapeGig never touches actionLoading, mirroring the store-action mocks
+    // used elsewhere in this suite).
+    let resolveEscape!: (value: GigEscapeResponse) => void;
+    const escapeGig = vi.fn<(id: string) => Promise<GigEscapeResponse>>((_id: string) => {
+      return new Promise<GigEscapeResponse>((resolve) => {
+        resolveEscape = resolve;
+      });
+    });
+
+    useGigStore.setState({
+      escapeGig,
+      board: {
+        gigs: [],
+        activeGig: escapePhaseGig({ phase: "execute", escapeOutcome: null }),
+      },
+    });
+    render(<ActiveGigPanel />);
+
+    const button = screen.getByRole("button", { name: /fugir/i });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    // The actionInFlight guard must swallow the synchronous re-entry: even
+    // with a fast user double-click, exactly one escape request is fired.
+    expect(escapeGig).toHaveBeenCalledTimes(1);
+    expect(escapeGig).toHaveBeenCalledWith("g-1");
+
+    // Settle the pending escape so the component finishes cleanly.
+    resolveEscape({
+      activeGig: escapePhaseGig({ phase: "execute", escapeOutcome: null }),
+      outcome: { success: true, roll: 0.9, successChance: 0.8 },
+      heatGenerated: 1,
+    });
+    await act(async () => {});
   });
 
   it("renders heat warning when lastEscape.heatGenerated > 0", async () => {
