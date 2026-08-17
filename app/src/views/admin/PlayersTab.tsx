@@ -56,7 +56,7 @@ export default function PlayersTab() {
   // Initial load + sort changes.
   useEffect(() => {
     fetchPlayers({ sort, page: playersPage });
-  }, [sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sort]);
 
   const handleSort = (newSort: string) => {
     setSort(newSort);

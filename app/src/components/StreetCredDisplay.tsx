@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useStreetCredStore } from "@/stores/street-cred";
 import { useAuthStore } from "@/stores/auth";
+import { tokens } from "@/lib/tokens";
 
 // ponytail: the server's StreetCredInfo carries the next threshold but not the
 // current floor; the progress bar needs both, so the ladder is mirrored here.
@@ -77,8 +78,11 @@ export default function StreetCredDisplay() {
       </div>
       <div className="h-1 w-28 bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden">
         <div
-          className="h-full bg-nd-cyan transition-all duration-500"
-          style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+          className="h-full transition-all duration-500"
+          style={{
+            width: `${Math.min(100, Math.max(0, percent))}%`,
+            backgroundColor: tokens.colors["nd-cyan"],
+          }}
         />
       </div>
     </div>

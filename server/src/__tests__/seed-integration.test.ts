@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { db } from "../db";
 import { resetDb, resetRounds, insertTestCharacter } from "./helpers";
-import { seedAll, seedGigs } from "../db/seed";
+import { seedAll } from "../db/seed";
 import { performRoundReset } from "../services/round-service";
 import { ensureWallet } from "../services/economy-service";
 

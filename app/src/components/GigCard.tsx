@@ -3,6 +3,7 @@ import type { GigListItem, GigType } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
 import { ATTRIBUTE_LABELS, GIG_TYPE_LABELS } from "@/lib/labels";
 import { formatCountdown } from "@/lib/format";
+import { bandFor } from "@/lib/tokens";
 
 interface GigCardProps {
   gig: GigListItem;
@@ -17,12 +18,6 @@ const TYPE_STYLES: Record<GigType, { badge: string; bar: string }> = {
   delivery: { badge: "text-nd-cyan border-nd-cyan/40 bg-nd-cyan/10", bar: "bg-nd-cyan" },
   sabotage: { badge: "text-nd-gold border-nd-gold/40 bg-nd-gold/10", bar: "bg-nd-gold" },
 };
-
-function difficultyBarColor(difficulty: number): string {
-  if (difficulty < 40) return "bg-nd-green";
-  if (difficulty < 60) return "bg-nd-gold";
-  return "bg-nd-magenta";
-}
 
 /**
  * One gig on the Fixer Cupim board: type/tier badges, difficulty bar, reward
@@ -75,7 +70,7 @@ export default function GigCard({ gig, disabled, onAccept }: GigCardProps) {
         </div>
         <div className="h-1.5 w-full bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${difficultyBarColor(gig.difficulty)}`}
+            className={`h-full rounded-full transition-all duration-500 ${bandFor("gigDifficulty", gig.difficulty).color}`}
             style={{ width: `${Math.min(100, gig.difficulty)}%` }}
           ></div>
         </div>

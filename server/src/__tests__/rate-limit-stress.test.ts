@@ -138,7 +138,6 @@ describe("Rate limit stress test — auth endpoints (#81)", () => {
 
   describe("concurrent brute force (100 concurrent login attempts, same email)", () => {
     const CONCURRENT_COUNT = 100;
-    const PER_EMAIL_MAX = 500; // LOGIN_RATE_LIMIT in auth-service.ts
 
     it("should allow all concurrent requests when count is well within limit", async () => {
       const email = uniqueEmail();

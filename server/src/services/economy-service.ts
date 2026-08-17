@@ -1,4 +1,3 @@
-import type { Knex } from "knex";
 import type { TransactionRecord, TransactionType, VendorRecord } from "@neon-dusk/shared";
 import { NIL_SYN_CAFE_AMOUNT } from "@neon-dusk/shared";
 import { db } from "../db";

@@ -76,7 +76,7 @@ describe("auditLog (fire-and-forget audit logger)", () => {
   it("should default payload to an empty object when omitted", () => {
     // AuditLogEntry requires payload, but the logger is defensive: undefined
     // must fall back to {} (cast through the required type to simulate it).
-    const { payload: _omit, ...rest } = entry();
+    const { ...rest } = entry();
     auditLog({ ...rest, payload: undefined as unknown as Record<string, unknown> });
 
     const values = auditMocks.values.mock.calls[0][0] as Record<string, unknown>;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CHROME_SLOTS, VENDOR_TYPES, type ChromeBonuses } from "@neon-dusk/shared";
+import { CHROME_SLOTS, VENDOR_TYPES } from "@neon-dusk/shared";
 import { GIG_TEMPLATES } from "../content/gig-templates";
 import { CHROME_DEFINITIONS } from "../content/chrome-definitions";
 import { VENDOR_SEED } from "../content/vendor-inventories";

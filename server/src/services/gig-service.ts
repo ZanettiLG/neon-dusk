@@ -100,9 +100,6 @@ function activeGigSelect(q: Queryable) {
     .join("gigs", "active_gigs.gig_id", "gigs.id");
 }
 
-/** Phases the DB enum accepts (the game state machine only emits these). */
-type StoredPhase = "meet" | "legwork" | "execute" | "escape" | "wrap_up";
-
 /** Query builder for the active-gig join (used to derive the row type). */
 function activeGigQuery(q: Queryable, characterId: string) {
   return activeGigSelect(q).where("active_gigs.character_id", characterId).limit(1);

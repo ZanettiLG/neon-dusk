@@ -1,37 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 import forms from "@tailwindcss/forms";
+import { tokens } from "./src/lib/tokens";
 
 export default {
   content: ["./index.html", "./src/**/*.{tsx,ts,js}"],
   darkMode: "class",
   theme: {
     extend: {
-      colors: {
-        "nd-bg": "#0a0a0f",
-        "nd-surface": "#12121a",
-        "nd-cyan": "#00f0ff",
-        "nd-magenta": "#ff00aa",
-        "nd-gold": "#ffcc00",
-        "nd-purple": "#aa00ff",
-        "nd-text": "#e0e0e0",
-        "nd-text-secondary": "#888899",
-        "nd-green": "#00ff66",
-      },
+      colors: tokens.colors,
       fontFamily: {
         heading: ['"JetBrains Mono"', "monospace"],
         body: ["Inter", "sans-serif"],
         data: ['"Fira Code"', "monospace"],
         terminal: ['"Courier New"', '"Fira Code"', "monospace"],
       },
-      borderRadius: {
-        terminal: "2px",
-      },
-      boxShadow: {
-        "neon-cyan": "0 0 10px rgba(0, 240, 255, 0.3), 0 0 20px rgba(0, 240, 255, 0.1)",
-        "neon-magenta": "0 0 10px rgba(255, 0, 170, 0.3), 0 0 20px rgba(255, 0, 170, 0.1)",
-        "neon-gold": "0 0 10px rgba(255, 204, 0, 0.3), 0 0 20px rgba(255, 204, 0, 0.1)",
-        "neon-purple": "0 0 10px rgba(170, 0, 255, 0.3), 0 0 20px rgba(170, 0, 255, 0.1)",
-      },
+      borderRadius: tokens.borderRadius,
+      boxShadow: tokens.boxShadow,
+      screens: tokens.screens,
+      fontSize: tokens.fontSize,
+      transitionDuration: tokens.transitionDuration,
       animation: {
         glitch: "glitch 0.2s ease-in-out infinite alternate",
         flicker: "flicker 0.15s ease-in-out infinite alternate",

@@ -1078,7 +1078,7 @@ describe("ND-011 — gigs service & API", () => {
     });
 
     it("should return 409 LEGWORK_IN_PROGRESS when the legwork timer hasn't elapsed (ND-078)", async () => {
-      const { accessToken: token, characterId } = await registerApiUser();
+      const { accessToken: token } = await registerApiUser();
       const farma = await farmaGig();
       await app.inject({
         method: "POST",

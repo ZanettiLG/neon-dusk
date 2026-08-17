@@ -5,6 +5,7 @@ import { ATTRIBUTE_KEYS, BASE_ATTRIBUTES, SOFT_CAP } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
 import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS } from "@/lib/labels";
 import { formatCountdown } from "@/lib/format";
+import { bandFor } from "@/lib/tokens";
 import { api } from "@/api/client";
 import Leaderboard from "@/components/Leaderboard";
 
@@ -44,11 +45,8 @@ export default function DashboardView() {
     [nilStatus],
   );
 
-  const nilBarColor = useMemo(() => {
-    if (nilPercent < 20) return "bg-nd-magenta";
-    if (nilPercent < 50) return "bg-nd-gold";
-    return "bg-nd-cyan";
-  }, [nilPercent]);
+  // Color by thirds (33/66) via the canonical band table (docs/design/05-design-tokens.md §8).
+  const nilBand = useMemo(() => bandFor("nil", nilPercent), [nilPercent]);
 
   const [countdown, setCountdown] = useState(0);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -165,7 +163,7 @@ export default function DashboardView() {
               </div>
               <div className="h-2 w-full bg-nd-bg overflow-hidden rounded-full border border-nd-cyan/20">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${nilBarColor}`}
+                  className={`h-full rounded-full transition-all duration-500 ${nilBand.color}`}
                   style={{ width: `${nilPercent}%` }}
                 ></div>
               </div>
@@ -220,7 +218,7 @@ export default function DashboardView() {
       ) : (
         <div className="card text-center space-y-3">
           <p className="text-nd-text-secondary">Nenhum personagem vinculado a esta conta.</p>
-          <Link to="/create-character" className="btn-neon inline-block">
+          <Link to="/create-character" className="btn-neon">
             Criar personagem
           </Link>
         </div>

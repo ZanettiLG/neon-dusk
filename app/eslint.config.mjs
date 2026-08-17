@@ -10,6 +10,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/migrations/**",
       "**/.opencode/**",
+      "**/.qa/**", // Scratch QA scripts — never gate lint
     ],
   },
   {

@@ -1,4 +1,3 @@
-import type { Knex } from "knex";
 import type Redis from "ioredis";
 import type {
   AdminEconomy,
@@ -6,7 +5,6 @@ import type {
   AdminPlayersResponse,
   AdminTransaction,
   AdminTransactionsResponse,
-  AdminAuditEntry,
   AdminAuditResponse,
 } from "@neon-dusk/shared";
 import { db } from "../db";

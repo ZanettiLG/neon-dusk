@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  /* Focus token — canonical focus ring spec (docs/design/05-design-tokens.md §10):
+     2px solid ciano (#00f0ff) sobre qualquer fundo, offset 2px para não
+     encostar na borda do elemento. Aplicado globalmente via :focus-visible. */
+  :root {
+    /* ponytail: duplica tokens.colors["nd-cyan"]; CSS não importa TS. Atualizar ambos se a cor mudar. */
+    --nd-focus-color: #00f0ff;
+    --nd-focus-width: 2px;
+    --nd-focus-offset: 2px;
+  }
+
   html {
     @apply bg-nd-bg text-nd-text font-body antialiased;
   }
@@ -23,8 +33,26 @@
   }
 
   :focus-visible {
-    outline: 2px solid #00f0ff;
-    outline-offset: 2px;
+    outline: var(--nd-focus-width) solid var(--nd-focus-color);
+    outline-offset: var(--nd-focus-offset);
+  }
+
+  /* A11y: prefers-reduced-motion (docs/design/05-design-tokens.md §9).
+     Animation/transition timing collapses to 0.01ms (instant, but end-events
+     still fire); scroll-behavior forced to auto. Motion is decorative — state
+     feedback keeps coming from colors and labels. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
@@ -36,11 +64,20 @@
 
   .btn-neon {
     @apply font-heading text-sm uppercase tracking-wider
+           inline-flex items-center justify-center
            border border-nd-cyan rounded-terminal
            bg-nd-cyan/10 text-nd-cyan
            hover:bg-nd-cyan/20 hover:shadow-neon-cyan
            active:scale-95 transition-all
            px-4 py-2;
+  }
+
+  /* Touch target WCAG 2.5.5: mínimo 44px em dispositivos de toque
+     (docs/design/05-design-tokens.md §4). Desktop não é afetado. */
+  @media (pointer: coarse) {
+    .btn-neon {
+      min-height: 44px;
+    }
   }
 
   .btn-neon:disabled {

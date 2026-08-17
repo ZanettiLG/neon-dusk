@@ -114,7 +114,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
           checkActionRateLimit(redis, "vendor_purchase"), // max 10 / min
         ],
       },
-      async (request) => ({ ok: true }),
+      async (_request) => ({ ok: true }),
     );
 
     server = await startTestServer(app);
@@ -161,19 +161,6 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     return server.post("/api/test/anti-cheat-action", body, { ...authHeader(token), ...headers });
   }
 
-  async function hammerB(token: string, count: number): Promise<Response[]> {
-    const responses: Response[] = [];
-    for (let i = 0; i < count; i++) {
-      responses.push(
-        await server.post(
-          "/api/test/anti-cheat-action-b",
-          { message: `msg-${i}` },
-          authHeader(token),
-        ),
-      );
-    }
-    return responses;
-  }
 
   /** Poll audit_log until the expected rows for a character+action exist. */
   async function waitForAudit(
