@@ -4,11 +4,11 @@
 
 @layer base {
   /* Focus token — canonical focus ring spec (docs/design/05-design-tokens.md §10):
-     2px solid ciano (#00f0ff) sobre qualquer fundo, offset 2px para não
+     2px solid branco-luz (#f2f2f2) sobre qualquer fundo, offset 2px para não
      encostar na borda do elemento. Aplicado globalmente via :focus-visible. */
   :root {
-    /* ponytail: duplica tokens.colors["nd-cyan"]; CSS não importa TS. Atualizar ambos se a cor mudar. */
-    --nd-focus-color: #00f0ff;
+    /* ponytail: duplica tokens.colors["nd-cyan"] (agora canal funcional #f2f2f2); CSS não importa TS. Atualizar ambos se a cor mudar. */
+    --nd-focus-color: #f2f2f2;
     --nd-focus-width: 2px;
     --nd-focus-offset: 2px;
   }
@@ -23,8 +23,8 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 240, 255, 0.015) 2px,
-      rgba(0, 240, 255, 0.015) 4px
+      rgba(255, 255, 255, 0.015) 2px,
+      rgba(255, 255, 255, 0.015) 4px
     );
   }
 

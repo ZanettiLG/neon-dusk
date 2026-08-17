@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0a0a0f"/>
-      <stop offset="100%" style="stop-color:#12121a"/>
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#161616"/>
     </linearGradient>
   </defs>
   <rect width="192" height="192" rx="24" fill="url(#bg)"/>
-  <text x="96" y="68" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#00f0ff" letter-spacing="-2">NEON</text>
-  <text x="96" y="68" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#ff00aa" opacity="0.4" letter-spacing="-2" transform="translate(2, 1)">NEON</text>
-  <text x="96" y="136" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#ff00aa" letter-spacing="-2">DUSK</text>
-  <text x="96" y="136" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#00f0ff" opacity="0.3" letter-spacing="-2" transform="translate(2, 1)">DUSK</text>
-  <line x1="32" y1="84" x2="160" y2="84" stroke="#00f0ff" stroke-width="1" opacity="0.4"/>
+  <text x="96" y="68" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#f2f2f2" letter-spacing="-2">NEON</text>
+  <text x="96" y="68" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#ff2020" opacity="0.4" letter-spacing="-2" transform="translate(2, 1)">NEON</text>
+  <text x="96" y="136" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#ff2020" letter-spacing="-2">DUSK</text>
+  <text x="96" y="136" text-anchor="middle" font-family="monospace" font-size="48" font-weight="bold" fill="#f2f2f2" opacity="0.3" letter-spacing="-2" transform="translate(2, 1)">DUSK</text>
+  <line x1="32" y1="84" x2="160" y2="84" stroke="#f2f2f2" stroke-width="1" opacity="0.4"/>
 </svg>

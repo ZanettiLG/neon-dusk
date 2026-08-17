@@ -54,9 +54,18 @@ export default function DashboardView() {
   const [roundInfo, setRoundInfo] = useState<RoundInfoResponse | null>(null);
 
   useEffect(() => {
-    api.get<RoundInfoResponse>("/api/round").then(setRoundInfo).catch(() => {
-      // Round info unavailable — keep the null state which shows nothing.
-    });
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await api.get<RoundInfoResponse>("/api/round");
+        if (!cancelled) setRoundInfo(data);
+      } catch {
+        // Round info unavailable — keep the null state which shows nothing.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function syncCountdown(): void {
@@ -186,7 +195,7 @@ export default function DashboardView() {
                     key={key}
                     className={`bg-nd-bg/60 border rounded-terminal p-3 text-center transition-colors ${
                       character[key] >= SOFT_CAP
-                        ? "border-nd-gold/40 shadow-[0_0_6px_rgba(255,204,0,0.15)]"
+                        ? "border-nd-gold/40 shadow-neon-gold"
                         : "border-nd-cyan/20"
                     }`}
                   >

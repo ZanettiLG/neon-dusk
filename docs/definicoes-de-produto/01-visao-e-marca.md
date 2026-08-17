@@ -60,15 +60,15 @@ Variações:
 
 | Cor | HEX | Uso |
 |---|---|---|
-| **Background** | `#0a0a0f` | Fundo principal (nunca preto puro) |
-| **Surface** | `#12121a` | Cards, painéis, superfícies elevadas |
-| **Neon Cyan** | `#00f0ff` | Ações primárias, links, dados críticos |
-| **Neon Magenta** | `#ff00aa` | Alertas, dano, perigo, inimigos |
-| **Neon Gold** | `#ffcc00` | Grana, recompensas, loot, sucesso |
-| **Neon Purple** | `#aa00ff` | Hacking, Rede, Netrun |
-| **Text Primary** | `#e0e0e0` | Texto principal |
-| **Text Secondary** | `#888899` | Texto secundário, descrições |
-| **Glitch Green** | `#00ff66` | Terminal, dados técnicos, sucesso de hack |
+| **Background** | `#0a0a0a` | Fundo principal (nunca preto puro) |
+| **Surface** | `#161616` | Cards, painéis, superfícies elevadas |
+| **Ação / Ciano** | `#f2f2f2` | Ações primárias, links, dados críticos (branco-luz) |
+| **Perigo / Magenta** | `#ff2020` | Alertas, dano, perigo, inimigos (vermelho sangue) |
+| **Grana / Gold** | `#d4a017` | Grana, recompensas, loot, sucesso (âmbar muted) |
+| **Hacking / Purple** | `#8aa4b8` | Hacking, Rede, Netrun (aço azulado) |
+| **Text Primary** | `#e8e8e8` | Texto principal |
+| **Text Secondary** | `#9a9a9a` | Texto secundário, descrições |
+| **Sucesso / Green** | `#c8c8c8` | Terminal, dados técnicos, sucesso de hack (cinza claro) |
 
 ### Tipografia
 
@@ -82,7 +82,7 @@ Variações:
 ### Princípios de UI
 
 1. **Tema escuro OBRIGATÓRIO** — nunca há modo claro. A tela é um terminal sujo.
-2. **Neon funcional** — cor neon = affordance. Ciano é ação. Magenta é perigo. Dourado é recompensa. Roxo é hack.
+2. **Neon funcional / noir monocromático** — cor = affordance, não decoração. Os nomes de token legados (`nd-cyan`, `nd-magenta`, `nd-purple`, `nd-green`) agora funcionam como canais semânticos (ação, perigo, hack, sucesso), não como descrições literais de cor. Ciano vira branco-luz, magenta vira vermelho sangue, dourado vira âmbar muted, roxo vira aço azulado, verde vira cinza claro.
 3. **Saturação = classe** — distritos corporativos têm neon mais saturado; slums são dessaturados, quebrados.
 4. **HUD diegético** — scanlines sutis (opcionais), glitch ocasional em transições, bordas que lembram terminais velhos.
 5. **Tipografia monospace para dados** — stats, números, valores são monospace. Narrativa é sans-serif.

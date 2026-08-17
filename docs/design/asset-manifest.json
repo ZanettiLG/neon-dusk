@@ -38,7 +38,7 @@
     "no_text_in_image": true,
     "no_watermarks": true,
     "no_ip_references": true,
-    "dark_background": "#0a0a0f",
+    "dark_background": "#0a0a0a",
     "small_icon_readable": "24px",
     "formats": ["svg", "webp", "avif"],
     "language": "pt-BR"

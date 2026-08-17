@@ -8,6 +8,7 @@ declare const config: {
   theme: {
     extend: {
       colors: Record<string, string>;
+      boxShadow: Record<string, string>;
     };
   };
 };

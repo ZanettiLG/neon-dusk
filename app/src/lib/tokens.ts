@@ -8,18 +8,21 @@
  * Full spec: docs/design/05-design-tokens.md
  */
 
+// ponytail: legacy names such as nd-cyan, nd-magenta, nd-purple and nd-green
+// are now functional channels, not literal color descriptions. A future refactor
+// may rename them to semantic tokens (nd-action, nd-danger, nd-hack, nd-success).
 /** Color primitives (kebab-case, `nd-` prefix = Neon Dusk). */
 const colors = {
-  "nd-bg": "#0a0a0f",
-  "nd-surface": "#12121a",
-  "nd-cyan": "#00f0ff",
-  "nd-magenta": "#ff00aa",
-  "nd-gold": "#ffcc00",
-  "nd-purple": "#aa00ff",
-  "nd-text": "#e0e0e0",
-  "nd-text-secondary": "#888899",
-  "nd-green": "#00ff66",
-  "nd-dead-gray": "#3a3a45",
+  "nd-bg": "#0a0a0a",
+  "nd-surface": "#161616",
+  "nd-cyan": "#f2f2f2",
+  "nd-magenta": "#ff2020",
+  "nd-gold": "#d4a017",
+  "nd-purple": "#8aa4b8",
+  "nd-text": "#e8e8e8",
+  "nd-text-secondary": "#9a9a9a",
+  "nd-green": "#c8c8c8",
+  "nd-dead-gray": "#3a3a3a",
 } as const;
 
 /** Corner radii. */
@@ -27,13 +30,13 @@ const borderRadius = {
   terminal: "2px",
 } as const;
 
-/** Neon glow shadows (paired: tight core + wide halo). */
+/** Hairline + drop shadows (no neon glow). */
 const boxShadow = {
-  "neon-cyan": "0 0 10px rgba(0, 240, 255, 0.3), 0 0 20px rgba(0, 240, 255, 0.1)",
-  "neon-magenta": "0 0 10px rgba(255, 0, 170, 0.3), 0 0 20px rgba(255, 0, 170, 0.1)",
-  "neon-gold": "0 0 10px rgba(255, 204, 0, 0.3), 0 0 20px rgba(255, 204, 0, 0.1)",
-  "neon-purple": "0 0 10px rgba(170, 0, 255, 0.3), 0 0 20px rgba(170, 0, 255, 0.1)",
-  "neon-green": "0 0 10px rgba(0, 255, 102, 0.3), 0 0 20px rgba(0, 255, 102, 0.1)",
+  "neon-cyan": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.5)",
+  "neon-magenta": "0 0 0 1px rgba(255, 32, 32, 0.25)",
+  "neon-gold": "0 0 0 1px rgba(212, 160, 23, 0.25)",
+  "neon-purple": "0 0 0 1px rgba(138, 164, 184, 0.25)",
+  "neon-green": "0 0 0 1px rgba(200, 200, 200, 0.25)",
 } as const;
 
 /** Responsive breakpoints (mobile-first). */

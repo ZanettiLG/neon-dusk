@@ -135,10 +135,29 @@ describe("band labels and colors", () => {
 });
 
 describe("tokens", () => {
-  it("should expose canonical color values", () => {
-    expect(tokens.colors["nd-cyan"]).toBe("#00f0ff");
-    expect(tokens.colors["nd-bg"]).toBe("#0a0a0f");
-    expect(tokens.colors["nd-magenta"]).toBe("#ff00aa");
+  it("should pin the full noir palette (issue #149)", () => {
+    expect(tokens.colors).toEqual({
+      "nd-bg": "#0a0a0a",
+      "nd-surface": "#161616",
+      "nd-cyan": "#f2f2f2",
+      "nd-magenta": "#ff2020",
+      "nd-gold": "#d4a017",
+      "nd-purple": "#8aa4b8",
+      "nd-text": "#e8e8e8",
+      "nd-text-secondary": "#9a9a9a",
+      "nd-green": "#c8c8c8",
+      "nd-dead-gray": "#3a3a3a",
+    });
+  });
+
+  it("should pin hairline + drop shadows (no neon glow, issue #149)", () => {
+    expect(tokens.boxShadow).toEqual({
+      "neon-cyan": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.5)",
+      "neon-magenta": "0 0 0 1px rgba(255, 32, 32, 0.25)",
+      "neon-gold": "0 0 0 1px rgba(212, 160, 23, 0.25)",
+      "neon-purple": "0 0 0 1px rgba(138, 164, 184, 0.25)",
+      "neon-green": "0 0 0 1px rgba(200, 200, 200, 0.25)",
+    });
   });
 
   it("should expose canonical screens and motion durations", () => {
@@ -150,7 +169,14 @@ describe("tokens", () => {
 // Integration: tailwind.config.js consumes tokens.ts. The config is plain ESM
 // (vite handles it), but if the import ever fails in this environment (e.g.
 // jiti/plugin resolution), skip instead of failing the suite.
-let tailwindConfig: { theme: { extend: { colors: Record<string, string> } } } | null = null;
+let tailwindConfig: {
+  theme: {
+    extend: {
+      colors: Record<string, string>;
+      boxShadow: Record<string, string>;
+    };
+  };
+} | null = null;
 let configError: unknown = null;
 try {
   tailwindConfig = (await import("../../tailwind.config.js")).default;
@@ -161,5 +187,9 @@ try {
 describe("tailwind.config integration", () => {
   it.skipIf(configError !== null)("should expose tokens.colors as theme colors", () => {
     expect(tailwindConfig?.theme.extend.colors["nd-cyan"]).toBe(tokens.colors["nd-cyan"]);
+  });
+
+  it.skipIf(configError !== null)("should expose tokens.boxShadow as theme shadows", () => {
+    expect(tailwindConfig?.theme.extend.boxShadow["neon-cyan"]).toBe(tokens.boxShadow["neon-cyan"]);
   });
 });

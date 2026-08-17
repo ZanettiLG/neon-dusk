@@ -48,15 +48,15 @@ src/client/
 ```js
 // tailwind.config.js
 colors: {
-  'nd-bg': '#0a0a0f',
-  'nd-surface': '#12121a',
-  'nd-cyan': '#00f0ff',
-  'nd-magenta': '#ff00aa',
-  'nd-gold': '#ffcc00',
-  'nd-purple': '#aa00ff',
-  'nd-text': '#e0e0e0',
-  'nd-text-secondary': '#888899',
-  'nd-green': '#00ff66',
+  'nd-bg': '#0a0a0a',
+  'nd-surface': '#161616',
+  'nd-cyan': '#f2f2f2',
+  'nd-magenta': '#ff2020',
+  'nd-gold': '#d4a017',
+  'nd-purple': '#8aa4b8',
+  'nd-text': '#e8e8e8',
+  'nd-text-secondary': '#9a9a9a',
+  'nd-green': '#c8c8c8',
 }
 ```
 
@@ -228,8 +228,8 @@ VitePWA({
     name: 'Neon Dusk',
     short_name: 'NeonDusk',
     description: 'Build your chrome. Burn your name. Leave a legend.',
-    theme_color: '#0a0a0f',
-    background_color: '#0a0a0f',
+    theme_color: '#0a0a0a',
+    background_color: '#0a0a0a',
     display: 'standalone',
     icons: [
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },

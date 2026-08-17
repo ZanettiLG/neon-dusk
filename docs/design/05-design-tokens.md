@@ -8,7 +8,7 @@ componentes que renderizam barras de recurso.
 
 | Camada | Exemplo | Regra |
 |---|---|---|
-| Primitivo | `#00f0ff` | Valor puro, sem semântica |
+| Primitivo | `#f2f2f2` | Valor puro, sem semântica |
 | Semântico | `nd-cyan` | Nome = significado funcional (ação, perigo, recompensa) |
 | Componente | `neon-cyan`, `.btn-neon` | Agrupa tokens para um padrão de UI |
 
@@ -27,26 +27,26 @@ Regras de nomeação:
 
 | Token | HEX | Semântica funcional | Uso típico |
 |---|---|---|---|
-| `nd-bg` | `#0a0a0f` | Fundo principal | Página, vazios de barra |
-| `nd-surface` | `#12121a` | Superfície elevada | Cards, painéis |
-| `nd-cyan` | `#00f0ff` | Ação, navegação, dados do jogador | Botões, NIL cheio, links |
-| `nd-magenta` | `#ff00aa` | Perigo, perda, dano, hostilidade | Alertas, NIL crítico, gig difícil |
-| `nd-gold` | `#ffcc00` | Eddies, recompensa, Street Cred, prestígio | Recompensas, LEGEND |
-| `nd-purple` | `#aa00ff` | Rede, hacking, ICE, trace | Fixers, netrun |
-| `nd-text` | `#e0e0e0` | Texto principal | Títulos, valores |
-| `nd-text-secondary` | `#888899` | Texto secundário | Rótulos, timestamps |
-| `nd-green` | `#00ff66` | Sucesso técnico, regeneração, estabilidade | HP cheio, gig fácil |
-| `nd-dead-gray` | `#3a3a45` | Cinza dessaturado (falta, decadência) | Quebrada, As Mortas |
+| `nd-bg` | `#0a0a0a` | Fundo principal | Página, vazios de barra |
+| `nd-surface` | `#161616` | Superfície elevada | Cards, painéis |
+| `nd-cyan` | `#f2f2f2` | Ação, navegação, dados do jogador (branco-luz) | Botões, NIL cheio, links |
+| `nd-magenta` | `#ff2020` | Perigo, perda, dano, hostilidade (vermelho sangue) | Alertas, NIL crítico, gig difícil |
+| `nd-gold` | `#d4a017` | Eddies, recompensa, Street Cred, prestígio (âmbar muted) | Recompensas, LEGEND |
+| `nd-purple` | `#8aa4b8` | Rede, hacking, ICE, trace (aço azulado) | Fixers, netrun |
+| `nd-text` | `#e8e8e8` | Texto principal | Títulos, valores |
+| `nd-text-secondary` | `#9a9a9a` | Texto secundário | Rótulos, timestamps |
+| `nd-green` | `#c8c8c8` | Sucesso técnico, regeneração, estabilidade (cinza claro) | HP cheio, gig fácil |
+| `nd-dead-gray` | `#3a3a3a` | Cinza dessaturado (falta, decadência) | Quebrada, As Mortas |
 
-Sombras neon (par: núcleo próximo + halo largo, alpha 0.3/0.1):
+Sombras (hairline + drop, sem glow neon):
 
 | Token | Valor |
 |---|---|
-| `neon-cyan` | `0 0 10px rgba(0,240,255,.3), 0 0 20px rgba(0,240,255,.1)` |
-| `neon-magenta` | `0 0 10px rgba(255,0,170,.3), 0 0 20px rgba(255,0,170,.1)` |
-| `neon-gold` | `0 0 10px rgba(255,204,0,.3), 0 0 20px rgba(255,204,0,.1)` |
-| `neon-purple` | `0 0 10px rgba(170,0,255,.3), 0 0 20px rgba(170,0,255,.1)` |
-| `neon-green` | `0 0 10px rgba(0,255,102,.3), 0 0 20px rgba(0,255,102,.1)` |
+| `neon-cyan` | `0 0 0 1px rgba(255,255,255,.06), 0 2px 8px rgba(0,0,0,.5)` |
+| `neon-magenta` | `0 0 0 1px rgba(255,32,32,.25)` |
+| `neon-gold` | `0 0 0 1px rgba(212,160,23,.25)` |
+| `neon-purple` | `0 0 0 1px rgba(138,164,184,.25)` |
+| `neon-green` | `0 0 0 1px rgba(200,200,200,.25)` |
 
 ## 3. Tipografia
 
@@ -193,38 +193,36 @@ Anel de foco canônico, aplicado globalmente via `:focus-visible`:
 
 | Propriedade | Token | Valor |
 |---|---|---|
-| Cor | `--nd-focus-color` | `#00f0ff` (nd-cyan) |
+| Cor | `--nd-focus-color` | `#f2f2f2` (canal nd-cyan / branco-luz) |
 | Espessura | `--nd-focus-width` | 2px |
 | Offset | `--nd-focus-offset` | 2px |
 
-- Visível em **qualquer** fundo do tema (contraste ciano ≥ 14:1 sobre
-  `nd-bg`, ≥ 12:1 sobre `nd-surface`).
+- Visível em **qualquer** fundo do tema (contraste branco-luz ≥ 17:1 sobre
+  `nd-bg`, ≥ 14:1 sobre `nd-surface`).
 - `outline-offset: 2px` impede o anel de encostar na borda do elemento.
 - Nenhum componente remove o outline global sem substituição equivalente.
 
 ## 11. Auditoria de contraste (WCAG)
 
-Razões contra `nd-bg` (#0a0a0f), texto normal AA = 4.5:1, AAA = 7:1,
+Razões contra `nd-bg` (#0a0a0a), texto normal AA = 4.5:1, AAA = 7:1,
 texto grande/UI = 3:1:
 
 | Cor | Razão | AA texto | AAA texto | Grande/UI |
 |---|---|---|---|---|
-| Ciano `#00f0ff` | 14.0:1 | ✅ | ✅ | ✅ |
-| Verde `#00ff66` | 14.6:1 | ✅ | ✅ | ✅ |
-| Dourado `#ffcc00` | 13.1:1 | ✅ | ✅ | ✅ |
-| Magenta `#ff00aa` | 5.5:1 | ✅ | ❌ | ✅ |
-| Roxo `#aa00ff` | 3.9:1 | ❌ **FALHA** | ❌ | ✅ |
-| Texto `#e0e0e0` | 14.1:1 | ✅ | ✅ | ✅ |
-| Texto secundário `#888899` | 5.7:1 | ✅ | ❌ | ✅ |
+| Branco-luz `#f2f2f2` | 17.7:1 | ✅ | ✅ | ✅ |
+| Cinza claro `#c8c8c8` | 11.8:1 | ✅ | ✅ | ✅ |
+| Âmbar muted `#d4a017` | 8.3:1 | ✅ | ✅ | ✅ |
+| Vermelho sangue `#ff2020` | 5.1:1 | ✅ | ❌ | ✅ |
+| Aço azulado `#8aa4b8` | 7.6:1 | ✅ | ✅ | ✅ |
+| Texto `#e8e8e8` | 16.2:1 | ✅ | ✅ | ✅ |
+| Texto secundário `#9a9a9a` | 7.0:1 | ✅ | ✅ | ✅ |
 
 Consequências:
 
-- **Roxo só para texto grande (≥ 18px/14px bold), bordas e acentos de UI** —
-  nunca corpo de texto pequeno. Hoje usado em links de navegação com texto
-  ≥ 12px bold uppercase + borda; auditar quando houver roxo em corpo.
-- Magenta e texto secundário passam AA mas não AAA — evitar parágrafos longos
-  nessas cores.
-- Ciano, verde e dourado são seguros para qualquer tamanho.
+- **Aço azulado, cinza claro, âmbar muted e branco-luz são seguros para qualquer
+  tamanho de texto.**
+- Vermelho sangue passa AA mas não AAA — evitar parágrafos longos nessa cor.
+- Texto secundário agora passa AA e AAA graças ao tom mais claro do noir.
 
 ## 12. ADR: WCAG AA como alvo; ícones SVG interno
 
@@ -237,7 +235,12 @@ herdam a cor do texto, ganham o contraste do texto de graça e não dependem de
 download de fonte.
 
 **Consequências**:
-- Roxo restrito a texto grande/UI (falha AA em texto normal, §11).
+- A nova paleta noir monocromática (issue #149) manteve os nomes de token
+  legados (`nd-cyan`, `nd-magenta`, `nd-purple`, `nd-green`) como canais
+  funcionais, mas trocou os valores para branco-luz, vermelho sangue,
+  âmbar muted, aço azulado e cinza claro. As sombras deixaram o glow neon
+  e passaram para hairline + drop shadow.
+- Aço azulado e texto secundário agora passam AA (§11).
 - 44px de alvo de toque em touch (§4).
 - `prefers-reduced-motion` obrigatório em toda animação decorativa (§9).
 - Rótulo/ícone sempre acompanham cor de estado (§1).
@@ -307,7 +310,7 @@ Desvios intencionais entre spec original, produto e implementação:
    (dourado). Consistente com a lógica LEGEND existente em
    `StreetCredDisplay` (`nextThreshold === null` só no 100) e com
    `04-sistemas-e-progressao.md` §5 (Legend = 100).
-5. **D5 — `--nd-focus-color` duplica `tokens.colors["nd-cyan"]`**: CSS não
-   importa TypeScript, então a única fonte programática não cobre CSS vars.
-   Mitigação: comentário `ponytail` no `style.css` exige atualizar os dois
-   arquivos se a cor mudar.
+5. **D5 — `--nd-focus-color` duplica `tokens.colors["nd-cyan"]` (agora canal
+   funcional `#f2f2f2`)**: CSS não importa TypeScript, então a única fonte
+   programática não cobre CSS vars. Mitigação: comentário `ponytail` no
+   `style.css` exige atualizar os dois arquivos se a cor mudar.

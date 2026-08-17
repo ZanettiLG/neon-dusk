@@ -48,21 +48,22 @@ Paleta canônica da marca (ver docs/definicoes-de-produto/01-visao-e-marca.md):
 
 | Cor | HEX | Significado funcional |
 |---|---|---|
-| Background | #0a0a0f | Fundo principal |
-| Surface | #12121a | Cards e painéis |
-| Neon Cyan | #00f0ff | Ação, navegação, dados do jogador |
-| Neon Magenta | #ff00aa | Perigo, perda, dano, hostilidade |
-| Neon Gold | #ffcc00 | Grana, recompensa, Moral, prestígio |
-| Neon Purple | #aa00ff | Rede, hacking, ICE, trace |
-| Text Primary | #e0e0e0 | Texto principal |
-| Text Secondary | #888899 | Texto secundário |
-| Glitch Green | #00ff66 | Sucesso técnico, regeneração, estabilidade |
+| Background | #0a0a0a | Fundo principal |
+| Surface | #161616 | Cards e painéis |
+| Ação / Ciano | #f2f2f2 | Ação, navegação, dados do jogador (branco-luz) |
+| Perigo / Magenta | #ff2020 | Perigo, perda, dano, hostilidade (vermelho sangue) |
+| Grana / Gold | #d4a017 | Grana, recompensa, Moral, prestígio (âmbar muted) |
+| Hacking / Purple | #8aa4b8 | Rede, hacking, ICE, trace (aço azulado) |
+| Text Primary | #e8e8e8 | Texto principal |
+| Text Secondary | #9a9a9a | Texto secundário |
+| Sucesso / Green | #c8c8c8 | Sucesso técnico, regeneração, estabilidade (cinza claro) |
 
 Cinza dessaturado adicional para Quebrada e As Mortas (falta, decadência, tecnologia quebrada).
 
 ## Semântica de cor
 
-- Ciano = ação. Magenta = perigo. Dourado = recompensa. Roxo = hack. Verde = sucesso.
+- Ação = branco-luz. Perigo = vermelho sangue. Recompensa = âmbar muted. Hack = aço azulado. Sucesso = cinza claro.
+- Os tokens legados (`nd-cyan`, `nd-magenta`, `nd-purple`, `nd-green`) foram mantidos como canais funcionais; uma refatoração futura pode renomeá-los para nomes semanticamente literais.
 - Nunca usar cor como único canal de informação: sempre acompanhar de rótulo, ícone ou estado textual.
 - Saturação varia por distrito (corporativo saturado, slum dessaturado).
 

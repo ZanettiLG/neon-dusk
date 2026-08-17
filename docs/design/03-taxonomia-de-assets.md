@@ -70,7 +70,7 @@
 
 1. Nenhum texto essencial dentro da imagem.
 2. Reconhecível em tamanho pequeno (24-32px para ícones).
-3. Funciona sobre fundo escuro (#0a0a0f).
+3. Funciona sobre fundo escuro (#0a0a0a).
 4. Não compromete contraste do texto sobreposto.
 5. Consistente com os demais assets da categoria.
 6. Sem semelhança direta com IP existente.
