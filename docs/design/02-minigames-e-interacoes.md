@@ -11,10 +11,10 @@ Isso preserva: filosofia do gênero PBBG, autoridade do servidor (anti-cheat) e 
 | Interação | Descrição |
 |---|---|
 | Teatro de rolagem | Ao executar gig, números correm 1-2s em font-data e travam no resultado (roll vs. chance) |
-| Cirurgia de chrome | Log do ripperdoc digitando, batimento neural, custo de Humanidade piscando durante o cooldown |
+| Cirurgia de chrome | Log do Ferrageiro digitando, batimento neural, custo de Humanidade piscando durante o cooldown |
 | Confronto PvP | Barras de poder colidem e revelam o resultado server-side |
-| Rank-up de Street Cred | Glitch dourado, título revelado, efeito breve no header |
-| Porta do Saideira | Segurança avalia SC antes de liberar a entrada ("Sem moral, sem entrada, sem choro") |
+| Rank-up de Moral | Glitch dourado, título revelado, efeito breve no header |
+| Porta do Saideira | Segurança avalia Moral antes de liberar a entrada ("Sem moral, sem entrada, sem choro") |
 | Menu de Lendas | Cards de drinks com "brindar", card flip e detalhes do jogador |
 | Syn-café ritual | Microanimação de café + NIL regenerando |
 | Reset da rodada | Contagem final + "Apagão" visual + tela de transição |
@@ -40,4 +40,4 @@ Isso preserva: filosofia do gênero PBBG, autoridade do servidor (anti-cheat) e 
 - Quick time events.
 - Mira, reflexo ou timing.
 - Mapa aberto explorável.
-- Minigames isolados que não afetem economia, gigs, chrome, crew ou Street Cred.
+- Minigames isolados que não afetem economia, gigs, chrome, crew ou Moral.

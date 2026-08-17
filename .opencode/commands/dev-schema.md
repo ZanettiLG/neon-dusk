@@ -12,7 +12,7 @@ Projeta schema PostgreSQL para sistema de jogo.
 
 ```
 /dev-schema "Tabelas para sistema de crews e crew wars"
-/dev-schema "Schema de auditoria para transações de eddies"
+/dev-schema "Schema de auditoria para transações de Grana"
 ```
 
 ## Workflow

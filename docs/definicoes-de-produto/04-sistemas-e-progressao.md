@@ -8,11 +8,11 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 
 | Atributo | Símbolo | Descrição | Afeta | Classe Primária |
 |---|---|---|---|---|
-| **Body** | BOD | Força física, resistência, tolerância a dor e chrome | Dano corpo a corpo, HP, capacidade de chrome físico | Solo |
-| **Reflexes** | REF | Velocidade, coordenação, reflexos de combate | Chance de crítico, esquiva, velocidade de gig | Solo, Nomad |
-| **Intelligence** | INT | Capacidade cognitiva, hacking, análise | RAM de hacking, sucesso em Netrun, learn rate | Netrunner |
-| **Technical** | TEC | Habilidade técnica, engenharia, crafting | Eficiência de crafting, upgrades de chrome, lockpicking | Tech |
-| **Cool** | COL | Autocontrole, presença, manipulação social, resistência a stress | Sucesso social, street cred ganha, resistência a cyberpsychosis | Fixer |
+| **Body** | BOD | Força física, resistência, tolerância a dor e chrome | Dano corpo a corpo, HP, capacidade de chrome físico | Bicho |
+| **Reflexes** | REF | Velocidade, coordenação, reflexos de combate | Chance de crítico, esquiva, velocidade de gig | Bicho, Estradeiro |
+| **Intelligence** | INT | Capacidade cognitiva, hacking, análise | RAM de hacking, sucesso em Netrun, learn rate | Vulto |
+| **Technical** | TEC | Habilidade técnica, engenharia, crafting | Eficiência de crafting, upgrades de chrome, lockpicking | Gambiarrista |
+| **Cool** | COL | Autocontrole, presença, manipulação social, resistência a stress | Sucesso social, Moral ganha, resistência a cyberpsychosis | Despachante |
 
 ### Progressão
 
@@ -23,11 +23,11 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 
 ---
 
-## 2. Roles (Classes)
+## 2. Banca (Classes)
 
-5 roles jogáveis, cada um com uma habilidade especial única:
+5 bancas jogáveis, cada uma com uma habilidade especial única:
 
-### Solo — O Guerreiro de Rua
+### Bicho — O Guerreiro de Rua
 
 | Atributo | Valor |
 |---|---|
@@ -37,7 +37,7 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Estilo de jogo | Combate direto, proteção de crew, gigs de wetwork |
 | Frase | *"Você não precisa ser mais rápido que a bala. Só mais rápido que o alvo."* |
 
-### Netrunner — O Fantasma da Rede
+### Vulto — O Fantasma da Rede
 
 | Atributo | Valor |
 |---|---|
@@ -47,7 +47,7 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Estilo de jogo | Hacking, espionagem digital, suporte à crew |
 | Frase | *"A fechadura mais forte do mundo não serve de nada se a porta é o cérebro do guarda."* |
 
-### Tech — O Engenheiro
+### Gambiarrista — O Engenheiro
 
 | Atributo | Valor |
 |---|---|
@@ -57,17 +57,17 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Estilo de jogo | Crafting, upgrades, suporte econômico, sabotagem |
 | Frase | *"Toda máquina tem um ponto fraco. Eu encontro. Você explode."* |
 
-### Fixer — O Intermediário
+### Despachante — O Intermediário
 
 | Atributo | Valor |
 |---|---|
 | Atributo primário | Cool |
-| Habilidade especial | **Silver Tongue**: próximo gig paga +50% eddies e +25% Street Cred. 12h cooldown |
+| Habilidade especial | **Silver Tongue**: próximo gig paga +50% de Grana e +25% de Moral. 12h cooldown |
 | Bônus passivo | +15% desconto em vendors, acesso a gigs 1 tier acima |
 | Estilo de jogo | Negociação, manipulação de mercado, informação |
 | Frase | *"Não importa o que você sabe. Importa quem você conhece. E eu conheço todo mundo."* |
 
-### Nomad — O Forasteiro
+### Estradeiro — O Forasteiro
 
 | Atributo | Valor |
 |---|---|
@@ -88,9 +88,9 @@ O sistema de progressão mais profundo do jogo. Inspirado em Cyberpunk 2077 e CP
 | Slot | Quantidade | Exemplos de implante |
 |---|---|---|
 | **Frontal Cortex** | 3 | RAM booster, reflex accelerator, neural firewall |
-| **Ocular** | 2 | Kiroshi optics, threat detector, data overlay |
-| **Operating System** | 1 | **Cyberdeck** (hacking), **Berserk** (combate), **Sandevistan** (reflexos) |
-| **Arms** | 2 | Gorilla Arms (+Body), Mantis Blades (+Reflexes), Monowire (+Cool) |
+| **Ocular** | 2 | Óptica Vidraça, threat detector, data overlay |
+| **Operating System** | 1 | **OS Gazuá** (hacking), **OS Fúria** (combate), **OS Surto** (reflexos) |
+| **Arms** | 2 | Braço de Ferro (+Body), Navalha (+Reflexes), Arame (+Cool) |
 | **Skeleton** | 2 | Dense marrow (+HP), titanium bones (-dano recebido) |
 | **Nervous System** | 3 | Reflex tuner, pain editor, adrenal booster |
 | **Circulatory** | 3 | Second heart, biomonitor, auto-injector |
@@ -103,18 +103,18 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 
 | OS | Foco | Bônus |
 |---|---|---|
-| **Cyberdeck** | Hacking | +40% RAM, acesso a quickhacks avançados, +2 slots de programa |
-| **Berserk** | Combate | +50% Body por 60s (ativável 3x/dia), imunidade a stagger |
-| **Sandevistan** | Velocidade | +50% Reflexes por 30s (ativável 5x/dia), +25% dodge |
+| **OS Gazuá** | Hacking | +40% RAM, acesso a quickhacks avançados, +2 slots de programa |
+| **OS Fúria** | Combate | +50% Body por 60s (ativável 3x/dia), imunidade a stagger |
+| **OS Surto** | Velocidade | +50% Reflexes por 30s (ativável 5x/dia), +25% dodge |
 
 ### Tiers de Chrome
 
-| Tier | Nível necessário | Raridade | Custo (€$) | Exemplo |
+| Tier | Nível necessário | Raridade | Custo (G$) | Exemplo |
 |---|---|---|---|---|
-| T1 | 1 | Common | 500-2.000 | Kiroshi Optics básico |
-| T2 | 5 | Uncommon | 2.000-8.000 | Gorilla Arms |
-| T3 | 15 | Rare | 8.000-30.000 | Mantis Blades |
-| T4 | 30 | Epic | 30.000-100.000 | Sandevistan militar |
+| T1 | 1 | Common | 500-2.000 | Óptica Vidraça básica |
+| T2 | 5 | Uncommon | 2.000-8.000 | Braço de Ferro |
+| T3 | 15 | Rare | 8.000-30.000 | Navalha |
+| T4 | 30 | Epic | 30.000-100.000 | Surto militar |
 | T5 | 50 | Legendary | 100.000+ | Protótipo roubado do Instituto Paraíso |
 
 ---
@@ -133,7 +133,7 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 | **Custo de implante T1** | 2-5 Humanidade |
 | **Custo de implante T3** | 10-15 Humanidade |
 | **Custo de implante T5** | 20-30 Humanidade |
-| **Humanidade recuperável via terapia** | 10-20 por sessão (custa €$ 5.000-20.000, 24h de duração) |
+| **Humanidade recuperável via terapia** | 10-20 por sessão (custa G$ 5.000-20.000, 24h de duração) |
 
 ### Limiares de Cyberpsychosis
 
@@ -142,13 +142,13 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 | 100-71 | **Íntegro** | Nenhum efeito negativo |
 | 70-41 | **Instável** | 5% de chance de evento agressivo em gigs (atacar aliado, falhar teste social) |
 | 40-21 | **Borderline** | 15% de chance de evento. Alucinações (informação falsa na UI). Crew members podem recusar gigs com você |
-| 20-1 | **Cyberpsycho** | 30% de chance de evento. Perda de controle (ações aleatórias). MaxTac pode ser acionado |
+| 20-1 | **Cyberpsycho** | 30% de chance de evento. Perda de controle (ações aleatórias). A Garra pode ser acionada |
 | **0** | **Flatline** | Personagem **perdido permanentemente**. Nome removido dos rankings. Pode ser recriado na PRÓXIMA rodada. Se tiver status de Lenda, nome fica no menu do Saideira |
 
 ### Terapia
 
 - Sessões em clínicas (caras, demoradas, restauram Humanidade)
-- Braindance therapy (mais barata, menos eficaz)
+- Terapia de Sintonia (mais barata, menos eficaz)
 - Neural Scrubber (implante que remove Humanidade passivamente, mas ocupa slot)
 
 ### A Joia do Sistema
@@ -157,13 +157,13 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 
 ---
 
-## 5. Street Cred — O Score da Rodada
+## 5. Moral — O Score da Rodada
 
 Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 ### Como Ganhar
 
-| Ação | SC ganho |
+| Ação | Moral ganha |
 |---|---|
 | Completar gig T1 | 1-3 |
 | Completar gig T3 | 10-20 |
@@ -174,19 +174,19 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 ### Thresholds
 
-| SC | Título | Desbloqueia |
+| Moral | Título | Desbloqueia |
 |---|---|---|
 | 0 | **Unknown** | Gigs T1, Babilônia |
 | 10 | **Runner** | Acesso ao Saideira, gigs T2, recrutamento para crews |
-| 25 | **Pro** | Gigs T3, fixer Carcará, criação de crew |
-| 50 | **Edgerunner** | Gigs T4, fixer Cobra, desconto de 10% em vendors |
+| 25 | **Pro** | Gigs T3, despachante Carcará, criação de crew |
+| 50 | **Corredor** | Gigs T4, despachante Cobra, desconto de 10% em vendors |
 | 75 | **Elite** | Gigs T5, acesso a As Mortas, desconto de 15% |
-| 90 | **Night City Legend** (provisório) | Gigs lendários, fixer Coveiro |
+| 90 | **Lenda de SP** (provisório) | Gigs lendários, despachante Coveiro |
 | **100** | **Legend** | **Drink no menu do Saideira — PERMANENTE. Sobrevive a resets.** |
 
 ### Decay
 
-- Sem atividade por 7 dias: -5 SC/dia
+- Sem atividade por 7 dias: -5 Moral/dia
 - Mínimo: nunca cai abaixo do maior threshold já atingido (ex: se chegou a 50, nunca cai abaixo de 50)
 
 ---
@@ -197,42 +197,42 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 | Moeda | Símbolo | Uso |
 |---|---|---|
-| **Eurodollars** | €$ (eddies) | Moeda principal. Ganhos com gigs, vendas, apostas |
-| **Street Cred** | SC | Moeda social. Não comprável. Ganha com ações |
+| **Grana** | G$ | Moeda principal. Ganhos com gigs, vendas, apostas |
+| **Moral** | ★ Moral | Moeda social. Não comprável. Ganha com ações |
 | **Créditos** | ₵ (creds) | Moeda premium. Comprada com dinheiro real. Usada para conveniência, cosméticos |
 
 ### Fontes de Renda (Faucets)
 
-| Fonte | Frequência | Quantia (€$) |
+| Fonte | Frequência | Quantia (G$) |
 |---|---|---|
 | Gigs | Diário (2-10x) | 500 - 100.000+ |
-| Hustle (renda passiva por role) | Semanal | 500 - 5.000 |
+| Hustle (renda passiva por banca) | Semanal | 500 - 5.000 |
 | Venda de loot | Conforme obtido | Variável |
 | Data brokering | Conforme obtido | 1.000 - 50.000 |
 | Crafting e venda | Conforme produzido | Variável |
 
 ### Sumidouros de Renda (Sinks)
 
-| Sink | Propósito | Custo (€$) |
+| Sink | Propósito | Custo (G$) |
 |---|---|---|
 | **Chrome e upgrades** | Progressão vertical | 500 - 500.000+ |
 | **Terapia de Humanidade** | Manutenção de build | 5.000 - 20.000/sessão |
-| **Trauma Team** (assinatura) | Seguro contra morte | 500 - 5.000/mês (rodada) |
+| **Resgate** (assinatura) | Seguro contra morte | 500 - 5.000/mês (rodada) |
 | **Housing/Lifestyle** | Custo recorrente | 200 - 10.000/mês |
 | **Stims e consumíveis** | Vantagem temporária | 50 - 10.000 |
 | **Informação (Legwork)** | Vantagem em gigs | 100 - 5.000 |
 
-### Trauma Team — Assinatura Premium (Não-P2W)
+### Resgate — Assinatura Premium (Não-P2W)
 
 O modelo de seguro que funciona como sink econômico e monetização saudável:
 
 | Plano | Custo/mês | Efeito |
 |---|---|---|
-| **Silver** | €$ 500 | Resgate em 30min. Revive com 60% HP |
-| **Gold** | €$ 2.000 | Resgate em 15min. Revive com 80% HP. +10% SC em gigs (confiança do fixer) |
-| **Platinum** | €$ 10.000 | Resgate em 5min. Revive com 100% HP. Perde apenas 50% dos eddies em mãos ao morrer |
+| **Prata** | G$ 500 | Resgate em 30min. Revive com 60% HP |
+| **Ouro** | G$ 2.000 | Resgate em 15min. Revive com 80% HP. +10% de Moral em gigs (confiança do despachante) |
+| **Platina** | G$ 10.000 | Resgate em 5min. Revive com 100% HP. Perde apenas 50% da Grana em mãos ao morrer |
 
-**Por que isso funciona**: é um sink de eddies (anti-inflação), uma vantagem que todos podem comprar com moeda do jogo, e a versão premium (Platinum) é um objetivo aspiracional, não pay-to-win.
+**Por que isso funciona**: é um sink de Grana (anti-inflação), uma vantagem que todos podem comprar com moeda do jogo, e a versão premium (Platina) é um objetivo aspiracional, não pay-to-win.
 
 ### Preços Fixos por Categoria (Modelo Cyberpunk RED)
 
@@ -240,14 +240,14 @@ Para simplificar a economia e evitar inflação descontrolada:
 
 | Categoria | Faixa de Preço | Exemplos |
 |---|---|---|
-| Cheap | €$ 10-100 | Syn-café, kibble, munição básica |
-| Everyday | €$ 100-500 | Refeição, aluguel de coffin, stim comum |
-| Costly | €$ 500-1.000 | Stims incomuns, arma básica, chrome T1 |
-| Premium | €$ 1.000-5.000 | Chrome T2, arma avançada, terapia básica |
-| Expensive | €$ 5.000-20.000 | Chrome T3, estimulantes raros, informação |
-| Very Expensive | €$ 20.000-50.000 | Chrome T4, deck avançado, cirurgia |
-| Luxury | €$ 50.000-100.000 | Chrome T4 premium, veículo |
-| Super Luxury | €$ 100.000+ | Chrome T5, itens lendários, propriedade |
+| Cheap | G$ 10-100 | Syn-café, kibble, munição básica |
+| Everyday | G$ 100-500 | Refeição, aluguel de coffin, stim comum |
+| Costly | G$ 500-1.000 | Stims incomuns, arma básica, chrome T1 |
+| Premium | G$ 1.000-5.000 | Chrome T2, arma avançada, terapia básica |
+| Expensive | G$ 5.000-20.000 | Chrome T3, estimulantes raros, informação |
+| Very Expensive | G$ 20.000-50.000 | Chrome T4, gazuá avançado, cirurgia |
+| Luxury | G$ 50.000-100.000 | Chrome T4 premium, veículo |
+| Super Luxury | G$ 100.000+ | Chrome T5, itens lendários, propriedade |
 
 ---
 
@@ -257,7 +257,7 @@ Para simplificar a economia e evitar inflação descontrolada:
 
 - Cada rodada dura **14 dias** (2 semanas)
 - Ao final da rodada:
-  - **Reset de inventário, eddies, nível e Street Cred**
+  - **Reset de inventário, Grana, nível e Moral**
   - **Humanidade reseta para 100**
   - **TUDO é perdido, EXCETO o que está no Hall de Lendas**
 
@@ -267,23 +267,23 @@ Inspirado diretamente no modelo de **Ascensão do Kingdom of Loathing** — o mo
 
 | Conquista | Condição | Recompensa Permanente |
 |---|---|---|
-| **Legend** | Atingir SC 100 em qualquer rodada | **Drink nomeado no menu do Saideira** (permanente) + badge "Legend" |
+| **Legend** | Atingir Moral 100 em qualquer rodada | **Drink nomeado no menu do Saideira** (permanente) + badge "Legend" |
 | **Speed Demon** | Completar 50 gigs em uma rodada | +5 NIL máximo permanente |
 | **Net God** | Hackear 20 subnets corporativas em uma rodada | +10% RAM permanente |
 | **Warlord** | Vencer 3 crew wars em uma rodada | +5% dano PvP permanente |
-| **Rich Bitch** | Acumular €$ 500.000 em uma rodada | +10% eddies de gigs permanente |
+| **Rich Bitch** | Acumular G$ 500.000 em uma rodada | +10% de Grana em gigs permanente |
 | **Unkillable** | Sobreviver com <10 Humanidade por 3 dias | +10 Humanidade base permanente |
 | **Completionist** | Completar pelo menos 1 gig de cada tipo em uma rodada | +1 ponto de atributo livre permanente |
 
 ### O Drink — A Imortalidade Social
 
-Quando um jogador atinge SC 100 (Legend):
+Quando um jogador atinge Moral 100 (Legend):
 
 1. Seu nome é adicionado ao menu do **Saideira**
 2. Um drink é criado em sua homenagem (nome escolhido pelo jogador, dentro de diretrizes)
 3. Este drink é **PERMANENTE** — visível para todos os jogadores em todas as rodadas futuras
 4. O menu exibe: nome do jogador, nome do drink, data em que atingiu Legend, crew a que pertencia
 
-> *"Você pode perder tudo no reset. Seus eddies, seu chrome, seu nível. Mas ninguém tira seu nome do menu."*
+> *"Você pode perder tudo no reset. Sua Grana, seu chrome, seu nível. Mas ninguém tira seu nome do menu."*
 
-Este é o prestige reward definitivo — alinhado ao lore de Cyberpunk 2077 (drinks da Afterlife), ao sistema de prestígio de KoL (Ascensão com benefício permanente) e ao que The Crims tentou fazer com medalhas.
+Este é o prestige reward definitivo — alinhado ao lore do gênero (drinks da Saideira), ao sistema de prestígio de KoL (Ascensão com benefício permanente) e ao que The Crims tentou fazer com medalhas.

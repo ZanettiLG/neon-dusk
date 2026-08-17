@@ -19,7 +19,7 @@ Hoje a navegação principal fica oculta no mobile (app/src/components/AppHeader
 
 - Bottom navigation com 5 atalhos principais (Painel, Gigs, Saideira, Chrome, PvP).
 - Drawer/menu lateral para telas secundárias (Vendedores, Economia, Crews, Admin).
-- HUD compacto persistente: NIL, Humanidade, eddies e Street Cred.
+- HUD compacto persistente: NIL, Humanidade, Grana e Moral.
 - Alertas de timers, gig ativa, PvP e reset de rodada.
 - Estado offline/degradado visível sem poluir a tela.
 
@@ -28,7 +28,7 @@ Hoje a navegação principal fica oculta no mobile (app/src/components/AppHeader
 Transformar em ficha viva:
 
 - Retrato/avatar do personagem.
-- Role e origem com identidade própria.
+- Banca e origem com identidade própria.
 - Barras de NIL e Humanidade.
 - Chrome resumido no body-map.
 - Últimos eventos e timers importantes.
@@ -43,7 +43,7 @@ Usar mapa-metrô/diagrama de distritos:
 - Cada distrito é uma estação/card.
 - A Paraíso no topo; Quebrada e As Mortas na base.
 - Saturação visual por classe social.
-- Ícones de gigs disponíveis, vendors, fixers e perigo.
+- Ícones de gigs disponíveis, vendors, despachantes e perigo.
 - Travessia entre distritos como loading diegético de elevador/metrô.
 - A Saideira já é uma estação da antiga Linha 3-Vermelha.
 
@@ -56,19 +56,19 @@ Evoluir de catálogo para tela de build:
 - Custo de Humanidade sempre visível.
 - Antes/depois de atributos, HP e NIL.
 - Estado de cyberpsychosis progressivo na UI.
-- OS como decisão central (Cyberdeck, Berserk, Sandevistan).
+- OS como decisão central (Gazuá, OS Fúria, OS Surto).
 
 ## PvP
 
 - Dois cards espelhados (atacante vs. defensor).
-- Poder, Street Cred, custo de NIL e risco.
+- Poder, Moral, custo de NIL e risco.
 - Resultado com log de combate.
 - Loot e variação de cred.
 - Indicadores de noob shield e anti-griefing.
 
 ## Gigs
 
-- Retrato do fixer.
+- Retrato do despachante.
 - Distrito com banner atmosférico.
 - Tipo e tier como carimbos.
 - Chance de sucesso, custo, risco e recompensa antes do aceite.
@@ -77,7 +77,7 @@ Evoluir de catálogo para tela de build:
 
 ## Saideira
 
-- Porta/segurança como gate visual (Street Cred >= 10).
+- Porta/segurança como gate visual (Moral >= 10).
 - Balcão com Carcará.
 - Menu de Lendas como artefato permanente (cards de drinks com brinde).
 - Chat com moldura de bar.

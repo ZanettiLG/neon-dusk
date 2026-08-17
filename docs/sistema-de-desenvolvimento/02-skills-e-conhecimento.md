@@ -34,7 +34,7 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 | Dúvida do agente | Seção |
 |---|---|
 | "Qual a paleta de cores?" | `01-visao-e-marca.md` → Identidade Visual |
-| "Como funciona Street Cred?" | `04-sistemas-e-progressao.md` → Seção 5 |
+| "Como funciona Moral?" | `04-sistemas-e-progressao.md` → Seção 5 |
 | "Quais os distritos?" | `02-mundo-e-universo.md` → Distritos |
 | "O que está no MVP?" | `05-roadmap-e-mvp.md` → Fase 1 |
 
@@ -50,7 +50,7 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 
 **Tópicos**:
 - Faucets (fontes de moeda): gigs, hustles, vendas, loot
-- Sinks (sumidouros): chrome, terapia, Trauma Team, housing, stims
+- Sinks (sumidouros): chrome, terapia, Resgate, housing, stims
 - Inflação: instrumentação (log de todas as transações), métricas de alerta
 - Preços fixos vs dinâmicos: modelo RED (8 categorias de preço fixo)
 - Moeda premium: conveniência, nunca poder; comprável com moeda do jogo
@@ -68,7 +68,7 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 | **Conteúdo** | Vocabulário, tom, referências do universo cyberpunk para UI e narrativa |
 
 **Tópicos**:
-- Glossário cyberpunk (chrome, eddies, fixer, gig, flatline, etc.)
+- Glossário cyberpunk (chrome, Grana, despachante, gig, flatline, etc.)
 - Tom de voz (noir sujo, irônico, estilo Gibson)
 - Referências de UI textual (como escrever descrições de implantes, mensagens de erro diegéticas)
 - Frases de exemplo para cada contexto (sucesso, falha, morte, level up)

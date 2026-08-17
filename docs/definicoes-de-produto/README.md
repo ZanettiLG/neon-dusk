@@ -13,9 +13,9 @@
 | Arquivo | Conteúdo |
 |---|---|
 | [01-visao-e-marca.md](./01-visao-e-marca.md) | Visão, nome, marca, tom, estilo visual e identidade |
-| [02-mundo-e-universo.md](./02-mundo-e-universo.md) | Setting, distritos, corporações, gangues e fixers |
+| [02-mundo-e-universo.md](./02-mundo-e-universo.md) | Setting, distritos, corporações, gangues e despachantes |
 | [03-mecanicas-core.md](./03-mecanicas-core.md) | Sistemas core: energia, gigs, combate, hacking |
-| [04-sistemas-e-progressao.md](./04-sistemas-e-progressao.md) | Atributos, classes, chrome, street cred, economia |
+| [04-sistemas-e-progressao.md](./04-sistemas-e-progressao.md) | Atributos, bancas, chrome, Moral, economia |
 | [05-roadmap-e-mvp.md](./05-roadmap-e-mvp.md) | MVP, fases de desenvolvimento, stack, métricas |
 
 ## Pilares de Design

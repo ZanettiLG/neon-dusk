@@ -13,9 +13,9 @@ metadata:
 Skill de design de economia para jogos. Padrões de faucets/sinks, inflação, balanceamento e monetização.
 
 ## Quando Carregar
-- Implementando mecânicas de economia (eddies, loot, vendors)
-- Balanceando progressão (ganho de SC, custo de chrome)
-- Desenhando sinks de moeda (terapia, Trauma Team, housing)
+- Implementando mecânicas de economia (Grana, loot, vendors)
+- Balanceando progressão (ganho de Moral, custo de chrome)
+- Desenhando sinks de moeda (terapia, Resgate, housing)
 - Carregada por: `game-logic-dev`, `db-designer`, `architect`
 
 ## Faucets e Sinks
@@ -26,9 +26,9 @@ Toda moeda que entra na economia do jogo:
 | Faucet | Frequência | Nota |
 |---|---|---|
 | Gigs | Diário (2-10x) | Principal fonte. Escala com tier |
-| Hustle (renda passiva) | Semanal | Por role. Pequeno mas consistente |
+| Hustle (renda passiva) | Semanal | Por banca. Pequeno mas consistente |
 | Venda de loot | Variável | Componentes, dados, itens |
-| Data brokering | Variável | Netrunners vendem info hackeada |
+| Data brokering | Variável | Vultos vendem info hackeada |
 | Recompensas de evento | Eventual | Corp War, Blackout |
 
 ### Sinks (sumidouros de moeda)
@@ -38,7 +38,7 @@ Toda moeda que SAI da economia:
 |---|---|---|
 | Chrome e upgrades | Progressão vertical | Maior sink do jogo |
 | Terapia de Humanidade | Manutenção de build | Essencial para balancear chrome |
-| Trauma Team | Seguro contra morte | Sink recorrente + monetização saudável |
+| Resgate | Seguro contra morte | Sink recorrente + monetização saudável |
 | Housing/Lifestyle | Custo recorrente | Anti-inflação passiva |
 | Stims e consumíveis | Vantagem temporária | Sink de conveniência |
 | Informação (Legwork) | Vantagem em gigs | Opcional, acelera progressão |
@@ -49,25 +49,25 @@ Toda moeda que SAI da economia:
 ## Inflação
 
 ### Instrumentação
-- Log de TODA transação de eddies desde o dia 1 (tabela `transaction_logs`)
-- Métricas: eddies totais em circulação, eddies médios por jogador ativo, velocidade de circulação
-- Alerta: se eddies médios/ativo crescer >20% entre rodadas, economia está inflacionando
+- Log de TODA transação de Grana desde o dia 1 (tabela `transaction_logs`)
+- Métricas: Grana total em circulação, Grana média por jogador ativo, velocidade de circulação
+- Alerta: se Grana média/ativo crescer >20% entre rodadas, economia está inflacionando
 
 ### Controle
 - Preços fixos por categoria (modelo RED: Cheap → Super Luxury)
-- Ajuste de sinks entre rodadas (custo de terapia, Trauma Team)
+- Ajuste de sinks entre rodadas (custo de terapia, Resgate)
 - Nunca ajustar faucets para baixo (jogadores percebem como nerf)
 
 ## Preços Fixos (Modelo RED)
 
-| Categoria | Faixa (€$) | Exemplos |
+| Categoria | Faixa (G$) | Exemplos |
 |---|---|---|
 | Cheap | 10-100 | Syn-café, kibble, munição básica |
 | Everyday | 100-500 | Refeição, aluguel de coffin, stim comum |
 | Costly | 500-1.000 | Stims incomuns, arma básica, chrome T1 |
 | Premium | 1.000-5.000 | Chrome T2, arma avançada, terapia básica |
 | Expensive | 5.000-20.000 | Chrome T3, estimulantes raros, informação |
-| Very Expensive | 20.000-50.000 | Chrome T4, deck avançado, cirurgia |
+| Very Expensive | 20.000-50.000 | Chrome T4, gazuá avançado, cirurgia |
 | Luxury | 50.000-100.000 | Chrome T4 premium, veículo |
 | Super Luxury | 100.000+ | Chrome T5, itens lendários |
 
@@ -76,11 +76,11 @@ Toda moeda que SAI da economia:
 - Sem trade player↔player no MVP (modelo The Crims)
 - Itens de chrome são bound ao personagem (não transferíveis)
 - Mercado entre jogadores só será aberto com população >5k DAU
-- Exceção: dados/info podem ser vendidos via fixers (controlado)
+- Exceção: dados/info podem ser vendidos via despachantes (controlado)
 
 ## Moeda Premium (Créditos ₵)
 
 - Comprável com dinheiro real
 - Usável para conveniência (NIL booster, Second Wind, cosméticos)
-- NUNCA para poder (atributos, SC, chrome superior)
+- NUNCA para poder (atributos, Moral, chrome superior)
 - Jogadores podem ganhar pequenas quantidades via eventos e conquistas

@@ -29,9 +29,9 @@ A documentação completa está em `docs/definicoes-de-produto/`. Consulte os ar
 | "Como funcionam gigs?" | `03-mecanicas-core.md` → Gigs (seção 2) |
 | "Como funciona hacking?" | `03-mecanicas-core.md` → Hacking (seção 4) |
 | "Quais os atributos?" | `04-sistemas-e-progressao.md` → Atributos (seção 1) |
-| "Quais os roles?" | `04-sistemas-e-progressao.md` → Roles (seção 2) |
+| "Quais as bancas?" | `04-sistemas-e-progressao.md` → Banca (seção 2) |
 | "Como funciona chrome?" | `04-sistemas-e-progressao.md` → Chrome (seção 3) |
-| "Como funciona Street Cred?" | `04-sistemas-e-progressao.md` → Street Cred (seção 5) |
+| "Como funciona Moral?" | `04-sistemas-e-progressao.md` → Moral (seção 5) |
 | "Como funciona Humanidade?" | `04-sistemas-e-progressao.md` → Humanidade (seção 4) |
 | "O que está no MVP?" | `05-roadmap-e-mvp.md` → Fase 1 |
 

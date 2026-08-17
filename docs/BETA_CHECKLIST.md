@@ -28,15 +28,15 @@
 ## MVP Features
 
 - [ ] Account registration + login (JWT)
-- [ ] Character creation (name, origin, role, 22-point attributes)
+- [ ] Character creation (name, origin, banca, 22-point attributes)
 - [ ] NIL energy — regen, consume, stim (syn-café)
 - [ ] Gigs — 5-phase loop (meet → legwork → execute → escape → wrap-up)
 - [ ] Economy — wallets, vendor purchases, transaction log
 - [ ] Chrome — catalog, install, uninstall, humanity drain
-- [ ] Street Cred — leaderboard, thresholds, titles
+- [ ] Moral — leaderboard, thresholds, titles
 - [ ] PvP — attack, cooldown, power ranges
 - [ ] Saideira Hub — chat (SSE), legends, crew leaderboard
-- [ ] Crews — creation (SC ≥ 25, 5k eddies), invites, join, leave, chat
+- [ ] Crews — creation (Moral ≥ 25, 5k G$), invites, join, leave, chat
 - [ ] Round system — 14-day rounds, automated reset, intermission
 - [ ] Admin panel — player management, economy dashboard, params, audit log
 - [ ] Admin API — x-api-key + JWT admin role, rate limiting
@@ -52,9 +52,9 @@
 
 ## Economy
 
-- [ ] Faucets — gig payouts, PvP rewards, initial balance (500 eddies)
+- [ ] Faucets — gig payouts, PvP rewards, initial balance (500 G$)
 - [ ] Sinks — vendor purchases, chrome install, crew creation
-- [ ] Zero inflation — round reset wipes all eddies
+- [ ] Zero inflation — round reset wipes all Grana
 - [ ] Transaction log — append-only, check-constrained (after - before == amount)
 - [ ] Wallet versioning — optimistic locking prevents race conditions
 - [ ] `check:economy` invariants pass
@@ -69,7 +69,7 @@
 - [ ] Transaction log wiped
 - [ ] Crews wiped (memberships detached first)
 - [ ] Wallets zeroed
-- [ ] Characters reset: NIL=100, SC=0, humanity=100
+- [ ] Characters reset: NIL=100, Moral=0, humanity=100
 - [ ] Legends preserved (permanent hall of fame)
 - [ ] Auto-trigger works (14-day cron)
 - [ ] Manual trigger works (POST /api/round/trigger-reset)

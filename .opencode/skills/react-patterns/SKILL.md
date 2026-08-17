@@ -90,7 +90,7 @@ export function CharacterCard({ characterId, onClose, onSaved }: Props) {
     <div className="bg-nd-surface border border-nd-cyan/20 rounded-lg p-4">
       <h2 className="font-mono text-nd-cyan text-lg">{character?.name}</h2>
       <div className="text-nd-text-secondary text-sm mt-2">
-        Street Cred: <span className="text-nd-gold font-mono">{character?.streetCred}</span>
+        Moral: <span className="text-nd-gold font-mono">{character?.moral}</span>
       </div>
     </div>
   )
@@ -211,7 +211,7 @@ it('should display character name', async () => {
   )
 
   await waitFor(() => {
-    expect(screen.getByText('Street Cred:')).toBeInTheDocument()
+    expect(screen.getByText('Moral:')).toBeInTheDocument()
   })
 })
 ```

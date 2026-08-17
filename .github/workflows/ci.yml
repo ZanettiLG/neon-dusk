@@ -28,6 +28,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Terminology guard (IP)
+        run: node scripts/check-terminologia.mjs
+
   typecheck:
     name: Type Check
     runs-on: ubuntu-latest

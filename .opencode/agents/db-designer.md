@@ -22,8 +22,8 @@ Projetar schemas PostgreSQL para sistemas de jogo. Chamado pelo architect ou dir
 - Schema para jogos multiplayer (personagens, inventário, crews, economia)
 - Migrations Knex com up/down
 - Índices para queries de ranking/leaderboard
-- Constraints e triggers para integridade de economia (sem eddies negativos, sem duplicatas)
-- Soft-deletes e auditoria (log de transações de eddies)
+- Constraints e triggers para integridade de economia (sem Grana negativa, sem duplicatas)
+- Soft-deletes e auditoria (log de transações de Grana)
 - Particionamento para logs de alta escrita (eventos de jogo, ações)
 
 ## Processo

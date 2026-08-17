@@ -4,7 +4,7 @@
 
 > "Terminal sujo da quebrada tentando renderizar a cidade inteira."
 
-A interface mistura: terminal corporativo velho, celular PWA de edgerunner, painel de metrô degradado, interface neural instável e linguagem de rua (cartaz, pichação, etiqueta).
+A interface mistura: terminal corporativo velho, celular PWA de corredor, painel de metrô degradado, interface neural instável e linguagem de rua (cartaz, pichação, etiqueta).
 
 ## O que absorver das referências visuais
 
@@ -36,7 +36,7 @@ A interface mistura: terminal corporativo velho, celular PWA de edgerunner, pain
 | Garoa ácida | Overlay ambiental em distritos baixos |
 | Helicópteros e silhuetas verticais | Distritos corporativos |
 | Neon em português | SAIDEIRA, GIGS, CHROME, CORRE, BABILÔNIA |
-| Vela de santo, arruda, terço, Exu/Ogum | Detalhes de vendors, ripperdocs e eventos |
+| Vela de santo, arruda, terço, Exu/Ogum | Detalhes de vendors, Ferrageiros e eventos |
 | Funk como território | Ondas/sub-bass no Fluxo e na Quebrada |
 | Pastel, café, marmita | Itens de consumo e reforço cultural |
 | Saturação por classe | Paraíso saturado; Quebrada quebrada; Mortas quase morta |
@@ -52,7 +52,7 @@ Paleta canônica da marca (ver docs/definicoes-de-produto/01-visao-e-marca.md):
 | Surface | #12121a | Cards e painéis |
 | Neon Cyan | #00f0ff | Ação, navegação, dados do jogador |
 | Neon Magenta | #ff00aa | Perigo, perda, dano, hostilidade |
-| Neon Gold | #ffcc00 | Eddies, recompensa, Street Cred, prestígio |
+| Neon Gold | #ffcc00 | Grana, recompensa, Moral, prestígio |
 | Neon Purple | #aa00ff | Rede, hacking, ICE, trace |
 | Text Primary | #e0e0e0 | Texto principal |
 | Text Secondary | #888899 | Texto secundário |

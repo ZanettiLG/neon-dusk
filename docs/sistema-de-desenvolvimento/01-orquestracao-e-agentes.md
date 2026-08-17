@@ -222,7 +222,7 @@ Human Dev: /dev-feature "sistema de autenticação JWT"
 - Migrations com rollback
 - Índices para queries de ranking/leaderboard
 - Constraints e triggers para integridade de economia de jogo
-- Soft-deletes e auditoria (transações de eddies)
+- Soft-deletes e auditoria (transações de Grana)
 - Particionamento para logs de alta escrita (eventos de jogo)
 
 ---
@@ -241,7 +241,7 @@ Human Dev: /dev-feature "sistema de autenticação JWT"
 - Fórmula de sucesso de gigs: `(BOD + REF + Chrome) / Dificuldade`
 - Cálculo de Humanidade e thresholds de cyberpsychosis
 - Distribuição de loot por tier
-- Sistema de Street Cred e decay
+- Sistema de Moral e decay
 - Balanceamento de economia (faucets/sinks)
 - Eventos de temporada (Corp War, Blackout)
 

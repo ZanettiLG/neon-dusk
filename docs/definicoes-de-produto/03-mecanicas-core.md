@@ -4,16 +4,16 @@
 
 Neon Dusk traduz CADA mecânica comprovada dos PBBGs de sucesso (The Crims, Torn, KoL) para o universo cyberpunk. A tabela abaixo mostra o mapeamento completo:
 
-| Mecânica PBBG | The Crims | Neon Dusk | Fonte Cyberpunk |
+| Mecânica PBBG | The Crims | Neon Dusk | Inspiração (referência) |
 |---|---|---|---|
 | Energia | Stamina/Tickets | **Neural Interface Load (NIL)** | Cyberware Capacity (2077), RAM (2077) |
-| Ações | Crimes/Roubos | **Gigs** (por tier e fixer) | Gigs CP2077, Shadowrun loop 5 fases |
+| Ações | Crimes/Roubos | **Gigs** (por tier e despachante) | Gigs CP2077, Shadowrun loop 5 fases |
 | Consumíveis | Drogas (14) | **Stims** (8 tipos) | Combat drugs TTRPG, glitter |
-| Gangues | Gangues | **Crews** (5 roles + 1 líder) | Crew do Maine (Edgerunners) |
-| Score | Respeito | **Street Cred** (0-100) | Street Cred CP2077 |
-| Treino | Treino/Universidade | **Chrome + Simuladores** | Ripperdocs, Humanity Cost |
-| Economia | $ + Banco + Bolsa | **Eddies + Fachadas + Trauma Team** | Eurodollar, RED Price Categories |
-| Casino | Blackjack/Slots/Loteria | **Underground** (arenas, apostas, data-trading) | Animals brigas, Tyger cassinos |
+| Gangues | Gangues | **Crews** (5 bancas + 1 líder) | crew de mercenários |
+| Score | Respeito | **Moral** (0-100) | Reputação de rua (CP2077) |
+| Treino | Treino/Universidade | **Chrome + Simuladores** | Médicos de chrome (RED), Humanity Cost |
+| Economia | $ + Banco + Bolsa | **Grana + Fachadas + Resgate** | Eurodollar, RED Price Categories |
+| Casino | Blackjack/Slots/Loteria | **Underground** (arenas, apostas, data-trading) | Anjos de Cromo (arenas), O Comando (cassinos) |
 
 ---
 
@@ -57,7 +57,7 @@ Dormir → recarrega para 100
 
 ### Conceito
 
-Gigs são missões oferecidas por fixers. Cada gig tem: tier, tipo, requisitos, recompensa, risco. O loop segue as 5 fases do Shadowrun, simplificadas para PBBG.
+Gigs são missões oferecidas por despachantes. Cada gig tem: tier, tipo, requisitos, recompensa, risco. O loop segue as 5 fases do Shadowrun, simplificadas para PBBG.
 
 ### Tipos de Gig
 
@@ -69,15 +69,15 @@ Gigs são missões oferecidas por fixers. Cada gig tem: tier, tipo, requisitos, 
 | **Wetwork** | Eliminar alvo | Body + Cool | "O CEO da subsidiária está muito curioso. Aposente-o." |
 | **Delivery** | Transportar carga sensível de A a B | Reflexes + Cool | "Levar este protótipo de chrome através de 3 postos de controle" |
 | **Netrun** | Hackear sistema, extrair dados, plantar vírus | Intelligence + Technical | "Invadir a subnet do Instituto Paraíso e roubar os dados de pesquisa" |
-| **Negotiation** | Persuadir, chantagear, negociar | Cool + Street Cred | "Convencer o chefe de segurança a 'não ver' o carregamento" |
+| **Negotiation** | Persuadir, chantagear, negociar | Cool + Moral | "Convencer o chefe de segurança a 'não ver' o carregamento" |
 
 ### Estrutura do Gig (Loop de 5 Fases Simplificado)
 
 | Fase | Ação do Jogador | Timer | Risco |
 |---|---|---|---|
-| **1. Meet** | Aceitar gig do fixer (consome NIL para iniciar) | Instantâneo | Nenhum |
-| **2. Legwork** | Opcional: comprar info, hackear reconhecimento | 5-30 min | Baixo (gasta NIL, eddies) |
-| **3. Execute** | Ação principal. Rolagem de stats vs dificuldade | Instantâneo (mostra resultado) | **Alto**: falha = dano, perda de eddies, heat |
+| **1. Meet** | Aceitar gig do despachante (consome NIL para iniciar) | Instantâneo | Nenhum |
+| **2. Legwork** | Opcional: comprar info, hackear reconhecimento | 5-30 min | Baixo (gasta NIL, Grana) |
+| **3. Execute** | Ação principal. Rolagem de stats vs dificuldade | Instantâneo (mostra resultado) | **Alto**: falha = dano, perda de Grana, heat |
 | **4. Escape** | Fuga/extração. Rolagem vs heat/segurança | Instantâneo | Médio: falha = heat, ferimento |
 | **5. Wrap Up** | Receber pagamento, cred, consequências | Instantâneo | Nenhum (mas consequências de fases 3-4 se aplicam) |
 
@@ -85,7 +85,7 @@ Gigs são missões oferecidas por fixers. Cada gig tem: tier, tipo, requisitos, 
 
 ### Progressão de Dificuldade
 
-| Tier | Nome | Street Cred necessário | Exemplos | Recompensa (€$) |
+| Tier | Nome | Moral necessária | Exemplos | Recompensa (G$) |
 |---|---|---|---|---|
 | T1 | Street Level | 0+ | Entregas, coleta de dívidas, roubo de carro | 500-2.000 |
 | T2 | Runner | 5+ | Infiltração simples, hacking básico, proteção | 2.000-8.000 |
@@ -114,18 +114,18 @@ Gigs são missões oferecidas por fixers. Cada gig tem: tier, tipo, requisitos, 
 | **Iniciação** | Atacante gasta 20 NIL. Só pode atacar alvos ±10 níveis |
 | **Resolução** | Comparação de stats: `(Body + Reflexes + Chrome Power) vs (Body + Reflexes + Chrome Power do defensor)` |
 | **Modificadores** | Stims (+15-30%), bônus de crew, bônus de território |
-| **Vitória** | Vencedor ganha Street Cred + 10% dos eddies em mãos do perdedor |
-| **Derrota** | Perdedor perde 5% de Street Cred + 10% dos eddies em mãos. **TETO**: máximo de 3 derrotas/dia com perda |
+| **Vitória** | Vencedor ganha Moral + 10% da Grana em mãos do perdedor |
+| **Derrota** | Perdedor perde 5% de Moral + 10% da Grana em mãos. **TETO**: máximo de 3 derrotas/dia com perda |
 | **Anti-griefing** | Máximo de 3 ataques ao mesmo jogador por semana. Após isso, eficácia cai para 10% |
 | **Crew Wars** | Líder declara guerra a crew rival (±5 posições no ranking). 24h de duração. Vencedor ganha território temporário |
 
 ### Noob Protection
 - Jogadores com menos de 7 dias de conta não podem ser atacados
-- Jogadores com Street Cred < 10 perdem apenas 1% em derrotas PvP
+- Jogadores com Moral < 10 perdem apenas 1% em derrotas PvP
 
 ---
 
-## 4. Hacking / Netrunning
+## 4. Hacking
 
 ### Conceito
 
@@ -141,15 +141,15 @@ A Rede de São Paulo é fragmentada desde o Blackout de 2075. Ao invés de uma i
 | **Subnet Corporativa** | A Paraíso, O Fervo | Dados de pesquisa, segredos comerciais, blueprints | Alto (ICE corporativo) |
 | **Subnet de Gangue** | Territórios de gangue | Localização de loot, planos de ataque, comunicações | Médio |
 | **Subnet Fantasma** | As Mortas | Dados pré-Blackout, IA abandonada, segredos perdidos | Muito Alto |
-| **Deep Net** | O Ponto | Conteúdo de endgame. Atrás do Blackwall. AIs hostis | Extremo |
+| **Deep Net** | O Ponto | Conteúdo de endgame. Atrás da Porteira. AIs hostis | Extremo |
 
 ### Mecânica de Hacking
 
 | Parâmetro | Funcionamento |
 |---|---|
-| **RAM** | Recurso do netrunner. Determinado pelo Cyberdeck. Ações de hack consomem RAM. Recarrega 1 RAM/60s |
+| **RAM** | Recurso do Vulto. Determinado pelo Gazuá. Ações de hack consomem RAM. Recarrega 1 RAM/60s |
 | **ICE Layers** | Cada subnet tem camadas de defesa (1-5). Cada camada = 1 encontro de ICE |
-| **Programas** | Ferramentas de hack ocupam slots (5/7/9 por deck). Ex: ICEbreaker (dano), Stealth (bypass), Datamine (loot extra), Trace (rastrear origem) |
+| **Programas** | Ferramentas de hack ocupam slots (5/7/9 por gazuá). Ex: ICEbreaker (dano), Stealth (bypass), Datamine (loot extra), Trace (rastrear origem) |
 | **Trace** | Cada ação de hack tem traceability. Acumula progresso de trace. Ao estourar → alerta, segurança, contra-ataque |
 | **Black ICE** | ICE letal que causa dano neural. Ocupa 2 slots. Drop raro. Pode ser plantado na SUA rede como defesa |
 | **Vírus** | Planta vírus persistente em subnet inimiga. Efeito passivo: -5% eficiência de gigs naquele distrito por 24h |
@@ -157,7 +157,7 @@ A Rede de São Paulo é fragmentada desde o Blackout de 2075. Ao invés de uma i
 ### Integração com o Loop Principal
 
 ```
-Hackear subnet corporativa → obter schematics → vender para fixer
+Hackear subnet corporativa → obter schematics → vender para despachante
 Hackear subnet de gangue → descobrir ataque planejado → vender info para gangue rival
 Hackear rede de jogador → roubar dados → chantagear ou vender
 ```
@@ -178,15 +178,15 @@ Análogo às 14 drogas do The Crims, adaptado para o universo cyberpunk.
 
 ### Catálogo de Stims
 
-| Stim | Efeito Principal | Duração | Custo Colateral | Raridade | Preço Base (€$) |
+| Stim | Efeito Principal | Duração | Custo Colateral | Raridade | Preço Base (G$) |
 |---|---|---|---|---|---|
 | **Syn-café** | +20 NIL | Instantâneo | Nenhum (legal) | Comum | 50 |
 | **Reflex** | +15% sucesso em gigs de Reflexes | 2h | Tremor (-5% Cool por 1h após) | Comum | 200 |
 | **AdrenaStim** | +30 NIL, +10% Body | Instantâneo | Burnout (-10 NIL máximo por 4h) | Incomum | 500 |
 | **Cortex+** | +20% sucesso em hacking | 2h | Dor de cabeça (-10% Intelligence por 1h após) | Incomum | 600 |
 | **Ghost** | +30% sucesso em stealth/Cool | 1h | Paranoia (eventos aleatórios de "alarme falso") | Raro | 1.500 |
-| **Berserker** | +50% Body, +30% dano | 30min | -20 Humanidade temporária, risco de evento agressivo | Raro | 2.500 |
-| **Glitter** | +40 Street Cred temporário, social | 3h | Addiction (debuff cumulativo), overdose possível | Raro | 3.000 |
+| **Pancadão** | +50% Body, +30% dano | 30min | -20 Humanidade temporária, risco de evento agressivo | Raro | 2.500 |
+| **Glitter** | +40 Moral temporária, social | 3h | Addiction (debuff cumulativo), overdose possível | Raro | 3.000 |
 | **Black Lace** | +100% todos os stats de combate | 15min | -50 Humanidade temporária, 5% de chance de cyberpsychosis | Lendário | 10.000 |
 
 ### Mecânica de Vício
@@ -208,17 +208,17 @@ Análogo às 14 drogas do The Crims, adaptado para o universo cyberpunk.
 
 - **Tamanho**: 4-6 membros
 - **Líder**: jogador que criou a crew. Único que pode declarar guerras e recrutar
-- **Roles**: cada membro escolhe um role (Solo, Netrunner, Tech, Fixer, Medtech, Nomad)
+- **Banca**: cada membro escolhe uma banca (Bicho, Vulto, Gambiarrista, Despachante, Socorrista, Estradeiro)
 
 ### Bônus de Crew
 
 | Membros | Bônus |
 |---|---|
 | 2 | +5% sucesso em gigs cooperativos |
-| 3 | +10% eddies de gigs |
-| 4 | +10% Street Cred |
+| 3 | +10% de Grana em gigs |
+| 4 | +10% Moral |
 | 5 | +1 gig cooperativo por dia |
-| 6 | Acesso a gigs de crew (T3+, requer múltiplos roles) |
+| 6 | Acesso a gigs de crew (T3+, requer múltiplas bancas) |
 
 ### Crew Wars
 
@@ -226,7 +226,7 @@ Análogo às 14 drogas do The Crims, adaptado para o universo cyberpunk.
 - Duração: 24h
 - Membros podem atacar membros da crew rival sem restrição de nível
 - Vencedor (mais ataques bem-sucedidos): ganha território temporário (+10% loot no distrito)
-- Perdedor: perde 5% de Street Cred por membro
+- Perdedor: perde 5% de Moral por membro
 
 ### Territórios
 
@@ -245,10 +245,10 @@ Substitui o "casino" do The Crims com atividades temáticas cyberpunk:
 
 | Atividade | Descrição | Aposta Mínima | Risco |
 |---|---|---|---|
-| **Fight Pit** | Apostar em lutas de NPCs (Animals, gladiadores chromados) | €$ 100 | Médio (resultados pré-determinados mas com variação) |
-| **Drone Races** | Corridas de drones clandestinas | €$ 500 | Médio-alto (resultados influenciados por eventos do mundo) |
-| **Data-Trading** | Comprar/vender dados de alto risco | €$ 1.000+ | Alto (informação pode ser falsa, armadilha ou valiosa) |
-| **Corporate Roulette** | Investir em ações de corps com base em eventos | €$ 5.000+ | Muito alto (manipulação de mercado por eventos) |
+| **Fight Pit** | Apostar em lutas de NPCs (Anjos de Cromo, gladiadores chromados) | G$ 100 | Médio (resultados pré-determinados mas com variação) |
+| **Drone Races** | Corridas de drones clandestinas | G$ 500 | Médio-alto (resultados influenciados por eventos do mundo) |
+| **Data-Trading** | Comprar/vender dados de alto risco | G$ 1.000+ | Alto (informação pode ser falsa, armadilha ou valiosa) |
+| **Corporate Roulette** | Investir em ações de corps com base em eventos | G$ 5.000+ | Muito alto (manipulação de mercado por eventos) |
 
 **Regra de house edge**: publicada e auditável. Transparência = confiança (lição do The Crims, que nunca publicou).
 
@@ -260,11 +260,11 @@ Substitui o "casino" do The Crims com atividades temáticas cyberpunk:
 
 | Ranking | Métrica | Atualização | Recompensa |
 |---|---|---|---|
-| **Street Cred** | Maior SC | Diária | Título, visibilidade no perfil |
-| **Top Gigs** | Mais gigs concluídos (semana) | Semanal | Eddies bônus, acesso a fixer exclusivo |
+| **Moral** | Maior Moral | Diária | Título, visibilidade no perfil |
+| **Top Gigs** | Mais gigs concluídos (semana) | Semanal | Grana bônus, acesso a despachante exclusivo |
 | **Top Crew** | Maior poder combinado | Semanal | Território prioritário |
-| **Netrunner Elite** | Mais hacks bem-sucedidos | Semanal | Componente raro de deck |
-| **Lendas** | Jogadores que atingiram SC 100 | Permanente | Drink no menu do Saideira |
+| **Vulto Elite** | Mais hacks bem-sucedidos | Semanal | Componente raro de gazuá |
+| **Lendas** | Jogadores que atingiram Moral 100 | Permanente | Drink no menu do Saideira |
 
 ### Eventos de Temporada
 

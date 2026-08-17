@@ -22,7 +22,7 @@ Implementar mecânicas de jogo: fórmulas matemáticas, sistemas de progressão,
 - Fórmula de sucesso de gigs: `(BOD + REF + Chrome) / Dificuldade`
 - Cálculo de Humanidade e thresholds de cyberpsychosis
 - Distribuição de loot por tier
-- Sistema de Street Cred (ganho, decay, thresholds)
+- Sistema de Moral (ganho, decay, thresholds)
 - Balanceamento de economia (faucets/sinks)
 - Eventos de temporada (Corp War, Blackout)
 - Sistema de crafting e upgrades de chrome

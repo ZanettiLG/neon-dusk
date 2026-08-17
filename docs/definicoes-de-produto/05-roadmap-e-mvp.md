@@ -10,14 +10,14 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 
 | # | Feature | Descrição | Esforço |
 |---|---|---|---|
-| 1 | **Conta + Personagem** | Registro, login, criação de personagem (nome, origem, 5 atributos, role) | 3-5 dias |
+| 1 | **Conta + Personagem** | Registro, login, criação de personagem (nome, origem, 5 atributos, banca) | 3-5 dias |
 | 2 | **NIL + Regeneração** | Barra de energia, recarga passiva, syn-café como consumível | 1-2 dias |
 | 3 | **Gigs T1-T2** | 8-10 gigs de dificuldade progressiva, 3 tipos (Extraction, Delivery, Sabotage). Rolagem de stats vs dificuldade | 3-5 dias |
-| 4 | **1 Fixer (Cupim)** | Quadro de gigs, aceitar/entregar, payout | 1-2 dias |
+| 4 | **1 Despachante (Cupim)** | Quadro de gigs, aceitar/entregar, payout | 1-2 dias |
 | 5 | **Chrome Básico (T1-T2)** | 4-5 implantes, slots simples, custo de Humanidade | 2-3 dias |
-| 6 | **Street Cred** | Score, thresholds 10 e 25, leaderboard semanal | 1 dia |
-| 7 | **Economia Básica** | Eddies, loot de gig, vendors com preço fixo | 2-3 dias |
-| 8 | **Saideira (Hub)** | Acesso com SC 10, leaderboard, chat da cidade | 2-3 dias |
+| 6 | **Moral** | Score, thresholds 10 e 25, leaderboard semanal | 1 dia |
+| 7 | **Economia Básica** | Grana, loot de gig, vendors com preço fixo | 2-3 dias |
+| 8 | **Saideira (Hub)** | Acesso com Moral 10, leaderboard, chat da cidade | 2-3 dias |
 | 9 | **Crews Básicas** | Criar crew, convidar até 3 membros, bônus de 5-10% | 2-3 dias |
 | 10 | **PvP Simples** | Ataque 1v1 (comparação de stats), proteção de noob, anti-griefing | 2-3 dias |
 | 11 | **Rodada + Reset** | Duração de 14 dias, reset com preservação de Lendas | 2-3 dias |
@@ -27,11 +27,11 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 
 ### O que NÃO está no MVP
 
-- Hacking/netrunning (Fase 2)
+- Hacking (Fase 2)
 - Sistema de Stims completo (apenas syn-café no MVP)
 - Crew Wars e territórios (Fase 2)
-- Gigs T3+ e fixers avançados (Fase 2)
-- Sistema de Lendas completo (apenas SC 100 no MVP)
+- Gigs T3+ e despachantes avançados (Fase 2)
+- Sistema de Lendas completo (apenas Moral 100 no MVP)
 - Underground/apostas (Fase 3)
 - Eventos de temporada (Fase 2)
 
@@ -42,11 +42,11 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 | Feature | Descrição |
 |---|---|
 | **Hacking Básico** | Subnets, ICE layers, programas, RAM, trace |
-| **Gigs T3-T4** | +3 fixers (Sombra, Malagueta, Graxa), novos tipos de gig |
+| **Gigs T3-T4** | +3 despachantes (Sombra, Malagueta, Graxa), novos tipos de gig |
 | **Stims 1-4** | Syn-café, Reflex, AdrenaStim, Cortex+ com sistema de vício |
 | **Crew Wars** | Batalhas entre crews, territórios por distrito |
 | **Sistema de Humanidade** | Thresholds de cyberpsychosis, eventos, terapia |
-| **Trauma Team** | Assinatura de seguro, planos Silver/Gold |
+| **Resgate** | Assinatura de seguro, planos Prata/Ouro |
 | **Missões Diárias** | 3-5 missões rotativas por dia |
 | **Eventos de Temporada** | Corp War (evento de 48h), Blackout (hacking liberado) |
 
@@ -57,12 +57,12 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 | Feature | Descrição |
 |---|---|
 | **Hacking Avançado** | PvP de hacking, Black ICE, Deep Net |
-| **Gigs T5 + Fixers Elite** | Carcará, Cobra, Fantasma, Coveiro |
+| **Gigs T5 + Despachantes Elite** | Carcará, Cobra, Fantasma, Coveiro |
 | **Underground Completo** | Arenas de luta, drone races, data-trading |
 | **Sistema de Lendas** | Hall de Lendas completo com todos os achievements |
-| **Sistema de Reputação** | Multi-vetor com facções (corps, gangues, fixers individuais) |
+| **Sistema de Reputação** | Multi-vetor com facções (corps, gangues, despachantes individuais) |
 | **Crafting** | Blueprints, componentes, upgrades de chrome |
-| **Crew Roles** | Habilidades especiais de crew, gigs cooperativos |
+| **Bancas de Crew** | Habilidades especiais de crew, gigs cooperativos |
 
 ---
 
@@ -154,7 +154,7 @@ O gênero PBBG inteiro roda em stacks web convencionais há 25+ anos. A complexi
 |---|---|
 | **Taxa de gasto de NIL** | Se <80%, o loop está quebrado |
 | **Tempo até primeira Crew** | Quanto mais cedo, maior retenção |
-| **Distribuição de Roles** | Todos os roles precisam ser viáveis |
+| **Distribuição de Bancas** | Todas as bancas precisam ser viáveis |
 | **Inflação (preço médio de itens)** | Estabilidade entre rodadas = economia saudável |
 
 ### Sinais de Validação Precoce (Beta)
@@ -179,7 +179,7 @@ F2P + moeda premium (Créditos ₵) + doações. **CONVENIÊNCIA, NUNCA PODER.**
 | Item | Razão |
 |---|---|
 | Atributos/Poder | Mata confiança. The Crims VIP Assassin é o exemplo do que não fazer |
-| Street Cred | A moeda social deve ser 100% orgânica |
+| Moral | A moeda social deve ser 100% orgânica |
 | Chrome superior | Quebra o trade-off humano-máquina |
 | Vantagem em PvP | Mata o competitivo (eRepublik, Mafia Wars) |
 
@@ -191,7 +191,7 @@ F2P + moeda premium (Créditos ₵) + doações. **CONVENIÊNCIA, NUNCA PODER.**
 | **NIL Booster (24h)** | +50 NIL máximo por 24h | 50₵ |
 | **Second Wind (semanal)** | Recarga total de NIL instantânea (1x/semana) | 100₵ |
 | **Cosméticos** | Skins de HUD (cores de neon), títulos, avatares | 25-200₵ |
-| **Trauma Team Platinum** | Seguro premium (comprável com eddies também) | 500₵ |
+| **Resgate Platina** | Seguro premium (comprável com Grana também) | 500₵ |
 | **Nome de Crew customizado** | Cor, efeito no leaderboard | 250₵ |
 | **Doação/Patreon** | Suporte ao jogo, badge de apoiador | Variável |
 

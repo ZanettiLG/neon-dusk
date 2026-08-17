@@ -54,9 +54,9 @@ export function up(knex: Knex): Promise<void> {
       table.integer('technical').notNullable().defaultTo(3)
       table.integer('cool').notNullable().defaultTo(3)
       table.specificType('role', 'role_type').notNullable() // enum via .raw() + .createType()
-      table.integer('street_cred').notNullable().defaultTo(0)
+      table.integer('moral').notNullable().defaultTo(0)
       table.integer('humanity').notNullable().defaultTo(100)
-      table.integer('eddies').notNullable().defaultTo(0)
+      table.integer('grana').notNullable().defaultTo(0)
       table.jsonb('inventory').defaultTo('[]')
       table.jsonb('perks').defaultTo('{}')
       table.specificType('created_at', 'timestamptz').notNullable().defaultTo(knex.fn.now())
@@ -74,7 +74,7 @@ export function down(knex: Knex): Promise<void> {
 ```typescript
 export function up(knex: Knex): Promise<void> {
   return knex.schema.raw(`
-    CREATE TYPE role_type AS ENUM ('solo', 'netrunner', 'tech', 'fixer', 'nomad')
+    CREATE TYPE role_type AS ENUM ('bicho', 'vulto', 'gambiarrista', 'despachante', 'estradeiro', 'socorrista')
   `)
 }
 
@@ -134,14 +134,14 @@ export async function seed(knex: Knex): Promise<void> {
 
 ### Regras para Economia
 ```sql
--- Eddies nunca negativos
-ALTER TABLE characters ADD CONSTRAINT eddies_non_negative CHECK (eddies >= 0);
+-- Grana nunca negativa
+ALTER TABLE characters ADD CONSTRAINT grana_non_negative CHECK (grana >= 0);
 
 -- Humanidade entre 0 e 100
 ALTER TABLE characters ADD CONSTRAINT humanity_range CHECK (humanity >= 0 AND humanity <= 100);
 
--- Street Cred entre 0 e 100
-ALTER TABLE characters ADD CONSTRAINT street_cred_range CHECK (street_cred >= 0 AND street_cred <= 100);
+-- Moral entre 0 e 100
+ALTER TABLE characters ADD CONSTRAINT moral_range CHECK (moral >= 0 AND moral <= 100);
 
 -- Atributos entre 1 e 20
 ALTER TABLE characters ADD CONSTRAINT body_range CHECK (body >= 1 AND body <= 20);
@@ -156,7 +156,7 @@ ALTER TABLE crew_members ADD CONSTRAINT fk_crew
 
 ALTER TABLE gigs ADD CONSTRAINT fk_fixer 
   FOREIGN KEY (fixer_id) REFERENCES fixers(id) ON DELETE RESTRICT;
--- Não pode deletar fixer se tem gigs pendentes
+-- Não pode deletar despachante se tem gigs pendentes
 
 ALTER TABLE characters ADD CONSTRAINT fk_user 
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
@@ -167,12 +167,12 @@ ALTER TABLE characters ADD CONSTRAINT fk_user
 
 ```sql
 -- Leaderboard (query mais comum do jogo)
-CREATE INDEX idx_characters_street_cred ON characters(street_cred DESC);
+CREATE INDEX idx_characters_moral ON characters(moral DESC);
 
 -- Busca por distrito
 CREATE INDEX idx_gigs_district ON gigs(district);
 
--- Busca por fixer + tier
+-- Busca por despachante + tier
 CREATE INDEX idx_gigs_fixer_tier ON gigs(fixer_id, tier);
 
 -- FKs sempre indexadas

@@ -5,9 +5,9 @@
 | Asset | Uso |
 |---|---|
 | Ícones de atributos | BOD, REF, INT, TEC, COL |
-| Ícones de roles | Solo, Netrunner, Tech, Fixer, Nomad |
+| Ícones de bancas | Bicho, Vulto, Gambiarrista, Despachante, Estradeiro, Socorrista |
 | Ícones de ação | atacar, instalar, hackear, entregar, negociar |
-| Ícones de recursos | NIL, Humanidade, eddies, SC, RAM, Trace |
+| Ícones de recursos | NIL, Humanidade, Grana, Moral, RAM, Trace |
 | Molduras de cards | comum, raro, elite, lendário |
 | Badges de tier | T1-T5 |
 | Indicadores de estado | sucesso, risco, cooldown, bloqueado, degradado |
@@ -17,7 +17,7 @@
 | Asset | Quantidade inicial |
 |---|---|
 | Banners de distritos | 7 |
-| Retratos de fixers | 8 |
+| Retratos de despachantes | 8 |
 | Ícones de stims | 8 |
 | Ícones de chrome por slot | 9-20 |
 | Ícones de tipos de gig | 7 |
@@ -27,18 +27,18 @@
 
 ## Prioridade 2 — Expansão
 
-- Retratos por origem e role.
+- Retratos por origem e banca.
 - Gangues (8) e corporações (6).
 - Vendors e NPCs.
 - Missões especiais.
 - Eventos de temporada.
-- Planos de seguro (Trauma Team próprio).
+- Planos de seguro (Resgate).
 - Territórios e crew wars.
 - Cenas de reset, flatline e rank-up.
 
 ## Direção por categoria
 
-### Fixers (8)
+### Despachantes (8)
 - Cupim: caótico, Babilônia, jaqueta remendada.
 - Sombra: vulto, fria, Quebrada.
 - Malagueta: terno sintético, drink, sorriso sem calor.
@@ -64,7 +64,7 @@
 - Marmita de bandejão.
 - Implantes com fabricação da Aço Paulista ou Instituto Paraíso.
 - Drinks nomeados de Lendas.
-- Decks, chips, vela de santo digital, amuletos de Ogum.
+- Gazuás, chips, vela de santo digital, amuletos de Ogum.
 
 ## Regras de produção
 

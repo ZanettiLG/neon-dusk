@@ -23,7 +23,7 @@ Issue #42 (feature principal)
 ├── comentário: handoff do code-reviewer
 ├── PR #43 (linkado à issue)
 │   ├── corpo: resumo da implementação (PR template)
-│   └── comentários: review do pr-reviewer (QA/DevOps/Tech Lead)
+│   └── comentários: review do pr-reviewer (QA/DevOps/tech lead)
 └── [opcional] sub-issues linkadas: #44 (schema), #45 (UI)
 ```
 
@@ -124,7 +124,7 @@ Closes #42
 
 ### PR Review (pr-reviewer)
 
-O `pr-reviewer` audita o PR como QA/DevOps/Tech Lead:
+O `pr-reviewer` audita o PR como QA/DevOps/tech lead:
 
 1. Lê o diff do PR (`gh pr diff <pr_number>`)
 2. Lê os handoffs nos comentários da issue linkada

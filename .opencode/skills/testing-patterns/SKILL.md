@@ -177,7 +177,7 @@ describe('CharacterCard', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('Street Cred:')).toBeInTheDocument()
+      expect(screen.getByText('Moral:')).toBeInTheDocument()
     })
   })
 })

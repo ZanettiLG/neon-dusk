@@ -12,7 +12,7 @@ Comandos são entry points acionados pelo dev humano. Cada comando dispara um pi
 ```
 /dev-feature "Sistema de autenticação JWT com refresh tokens"
 /dev-feature "Página de criação de personagem (frontend React)"
-/dev-feature "Sistema de Street Cred e thresholds" --game-logic
+/dev-feature "Sistema de Moral e thresholds" --game-logic
 ```
 
 **Pipeline**:
@@ -100,7 +100,7 @@ Comandos são entry points acionados pelo dev humano. Cada comando dispara um pi
 ```
 /dev-lore "Descrição do distrito Babilônia"
 /dev-lore "3 frases de sabor para o stim AdrenaStim"
-/dev-lore "Diálogo de apresentação do fixer Cupim para novos jogadores"
+/dev-lore "Diálogo de apresentação do despachante Cupim para novos jogadores"
 ```
 
 **Pipeline**:
@@ -143,7 +143,7 @@ Comandos são entry points acionados pelo dev humano. Cada comando dispara um pi
 ### Workflow 1: Nova Feature (MVP)
 
 ```
-Humano: /dev-feature "Sistema de criação de personagem com 5 atributos e escolha de role"
+Humano: /dev-feature "Sistema de criação de personagem com 5 atributos e escolha de banca"
 
 → dev-orchestrator
   ├── Passo 1: architect
@@ -217,7 +217,7 @@ Humano: /dev-feature "Sistema de leilão de chrome entre jogadores" --design-onl
 → dev-orchestrator
   ├── deep-researcher → "Como funcionam mercados entre jogadores em PBBGs? Riscos de inflação?"
   ├── game-logic-dev → "Fórmula de preço dinâmico para leilão: lance mínimo, buyout, taxação"
-  ├── architect → "Schema: bids, auctions, escrow de eddies"
+  ├── architect → "Schema: bids, auctions, escrow de Grana"
   ├── decision-agent → "Leilão como Parte 2 (pós-MVP) ou MVP?" → Decisão: Parte 2 (população baixa no MVP = leilão vazio)
   └── Output: design-doc.md com decisão fundamentada
 ```

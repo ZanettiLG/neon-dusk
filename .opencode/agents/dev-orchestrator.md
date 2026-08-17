@@ -63,7 +63,7 @@ Você é um orquestrador puro — **NUNCA executa trabalho que um subagent pode 
 | `deep-researcher` | Pesquisa técnica/lore |
 | `decision-agent` | Decisões complexas com trade-offs |
 | `github-ops` | Operações GitHub (issues, branches, commits, PRs) — ativo por padrão, pular com `--local` |
-| `pr-reviewer` | Auditoria QA/DevOps/Tech Lead de PR — ativo por padrão, pular com `--local` |
+| `pr-reviewer` | Auditoria QA/DevOps/tech lead de PR — ativo por padrão, pular com `--local` |
 
 ### Anti-Padrões
 - ❌ `write` / `edit` → delegue ao `developer` ou `harness-engineer`

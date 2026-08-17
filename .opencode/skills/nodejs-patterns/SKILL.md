@@ -140,26 +140,26 @@ interface Character {
   user_id: string
   name: string
   body: number
-  role: 'solo' | 'netrunner' | 'tech' | 'fixer' | 'nomad'
-  street_cred: number
-  eddies: number
+  role: 'bicho' | 'vulto' | 'gambiarrista' | 'despachante' | 'estradeiro'
+  moral: number
+  grana: number
 }
 
 // SELECT with type inference
 const chars = await db<Character>('characters')
-  .select('id', 'name', 'street_cred')
-  .where('street_cred', '>', 50)
-  .orderBy('street_cred', 'desc')
+  .select('id', 'name', 'moral')
+  .where('moral', '>', 50)
+  .orderBy('moral', 'desc')
 
 // INSERT returning
 const [char] = await db<Character>('characters')
-  .insert({ name: 'Vex', user_id: userId, body: 5, role: 'solo' })
+  .insert({ name: 'Vex', user_id: userId, body: 5, role: 'bicho' })
   .returning('*')
 
 // UPDATE with returning
 const [updated] = await db<Character>('characters')
   .where({ id })
-  .update({ street_cred: db.raw('street_cred + ?', [10]) })
+  .update({ moral: db.raw('moral + ?', [10]) })
   .returning('*')
 
 // JOIN
@@ -176,13 +176,13 @@ const results = await db('gigs')
 await db.transaction(async trx => {
   const [account] = await db('characters')
     .where({ id })
-    .where('eddies', '>=', amount) // optimistic lock
+    .where('grana', '>=', amount) // optimistic lock
     .transacting(trx)
     .forUpdate()
-    .decrement('eddies', amount)
-    .returning('eddies')
+    .decrement('grana', amount)
+    .returning('grana')
 
-  if (!account) throw new AppError(400, 'INSUFFICIENT_FUNDS', 'Not enough eddies')
+  if (!account) throw new AppError(400, 'INSUFFICIENT_FUNDS', 'Grana insuficiente')
 
   await db('transaction_log')
     .insert({ character_id: id, amount: -amount, reason })

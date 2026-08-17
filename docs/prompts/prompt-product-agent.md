@@ -1,1 +1,1 @@
-Neon Dusk é um browser RPG multiplayer cyberpunk em São Paulo, 2087. Jogue como edgerunner: realize gigs, instale chrome, gerencie humanidade e suba do anonimato à lenda. Sessões de 2-3 min, PWA, rodadas de 14 dias com prestígio permanente. F2P sem pay-to-win.
+Neon Dusk é um browser RPG multiplayer cyberpunk em São Paulo, 2087. Jogue como corredor: realize gigs, instale chrome, gerencie humanidade e suba do anonimato à lenda. Sessões de 2-3 min, PWA, rodadas de 14 dias com prestígio permanente. F2P sem pay-to-win.
