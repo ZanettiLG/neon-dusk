@@ -55,18 +55,26 @@ export function authHeader(token: string): { Authorization: string } {
 export async function resetDb(): Promise<void> {
   const truncate = () =>
     db.raw("TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE");
-  try {
-    await truncate();
-  } catch (err) {
-    // The ND-053 audit hook writes audit_log fire-and-forget AFTER the
-    // response; a previous test's write can still be in-flight when this
-    // TRUNCATE (which cascades into audit_log) runs, and TRUNCATE/INSERT
-    // deadlock transiently. Retry once once the competing write settles.
-    if (err instanceof Error && err.message.includes("deadlock")) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+
+  let attempt = 0;
+  for (;;) {
+    try {
       await truncate();
-    } else {
-      throw err;
+      return;
+    } catch (err) {
+      // 40P01: a previous test's fire-and-forget audit_log INSERT can still be
+      // in-flight (ROW EXCLUSIVE on audit_log + FK KEY SHARE on characters)
+      // when this TRUNCATE CASCADE runs, deadlocking transiently. Retry with
+      // backoff until the competing write settles. If PostgreSQL picks the
+      // audit INSERT as victim instead, it is harmless (auditLog .catch swallows).
+      const code = (err as { code?: string }).code;
+      const isDeadlock =
+        code === "40P01" ||
+        (err instanceof Error && err.message.includes("deadlock"));
+      if (!isDeadlock) throw err;
+      if (attempt >= 2) throw err; // exhausted — let it surface
+      await new Promise((resolve) => setTimeout(resolve, 50 * Math.pow(2, attempt)));
+      attempt += 1;
     }
   }
 }

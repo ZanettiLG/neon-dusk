@@ -469,11 +469,24 @@ export async function buyFromVendor(
       source: result.transaction.source,
     });
 
-    // 9. Decrement stock (unlimited items are skipped)
+    // 9. Decrement stock atomically (relative, guarded against oversell).
+    // The UPDATE serializes concurrent buyers on the vendor_inventory row lock:
+    // the second UPDATE blocks until the first commits, then re-reads the
+    // committed stock and re-evaluates the WHERE. A stale absolute value can
+    // never overwrite a correct one (fixes the concurrent-buyer lost update).
     if (item.stock >= 0) {
-      await trx("vendor_inventory")
-        .update({ stock: item.stock - quantity })
-        .where("id", item.id);
+      const [decremented] = await trx("vendor_inventory")
+        .update({ stock: trx.raw("stock - ?", [quantity]) })
+        .where("id", item.id)
+        .where("stock", ">=", quantity)
+        .returning("stock");
+
+      if (!decremented) {
+        // A concurrent buyer drained the remaining stock after the step-2
+        // pre-check. Same business error as the pre-check; the transaction
+        // rolls back the wallet debit and the audit entry.
+        throw new AppError(400, "OUT_OF_STOCK", "Esgotado");
+      }
     }
 
     // 10. Paid syn-café restores +20 NIL instantly, no cooldown.
