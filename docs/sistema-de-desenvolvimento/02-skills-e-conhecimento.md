@@ -50,7 +50,7 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 
 **Tópicos**:
 - Faucets (fontes de moeda): trampos, hustles, vendas, loot
-- Sinks (sumidouros): cromo, terapia, Resgate, housing, stims
+- Sinks (sumidouros): cromo, terapia, Resgate, housing, ampolas
 - Inflação: instrumentação (log de todas as transações), métricas de alerta
 - Preços fixos vs dinâmicos: modelo RED (8 categorias de preço fixo)
 - Moeda premium: conveniência, nunca poder; comprável com moeda do jogo
@@ -68,7 +68,7 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 | **Conteúdo** | Vocabulário, tom, referências do universo cyberpunk para UI e narrativa |
 
 **Tópicos**:
-- Glossário cyberpunk (cromo, Grana, despachante, trampo, flatline, etc.)
+- Glossário cyberpunk (cromo, Grana, despachante, trampo, apagar, etc.)
 - Tom de voz (noir sujo, irônico, estilo Gibson)
 - Referências de UI textual (como escrever descrições de implantes, mensagens de erro diegéticas)
 - Frases de exemplo para cada contexto (sucesso, falha, morte, level up)

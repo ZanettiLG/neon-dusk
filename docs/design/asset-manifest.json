@@ -15,7 +15,7 @@
     "p1_identidade_mundo": [
       "banners-distritos (7)",
       "retratos-fixers (8)",
-      "icones-stims (8)",
+      "icones-ampolas (8)",
       "icones-chrome",
       "icones-tipos-gig (7)",
       "drinks-saideira",
@@ -31,7 +31,7 @@
       "eventos-temporada",
       "planos-seguro",
       "territorios-crew-wars",
-      "cenas-reset-flatline-rankup"
+      "cenas-reset-apagar-rankup"
     ]
   },
   "rules": {
@@ -48,7 +48,7 @@
       "icones",
       "banners-distritos",
       "retratos-fixers",
-      "stims",
+      "ampolas",
       "chrome",
       "drinks",
       "eventos",

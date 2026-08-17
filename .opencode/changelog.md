@@ -2,6 +2,33 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-17 — N1: Guard de terminologia com probe self-check e cobertura de arquivos soltos (issue #148)
+
+### Trigger
+Entrada Cortex+ do BANNED ficou inerte (regex case-sensitive testado contra linha lowercased) e só o review pegou; README.md e docs/BETA_CHECKLIST.md estavam fora dos ROOTS — varridos manualmente, sem rede de segurança.
+
+### Change
+- Probe self-check: 52 probes sintéticas (uma por entrada do BANNED, incluindo as pré-existentes do #147); o guard falha (exit 1) se alguma entrada não disparar no próprio probe.
+- ROOTS: suporte a arquivos .md individuais via constante FILES — README.md e docs/BETA_CHECKLIST.md incluídos, ambos com zero violações (sem falsos positivos; nenhuma anotação #145 necessária).
+
+### Impact
+Regressão de terminologia em prosa e em arquivos soltos de produto passa a falhar no CI; o guard auto-verifica a própria eficácia a cada execução. Nota: o self-check revelou que a entrada syn-café (`é` + `\b`) só disparava no plural/átono — corrigido no mesmo dia (fix da regex + probe na forma singular acentuada).
+
+## 2026-08-17 — N2: Adaptação total da lore cyberpunk para PT-BR (issue #148)
+
+### Trigger
+Sobravam 8 termos de lore em inglês nos docs de produto e skills (flatline, stim, ICE, Grid, Deep Net, Burnout, Blackout e a lista de stims), mantidos como "Casos de Borda" no doc 06 — inconsistentes com a marca própria "São Paulo 2087" e com o world doc, que já chamava o evento de 2075 de "O Apagão". A tagline do README continha "chrome", termo banido pela regra 4.
+
+### Change
+- 06-terminologia-e-ip.md: seção "Casos de Borda Mantidos" substituída por substituições canônicas (apagar, ampola, trava, O Fundo, ressaca, O Apagão).
+- cyberpunk-lore + game-economy: glossário e Lista de Ampolas reescritos com 7 nomes próprios novos (Pingado, Tranco, Porrada, Ligado, Sumiço, Brilho, Renda Preta); Pancadão mantido.
+- check-terminologia.mjs: 16 novas entradas no BANNED (caseSensitive + lookaheads para Reflex/Ghost/ICE/Cortex+) + skip de frontmatter YAML.
+- Docs 02–05, BETA_CHECKLIST, design/ e sistema-de-desenvolvimento varridos.
+- README: tagline traduzida para PT-BR.
+
+### Impact
+Guarda de consistência cobre o resíduo de lore em inglês; doc 06 volta a ser a única fonte de verdade dos nomes de marca. Zero mudança de código/schema (renames são follow-up #145). Nomes aprovados pelo humano (precedente #147).
+
 ## 2026-08-16 — N2: Pipelines em paralelo + verificação de config no source
 
 ### Trigger

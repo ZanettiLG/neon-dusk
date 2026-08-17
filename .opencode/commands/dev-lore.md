@@ -12,7 +12,7 @@ Gera texto diegético seguindo o tom cyberpunk do jogo.
 
 ```
 /dev-lore "Descrição do distrito Babilônia para a UI"
-/dev-lore "3 frases de sabor para o stim AdrenaStim"
+/dev-lore "3 frases de sabor para a ampola Porrada"
 /dev-lore "Diálogo de apresentação do despachante Cupim para novos jogadores"
 /dev-lore "Mensagem de erro diegética para 'NIL insuficiente'"
 ```

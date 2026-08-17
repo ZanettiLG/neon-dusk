@@ -42,7 +42,7 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Atributo | Valor |
 |---|---|
 | Atributo primário | Intelligence |
-| Habilidade especial | **Deep Dive**: acessa subnets 1 tier acima do seu nível. 8h cooldown |
+| Habilidade especial | **Mergulho**: acessa subnets 1 tier acima do seu nível. 8h cooldown |
 | Bônus passivo | +20% RAM, -25% trace gerado |
 | Estilo de jogo | Hacking, espionagem digital, suporte ao bonde |
 | Frase | *"A fechadura mais forte do mundo não serve de nada se a porta é o cérebro do guarda."* |
@@ -143,7 +143,7 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 | 70-41 | **Instável** | 5% de chance de evento agressivo em trampos (atacar aliado, falhar teste social) |
 | 40-21 | **Borderline** | 15% de chance de evento. Alucinações (informação falsa na UI). Membros do bonde podem recusar trampos com você |
 | 20-1 | **Cyberpsycho** | 30% de chance de evento. Perda de controle (ações aleatórias). A Garra pode ser acionada |
-| **0** | **Flatline** | Personagem **perdido permanentemente**. Nome removido dos rankings. Pode ser recriado na PRÓXIMA rodada. Se tiver status de Lenda, nome fica no menu do Saideira |
+| **0** | **Apagado** | Personagem **perdido permanentemente**. Nome removido dos rankings. Pode ser recriado na PRÓXIMA rodada. Se tiver status de Lenda, nome fica no menu do Saideira |
 
 ### Terapia
 
@@ -219,7 +219,7 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 | **Terapia de Humanidade** | Manutenção de build | 5.000 - 20.000/sessão |
 | **Resgate** (assinatura) | Seguro contra morte | 500 - 5.000/mês (rodada) |
 | **Housing/Lifestyle** | Custo recorrente | 200 - 10.000/mês |
-| **Stims e consumíveis** | Vantagem temporária | 50 - 10.000 |
+| **Ampolas e consumíveis** | Vantagem temporária | 50 - 10.000 |
 | **Informação (Legwork)** | Vantagem em trampos | 100 - 5.000 |
 
 ### Resgate — Assinatura Premium (Não-P2W)
@@ -240,9 +240,9 @@ Para simplificar a economia e evitar inflação descontrolada:
 
 | Categoria | Faixa de Preço | Exemplos |
 |---|---|---|
-| Cheap | G$ 10-100 | Syn-café, kibble, munição básica |
-| Everyday | G$ 100-500 | Refeição, aluguel de coffin, stim comum |
-| Costly | G$ 500-1.000 | Stims incomuns, arma básica, cromo T1 |
+| Cheap | G$ 10-100 | Pingado, kibble, munição básica |
+| Everyday | G$ 100-500 | Refeição, aluguel de coffin, ampola comum |
+| Costly | G$ 500-1.000 | Ampolas incomuns, arma básica, cromo T1 |
 | Premium | G$ 1.000-5.000 | Cromo T2, arma avançada, terapia básica |
 | Expensive | G$ 5.000-20.000 | Cromo T3, estimulantes raros, informação |
 | Very Expensive | G$ 20.000-50.000 | Cromo T4, gazuá avançado, cirurgia |

@@ -18,7 +18,7 @@
 |---|---|
 | Banners de distritos | 7 |
 | Retratos de despachantes | 8 |
-| Ícones de stims | 8 |
+| Ícones de ampolas | 8 |
 | Ícones de cromo por slot | 9-20 |
 | Ícones de tipos de trampo | 7 |
 | Drinks do menu Saideira | 6-12 |
@@ -34,7 +34,7 @@
 - Eventos de temporada.
 - Planos de seguro (Resgate).
 - Territórios e guerra de bondes.
-- Cenas de reset, flatline e rank-up.
+- Cenas de reset, apagar e rank-up.
 
 ## Direção por categoria
 
@@ -58,7 +58,7 @@
 - O Ponto: metrô inundado, água preta, grafites de Exu.
 
 ### Itens
-- Syn-café em copo americano sujo.
+- Pingado em copo americano sujo.
 - Pastel de proteína sintética.
 - Caldo de cana "vat 65".
 - Marmita de bandejão.

@@ -16,18 +16,18 @@ Isso preserva: filosofia do gênero PBBG, autoridade do servidor (anti-cheat) e 
 | Rank-up de Moral | Glitch dourado, título revelado, efeito breve no header |
 | Porta do Saideira | Segurança avalia Moral antes de liberar a entrada ("Sem moral, sem entrada, sem choro") |
 | Menu de Lendas | Cards de drinks com "brindar", card flip e detalhes do jogador |
-| Syn-café ritual | Microanimação de café + NIL regenerando |
+| Ritual do Pingado | Microanimação de café + NIL regenerando |
 | Reset da rodada | Contagem final + "Apagão" visual + tela de transição |
 
 ## Fase 2
 
 | Interação | Observação |
 |---|---|
-| Hacking como tabuleiro de nós | Nós, camadas de ICE, RAM e Trace; jogador decide programas e rota; servidor resolve |
+| Hacking como tabuleiro de nós | Nós, camadas de trava, RAM e Trace; jogador decide programas e rota; servidor resolve |
 | Escolha de abordagem | Stealth, Assault ou Netrun com modificadores visíveis antes do execute |
 | Scanner de heat | Rádio policial/mapa de risco por distrito |
 | Boletim do submundo | Missões diárias como mural da Babilônia |
-| Eventos de temporada | Overlay global para Corp War, Blackout 2.0 e Night of the Long Knives |
+| Eventos de temporada | Overlay global para Corp War, Apagão 2.0 e Night of the Long Knives |
 
 ## Fase 3 (referência futura)
 

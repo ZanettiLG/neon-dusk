@@ -24,7 +24,7 @@ Implementar mecânicas de jogo: fórmulas matemáticas, sistemas de progressão,
 - Distribuição de loot por tier
 - Sistema de Moral (ganho, decay, thresholds)
 - Balanceamento de economia (faucets/sinks)
-- Eventos de temporada (Corp War, Blackout)
+- Eventos de temporada (Corp War, Apagão)
 - Sistema de crafting e upgrades de cromo
 
 ## Self-Check (8 itens)

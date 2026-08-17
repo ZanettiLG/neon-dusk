@@ -8,7 +8,7 @@ Neon Dusk traduz CADA mecânica comprovada dos PBBGs de sucesso (The Crims, Torn
 |---|---|---|---|
 | Energia | Stamina/Tickets | **Neural Interface Load (NIL)** | Cyberware Capacity (2077), RAM (2077) |
 | Ações | Crimes/Roubos | **Trampos** (por tier e despachante) | missões do gênero (CP2077), Shadowrun loop 5 fases |
-| Consumíveis | Drogas (14) | **Stims** (8 tipos) | Combat drugs TTRPG, glitter |
+| Consumíveis | Drogas (14) | **Ampolas** (8 tipos) | Combat drugs TTRPG, brilho |
 | Gangues | Gangues | **Bondes** (5 bancas + 1 líder) | bonde de mercenários |
 | Score | Respeito | **Moral** (0-100) | Reputação de rua (CP2077) |
 | Treino | Treino/Universidade | **Cromo + Simuladores** | Médicos de cromo (RED), Humanity Cost |
@@ -32,7 +32,7 @@ Toda ação significativa em São Paulo exige interface neural — seus implante
 | **Custo de trampo T1** | 10-15 NIL | Permite 6-10 trampos por ciclo |
 | **Custo de trampo T3** | 25-40 NIL | Permite 2-4 trampos por ciclo |
 | **Custo de PvP** | 20 NIL | Limita grinding de PvP |
-| **Regen com consumível** | Syn-café: +20 NIL (1h cooldown) | Sem custo colateral |
+| **Regen com consumível** | Pingado: +20 NIL (1h cooldown) | Sem custo colateral |
 | **Regen com cromo** | Implante Neural Accelerator: +50% regen passiva | Custa 15 Humanidade |
 
 ### Por que NIL, não "Stamina"?
@@ -113,7 +113,7 @@ Trampos são missões oferecidas por despachantes. Cada trampo tem: tier, tipo, 
 |---|---|
 | **Iniciação** | Atacante gasta 20 NIL. Só pode atacar alvos ±10 níveis |
 | **Resolução** | Comparação de stats: `(Body + Reflexes + Poder de Cromo) vs (Body + Reflexes + Poder de Cromo do defensor)` |
-| **Modificadores** | Stims (+15-30%), bônus de bonde, bônus de território |
+| **Modificadores** | Ampolas (+15-30%), bônus de bonde, bônus de território |
 | **Vitória** | Vencedor ganha Moral + 10% da Grana em mãos do perdedor |
 | **Derrota** | Perdedor perde 5% de Moral + 10% da Grana em mãos. **TETO**: máximo de 3 derrotas/dia com perda |
 | **Anti-griefing** | Máximo de 3 ataques ao mesmo jogador por semana. Após isso, eficácia cai para 10% |
@@ -133,25 +133,25 @@ Hacking é um **sistema paralelo** de progressão — uma segunda camada de game
 
 ### A Rede (The Net)
 
-A Rede de São Paulo é fragmentada desde o Blackout de 2075. Ao invés de uma internet global, existem **subnets isoladas**:
+A Rede de São Paulo é fragmentada desde o Apagão de 2075. Ao invés de uma internet global, existem **subnets isoladas**:
 
 | Tipo de Subnet | Localização | Conteúdo | Risco |
 |---|---|---|---|
 | **Node Público** | Qualquer lugar | Informação básica, boatos, arquivos públicos | Mínimo |
-| **Subnet Corporativa** | A Paraíso, O Fervo | Dados de pesquisa, segredos comerciais, blueprints | Alto (ICE corporativo) |
+| **Subnet Corporativa** | A Paraíso, O Fervo | Dados de pesquisa, segredos comerciais, blueprints | Alto (trava corporativa) |
 | **Subnet de Gangue** | Territórios de gangue | Localização de loot, planos de ataque, comunicações | Médio |
-| **Subnet Fantasma** | As Mortas | Dados pré-Blackout, IA abandonada, segredos perdidos | Muito Alto |
-| **Deep Net** | O Ponto | Conteúdo de endgame. Atrás da Porteira. AIs hostis | Extremo |
+| **Subnet Fantasma** | As Mortas | Dados pré-Apagão, IA abandonada, segredos perdidos | Muito Alto |
+| **O Fundo** | O Ponto | Conteúdo de endgame. Atrás da Porteira. AIs hostis | Extremo |
 
 ### Mecânica de Hacking
 
 | Parâmetro | Funcionamento |
 |---|---|
 | **RAM** | Recurso do Vulto. Determinado pelo Gazuá. Ações de hack consomem RAM. Recarrega 1 RAM/60s |
-| **ICE Layers** | Cada subnet tem camadas de defesa (1-5). Cada camada = 1 encontro de ICE |
-| **Programas** | Ferramentas de hack ocupam slots (5/7/9 por gazuá). Ex: ICEbreaker (dano), Stealth (bypass), Datamine (loot extra), Trace (rastrear origem) |
+| **Camadas de trava** | Cada subnet tem camadas de defesa (1-5). Cada camada = 1 encontro de trava |
+| **Programas** | Ferramentas de hack ocupam slots (5/7/9 por gazuá). Ex: Pé-de-Cabra (dano), Stealth (bypass), Datamine (loot extra), Trace (rastrear origem) |
 | **Trace** | Cada ação de hack tem traceability. Acumula progresso de trace. Ao estourar → alerta, segurança, contra-ataque |
-| **Black ICE** | ICE letal que causa dano neural. Ocupa 2 slots. Drop raro. Pode ser plantado na SUA rede como defesa |
+| **Trava Letal** | Trava letal que causa dano neural. Ocupa 2 slots. Drop raro. Pode ser plantada na SUA rede como defesa |
 | **Vírus** | Planta vírus persistente em subnet inimiga. Efeito passivo: -5% eficiência de trampos naquele distrito por 24h |
 
 ### Integração com o Loop Principal
@@ -164,7 +164,7 @@ Hackear rede de jogador → roubar dados → chantagear ou vender
 
 ### PvP de Hacking
 
-- **Defesa**: jogador planta ICE, Demons, senhas em sua rede pessoal
+- **Defesa**: jogador planta trava, Demons, senhas em sua rede pessoal
 - **Ataque**: jogador invade rede de outro jogador. Se chegar ao vault, rouba dados/info
 - **Risco**: invasor deixa rastro. Defensor pode trace-back e contra-atacar
 - **Cooldown**: 48h entre invasões ao mesmo alvo
@@ -172,28 +172,28 @@ Hackear rede de jogador → roubar dados → chantagear ou vender
 
 ---
 
-## 5. Sistema de Stims (Consumíveis)
+## 5. Sistema de Ampolas (Consumíveis)
 
 Análogo às 14 drogas do The Crims, adaptado para o universo cyberpunk.
 
-### Catálogo de Stims
+### Catálogo de Ampolas
 
-| Stim | Efeito Principal | Duração | Custo Colateral | Raridade | Preço Base (G$) |
+| Ampola | Efeito Principal | Duração | Custo Colateral | Raridade | Preço Base (G$) |
 |---|---|---|---|---|---|
-| **Syn-café** | +20 NIL | Instantâneo | Nenhum (legal) | Comum | 50 |
-| **Reflex** | +15% sucesso em trampos de Reflexes | 2h | Tremor (-5% Cool por 1h após) | Comum | 200 |
-| **AdrenaStim** | +30 NIL, +10% Body | Instantâneo | Burnout (-10 NIL máximo por 4h) | Incomum | 500 |
-| **Cortex+** | +20% sucesso em hacking | 2h | Dor de cabeça (-10% Intelligence por 1h após) | Incomum | 600 |
-| **Ghost** | +30% sucesso em stealth/Cool | 1h | Paranoia (eventos aleatórios de "alarme falso") | Raro | 1.500 |
+| **Pingado** | +20 NIL | Instantâneo | Nenhum (legal) | Comum | 50 |
+| **Tranco** | +15% sucesso em trampos de Reflexes | 2h | Tremor (-5% Cool por 1h após) | Comum | 200 |
+| **Porrada** | +30 NIL, +10% Body | Instantâneo | Ressaca (-10 NIL máximo por 4h) | Incomum | 500 |
+| **Ligado** | +20% sucesso em hacking | 2h | Dor de cabeça (-10% Intelligence por 1h após) | Incomum | 600 |
+| **Sumiço** | +30% sucesso em stealth/Cool | 1h | Paranoia (eventos aleatórios de "alarme falso") | Raro | 1.500 |
 | **Pancadão** | +50% Body, +30% dano | 30min | -20 Humanidade temporária, risco de evento agressivo | Raro | 2.500 |
-| **Glitter** | +40 Moral temporária, social | 3h | Addiction (debuff cumulativo), overdose possível | Raro | 3.000 |
-| **Black Lace** | +100% todos os stats de combate | 15min | -50 Humanidade temporária, 5% de chance de cyberpsychosis | Lendário | 10.000 |
+| **Brilho** | +40 Moral temporária, social | 3h | Addiction (debuff cumulativo), overdose possível | Raro | 3.000 |
+| **Renda Preta** | +100% todos os stats de combate | 15min | -50 Humanidade temporária, 5% de chance de cyberpsychosis | Lendário | 10.000 |
 
 ### Mecânica de Vício
 
-- Cada uso de stim raro+ aumenta um contador de **Addiction**
-- Addiction > 20: sintomas de abstinência (-10% todos os stats se não usar stim em 24h)
-- Addiction > 50: overdose risk (5% de chance de flatline ao usar stim)
+- Cada uso de ampola rara+ aumenta um contador de **Addiction**
+- Addiction > 20: sintomas de abstinência (-10% todos os stats se não usar ampola em 24h)
+- Addiction > 50: overdose risk (5% de chance de apagar ao usar ampola)
 - **Detox**: disponível em clínicas (caro, 48h de inatividade). Ou implante Neural Scrubber (-15 Humanidade)
 
 ### Regra de Ouro
@@ -269,5 +269,5 @@ Substitui o "casino" do The Crims com atividades temáticas cyberpunk:
 ### Eventos de Temporada
 
 - **Corp War**: evento de 48h. Escolha um lado (Grupo Falcão vs Aço Paulista). Trampos PvP massivos
-- **Blackout 2.0**: ataque à infraestrutura. Hacking liberado em todos os distritos
+- **Apagão 2.0**: ataque à infraestrutura. Hacking liberado em todos os distritos
 - **Night of the Long Knives**: 24h sem proteção de noob. Alto risco, alta recompensa

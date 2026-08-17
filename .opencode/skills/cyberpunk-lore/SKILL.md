@@ -26,12 +26,12 @@ Skill de lore cyberpunk. Vocabulário, tom de voz, referências para escrever co
 | **Grana** (G$) | Moeda. O dinheiro de rua se chama pelo nome da rua | "O despachante pagou 5 mil. Grana limpa." |
 | **Despachante** | Intermediário de missões. Exu despacha pedido na encruzilhada; o despachante despacha o trampo | "Cupim tem um trampo para você." |
 | **Trampo** | Missão, trabalho — o corre que paga | "Trampo disponível: extração em O Fervo" |
-| **Flatline** | Morrer | "Mais um que flatlineou no Grid." |
+| **Apagar** | Morrer | "Mais um que apagou na Rede." |
 | **Ferrageiro** | Médico de cromo ilegal. Ogum rege o ferro — ferreiro de gente | "Conheço um Ferrageiro na Quebrada." |
 | **Vulto** | Hacker. Ninguém vê o rosto — só o vulto na Rede | "Precisa de um Vulto para esse servidor." |
-| **ICE** | Intrusion Countermeasures Electronics | "O servidor tem ICE camada 3." |
+| **Trava** | Contramedida de intrusão eletrônica | "O servidor tem trava camada 3." |
 | **Moral** (★) | Reputação de rua. Moeda social — ter moral é ter passe | "Com essa moral, até a Carcará te atende." |
-| **Stim** | Estimulante/droga | "AdrenaStim: +30 NIL. Burnout depois." |
+| **Ampola** | Estimulante/droga | "Porrada: +30 NIL. Ressaca depois." |
 | **Bonde** | Equipe/gangue — a família da rua, como o bonde do funk: anda junto, pesa junto | "Seu bonde controla O Fervo esta semana." |
 | **A Saideira** | Bar das lendas | "Te vejo na Saideira. Se sobreviver." |
 
@@ -53,7 +53,7 @@ Vocabulário da São Paulo periférica que sobreviveu até 2087. Uso obrigatóri
 | **salve** | Saudação, shout-out | "Manda um salve pra quebrada." |
 | **vida loka** | Ethos de sobrevivência na margem. Orgulho e fatalismo | "Vida loka, mano. Até o fim." |
 | **malandro** | Esperto, vivente da rua. Ambigo: elogio ou acusação | "Cupim é malandro. Mas é dos nossos." |
-| **treta** | Briga, rolo, conflito | "Treta feia no Fervo ontem. Três flatline." |
+| **treta** | Briga, rolo, conflito | "Treta feia no Fervo ontem. Três apagaram." |
 | **gambé** | Polícia, PM. Hostil | "Corre que os gambé vem. Corre." |
 | **demorô** | "Fechado, combinado." Selo de pacto | "Demorô. Tamo junto nessa fita." |
 | **tá ligado** | "Entendeu?" / "Tô junto." Marcador de pacto | "O bagulho é sinistro, tá ligado?" |
@@ -70,7 +70,7 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 |---|---|---|
 | **SO Surto** | Sistema operacional de reflexo. O mundo congela e o corredor ainda anda | "Sentiu o surto? A rua desacelerou e você não." |
 | **SO Fúria** | OS de combate. O ferro de Ogum no sistema | "Fúria na veia, Ogum no braço. Só não olha pro estrago." |
-| **A Porteira** | Fronteira da Deep Net. Exu é o guardião das porteiras | "Ninguém atravessa a Porteira sem pedir licença." |
+| **A Porteira** | Fronteira do Fundo. Exu é o guardião das porteiras | "Ninguém atravessa a Porteira sem pedir licença." |
 | **Resgate** | Seguro contra a morte. Planos Prata, Ouro e Platina | "O Resgate chega em minutos. Se o plano estiver em dia." |
 | **Navalha** | Lâminas retráteis de antebraço | "Navalha de rua: corta rápido, some mais rápido." |
 | **Arame** | Monofilamento cortante, fino como gambiarra bem feita | "Arame não deixa testemunha. Deixa corte limpo." |
@@ -80,7 +80,7 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 | **A Garra** | Unidade de elite do Grupo Falcão | "A Garra não prende. A Garra recolhe." |
 | **corredor** | Quem vive o corre. Minúscula como termo comum; "Corredor" como tier | "Corredor vive na beirada e morre de pé." |
 | **Gazuá** | Equipamento de hacking. Como slot de OS: "SO Gazuá". Exu guarda as porteiras — o gazuá abre | "Gazuá na mão, porteira aberta. O resto é com você." |
-| **Pancadão** | Stim de fúria. O grave do funk no sangue | "O Pancadão bate, o corpo obedece. Depois ninguém lembra." |
+| **Pancadão** | Ampola de fúria. O grave do funk no sangue | "O Pancadão bate, o corpo obedece. Depois ninguém lembra." |
 | **Banca** | Teu papel na rua — a classe. No jogo do bicho, a banca é a casa | "Cada um joga na sua banca. Respeita a minha." |
 | **Bicho** | Banca de combate — o animal solto na rua | "Bicho solto não avisa. Bicho solto resolve." |
 | **Gambiarrista** | Banca da engenharia — gambiarra é valor cultural | "Gambiarrista conserta com o que tem. E funciona." |
@@ -105,7 +105,7 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 - ✅ "O alarme disparou. Você correu. Metade da grana ficou para trás. Mas você ainda está respirando."
 - ❌ "Mission failed. Please try again."
 
-**Morte (flatline)**:
+**Morte (apagar)**:
 - ✅ "Seu nome era [Nome]. Agora é só mais uma entrada nos arquivos do Resgate."
 - ❌ "You died. Respawning in 3... 2... 1..."
 
@@ -170,15 +170,15 @@ Toda interação de rua segue este padrão de três batidas. Use em diálogos de
 Exemplo de diálogo de despachante:
 > "Salve, mano. Firmeza? Então... o Cupim tem uma fita pra você. Extração limpa, pagamento em Grana. Papo reto: é trampo pra quem tem coragem. Demorô?"
 
-## Lista de Stims (Copy para UI)
+## Lista de Ampolas (Copy para UI)
 
-| Stim | Descrição diegética |
+| Ampola | Descrição diegética |
 |---|---|
-| Syn-café | "Cafeína sintética de grau farmacêutico. Legal. Barata. Essencial." |
-| Reflex | "Overclock do sistema nervoso. 15% mais rápido. Depois o tremor vem." |
-| AdrenaStim | "Adrenalina em cartucho. Força bruta agora. Exaustão depois." |
-| Cortex+ | "Boost de processamento neural. Firewall? Que firewall?" |
-| Ghost | "Camuflagem química. Ninguém te vê. Nem você se vê direito." |
+| Pingado | "Cafeína sintética de grau farmacêutico. Legal. Barata. Essencial." |
+| Tranco | "Overclock do sistema nervoso. 15% mais rápido. Depois o tremor vem." |
+| Porrada | "Adrenalina em cartucho. Força bruta agora. Exaustão depois." |
+| Ligado | "Boost de processamento neural. Firewall? Que firewall?" |
+| Sumiço | "Camuflagem química. Ninguém te vê. Nem você se vê direito." |
 | Pancadão | "Fúria em ampola. Destrói tudo. Depois não lembra de nada." |
-| Glitter | "Cristal sintético do submundo. Brilha. Vicía. Mata devagar." |
-| Black Lace | "A lenda. O último recurso. O último erro." |
+| Brilho | "Cristal sintético do submundo. Brilha. Vicía. Mata devagar." |
+| Renda Preta | "A lenda. O último recurso. O último erro." |

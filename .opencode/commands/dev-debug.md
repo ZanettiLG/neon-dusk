@@ -13,7 +13,7 @@ Investiga, corrige e previne regressão de bugs. Por padrão, cria issue de bug 
 ```
 /dev-debug "Erro 500 ao criar gig com TEC < 3"
 /dev-debug "Timeout no leaderboard com >1000 jogadores"
-/dev-debug "Stims não aplicam burnout após expirar" --local
+/dev-debug "Ampolas não aplicam ressaca após expirar" --local
 ```
 
 ## Flags

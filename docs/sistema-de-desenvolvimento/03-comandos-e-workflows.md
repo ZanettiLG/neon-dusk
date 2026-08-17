@@ -99,7 +99,7 @@ Comandos são entry points acionados pelo dev humano. Cada comando dispara um pi
 **Uso**:
 ```
 /dev-lore "Descrição do distrito Babilônia"
-/dev-lore "3 frases de sabor para o stim AdrenaStim"
+/dev-lore "3 frases de sabor para a ampola Porrada"
 /dev-lore "Diálogo de apresentação do despachante Cupim para novos jogadores"
 ```
 

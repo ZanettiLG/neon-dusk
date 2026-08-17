@@ -18,7 +18,7 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | Monowire | **Arame** | O arame da gambiarra — fino, invisível e mortal |
 | MaxTac | **A Garra** | Unidade de elite do Grupo Falcão; o falcão tem garras |
 | Trauma Team | **Resgate** | Serviço de seguro contra a morte; planos Prata, Ouro e Platina |
-| Blackwall | **A Porteira** | Exu é o guardião das porteiras — a fronteira da Deep Net |
+| Blackwall | **A Porteira** | Exu é o guardião das porteiras — a fronteira do Fundo |
 | Braindance | **Sintonia** | Sintonizar a fita dos outros; o risco é esquecer qual memória é sua |
 | choom | **mano** | Gíria de rua paulistana que sobreviveu até 2087 |
 | edgerunner(s) | **corredor(es)** | Quem vive o corre. Minúscula como termo comum; "Corredor" como tier (maiúscula) |
@@ -46,6 +46,24 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | Corporate Roulette | **Roleta das Corp** | Corp é gíria de rua para corporação. Apostar em ação de corp é roleta |
 | Underground (nome da seção) | **Submundo** | O nome certo em PT. "Underground" minúsculo como adjetivo genérico continua válido; como nome próprio da seção de apostas vira Submundo |
 | chrome | **cromo** | PT: "cromo" é o metal do corpo — o cromo que o Ferrageiro instala. "Chrome" é termo de IP importado e não volta |
+| flatline | **apagar** / **apagado** (estado) | Morrer é apagar: o corpo desliga e a rua esquece o nome. "Apagado" é o estado permanente de Humanidade 0 |
+| stim (genérico) | **ampola** / **ampolas** | Droga de rua vem em ampola — vidro de farmácia da quebrada, dose na veia |
+| ICE | **trava** | Defesa de rede é trava: a porta com trinco que segura o invasor na esquina |
+| Black ICE | **Trava Letal** | A trava que não só barra — mata. Defesa de rede de última instância |
+| ICEbreaker | **Pé-de-Cabra** | O pé-de-cabra abre qualquer porta, física ou digital — a ferramenta do arrombador |
+| Grid (sentido lore de rede) | **Rede** | O lore de SP 2087 fala em Rede; "Grid" fica restrito a CSS Grid em código |
+| Deep Net | **O Fundo** | O fundo da Rede — abaixo do Ponto, onde a luz não chega e a Porteira guarda a entrada |
+| Deep Dive (habilidade) | **Mergulho** | O Vulto mergulha — quanto mais fundo, mais escuro |
+| Burnout | **ressaca** | O preço da ampola: a ressaca neural do dia seguinte |
+| Blackout 2075 | **O Apagão** | O evento canônico: o dia em que São Paulo ficou no escuro |
+| Blackout 2.0 | **Apagão 2.0** | O evento de temporada: o apagão de volta, hacking liberado |
+| Syn-café | **Pingado** | Café de rua paulistano: pingado no copo americano sujo |
+| Reflex (stim) | **Tranco** | O tranco do reflexo: empurrão de adrenalina que acorda o corpo |
+| AdrenaStim | **Porrada** | Adrenalina em cartucho: a porrada que o corpo sente antes do soco |
+| Cortex+ | **Ligado** | Processamento na veia: ficar ligado, sem delay |
+| Ghost (stim) | **Sumiço** | Camuflagem química: sumir da vista, virar vulto |
+| Glitter (stim) | **Brilho** | O pó que brilha: festa agora, vício depois |
+| Black Lace | **Renda Preta** | O último recurso: renda preta é tecido de funeral |
 
 **Nota de sigla**: OS (sistema operacional) usa a sigla PT **SO** nos nomes de marca — SO Surto, SO Fúria, SO Gazuá.
 
@@ -65,12 +83,9 @@ A propagação dos renomes ao código (enums, colunas, chaves de API, labels) é
 - **Labels trocados** — qualquer string visível ao jogador usa a terminologia nova (Moral, Grana, Banca, etc.).
 - **Símbolos oficiais** — Grana usa **G$**; Moral usa **★ Moral** (abreviação curta em contexto de código: `M`). O símbolo antigo €$ não volta.
 
-## Casos de Borda Mantidos
+## Casos de Borda Encerrados
 
-Termos genéricos do gênero cyberpunk que NÃO são substituídos:
-
-- **flatline**, **stim**, **ICE**
-- **Blackout 2075** (evento canônico do setting — mantido; "Blackwall" é banido e vira A Porteira)
+Os antigos "casos de borda mantidos" (flatline, stim, ICE, Blackout) foram migrados para a Tabela de Substituições em 2026-08-17 (issue #148) — não há mais exceções além das nominativas da regra 5.
 
 ## Catálogo de Elogios de Rua
 

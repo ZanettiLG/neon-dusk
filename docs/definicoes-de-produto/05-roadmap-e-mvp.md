@@ -11,7 +11,7 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 | # | Feature | Descrição | Esforço |
 |---|---|---|---|
 | 1 | **Conta + Personagem** | Registro, login, criação de personagem (nome, origem, 5 atributos, banca) | 3-5 dias |
-| 2 | **NIL + Regeneração** | Barra de energia, recarga passiva, syn-café como consumível | 1-2 dias |
+| 2 | **NIL + Regeneração** | Barra de energia, recarga passiva, Pingado como consumível | 1-2 dias |
 | 3 | **Trampos T1-T2** | 8-10 trampos de dificuldade progressiva, 3 tipos (Extraction, Delivery, Sabotage). Rolagem de stats vs dificuldade | 3-5 dias |
 | 4 | **1 Despachante (Cupim)** | Quadro de trampos, aceitar/entregar, payout | 1-2 dias |
 | 5 | **Cromo Básico (T1-T2)** | 4-5 implantes, slots simples, custo de Humanidade | 2-3 dias |
@@ -28,7 +28,7 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 ### O que NÃO está no MVP
 
 - Hacking (Fase 2)
-- Sistema de Stims completo (apenas syn-café no MVP)
+- Sistema de Ampolas completo (apenas Pingado no MVP)
 - Guerra de Bondes e territórios (Fase 2)
 - Trampos T3+ e despachantes avançados (Fase 2)
 - Sistema de Lendas completo (apenas Moral 100 no MVP)
@@ -41,14 +41,14 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 
 | Feature | Descrição |
 |---|---|
-| **Hacking Básico** | Subnets, ICE layers, programas, RAM, trace |
+| **Hacking Básico** | Subnets, camadas de trava, programas, RAM, trace |
 | **Trampos T3-T4** | +3 despachantes (Sombra, Malagueta, Graxa), novos tipos de trampo |
-| **Stims 1-4** | Syn-café, Reflex, AdrenaStim, Cortex+ com sistema de vício |
+| **Ampolas 1-4** | Pingado, Tranco, Porrada, Ligado com sistema de vício |
 | **Guerra de Bondes** | Batalhas entre bondes, territórios por distrito |
 | **Sistema de Humanidade** | Thresholds de cyberpsychosis, eventos, terapia |
 | **Resgate** | Assinatura de seguro, planos Prata/Ouro |
 | **Missões Diárias** | 3-5 missões rotativas por dia |
-| **Eventos de Temporada** | Corp War (evento de 48h), Blackout (hacking liberado) |
+| **Eventos de Temporada** | Corp War (evento de 48h), Apagão (hacking liberado) |
 
 ---
 
@@ -56,7 +56,7 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 
 | Feature | Descrição |
 |---|---|
-| **Hacking Avançado** | PvP de hacking, Black ICE, Deep Net |
+| **Hacking Avançado** | PvP de hacking, Trava Letal, O Fundo |
 | **Trampos T5 + Despachantes Elite** | Carcará, Cobra, Fantasma, Coveiro |
 | **Submundo Completo** | Arenas de luta, racha de drones, mercado de dados |
 | **Sistema de Lendas** | Hall de Lendas completo com todos os achievements |

@@ -29,7 +29,7 @@
 
 - [ ] Account registration + login (JWT)
 - [ ] Character creation (name, origin, banca, 22-point attributes)
-- [ ] NIL energy — regen, consume, stim (syn-café)
+- [ ] NIL energy — regen, consume, ampola (Pingado)
 - [ ] Trampos — 5-phase loop (meet → legwork → execute → escape → wrap-up)
 - [ ] Economy — wallets, vendor purchases, transaction log
 - [ ] Cromo — catalog, install, uninstall, humanity drain

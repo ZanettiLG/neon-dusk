@@ -243,7 +243,7 @@ Human Dev: /dev-feature "sistema de autenticação JWT"
 - Distribuição de loot por tier
 - Sistema de Moral e decay
 - Balanceamento de economia (faucets/sinks)
-- Eventos de temporada (Corp War, Blackout)
+- Eventos de temporada (Corp War, Apagão)
 
 **Self-check (8 itens específicos de game logic)**:
 - [ ] Economia balanceada (faucet < sink em estado estacionário)

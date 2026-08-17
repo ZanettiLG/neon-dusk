@@ -29,7 +29,7 @@ Toda moeda que entra na economia do jogo:
 | Hustle (renda passiva) | Semanal | Por banca. Pequeno mas consistente |
 | Venda de loot | Variável | Componentes, dados, itens |
 | Data brokering | Variável | Vultos vendem info hackeada |
-| Recompensas de evento | Eventual | Corp War, Blackout |
+| Recompensas de evento | Eventual | Corp War, Apagão |
 
 ### Sinks (sumidouros de moeda)
 Toda moeda que SAI da economia:
@@ -40,7 +40,7 @@ Toda moeda que SAI da economia:
 | Terapia de Humanidade | Manutenção de build | Essencial para balancear cromo |
 | Resgate | Seguro contra morte | Sink recorrente + monetização saudável |
 | Housing/Lifestyle | Custo recorrente | Anti-inflação passiva |
-| Stims e consumíveis | Vantagem temporária | Sink de conveniência |
+| Ampolas e consumíveis | Vantagem temporária | Sink de conveniência |
 | Informação (Legwork) | Vantagem em trampos | Opcional, acelera progressão |
 
 ### Regra de Ouro
@@ -62,9 +62,9 @@ Toda moeda que SAI da economia:
 
 | Categoria | Faixa (G$) | Exemplos |
 |---|---|---|
-| Cheap | 10-100 | Syn-café, kibble, munição básica |
-| Everyday | 100-500 | Refeição, aluguel de coffin, stim comum |
-| Costly | 500-1.000 | Stims incomuns, arma básica, cromo T1 |
+| Cheap | 10-100 | Pingado, kibble, munição básica |
+| Everyday | 100-500 | Refeição, aluguel de coffin, ampola comum |
+| Costly | 500-1.000 | Ampolas incomuns, arma básica, cromo T1 |
 | Premium | 1.000-5.000 | Cromo T2, arma avançada, terapia básica |
 | Expensive | 5.000-20.000 | Cromo T3, estimulantes raros, informação |
 | Very Expensive | 20.000-50.000 | Cromo T4, gazuá avançado, cirurgia |

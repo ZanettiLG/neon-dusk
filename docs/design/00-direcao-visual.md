@@ -53,7 +53,7 @@ Paleta canônica da marca (ver docs/definicoes-de-produto/01-visao-e-marca.md):
 | Ação / Ciano | #f2f2f2 | Ação, navegação, dados do jogador (branco-luz) |
 | Perigo / Magenta | #ff2020 | Perigo, perda, dano, hostilidade (vermelho sangue) |
 | Grana / Gold | #d4a017 | Grana, recompensa, Moral, prestígio (âmbar muted) |
-| Hacking / Purple | #8aa4b8 | Rede, hacking, ICE, trace (aço azulado) |
+| Hacking / Purple | #8aa4b8 | Rede, hacking, trava, trace (aço azulado) |
 | Text Primary | #e8e8e8 | Texto principal |
 | Text Secondary | #9a9a9a | Texto secundário |
 | Sucesso / Green | #c8c8c8 | Sucesso técnico, regeneração, estabilidade (cinza claro) |

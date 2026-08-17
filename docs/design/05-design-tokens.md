@@ -32,7 +32,7 @@ Regras de nomeação:
 | `nd-cyan` | `#f2f2f2` | Ação, navegação, dados do jogador (branco-luz) | Botões, NIL cheio, links |
 | `nd-magenta` | `#ff2020` | Perigo, perda, dano, hostilidade (vermelho sangue) | Alertas, NIL crítico, trampo difícil |
 | `nd-gold` | `#d4a017` | Grana, recompensa, Moral, prestígio (âmbar muted) | Recompensas, LEGEND |
-| `nd-purple` | `#8aa4b8` | Rede, hacking, ICE, trace (aço azulado) | Despachantes, Vultos |
+| `nd-purple` | `#8aa4b8` | Rede, hacking, trava, trace (aço azulado) | Despachantes, Vultos |
 | `nd-text` | `#e8e8e8` | Texto principal | Títulos, valores |
 | `nd-text-secondary` | `#9a9a9a` | Texto secundário | Rótulos, timestamps |
 | `nd-green` | `#c8c8c8` | Sucesso técnico, regeneração, estabilidade (cinza claro) | HP cheio, trampo fácil |
@@ -144,7 +144,7 @@ Humanidade — 5 bandas em ordem **decrescente** (derivada de
 | 70–41 | Instável | `bg-nd-gold` | |
 | 40–21 | Borderline | `bg-nd-magenta` | |
 | 20–1 | Cyberpsycho | `bg-nd-magenta` | `pulse: true` — flag de pulso |
-| 0–0 | FLATLINE | `bg-nd-dead-gray` | estado textual, sem cor viva |
+| 0–0 | FLATLINE | `bg-nd-dead-gray` | estado textual, sem cor viva; label de código — pendente #145 |
 
 Moral — "lenda" é exclusivo do score máximo:
 
@@ -166,8 +166,8 @@ Comportamento de `bandFor` (contrato):
   `humanity` (decrescente) resolve para Íntegro (100–71). Ver §15.
 
 Regra: toda faixa tem `label` (usado como `title`/texto quando a barra for
-estendida) — cor nunca sozinha. "Cyberpsycho" e "FLATLINE" ficam em inglês
-por serem termos canônicos do lore (assim como "LEGEND").
+estendida) — cor nunca sozinha. "Cyberpsycho" e "FLATLINE" são labels de código (#145 — rename de labels pendente); em texto de produto o estado é
+"Apagado" (04-sistemas-e-progressao.md §4).
 
 ## 9. Reduced motion
 
@@ -283,7 +283,7 @@ download de fonte.
 | `app/tailwind.config.js` | Importa `tokens` e mapeia para `theme.extend` |
 | `app/tailwind.config.d.ts` | Declaração de tipos para o import dinâmico do config em `tokens.test.ts` |
 | `app/src/style.css` | Tokens de foco (CSS vars), reduced-motion global, `.btn-neon` 44px touch |
-| `app/src/lib/tokens.test.ts` | Varredura 0–100 por recurso, clamps, NaN, frações, pulse, FLATLINE, integração config |
+| `app/src/lib/tokens.test.ts` | Varredura 0–100 por recurso, clamps, NaN, frações, pulse, FLATLINE (label de código — pendente #145), integração config |
 | Consumidores | `DashboardView` (NIL via `bandFor`), `GigCard` (dificuldade), `StreetCredDisplay` (fill via `tokens.colors`) |
 
 ## 15. Divergências registradas
@@ -300,11 +300,11 @@ Desvios intencionais entre spec original, produto e implementação:
    para Íntegro (100–71). NaN é erro de chamador (contrato: inteiro 0–100);
    o comportamento é determinístico e testado — aceito como divergência
    documentada.
-3. **D3 — FLATLINE com `bg-nd-dead-gray`** (a spec original dizia "sem cor,
+3. **D3 — FLATLINE com `bg-nd-dead-gray`** (label de código — pendente #145; a spec original dizia "sem cor,
    estado textual"): escolhido o token neutro `nd-dead-gray` (já na paleta)
    em vez de nenhuma cor — mantém a classe como literal (exigência do JIT,
    §13.2) e sinaliza o estado morto sem competir com as cores vivas; o label
-   "FLATLINE" continua sendo o canal principal de informação.
+   "FLATLINE" continua sendo o canal principal de informação (label de código — pendente #145).
 4. **D4 — Moral em 2 bandas** (spec do pipeline: "ciano; Legend (100)
    dourado"): implementado como 0–99 "na rua" (ciano) / 100 "lenda"
    (dourado). Consistente com a lógica LEGEND existente em

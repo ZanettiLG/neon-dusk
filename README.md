@@ -1,6 +1,6 @@
 # Neon Dusk
 
-Build your chrome. Burn your name. Leave a legend.
+Monta teu cromo. Queima teu nome. Vira lenda.
 
 A cyberpunk RPG PWA, AI-orchestrated via OpenCode agents.
 
