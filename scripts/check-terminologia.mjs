@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global console, process */
 // Guard de consistência terminológica (issue #136, extensão de contexto PR #147).
 // Falha (exit 1) se termos banidos de IP de terceiros reaparecerem nos docs.
 // Zero dependências: node scripts/check-terminologia.mjs
@@ -58,6 +59,22 @@ const BANNED = [
   { label: 'Fixer (classe)', re: /\bfixers?\b/ },
   { label: 'Nomad (classe)', re: /\bnomads?\b/ },
   { label: 'Medtech (classe)', re: /\bmedtechs?\b/ },
+  // Extensão terminológica #2 (issue #136): gig/crew e nomes de atividades.
+  // "bonde", "trampo", "rinha" e "racha" NUNCA são banidos (palavras comuns
+  // do PT). O guard cobre apenas o texto de produto; linhas com citação de
+  // código/API marcadas "#145" são puladas (rename de schema é follow-up).
+  { label: 'gig', re: /\bgigs?\b/ },
+  { label: 'crew', re: /\bcrews?\b/ },
+  { label: 'Fight Pit', re: /\bfight\s*pits?\b/i },
+  { label: 'Drone Races', re: /\bdrone\s*races?\b/i },
+  { label: 'Data-Trading', re: /\bdata[- ]trading\b/i },
+  { label: 'Corporate Roulette', re: /\bcorporate\s*roulette\b/i },
+  // Extensão terminológica #3 (issue #136): "chrome" (implantes) → "cromo".
+  // "cromo" (o metal do corpo) NUNCA é banido.
+  { label: 'chrome (implantes)', re: /\bchrome\b/ },
+  // caseSensitive: "Underground" como nome próprio da seção §7 é banido;
+  // o adjetivo minúsculo ("pirata de mídia underground") não.
+  { label: 'Underground (seção)', re: /\bUnderground\b/, caseSensitive: true },
 ]
 
 const CANONICAL = 'docs/definicoes-de-produto/06-terminologia-e-ip.md'
@@ -96,6 +113,7 @@ for (const root of ROOTS) {
       }
       if (inCodeFence) return
       if (file === PIPELINE_DOC && /não usar|nao usar/i.test(line)) return // linha que documenta a lista proibida
+      if (/#145/.test(line)) return // citação de código/API marcada — rename de schema/labels é a follow-up #145
       const lower = line.toLowerCase()
       const hits = BANNED.filter((e) => e.re.test(e.caseSensitive ? line : lower))
         .filter((e) => !(e.label === 'night city' && NEGATION.test(line)))

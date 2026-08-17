@@ -203,14 +203,14 @@ Previne recorrência de: conexões SSE half-open em falhas de Redis (risco de re
 
 ### Trigger
 Feature ND-014 (PvP System) implementada com score 4.0/5.0. Code-reviewer identificou 2 padrões de falha recorrentes que transcendem o escopo PvP:
-1. **Escrow-awareness**: Serviços de débito (vendor purchases, gig payouts, etc.) deveriam usar `balance - escrow`, mas o padrão não está documentado no self-review
+1. **Escrow-awareness**: Serviços de débito (vendor purchases, trampo payouts, etc.) deveriam usar `balance - escrow`, mas o padrão não está documentado no self-review
 2. **Telemetry dual-outcome**: Apenas `PVP_ATTACK` instrumentado; `PVP_DEFEAT` nunca emitido. Features com outcomes duais frequentemente instrumentam só o caminho feliz
 
 ### Changes
 
 #### developer
 - Self-review expandido de 23→25 checks:
-  - #24: Débitos usam saldo disponível (`balance - escrow`), nunca `balance` bruto — aplica-se a PvP, vendor purchases, gig payouts, ou qualquer operação que reserve fundos temporariamente
+  - #24: Débitos usam saldo disponível (`balance - escrow`), nunca `balance` bruto — aplica-se a PvP, vendor purchases, trampo payouts, ou qualquer operação que reserve fundos temporariamente
   - #25: Features com outcomes duais (win/loss, success/failure, accept/reject) emitem eventos de telemetria para TODOS os outcomes, não apenas o caminho feliz
 
 ### Impact

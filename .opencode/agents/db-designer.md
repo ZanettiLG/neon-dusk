@@ -19,7 +19,7 @@ Carregue as skills `sql-design` e `game-economy` antes de começar.
 Projetar schemas PostgreSQL para sistemas de jogo. Chamado pelo architect ou diretamente para features pesadas em banco.
 
 ## Especialidades
-- Schema para jogos multiplayer (personagens, inventário, crews, economia)
+- Schema para jogos multiplayer (personagens, inventário, bondes, economia)
 - Migrations Knex com up/down
 - Índices para queries de ranking/leaderboard
 - Constraints e triggers para integridade de economia (sem Grana negativa, sem duplicatas)

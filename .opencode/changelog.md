@@ -81,7 +81,7 @@ Pipeline 100% rastreável. Toda alteração tem issue, branch dedicada, commits 
 --- 2026-08-07 — N2: Comando /dev-qa standalone + QA integrado ao pipeline
 
 ### Trigger
-QA suite completa executada (14 test issues, 21 bugs, 9 enhancements) revelou que o qa-browser nunca era chamado — era opcional com flag `--qa` que ninguém passava. O bug mais crítico (fase "execute" do gig sem renderização) escapou porque o teste parou em snapshots em vez de simular a jornada completa do usuário.
+QA suite completa executada (14 test issues, 21 bugs, 9 enhancements) revelou que o qa-browser nunca era chamado — era opcional com flag `--qa` que ninguém passava. O bug mais crítico (fase "execute" do trampo sem renderização) escapou porque o teste parou em snapshots em vez de simular a jornada completa do usuário.
 
 ### Changes
 - **Novo comando**: `/dev-qa` — QA browser standalone com 3 modos (feature/smoke/regression)

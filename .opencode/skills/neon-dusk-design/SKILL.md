@@ -26,11 +26,11 @@ A documentação completa está em `docs/definicoes-de-produto/`. Consulte os ar
 | "Como funciona São Paulo?" | `02-mundo-e-universo.md` → Setting |
 | "Quais os distritos? (A Paraíso, O Fervo, O Fluxo, A Quebrada, Babilônia, As Mortas, O Ponto)" | `02-mundo-e-universo.md` → Distritos |
 | "Como funciona energia?" | `03-mecanicas-core.md` → NIL (seção 1) |
-| "Como funcionam gigs?" | `03-mecanicas-core.md` → Gigs (seção 2) |
+| "Como funcionam trampos?" | `03-mecanicas-core.md` → Trampos (seção 2) |
 | "Como funciona hacking?" | `03-mecanicas-core.md` → Hacking (seção 4) |
 | "Quais os atributos?" | `04-sistemas-e-progressao.md` → Atributos (seção 1) |
 | "Quais as bancas?" | `04-sistemas-e-progressao.md` → Banca (seção 2) |
-| "Como funciona chrome?" | `04-sistemas-e-progressao.md` → Chrome (seção 3) |
+| "Como funciona cromo?" | `04-sistemas-e-progressao.md` → Cromo (seção 3) |
 | "Como funciona Moral?" | `04-sistemas-e-progressao.md` → Moral (seção 5) |
 | "Como funciona Humanidade?" | `04-sistemas-e-progressao.md` → Humanidade (seção 4) |
 | "O que está no MVP?" | `05-roadmap-e-mvp.md` → Fase 1 |

@@ -212,7 +212,7 @@ Humano: /dev-debug "Timeout ao listar leaderboard com >1000 jogadores"
 ### Workflow 3: Game Design (Nova Mecânica)
 
 ```
-Humano: /dev-feature "Sistema de leilão de chrome entre jogadores" --design-only
+Humano: /dev-feature "Sistema de leilão de cromo entre jogadores" --design-only
 
 → dev-orchestrator
   ├── deep-researcher → "Como funcionam mercados entre jogadores em PBBGs? Riscos de inflação?"

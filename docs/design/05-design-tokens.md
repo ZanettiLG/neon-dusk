@@ -30,12 +30,12 @@ Regras de nomeação:
 | `nd-bg` | `#0a0a0a` | Fundo principal | Página, vazios de barra |
 | `nd-surface` | `#161616` | Superfície elevada | Cards, painéis |
 | `nd-cyan` | `#f2f2f2` | Ação, navegação, dados do jogador (branco-luz) | Botões, NIL cheio, links |
-| `nd-magenta` | `#ff2020` | Perigo, perda, dano, hostilidade (vermelho sangue) | Alertas, NIL crítico, gig difícil |
-| `nd-gold` | `#d4a017` | Eddies, recompensa, Street Cred, prestígio (âmbar muted) | Recompensas, LEGEND |
-| `nd-purple` | `#8aa4b8` | Rede, hacking, ICE, trace (aço azulado) | Fixers, netrun |
+| `nd-magenta` | `#ff2020` | Perigo, perda, dano, hostilidade (vermelho sangue) | Alertas, NIL crítico, trampo difícil |
+| `nd-gold` | `#d4a017` | Grana, recompensa, Moral, prestígio (âmbar muted) | Recompensas, LEGEND |
+| `nd-purple` | `#8aa4b8` | Rede, hacking, ICE, trace (aço azulado) | Despachantes, Vultos |
 | `nd-text` | `#e8e8e8` | Texto principal | Títulos, valores |
 | `nd-text-secondary` | `#9a9a9a` | Texto secundário | Rótulos, timestamps |
-| `nd-green` | `#c8c8c8` | Sucesso técnico, regeneração, estabilidade (cinza claro) | HP cheio, gig fácil |
+| `nd-green` | `#c8c8c8` | Sucesso técnico, regeneração, estabilidade (cinza claro) | HP cheio, trampo fácil |
 | `nd-dead-gray` | `#3a3a3a` | Cinza dessaturado (falta, decadência) | Quebrada, As Mortas |
 
 Sombras (hairline + drop, sem glow neon):
@@ -91,7 +91,7 @@ Escala base-4 (Tailwind default) — tokens canônicos usados na UI:
 | Token | Valor | Uso |
 |---|---|---|
 | `terminal` | `2px` | Painéis, cards, botões, badges — borda de terminal velho |
-| pill (`rounded-full`) | 9999px | Barras de progresso (NIL, dificuldade, Street Cred) |
+| pill (`rounded-full`) | 9999px | Barras de progresso (NIL, dificuldade, Moral) |
 
 ## 6. Breakpoints (mobile-first)
 
@@ -129,7 +129,7 @@ Faixas em terços (ordem crescente — primeira banda é a mais crítica):
 | `nil` | magenta (crítico) | gold (atenção) | cyan (estável) |
 | `hp` | magenta (crítico) | gold (ferido) | green (estável) |
 
-Dificuldade de gig (invertida — baixa dificuldade é verde):
+Dificuldade de trampo (invertida — baixa dificuldade é verde):
 
 | Recurso | 0–39 | 40–59 | 60–100 |
 |---|---|---|---|
@@ -146,7 +146,7 @@ Humanidade — 5 bandas em ordem **decrescente** (derivada de
 | 20–1 | Cyberpsycho | `bg-nd-magenta` | `pulse: true` — flag de pulso |
 | 0–0 | FLATLINE | `bg-nd-dead-gray` | estado textual, sem cor viva |
 
-Street Cred — "lenda" é exclusivo do score máximo:
+Moral — "lenda" é exclusivo do score máximo:
 
 | Faixa | Label | Cor |
 |---|---|---|
@@ -305,7 +305,7 @@ Desvios intencionais entre spec original, produto e implementação:
    em vez de nenhuma cor — mantém a classe como literal (exigência do JIT,
    §13.2) e sinaliza o estado morto sem competir com as cores vivas; o label
    "FLATLINE" continua sendo o canal principal de informação.
-4. **D4 — Street Cred em 2 bandas** (spec do pipeline: "ciano; Legend (100)
+4. **D4 — Moral em 2 bandas** (spec do pipeline: "ciano; Legend (100)
    dourado"): implementado como 0–99 "na rua" (ciano) / 100 "lenda"
    (dourado). Consistente com a lógica LEGEND existente em
    `StreetCredDisplay` (`nextThreshold === null` só no 100) e com

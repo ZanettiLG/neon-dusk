@@ -49,8 +49,8 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 | **Conteúdo** | Padrões de economia para jogos multiplayer, faucets/sinks, inflação, balanceamento |
 
 **Tópicos**:
-- Faucets (fontes de moeda): gigs, hustles, vendas, loot
-- Sinks (sumidouros): chrome, terapia, Resgate, housing, stims
+- Faucets (fontes de moeda): trampos, hustles, vendas, loot
+- Sinks (sumidouros): cromo, terapia, Resgate, housing, stims
 - Inflação: instrumentação (log de todas as transações), métricas de alerta
 - Preços fixos vs dinâmicos: modelo RED (8 categorias de preço fixo)
 - Moeda premium: conveniência, nunca poder; comprável com moeda do jogo
@@ -68,7 +68,7 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 | **Conteúdo** | Vocabulário, tom, referências do universo cyberpunk para UI e narrativa |
 
 **Tópicos**:
-- Glossário cyberpunk (chrome, Grana, despachante, gig, flatline, etc.)
+- Glossário cyberpunk (cromo, Grana, despachante, trampo, flatline, etc.)
 - Tom de voz (noir sujo, irônico, estilo Gibson)
 - Referências de UI textual (como escrever descrições de implantes, mensagens de erro diegéticas)
 - Frases de exemplo para cada contexto (sucesso, falha, morte, level up)

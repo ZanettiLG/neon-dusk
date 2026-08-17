@@ -6,7 +6,7 @@
 
 ## O Jogo em Uma Frase
 
-**Neon Dusk** é um browser RPG multiplayer onde você constrói sua lenda nas ruas de uma metrópole cyberpunk — realize gigs, instale chrome, gerencie sua humanidade e suba do anonimato ao drink nomeado no bar das lendas.
+**Neon Dusk** é um browser RPG multiplayer onde você constrói sua lenda nas ruas de uma metrópole cyberpunk — realize trampos, instale cromo, gerencie sua humanidade e suba do anonimato ao drink nomeado no bar das lendas.
 
 ## Estrutura da Documentação
 
@@ -14,8 +14,8 @@
 |---|---|
 | [01-visao-e-marca.md](./01-visao-e-marca.md) | Visão, nome, marca, tom, estilo visual e identidade |
 | [02-mundo-e-universo.md](./02-mundo-e-universo.md) | Setting, distritos, corporações, gangues e despachantes |
-| [03-mecanicas-core.md](./03-mecanicas-core.md) | Sistemas core: energia, gigs, combate, hacking |
-| [04-sistemas-e-progressao.md](./04-sistemas-e-progressao.md) | Atributos, bancas, chrome, Moral, economia |
+| [03-mecanicas-core.md](./03-mecanicas-core.md) | Sistemas core: energia, trampos, combate, hacking |
+| [04-sistemas-e-progressao.md](./04-sistemas-e-progressao.md) | Atributos, bancas, cromo, Moral, economia |
 | [05-roadmap-e-mvp.md](./05-roadmap-e-mvp.md) | MVP, fases de desenvolvimento, stack, métricas |
 
 ## Pilares de Design

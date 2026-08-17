@@ -25,7 +25,7 @@ Executa testes E2E no browser para features já implementadas, sem passar pelo p
 | Modo | Gatilho | Escopo |
 |---|---|---|
 | **Feature QA** | default (com descrição) | Teste completo de uma feature: happy paths, error paths, edge cases |
-| **Smoke Test** | `--smoke` | Fluxos críticos: login, personagem, gig básico, navegação |
+| **Smoke Test** | `--smoke` | Fluxos críticos: login, personagem, trampo básico, navegação |
 | **Regression** | `--regression` | Todas as features implementadas, cross-feature interactions |
 
 ## Flags

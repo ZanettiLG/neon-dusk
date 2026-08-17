@@ -11,16 +11,16 @@
 | StatusBadge | Tier, tipo, estado | cor por semântica, sempre com texto |
 | OutcomeChip | Resultado de rolagem (roll vs. chance) | sucesso, falha, crítica |
 | Tab | Navegação local | ativo, inativo, disabled |
-| PhaseStepper | Fases do gig (Meet, Legwork, Execute, Escape, Wrap Up) | concluída, atual, pendente |
+| PhaseStepper | Fases do trampo (Meet, Legwork, Execute, Escape, Wrap Up) | concluída, atual, pendente |
 
 ## Shell mobile
 
 Hoje a navegação principal fica oculta no mobile (app/src/components/AppHeader.tsx). Evoluir para:
 
-- Bottom navigation com 5 atalhos principais (Painel, Gigs, Saideira, Chrome, PvP).
-- Drawer/menu lateral para telas secundárias (Vendedores, Economia, Crews, Admin).
+- Bottom navigation com 5 atalhos principais (Painel, Trampos, Saideira, Cromo, PvP).
+- Drawer/menu lateral para telas secundárias (Vendedores, Economia, Bondes, Admin).
 - HUD compacto persistente: NIL, Humanidade, Grana e Moral.
-- Alertas de timers, gig ativa, PvP e reset de rodada.
+- Alertas de timers, trampo ativo, PvP e reset de rodada.
 - Estado offline/degradado visível sem poluir a tela.
 
 ## Painel do Corredor (Dashboard)
@@ -30,9 +30,9 @@ Transformar em ficha viva:
 - Retrato/avatar do personagem.
 - Banca e origem com identidade própria.
 - Barras de NIL e Humanidade.
-- Chrome resumido no body-map.
+- Cromo resumido no body-map.
 - Últimos eventos e timers importantes.
-- Ações rápidas: gig, Saideira, vendors, chrome.
+- Ações rápidas: trampo, Saideira, vendors, cromo.
 
 ## Mapa de São Paulo
 
@@ -43,11 +43,11 @@ Usar mapa-metrô/diagrama de distritos:
 - Cada distrito é uma estação/card.
 - A Paraíso no topo; Quebrada e As Mortas na base.
 - Saturação visual por classe social.
-- Ícones de gigs disponíveis, vendors, despachantes e perigo.
+- Ícones de trampos disponíveis, vendors, despachantes e perigo.
 - Travessia entre distritos como loading diegético de elevador/metrô.
 - A Saideira já é uma estação da antiga Linha 3-Vermelha.
 
-## Chrome
+## Cromo
 
 Evoluir de catálogo para tela de build:
 
@@ -56,7 +56,7 @@ Evoluir de catálogo para tela de build:
 - Custo de Humanidade sempre visível.
 - Antes/depois de atributos, HP e NIL.
 - Estado de cyberpsychosis progressivo na UI.
-- OS como decisão central (Gazuá, OS Fúria, OS Surto).
+- SO como decisão central (Gazuá, SO Fúria, SO Surto).
 
 ## PvP
 
@@ -66,14 +66,14 @@ Evoluir de catálogo para tela de build:
 - Loot e variação de cred.
 - Indicadores de noob shield e anti-griefing.
 
-## Gigs
+## Trampos
 
 - Retrato do despachante.
 - Distrito com banner atmosférico.
 - Tipo e tier como carimbos.
 - Chance de sucesso, custo, risco e recompensa antes do aceite.
 - Requisitos visíveis.
-- Resultado como "serviço limpo", "deu ruim", "alguém viu sua cara".
+- Resultado com o Catálogo de Elogios de Rua (canônico em `docs/definicoes-de-produto/06-terminologia-e-ip.md`): "Serviço limpo." ✅, "Deu ruim." ✅, "Alguém viu tua cara." ✅, "Boa. Volta amanhã que tem mais." ✅, "Ninguém viu nada. Nem você." 🆕, "Trampo perfeito. A rua vai falar teu nome." 🆕, "Deu ruim. Mas cê tá vivo — já é lucro." 🆕, "Tenta de novo, na moral." 🆕.
 
 ## Saideira
 

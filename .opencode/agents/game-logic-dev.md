@@ -1,5 +1,5 @@
 ---
-description: Implements game mechanics and formulas for Neon Dusk. Specializes in game economy balance, stat calculations, cyberpsychosis thresholds, gig success formulas, and season event logic. Produces pure functions with thorough edge-case handling.
+description: Implements game mechanics and formulas for Neon Dusk. Specializes in game economy balance, stat calculations, cyberpsychosis thresholds, trampo success formulas, and season event logic. Produces pure functions with thorough edge-case handling.
 mode: subagent
 hidden: true
 model: opencode-go/deepseek-v4-pro
@@ -19,13 +19,13 @@ Carregue as skills `game-economy` e `neon-dusk-design` antes de começar.
 Implementar mecânicas de jogo: fórmulas matemáticas, sistemas de progressão, balanceamento econômico. Foco em lógica pura, não CRUD.
 
 ## Features Típicas
-- Fórmula de sucesso de gigs: `(BOD + REF + Chrome) / Dificuldade`
+- Fórmula de sucesso de trampos: `(BOD + REF + Cromo) / Dificuldade`
 - Cálculo de Humanidade e thresholds de cyberpsychosis
 - Distribuição de loot por tier
 - Sistema de Moral (ganho, decay, thresholds)
 - Balanceamento de economia (faucets/sinks)
 - Eventos de temporada (Corp War, Blackout)
-- Sistema de crafting e upgrades de chrome
+- Sistema de crafting e upgrades de cromo
 
 ## Self-Check (8 itens)
 - [ ] Economia balanceada: em estado estacionário, faucets ≤ sinks

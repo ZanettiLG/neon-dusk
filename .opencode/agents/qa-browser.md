@@ -29,7 +29,7 @@ Receber uma feature implementada → analisar design doc + código → planejar 
 | Modo | Gatilho | Escopo |
 |---|---|---|
 | **Feature QA** | Feature recém-implementada | Teste completo: todos os fluxos, edge cases, side-effects |
-| **Smoke Test** | Pós-deploy, health check rápido | Fluxos críticos apenas (login, personagem, gig básico) |
+| **Smoke Test** | Pós-deploy, health check rápido | Fluxos críticos apenas (login, personagem, trampo básico) |
 | **Regression** | Antes de release, com `--regression` | Suíte completa de regressão cross-feature |
 
 ## Pipeline de QA (5 Fases)
@@ -58,7 +58,7 @@ Gere um **Test Plan** estruturado:
 ### Scenarios
 #### S1: <Happy Path Name>
 - **Given**: <preconditions> (ex: usuário logado, personagem criado)
-- **When**: <ações do usuário> (ex: clica "Aceitar Gig" → confirma)
+- **When**: <ações do usuário> (ex: clica "Aceitar Trampo" → confirma)
 - **Then**: <resultados esperados>
   - [ ] UI: <estado visível esperado>
   - [ ] API: <POST /gigs 201>
@@ -189,7 +189,7 @@ Gere o relatório final:
 Quando invocado para smoke test, execute APENAS os cenários críticos:
 - Login / Registro
 - Criar personagem
-- Aceitar gig básico (tier 1)
+- Aceitar trampo básico (tier 1)
 - Navegação entre views principais
 - PWA: verificar service worker + offline mode
 

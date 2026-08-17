@@ -8,10 +8,10 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 
 | Atributo | Símbolo | Descrição | Afeta | Classe Primária |
 |---|---|---|---|---|
-| **Body** | BOD | Força física, resistência, tolerância a dor e chrome | Dano corpo a corpo, HP, capacidade de chrome físico | Bicho |
-| **Reflexes** | REF | Velocidade, coordenação, reflexos de combate | Chance de crítico, esquiva, velocidade de gig | Bicho, Estradeiro |
+| **Body** | BOD | Força física, resistência, tolerância a dor e cromo | Dano corpo a corpo, HP, capacidade de cromo físico | Bicho |
+| **Reflexes** | REF | Velocidade, coordenação, reflexos de combate | Chance de crítico, esquiva, velocidade de trampo | Bicho, Estradeiro |
 | **Intelligence** | INT | Capacidade cognitiva, hacking, análise | RAM de hacking, sucesso em Netrun, learn rate | Vulto |
-| **Technical** | TEC | Habilidade técnica, engenharia, crafting | Eficiência de crafting, upgrades de chrome, lockpicking | Gambiarrista |
+| **Technical** | TEC | Habilidade técnica, engenharia, crafting | Eficiência de crafting, upgrades de cromo, lockpicking | Gambiarrista |
 | **Cool** | COL | Autocontrole, presença, manipulação social, resistência a stress | Sucesso social, Moral ganha, resistência a cyberpsychosis | Despachante |
 
 ### Progressão
@@ -34,7 +34,7 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Atributo primário | Body, Reflexes |
 | Habilidade especial | **Combat Trance**: ativa por 30min. +25% Body e Reflexes. 4h cooldown |
 | Bônus passivo | +10% dano em PvP, +5% chance crítica |
-| Estilo de jogo | Combate direto, proteção de crew, gigs de wetwork |
+| Estilo de jogo | Combate direto, proteção de bonde, trampos de wetwork |
 | Frase | *"Você não precisa ser mais rápido que a bala. Só mais rápido que o alvo."* |
 
 ### Vulto — O Fantasma da Rede
@@ -44,7 +44,7 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Atributo primário | Intelligence |
 | Habilidade especial | **Deep Dive**: acessa subnets 1 tier acima do seu nível. 8h cooldown |
 | Bônus passivo | +20% RAM, -25% trace gerado |
-| Estilo de jogo | Hacking, espionagem digital, suporte à crew |
+| Estilo de jogo | Hacking, espionagem digital, suporte ao bonde |
 | Frase | *"A fechadura mais forte do mundo não serve de nada se a porta é o cérebro do guarda."* |
 
 ### Gambiarrista — O Engenheiro
@@ -52,8 +52,8 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Atributo | Valor |
 |---|---|
 | Atributo primário | Technical |
-| Habilidade especial | **Overclock**: próximo upgrade de chrome custa 50% menos e não consome Humanidade. 24h cooldown |
-| Bônus passivo | +30% eficiência de crafting, +1 slot de chrome |
+| Habilidade especial | **Overclock**: próximo upgrade de cromo custa 50% menos e não consome Humanidade. 24h cooldown |
+| Bônus passivo | +30% eficiência de crafting, +1 slot de cromo |
 | Estilo de jogo | Crafting, upgrades, suporte econômico, sabotagem |
 | Frase | *"Toda máquina tem um ponto fraco. Eu encontro. Você explode."* |
 
@@ -62,8 +62,8 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Atributo | Valor |
 |---|---|
 | Atributo primário | Cool |
-| Habilidade especial | **Silver Tongue**: próximo gig paga +50% de Grana e +25% de Moral. 12h cooldown |
-| Bônus passivo | +15% desconto em vendors, acesso a gigs 1 tier acima |
+| Habilidade especial | **Silver Tongue**: próximo trampo paga +50% de Grana e +25% de Moral. 12h cooldown |
+| Bônus passivo | +15% desconto em vendors, acesso a trampos 1 tier acima |
 | Estilo de jogo | Negociação, manipulação de mercado, informação |
 | Frase | *"Não importa o que você sabe. Importa quem você conhece. E eu conheço todo mundo."* |
 
@@ -72,24 +72,24 @@ Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos c
 | Atributo | Valor |
 |---|---|
 | Atributo primário | Reflexes |
-| Habilidade especial | **Long Haul**: realiza 2 gigs simultaneamente (um gasta NIL, outro não). 6h cooldown |
+| Habilidade especial | **Long Haul**: realiza 2 trampos simultaneamente (um gasta NIL, outro não). 6h cooldown |
 | Bônus passivo | +20% NIL máximo, -20% tempo de viagem entre distritos |
-| Estilo de jogo | Alta frequência de gigs, logística, exploração |
+| Estilo de jogo | Alta frequência de trampos, logística, exploração |
 | Frase | *"A estrada não tem dono. Só tem quem passa primeiro."* |
 
 ---
 
-## 3. Chrome (Cyberware)
+## 3. Cromo (Cyberware)
 
 O sistema de progressão mais profundo do jogo. Inspirado em Cyberpunk 2077 e CP2020.
 
-### Slots de Chrome
+### Slots de Cromo
 
 | Slot | Quantidade | Exemplos de implante |
 |---|---|---|
 | **Frontal Cortex** | 3 | RAM booster, reflex accelerator, neural firewall |
 | **Ocular** | 2 | Óptica Vidraça, threat detector, data overlay |
-| **Operating System** | 1 | **OS Gazuá** (hacking), **OS Fúria** (combate), **OS Surto** (reflexos) |
+| **Operating System** | 1 | **SO Gazuá** (hacking), **SO Fúria** (combate), **SO Surto** (reflexos) |
 | **Arms** | 2 | Braço de Ferro (+Body), Navalha (+Reflexes), Arame (+Cool) |
 | **Skeleton** | 2 | Dense marrow (+HP), titanium bones (-dano recebido) |
 | **Nervous System** | 3 | Reflex tuner, pain editor, adrenal booster |
@@ -103,11 +103,11 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 
 | OS | Foco | Bônus |
 |---|---|---|
-| **OS Gazuá** | Hacking | +40% RAM, acesso a quickhacks avançados, +2 slots de programa |
-| **OS Fúria** | Combate | +50% Body por 60s (ativável 3x/dia), imunidade a stagger |
-| **OS Surto** | Velocidade | +50% Reflexes por 30s (ativável 5x/dia), +25% dodge |
+| **SO Gazuá** | Hacking | +40% RAM, acesso a quickhacks avançados, +2 slots de programa |
+| **SO Fúria** | Combate | +50% Body por 60s (ativável 3x/dia), imunidade a stagger |
+| **SO Surto** | Velocidade | +50% Reflexes por 30s (ativável 5x/dia), +25% dodge |
 
-### Tiers de Chrome
+### Tiers de Cromo
 
 | Tier | Nível necessário | Raridade | Custo (G$) | Exemplo |
 |---|---|---|---|---|
@@ -123,7 +123,7 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 
 ### Conceito
 
-> *"Chrome te dá poder. Chrome te tira humanidade. A pergunta não é 'quanto você aguenta?'. É 'quanto de você sobra no final?'"*
+> *"Cromo te dá poder. Cromo te tira humanidade. A pergunta não é 'quanto você aguenta?'. É 'quanto de você sobra no final?'"*
 
 ### Funcionamento
 
@@ -140,8 +140,8 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 | Humanidade | Estado | Efeitos |
 |---|---|---|
 | 100-71 | **Íntegro** | Nenhum efeito negativo |
-| 70-41 | **Instável** | 5% de chance de evento agressivo em gigs (atacar aliado, falhar teste social) |
-| 40-21 | **Borderline** | 15% de chance de evento. Alucinações (informação falsa na UI). Crew members podem recusar gigs com você |
+| 70-41 | **Instável** | 5% de chance de evento agressivo em trampos (atacar aliado, falhar teste social) |
+| 40-21 | **Borderline** | 15% de chance de evento. Alucinações (informação falsa na UI). Membros do bonde podem recusar trampos com você |
 | 20-1 | **Cyberpsycho** | 30% de chance de evento. Perda de controle (ações aleatórias). A Garra pode ser acionada |
 | **0** | **Flatline** | Personagem **perdido permanentemente**. Nome removido dos rankings. Pode ser recriado na PRÓXIMA rodada. Se tiver status de Lenda, nome fica no menu do Saideira |
 
@@ -153,7 +153,7 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 
 ### A Joia do Sistema
 
-> O chrome cria um **teto de build orgânico** — você não sobe infinitamente. Cada melhoria tem um custo. O jogador de elite não é o que tem mais chrome; é o que equilibrou poder e humanidade com mais precisão.
+> O cromo cria um **teto de build orgânico** — você não sobe infinitamente. Cada melhoria tem um custo. O jogador de elite não é o que tem mais cromo; é o que equilibrou poder e humanidade com mais precisão.
 
 ---
 
@@ -165,23 +165,23 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 | Ação | Moral ganha |
 |---|---|
-| Completar gig T1 | 1-3 |
-| Completar gig T3 | 10-20 |
+| Completar trampo T1 | 1-3 |
+| Completar trampo T3 | 10-20 |
 | Vencer PvP | 5 (+ bônus de diferença de nível) |
 | Hackear subnet corporativa | 5-15 |
 | Completar missão diária | 2-5 |
-| Crew ganhar guerra | 15 por membro |
+| Bonde ganhar guerra | 15 por membro |
 
 ### Thresholds
 
 | Moral | Título | Desbloqueia |
 |---|---|---|
-| 0 | **Unknown** | Gigs T1, Babilônia |
-| 10 | **Runner** | Acesso ao Saideira, gigs T2, recrutamento para crews |
-| 25 | **Pro** | Gigs T3, despachante Carcará, criação de crew |
-| 50 | **Corredor** | Gigs T4, despachante Cobra, desconto de 10% em vendors |
-| 75 | **Elite** | Gigs T5, acesso a As Mortas, desconto de 15% |
-| 90 | **Lenda de SP** (provisório) | Gigs lendários, despachante Coveiro |
+| 0 | **Unknown** | Trampos T1, Babilônia |
+| 10 | **Runner** | Acesso ao Saideira, trampos T2, recrutamento para bondes |
+| 25 | **Pro** | Trampos T3, despachante Carcará, criação de bonde |
+| 50 | **Corredor** | Trampos T4, despachante Cobra, desconto de 10% em vendors |
+| 75 | **Elite** | Trampos T5, acesso a As Mortas, desconto de 15% |
+| 90 | **Lenda de SP** (provisório) | Trampos lendários, despachante Coveiro |
 | **100** | **Legend** | **Drink no menu do Saideira — PERMANENTE. Sobrevive a resets.** |
 
 ### Decay
@@ -197,7 +197,7 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 | Moeda | Símbolo | Uso |
 |---|---|---|
-| **Grana** | G$ | Moeda principal. Ganhos com gigs, vendas, apostas |
+| **Grana** | G$ | Moeda principal. Ganhos com trampos, vendas, apostas |
 | **Moral** | ★ Moral | Moeda social. Não comprável. Ganha com ações |
 | **Créditos** | ₵ (creds) | Moeda premium. Comprada com dinheiro real. Usada para conveniência, cosméticos |
 
@@ -205,7 +205,7 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 | Fonte | Frequência | Quantia (G$) |
 |---|---|---|
-| Gigs | Diário (2-10x) | 500 - 100.000+ |
+| Trampos | Diário (2-10x) | 500 - 100.000+ |
 | Hustle (renda passiva por banca) | Semanal | 500 - 5.000 |
 | Venda de loot | Conforme obtido | Variável |
 | Data brokering | Conforme obtido | 1.000 - 50.000 |
@@ -215,12 +215,12 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 | Sink | Propósito | Custo (G$) |
 |---|---|---|
-| **Chrome e upgrades** | Progressão vertical | 500 - 500.000+ |
+| **Cromo e upgrades** | Progressão vertical | 500 - 500.000+ |
 | **Terapia de Humanidade** | Manutenção de build | 5.000 - 20.000/sessão |
 | **Resgate** (assinatura) | Seguro contra morte | 500 - 5.000/mês (rodada) |
 | **Housing/Lifestyle** | Custo recorrente | 200 - 10.000/mês |
 | **Stims e consumíveis** | Vantagem temporária | 50 - 10.000 |
-| **Informação (Legwork)** | Vantagem em gigs | 100 - 5.000 |
+| **Informação (Legwork)** | Vantagem em trampos | 100 - 5.000 |
 
 ### Resgate — Assinatura Premium (Não-P2W)
 
@@ -229,7 +229,7 @@ O modelo de seguro que funciona como sink econômico e monetização saudável:
 | Plano | Custo/mês | Efeito |
 |---|---|---|
 | **Prata** | G$ 500 | Resgate em 30min. Revive com 60% HP |
-| **Ouro** | G$ 2.000 | Resgate em 15min. Revive com 80% HP. +10% de Moral em gigs (confiança do despachante) |
+| **Ouro** | G$ 2.000 | Resgate em 15min. Revive com 80% HP. +10% de Moral em trampos (confiança do despachante) |
 | **Platina** | G$ 10.000 | Resgate em 5min. Revive com 100% HP. Perde apenas 50% da Grana em mãos ao morrer |
 
 **Por que isso funciona**: é um sink de Grana (anti-inflação), uma vantagem que todos podem comprar com moeda do jogo, e a versão premium (Platina) é um objetivo aspiracional, não pay-to-win.
@@ -242,12 +242,12 @@ Para simplificar a economia e evitar inflação descontrolada:
 |---|---|---|
 | Cheap | G$ 10-100 | Syn-café, kibble, munição básica |
 | Everyday | G$ 100-500 | Refeição, aluguel de coffin, stim comum |
-| Costly | G$ 500-1.000 | Stims incomuns, arma básica, chrome T1 |
-| Premium | G$ 1.000-5.000 | Chrome T2, arma avançada, terapia básica |
-| Expensive | G$ 5.000-20.000 | Chrome T3, estimulantes raros, informação |
-| Very Expensive | G$ 20.000-50.000 | Chrome T4, gazuá avançado, cirurgia |
-| Luxury | G$ 50.000-100.000 | Chrome T4 premium, veículo |
-| Super Luxury | G$ 100.000+ | Chrome T5, itens lendários, propriedade |
+| Costly | G$ 500-1.000 | Stims incomuns, arma básica, cromo T1 |
+| Premium | G$ 1.000-5.000 | Cromo T2, arma avançada, terapia básica |
+| Expensive | G$ 5.000-20.000 | Cromo T3, estimulantes raros, informação |
+| Very Expensive | G$ 20.000-50.000 | Cromo T4, gazuá avançado, cirurgia |
+| Luxury | G$ 50.000-100.000 | Cromo T4 premium, veículo |
+| Super Luxury | G$ 100.000+ | Cromo T5, itens lendários, propriedade |
 
 ---
 
@@ -268,12 +268,12 @@ Inspirado diretamente no modelo de **Ascensão do Kingdom of Loathing** — o mo
 | Conquista | Condição | Recompensa Permanente |
 |---|---|---|
 | **Legend** | Atingir Moral 100 em qualquer rodada | **Drink nomeado no menu do Saideira** (permanente) + badge "Legend" |
-| **Speed Demon** | Completar 50 gigs em uma rodada | +5 NIL máximo permanente |
+| **Speed Demon** | Completar 50 trampos em uma rodada | +5 NIL máximo permanente |
 | **Net God** | Hackear 20 subnets corporativas em uma rodada | +10% RAM permanente |
-| **Warlord** | Vencer 3 crew wars em uma rodada | +5% dano PvP permanente |
-| **Rich Bitch** | Acumular G$ 500.000 em uma rodada | +10% de Grana em gigs permanente |
+| **Warlord** | Vencer 3 guerras de bondes em uma rodada | +5% dano PvP permanente |
+| **Rich Bitch** | Acumular G$ 500.000 em uma rodada | +10% de Grana em trampos permanente |
 | **Unkillable** | Sobreviver com <10 Humanidade por 3 dias | +10 Humanidade base permanente |
-| **Completionist** | Completar pelo menos 1 gig de cada tipo em uma rodada | +1 ponto de atributo livre permanente |
+| **Completionist** | Completar pelo menos 1 trampo de cada tipo em uma rodada | +1 ponto de atributo livre permanente |
 
 ### O Drink — A Imortalidade Social
 
@@ -282,8 +282,8 @@ Quando um jogador atinge Moral 100 (Legend):
 1. Seu nome é adicionado ao menu do **Saideira**
 2. Um drink é criado em sua homenagem (nome escolhido pelo jogador, dentro de diretrizes)
 3. Este drink é **PERMANENTE** — visível para todos os jogadores em todas as rodadas futuras
-4. O menu exibe: nome do jogador, nome do drink, data em que atingiu Legend, crew a que pertencia
+4. O menu exibe: nome do jogador, nome do drink, data em que atingiu Legend, bonde a que pertencia
 
-> *"Você pode perder tudo no reset. Sua Grana, seu chrome, seu nível. Mas ninguém tira seu nome do menu."*
+> *"Você pode perder tudo no reset. Sua Grana, seu cromo, seu nível. Mas ninguém tira seu nome do menu."*
 
 Este é o prestige reward definitivo — alinhado ao lore do gênero (drinks da Saideira), ao sistema de prestígio de KoL (Ascensão com benefício permanente) e ao que The Crims tentou fazer com medalhas.

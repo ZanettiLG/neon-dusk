@@ -14,7 +14,7 @@ Skill de design de economia para jogos. Padrões de faucets/sinks, inflação, b
 
 ## Quando Carregar
 - Implementando mecânicas de economia (Grana, loot, vendors)
-- Balanceando progressão (ganho de Moral, custo de chrome)
+- Balanceando progressão (ganho de Moral, custo de cromo)
 - Desenhando sinks de moeda (terapia, Resgate, housing)
 - Carregada por: `game-logic-dev`, `db-designer`, `architect`
 
@@ -25,7 +25,7 @@ Toda moeda que entra na economia do jogo:
 
 | Faucet | Frequência | Nota |
 |---|---|---|
-| Gigs | Diário (2-10x) | Principal fonte. Escala com tier |
+| Trampos | Diário (2-10x) | Principal fonte. Escala com tier |
 | Hustle (renda passiva) | Semanal | Por banca. Pequeno mas consistente |
 | Venda de loot | Variável | Componentes, dados, itens |
 | Data brokering | Variável | Vultos vendem info hackeada |
@@ -36,12 +36,12 @@ Toda moeda que SAI da economia:
 
 | Sink | Propósito | Nota |
 |---|---|---|
-| Chrome e upgrades | Progressão vertical | Maior sink do jogo |
-| Terapia de Humanidade | Manutenção de build | Essencial para balancear chrome |
+| Cromo e upgrades | Progressão vertical | Maior sink do jogo |
+| Terapia de Humanidade | Manutenção de build | Essencial para balancear cromo |
 | Resgate | Seguro contra morte | Sink recorrente + monetização saudável |
 | Housing/Lifestyle | Custo recorrente | Anti-inflação passiva |
 | Stims e consumíveis | Vantagem temporária | Sink de conveniência |
-| Informação (Legwork) | Vantagem em gigs | Opcional, acelera progressão |
+| Informação (Legwork) | Vantagem em trampos | Opcional, acelera progressão |
 
 ### Regra de Ouro
 > Em estado estacionário, faucets ≤ sinks. Se faucets > sinks, a economia inflaciona. Se faucets < sinks, jogadores não progridem.
@@ -64,17 +64,17 @@ Toda moeda que SAI da economia:
 |---|---|---|
 | Cheap | 10-100 | Syn-café, kibble, munição básica |
 | Everyday | 100-500 | Refeição, aluguel de coffin, stim comum |
-| Costly | 500-1.000 | Stims incomuns, arma básica, chrome T1 |
-| Premium | 1.000-5.000 | Chrome T2, arma avançada, terapia básica |
-| Expensive | 5.000-20.000 | Chrome T3, estimulantes raros, informação |
-| Very Expensive | 20.000-50.000 | Chrome T4, gazuá avançado, cirurgia |
-| Luxury | 50.000-100.000 | Chrome T4 premium, veículo |
-| Super Luxury | 100.000+ | Chrome T5, itens lendários |
+| Costly | 500-1.000 | Stims incomuns, arma básica, cromo T1 |
+| Premium | 1.000-5.000 | Cromo T2, arma avançada, terapia básica |
+| Expensive | 5.000-20.000 | Cromo T3, estimulantes raros, informação |
+| Very Expensive | 20.000-50.000 | Cromo T4, gazuá avançado, cirurgia |
+| Luxury | 50.000-100.000 | Cromo T4 premium, veículo |
+| Super Luxury | 100.000+ | Cromo T5, itens lendários |
 
 ## Anti-RMT (Real Money Trading)
 
 - Sem trade player↔player no MVP (modelo The Crims)
-- Itens de chrome são bound ao personagem (não transferíveis)
+- Itens de cromo são bound ao personagem (não transferíveis)
 - Mercado entre jogadores só será aberto com população >5k DAU
 - Exceção: dados/info podem ser vendidos via despachantes (controlado)
 
@@ -82,5 +82,5 @@ Toda moeda que SAI da economia:
 
 - Comprável com dinheiro real
 - Usável para conveniência (NIL booster, Second Wind, cosméticos)
-- NUNCA para poder (atributos, Moral, chrome superior)
+- NUNCA para poder (atributos, Moral, cromo superior)
 - Jogadores podem ganhar pequenas quantidades via eventos e conquistas

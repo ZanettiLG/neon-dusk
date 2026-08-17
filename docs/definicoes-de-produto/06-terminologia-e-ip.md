@@ -11,9 +11,9 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | Termo banido | Substituição | Justificativa lore |
 |---|---|---|
 | Kiroshi | **Óptica Vidraça** | Óptica feita do vidro da Paraíso — olho de vidro que enxerga através do concreto |
-| Sandevistan | **OS Surto** | O surto de reflexo: o mundo congela e o corredor ainda anda |
-| Berserk (OS) | **OS Fúria** | Fúria de combate; o ferro de Ogum no sistema |
-| Gorilla Arms | **Braço de Ferro** | Ogum é o orixá do ferro — o chrome de força leva o nome do santo |
+| Sandevistan | **SO Surto** | O surto de reflexo: o mundo congela e o corredor ainda anda |
+| Berserk (SO) | **SO Fúria** | Fúria de combate; o ferro de Ogum no sistema |
+| Gorilla Arms | **Braço de Ferro** | Ogum é o orixá do ferro — o cromo de força leva o nome do santo |
 | Mantis Blades | **Navalha** | A navalha de rua: corta rápido, some mais rápido |
 | Monowire | **Arame** | O arame da gambiarra — fino, invisível e mortal |
 | MaxTac | **A Garra** | Unidade de elite do Grupo Falcão; o falcão tem garras |
@@ -27,17 +27,27 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | Afterlife (bar) | **drinks da Saideira** | A Saideira é o bar das lendas de SP 2087 |
 | Animals / Tyger Claws | gangues próprias do setting | Usar as gangues documentadas em `02-mundo-e-universo.md` (ex: Anjos de Cromo, O Comando) |
 | Street Cred | **Moral** (★ Moral) | Reputação de rua como moeda social: ter moral na quebrada é ter nome que abre porta — "sem moral, sem entrada, sem choro". Abreviação oficial: ★ Moral (em contexto de código curto: M) |
-| ripperdoc | **Ferrageiro** | Ogum rege o ferro: quem instala chrome trabalha ferro no corpo. Ferrageiro é o ferreiro de gente — o ofício é abençoado pelo santo |
+| ripperdoc | **Ferrageiro** | Ogum rege o ferro: quem instala cromo trabalha ferro no corpo. Ferrageiro é o ferreiro de gente — o ofício é abençoado pelo santo |
 | Eddies / eddies / €$ | **Grana** (G$) | O dinheiro de rua se chama pelo nome da rua. Gíria paulistana que sobreviveu até 2087; símbolo oficial: G$ |
-| cyberdeck | **Gazuá** | Gazuá é a chave-mestra do ladrão. Exu guarda as porteiras — o gazuá abre a porteira. Como slot de OS: **OS Gazuá** |
+| cyberdeck | **Gazuá** | Gazuá é a chave-mestra do ladrão. Exu guarda as porteiras — o gazuá abre a porteira. Como slot de SO: **SO Gazuá** |
 | Berserker (stim) | **Pancadão** | Fúria em ampola: o grave do funk no sangue. Pancadão é a ocupação sonora da quebrada — o grave que faz o container tremer |
 | Roles | **Banca** | No jogo do bicho, a banca é a casa — no submundo 2087, a banca é teu papel na rua. Cada um joga na sua banca |
 | Solo (classe) | **Bicho** | O bicho do jogo — o animal solto na rua que resolve na porrada |
 | Netrunner (classe) | **Vulto** | Quem ninguém vê: só o vulto na Rede. O vulto atravessa a encruzilhada e some antes do olho registrar |
 | Tech (classe) | **Gambiarrista** | Gambiarra não é defeito — é valor cultural. Quem conserta com o que tem e faz funcionar |
-| Fixer (classe) | **Despachante** | Exu despacha pedido na encruzilhada; o despachante despacha gig na rua. Intermediário entre o corre e a grana |
+| Fixer (classe) | **Despachante** | Exu despacha pedido na encruzilhada; o despachante despacha trampo na rua. Intermediário entre o corre e a grana |
 | Nomad (classe) | **Estradeiro** | Ogum rege as estradas — quem vive na estrada é estradeiro |
 | Medtech (classe) | **Socorrista** | O socorro que a rua tem: chega quando o Resgate não chega. Cobra barato e não faz pergunta |
+| gig | **trampo** | Trampo é o nome paulistano do trabalho — o corre que paga. Gíria de rua que sobreviveu até 2087 |
+| crew | **bonde** | O bonde do funk: a galera que anda junto. Equipe é família, e família anda em bonde |
+| Fight Pit | **Rinha** | Rinha de galo é tradição de aposta na quebrada. A arena dos Anjos de Cromo: **Rinha dos Anjos de Cromo** |
+| Drone Races | **Racha de Drones** | Racha é a corrida clandestina paulistana — drone no lugar de moto |
+| Data-Trading | **Mercado de Dados** | Babilônia é o maior mercado do submundo. Dado é mercadoria — e o preço é alto |
+| Corporate Roulette | **Roleta das Corp** | Corp é gíria de rua para corporação. Apostar em ação de corp é roleta |
+| Underground (nome da seção) | **Submundo** | O nome certo em PT. "Underground" minúsculo como adjetivo genérico continua válido; como nome próprio da seção de apostas vira Submundo |
+| chrome | **cromo** | PT: "cromo" é o metal do corpo — o cromo que o Ferrageiro instala. "Chrome" é termo de IP importado e não volta |
+
+**Nota de sigla**: OS (sistema operacional) usa a sigla PT **SO** nos nomes de marca — SO Surto, SO Fúria, SO Gazuá.
 
 ## Regras de Naming
 
@@ -59,8 +69,25 @@ A propagação dos renomes ao código (enums, colunas, chaves de API, labels) é
 
 Termos genéricos do gênero cyberpunk que NÃO são substituídos:
 
-- **chrome**, **gig**, **flatline**, **stim**, **crew**, **ICE**
+- **flatline**, **stim**, **ICE**
 - **Blackout 2075** (evento canônico do setting — mantido; "Blackwall" é banido e vira A Porteira)
+
+## Catálogo de Elogios de Rua
+
+Strings canônicas de feedback de resultado (trampo concluído ou fracassado). Tom de rua: seco, direto, de igual pra igual.
+
+| String | Status |
+|---|---|
+| "Serviço limpo." | ✅ existente |
+| "Deu ruim." | ✅ existente |
+| "Alguém viu tua cara." | ✅ existente |
+| "Boa. Volta amanhã que tem mais." | ✅ existente |
+| "Ninguém viu nada. Nem você." | 🆕 proposta |
+| "Trampo perfeito. A rua vai falar teu nome." | 🆕 proposta |
+| "Deu ruim. Mas cê tá vivo — já é lucro." | 🆕 proposta |
+| "Tenta de novo, na moral." | 🆕 proposta |
+
+**Regra de tom**: feedback de resultado nunca usa "good job" ou variações, nunca usa emoji e nunca infantiliza o jogador. Sempre rua.
 
 ## Nota de Crédito
 

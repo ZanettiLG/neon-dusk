@@ -15,7 +15,7 @@
 2. Banners dos 7 distritos.
 3. Retratos dos 8 despachantes.
 4. Stims e itens de consumo.
-5. Chrome por slot.
+5. Cromo por slot.
 6. Drinks do Saideira.
 7. Eventos e overlays.
 8. Personagens e missões.
@@ -72,5 +72,5 @@ referência direta a Cyberpunk 2077, Blade Runner ou qualquer IP existente
 ## Limite legal e editorial
 
 - Não usar nomes/termos de Cyberpunk 2077 ou do TTRPG (Kiroshi, MaxTac, Sandevistan, Mantis Blades, Gorilla Arms, Monowire, Trauma Team, Blackwall, Braindance, choom, edgerunner, Night City, Night City Legend, Johnny Silverhand) no **produto inteiro** — docs, lore, copy, assets e prompts. A lista completa de termos banidos e a tabela de substituições oficiais estão em `../definicoes-de-produto/06-terminologia-e-ip.md`.
-- Preferir marcas próprias: Grupo Falcão, Aço Paulista, Concreta, Instituto Paraíso, Rede Véu, Nó Cego — e os nomes oficiais de equipamento e serviços: Óptica Vidraça, OS Surto, OS Fúria, Braço de Ferro, Navalha, Arame, A Garra, Resgate, A Porteira, Sintonia, Saideira.
+- Preferir marcas próprias: Grupo Falcão, Aço Paulista, Concreta, Instituto Paraíso, Rede Véu, Nó Cego — e os nomes oficiais de equipamento e serviços: Óptica Vidraça, SO Surto, SO Fúria, Braço de Ferro, Navalha, Arame, A Garra, Resgate, A Porteira, Sintonia, Saideira.
 - Manter tom noir sujo documentado; sem apologia ao crime (risco BR documentado com The Crims).

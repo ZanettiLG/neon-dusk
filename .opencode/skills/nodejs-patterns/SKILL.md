@@ -45,9 +45,9 @@ src/server/
 ## Convenções
 
 ### Nomeação
-- Arquivos: kebab-case (`gig-service.ts`, `auth-middleware.ts`)
-- Funções: camelCase (`calculateGigSuccess`, `validateToken`)
-- Tipos/Interfaces: PascalCase (`Gig`, `Character`, `ApiResponse<T>`)
+- Arquivos: kebab-case (`gig-service.ts`, `auth-middleware.ts`) — `gig-service.ts` é código #145 (rename de arquivo na follow-up)
+- Funções: camelCase (`calculateGigSuccess`, `validateToken`) — `calculateGigSuccess` é código #145 (rename de função na follow-up)
+- Tipos/Interfaces: PascalCase (`Gig`, `Character`, `ApiResponse<T>`) — `Gig` é código #145 (rename de tipo na follow-up)
 - Constantes: UPPER_SNAKE_CASE (`MAX_NIL`, `STREET_CRED_THRESHOLDS`)
 - SQL: snake_case (tabelas e colunas — `street_cred`, `trauma_team`)
 

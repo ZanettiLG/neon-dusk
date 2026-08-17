@@ -22,17 +22,17 @@ Skill de lore cyberpunk. Vocabulário, tom de voz, referências para escrever co
 
 | Termo | Significado | Uso |
 |---|---|---|
-| **Chrome** | Cyberware, implantes cibernéticos | "Braço de Ferro: chrome militar de 3ª geração" |
+| **Cromo** | Cyberware, implantes cibernéticos | "Braço de Ferro: cromo militar de 3ª geração" |
 | **Grana** (G$) | Moeda. O dinheiro de rua se chama pelo nome da rua | "O despachante pagou 5 mil. Grana limpa." |
-| **Despachante** | Intermediário de missões. Exu despacha pedido na encruzilhada; o despachante despacha a gig | "Cupim tem um gig para você." |
-| **Gig** | Missão, trabalho | "Gig disponível: extração em O Fervo" |
+| **Despachante** | Intermediário de missões. Exu despacha pedido na encruzilhada; o despachante despacha o trampo | "Cupim tem um trampo para você." |
+| **Trampo** | Missão, trabalho — o corre que paga | "Trampo disponível: extração em O Fervo" |
 | **Flatline** | Morrer | "Mais um que flatlineou no Grid." |
-| **Ferrageiro** | Médico de chrome ilegal. Ogum rege o ferro — ferreiro de gente | "Conheço um Ferrageiro na Quebrada." |
+| **Ferrageiro** | Médico de cromo ilegal. Ogum rege o ferro — ferreiro de gente | "Conheço um Ferrageiro na Quebrada." |
 | **Vulto** | Hacker. Ninguém vê o rosto — só o vulto na Rede | "Precisa de um Vulto para esse servidor." |
 | **ICE** | Intrusion Countermeasures Electronics | "O servidor tem ICE camada 3." |
 | **Moral** (★) | Reputação de rua. Moeda social — ter moral é ter passe | "Com essa moral, até a Carcará te atende." |
 | **Stim** | Estimulante/droga | "AdrenaStim: +30 NIL. Burnout depois." |
-| **Crew** | Equipe/gangue | "Sua crew controla O Fervo esta semana." |
+| **Bonde** | Equipe/gangue — a família da rua, como o bonde do funk: anda junto, pesa junto | "Seu bonde controla O Fervo esta semana." |
 | **A Saideira** | Bar das lendas | "Te vejo na Saideira. Se sobreviver." |
 
 ## Glossário de Rua SP
@@ -59,7 +59,7 @@ Vocabulário da São Paulo periférica que sobreviveu até 2087. Uso obrigatóri
 | **tá ligado** | "Entendeu?" / "Tô junto." Marcador de pacto | "O bagulho é sinistro, tá ligado?" |
 | **papo reto** | Conversa séria, sem enrolação | "Papo reto: cê vai ou não vai?" |
 | **humilde** | Elogio anti-playba: da quebrada e não se acha | "Mó humilde, o mano. Raiz." |
-| **mó** | Intensificador: "maior" | "Fiquei na mó neurose com essa gig." |
+| **mó** | Intensificador: "maior" | "Fiquei na mó neurose com esse trampo." |
 | **gambiarra** | Solução criativa e improvisada. NÃO é defeito — é valor cultural | "Essa ponte de cabo? Gambiarra pura. Aguentou 30 ano. Vai aguentar mais." |
 
 ## Glossário de Marca Própria — São Paulo 2087
@@ -68,8 +68,8 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 
 | Termo | O que é | Tom / Uso |
 |---|---|---|
-| **OS Surto** | Sistema operacional de reflexo. O mundo congela e o corredor ainda anda | "Sentiu o surto? A rua desacelerou e você não." |
-| **OS Fúria** | OS de combate. O ferro de Ogum no sistema | "Fúria na veia, Ogum no braço. Só não olha pro estrago." |
+| **SO Surto** | Sistema operacional de reflexo. O mundo congela e o corredor ainda anda | "Sentiu o surto? A rua desacelerou e você não." |
+| **SO Fúria** | OS de combate. O ferro de Ogum no sistema | "Fúria na veia, Ogum no braço. Só não olha pro estrago." |
 | **A Porteira** | Fronteira da Deep Net. Exu é o guardião das porteiras | "Ninguém atravessa a Porteira sem pedir licença." |
 | **Resgate** | Seguro contra a morte. Planos Prata, Ouro e Platina | "O Resgate chega em minutos. Se o plano estiver em dia." |
 | **Navalha** | Lâminas retráteis de antebraço | "Navalha de rua: corta rápido, some mais rápido." |
@@ -79,7 +79,7 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 | **Sintonia** | Experiência neural gravada de outra pessoa | "Sintoniza a fita dos outros. Depois tenta lembrar qual memória é sua." |
 | **A Garra** | Unidade de elite do Grupo Falcão | "A Garra não prende. A Garra recolhe." |
 | **corredor** | Quem vive o corre. Minúscula como termo comum; "Corredor" como tier | "Corredor vive na beirada e morre de pé." |
-| **Gazuá** | Equipamento de hacking. Como slot de OS: "OS Gazuá". Exu guarda as porteiras — o gazuá abre | "Gazuá na mão, porteira aberta. O resto é com você." |
+| **Gazuá** | Equipamento de hacking. Como slot de OS: "SO Gazuá". Exu guarda as porteiras — o gazuá abre | "Gazuá na mão, porteira aberta. O resto é com você." |
 | **Pancadão** | Stim de fúria. O grave do funk no sangue | "O Pancadão bate, o corpo obedece. Depois ninguém lembra." |
 | **Banca** | Teu papel na rua — a classe. No jogo do bicho, a banca é a casa | "Cada um joga na sua banca. Respeita a minha." |
 | **Bicho** | Banca de combate — o animal solto na rua | "Bicho solto não avisa. Bicho solto resolve." |
@@ -97,11 +97,11 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 
 ### Exemplos por Contexto
 
-**Sucesso em gig**:
+**Sucesso em trampo**:
 - ✅ "O despachante pagou. Você entregou. Ninguém morreu. Hoje foi um bom dia."
 - ❌ "Congratulations! You completed the mission successfully!"
 
-**Falha em gig**:
+**Falha em trampo**:
 - ✅ "O alarme disparou. Você correu. Metade da grana ficou para trás. Mas você ainda está respirando."
 - ❌ "Mission failed. Please try again."
 
@@ -109,9 +109,9 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 - ✅ "Seu nome era [Nome]. Agora é só mais uma entrada nos arquivos do Resgate."
 - ❌ "You died. Respawning in 3... 2... 1..."
 
-**Level up / Chrome instalado**:
-- ✅ "O Ferrageiro terminou. Você sente o chrome se fundir aos nervos. Algo dentro de você ficou mais forte. Algo dentro de você se foi."
-- ❌ "Chrome installed! +10 Body."
+**Level up / Cromo instalado**:
+- ✅ "O Ferrageiro terminou. Você sente o cromo se fundir aos nervos. Algo dentro de você ficou mais forte. Algo dentro de você se foi."
+- ❌ "Cyberware installed! +10 Body."
 
 **Moral up**:
 - ✅ "Alguém sussurrou seu nome na Saideira. Não muito alto. Mas sussurrou."
@@ -120,17 +120,17 @@ Nomes oficiais do jogo. Uso obrigatório em todo texto de produto — copy, UI, 
 ### O Que NUNCA Fazer
 - Emojis em mensagens de sistema
 - Linguagem corporativa ("utilize our services")
-- Infantilização ("good job, mano!")
+- Infantilização ("good job, mano!") — feedback de resultado usa o Catálogo de Elogios de Rua (canônico em `docs/definicoes-de-produto/06-terminologia-e-ip.md`), nunca elogios traduzidos
 - Exposição desnecessária (explique o mínimo; o jogador infere)
 
 ## Religiosidade de SP
 
-Sincretismo afro-brasileiro e fé popular. Onipresente no cotidiano de 2087 — das oferendas nos becos aos amuletos no painel do carro. Toda gig tem seu santo.
+Sincretismo afro-brasileiro e fé popular. Onipresente no cotidiano de 2087 — das oferendas nos becos aos amuletos no painel do carro. Todo trampo tem seu santo.
 
 | Elemento | Domínio 2087 | Gancho narrativo |
 |---|---|---|
-| **Exu** — orixá da comunicação, encruzilhadas, mensageiro. Saudação: "Laroiê!". Cores: vermelho/preto. Guardião das porteiras (Baraqueto), senhor do mercado (Olojá) | Vultos, gateways, backdoors | Todo hacker serve Exu antes da gig — oferenda de abertura é obrigatória, sob pena de crash. "Guardião das porteiras" = guardião dos backdoors. Vermelho e preto nos gazuás |
-| **Ogum** — orixá do ferro, guerra, **tecnologia**, estradas. Sincretizado com São Jorge no Sudeste. "Jura-se beijando ferro" | Chrome, armas, asfalto, comboios | O santo do chrome e do asfalto. Amuleto de Ogum no painel vale mais que airbag. Feijoada de Ogum (abril) = refeição ritual pós-gig |
+| **Exu** — orixá da comunicação, encruzilhadas, mensageiro. Saudação: "Laroiê!". Cores: vermelho/preto. Guardião das porteiras (Baraqueto), senhor do mercado (Olojá) | Vultos, gateways, backdoors | Todo hacker serve Exu antes do trampo — oferenda de abertura é obrigatória, sob pena de crash. "Guardião das porteiras" = guardião dos backdoors. Vermelho e preto nos gazuás |
+| **Ogum** — orixá do ferro, guerra, **tecnologia**, estradas. Sincretizado com São Jorge no Sudeste. "Jura-se beijando ferro" | Cromo, armas, asfalto, comboios | O santo do cromo e do asfalto. Amuleto de Ogum no painel vale mais que airbag. Feijoada de Ogum (abril) = refeição ritual pós-trampo |
 | **Pomba Gira** — entidade feminina da encruzilhada. Champanhe, cigarro, risada. Dama da noite. "Rainha das 7 Encruzilhadas" | Ciber-bordéis, dona da noite digital, amarração de contratos | A "Mãe" de terreiro que é rainha da informação do submundo. Risada alta + champanhe = senha de acesso |
 | **Preto Velho** — entidade de sabedoria e cura. Benze com arruda, reza com terço, fuma cachimbo. "Vovó Maria Conga", "Pai João" | Ferrageiro ancião, data-curandeiro | Benze antes de operar, cobra em "trabalho pra casa". Baforada de cachimbo = anestésico herbal + limpeza de biosig |
 | **Zé Pelintra** — malandro sagrado do Catimbó. Terno de linho branco, sapatos bicolor, chapéu panamá, bengala. Cerveja clara, cigarro, baralho. "Advogado dos Pobres" | Despachante, golpista carismático, cassino | Terno de linho anti-bala. Todo acerto se fecha com cerveja clara. Nunca se recusa uma |

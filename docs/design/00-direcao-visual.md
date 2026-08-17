@@ -14,7 +14,7 @@ A interface mistura: terminal corporativo velho, celular PWA de corredor, painel
 - Antes/depois explícito (ex.: custo de Humanidade vs. bônus recebido).
 - Log de eventos com leitura rápida.
 - Visual de rede/nós para hacking.
-- Mapa corporal para instalação de chrome.
+- Mapa corporal para instalação de cromo.
 - Sensação de terminal, glitch e interface neural.
 
 ## O que NÃO copiar das referências
@@ -35,7 +35,7 @@ A interface mistura: terminal corporativo velho, celular PWA de corredor, painel
 | Concreto e metal oxidado | Base dos painéis e fundos |
 | Garoa ácida | Overlay ambiental em distritos baixos |
 | Helicópteros e silhuetas verticais | Distritos corporativos |
-| Neon em português | SAIDEIRA, GIGS, CHROME, CORRE, BABILÔNIA |
+| Neon em português | SAIDEIRA, TRAMPOS, CROMO, CORRE, BABILÔNIA |
 | Vela de santo, arruda, terço, Exu/Ogum | Detalhes de vendors, Ferrageiros e eventos |
 | Funk como território | Ondas/sub-bass no Fluxo e na Quebrada |
 | Pastel, café, marmita | Itens de consumo e reforço cultural |

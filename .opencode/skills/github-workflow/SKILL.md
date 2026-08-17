@@ -172,7 +172,7 @@ gh issue edit <main_issue> --body "$(echo -e 'corpo\n\n## Sub-Tasks\n- [ ] #<sub
 O orquestrador pode rodar múltiplas features no mesmo working directory. Regras para evitar colisão de branches e perda de trabalho:
 
 - **(a) Fases read-only** (architect, code-reviewer, qa-browser, deep-researcher) podem rodar em paralelo real.
-- **(b) Fases que escrevem no workdir** (developer, test-writer, fixer) em branches diferentes devem ser **serializadas** pelo orquestrador — ou usar `git worktree add` para isolar cada branch.
+- **(b) Fases que escrevem no workdir** (developer, test-writer) em branches diferentes devem ser **serializadas** pelo orquestrador — ou usar `git worktree add` para isolar cada branch.
 - **(c) Commits sempre via `github-ops` com listas explícitas de arquivos** (`git add <arquivos específicos>`), nunca `git add -A`, para evitar contaminação cruzada entre branches.
 - **(d) Troca de branch com mudanças alheias não commitadas**: use `git stash push -m "wip:<branch-dona>"` e registre o stash no handoff (comentário da issue). Nunca descarte nem sobrescreva trabalho alheio.
 - **(e) `task_result` vazio/cancelado**: o orquestrador deve **re-executar** o subagente (regra de validação de handoff) antes de considerar a fase falha. A disciplina "não commite; github-ops commita" garante que nada é perdido em re-execução.

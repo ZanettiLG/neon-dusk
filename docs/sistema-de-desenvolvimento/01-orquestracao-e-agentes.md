@@ -158,7 +158,7 @@ Human Dev: /dev-feature "sistema de autenticação JWT"
 **Tipos de teste que produz**:
 - **Unitários** (Vitest): services, utils, game logic (economy math, stat calculations)
 - **Integração** (Vitest + Supertest): API endpoints
-- **E2E** (Playwright): fluxos críticos (login → criar personagem → primeiro gig)
+- **E2E** (Playwright): fluxos críticos (login → criar personagem → primeiro trampo)
 - **Database** (Vitest + pg-mem ou testcontainers): migrations, queries
 
 **Self-check (8 itens)**:
@@ -238,7 +238,7 @@ Human Dev: /dev-feature "sistema de autenticação JWT"
 | **Função** | Especialista em implementar mecânicas de jogo (fórmulas de combate, economia, cyberpsychosis, progressão). Chamado para features de game design puro. |
 
 **Exemplos de features deste agente**:
-- Fórmula de sucesso de gigs: `(BOD + REF + Chrome) / Dificuldade`
+- Fórmula de sucesso de trampos: `(BOD + REF + Cromo) / Dificuldade`
 - Cálculo de Humanidade e thresholds de cyberpsychosis
 - Distribuição de loot por tier
 - Sistema de Moral e decay

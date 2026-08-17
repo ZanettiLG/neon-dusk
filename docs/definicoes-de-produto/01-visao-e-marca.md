@@ -23,10 +23,10 @@
 
 ## Tagline
 
-> **"Build your chrome. Burn your name. Leave a legend."**
+> **"Build your cromo. Burn your name. Leave a legend."**
 
 Variações:
-- Curta (UI): *"Build chrome. Burn bright."*
+- Curta (UI): *"Build cromo. Burn bright."*
 - Steam/loja: *"In the neon dusk, legends aren't born — they're installed."*
 
 ---
@@ -51,6 +51,10 @@ Variações:
 ### Referências de Tom
 - **Neuromancer** (Gibson): prosa cinética, descrições sensoriais, jargão que o leitor infere
 - **Blade Runner**: melancolia existencial, beleza na decadência
+
+### Elogios de Rua
+
+O feedback de resultado segue o **Catálogo de Elogios de Rua** — strings canônicas aprovadas ("Serviço limpo.", "Deu ruim."), nunca elogios traduzidos ("good job"). Catálogo completo e regra de tom em [06-terminologia-e-ip.md](./06-terminologia-e-ip.md).
 
 ---
 
@@ -94,7 +98,7 @@ Variações:
 ╔══════════════════════════╗
 ║  N E O N / / D U S K    ║
 ║  ─────────────────────  ║
-║  build chrome.          ║
+║  build cromo.          ║
 ║  burn bright.           ║
 ╚══════════════════════════╝
 ```
@@ -116,7 +120,7 @@ Glitch alternativo: `N̷E̷O̷N̷/̷/̷D̷U̷S̷K̷` com efeito de scanline e fl
 ### Por que este jogo existe?
 
 O gênero PBBG tem sobreviventes de 20+ anos (Torn, Hattrick, Kingdom of Loathing) mas **nenhum** jogo consolidado no gênero cyberpunk com:
-1. Mecânicas de chrome/humanidade como trade-off real (não apenas cosmético)
+1. Mecânicas de cromo/humanidade como trade-off real (não apenas cosmético)
 2. Sistema de Lendas com prestígio permanente (estilo KoL Ascensão)
 3. Hacking integrado como segunda camada de gameplay (não minigame separado)
 4. Tom adulto e autêntico ao gênero (não pasteurizado para mobile)

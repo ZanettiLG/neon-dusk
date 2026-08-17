@@ -35,7 +35,7 @@ Skill de padrões de código para o frontend do Neon Dusk. React 19, Zustand 5, 
 src/client/
 ├── components/       # Reutilizáveis (Button, Card, HUD)
 ├── pages/            # Páginas (LoginPage, DashboardPage)
-├── stores/           # Zustand stores (character, gig, crew)
+├── stores/           # Zustand stores (character, trampo, bonde)
 ├── hooks/            # Lógica reutilizável (useAuth, useNIL)
 ├── styles/
 │   └── tailwind.css  # Config + paleta
@@ -155,7 +155,7 @@ import { lazy } from 'react'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
-const GigPage = lazy(() => import('@/pages/GigPage'))
+const TrampoPage = lazy(() => import('@/pages/TrampoPage'))
 
 export const router = createBrowserRouter([
   {
@@ -167,11 +167,11 @@ export const router = createBrowserRouter([
         element: <AuthGuard><DashboardPage /></AuthGuard>,
       },
       {
-        path: 'gigs',
+        path: 'trampos',
         element: <AuthGuard><Outlet /></AuthGuard>,
         children: [
-          { index: true, lazy: () => import('@/pages/GigListPage') },
-          { path: ':gigId', element: <GigPage /> },
+          { index: true, lazy: () => import('@/pages/TrampoListPage') },
+          { path: ':trampoId', element: <TrampoPage /> },
         ],
       },
     ],
@@ -227,7 +227,7 @@ VitePWA({
   manifest: {
     name: 'Neon Dusk',
     short_name: 'NeonDusk',
-    description: 'Build your chrome. Burn your name. Leave a legend.',
+    description: 'Build your cromo. Burn your name. Leave a legend.',
     theme_color: '#0a0a0a',
     background_color: '#0a0a0a',
     display: 'standalone',

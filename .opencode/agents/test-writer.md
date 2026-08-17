@@ -26,7 +26,7 @@ Escrever testes automatizados para features implementadas. Garantir cobertura de
 ## Tipos de Teste
 - **Unitários** (Vitest): services, utils, game logic (fórmulas, cálculos)
 - **Integração** (Vitest + Supertest): API endpoints Fastify
-- **E2E** (Playwright): fluxos críticos (login → criar personagem → primeiro gig)
+- **E2E** (Playwright): fluxos críticos (login → criar personagem → primeiro trampo)
 - **Database** (pg-mem): migrations, queries isoladas
 
 ## Self-Check (10 itens)

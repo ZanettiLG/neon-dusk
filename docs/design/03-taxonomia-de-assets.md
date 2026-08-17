@@ -19,11 +19,11 @@
 | Banners de distritos | 7 |
 | Retratos de despachantes | 8 |
 | Ícones de stims | 8 |
-| Ícones de chrome por slot | 9-20 |
-| Ícones de tipos de gig | 7 |
+| Ícones de cromo por slot | 9-20 |
+| Ícones de tipos de trampo | 7 |
 | Drinks do menu Saideira | 6-12 |
 | Mapa-metrô de SP 2087 | 1 |
-| Body-map de chrome | 1 |
+| Body-map de cromo | 1 |
 
 ## Prioridade 2 — Expansão
 
@@ -33,7 +33,7 @@
 - Missões especiais.
 - Eventos de temporada.
 - Planos de seguro (Resgate).
-- Territórios e crew wars.
+- Territórios e guerra de bondes.
 - Cenas de reset, flatline e rank-up.
 
 ## Direção por categoria
@@ -43,7 +43,7 @@
 - Sombra: vulto, fria, Quebrada.
 - Malagueta: terno sintético, drink, sorriso sem calor.
 - Graxa: braço mecânico com chave de fenda, Fervo, graxa.
-- Carcará: cicatriz de chrome, olho cibernético quebrado, bar em penumbra dourada.
+- Carcará: cicatriz de cromo, olho cibernético quebrado, bar em penumbra dourada.
 - Fantasma: sem rosto — terminal com estática e texto criptografado.
 - Cobra: elegância fria, escritório no 180o andar, Paraíso.
 - Coveiro: sinistro, poético, O Ponto.

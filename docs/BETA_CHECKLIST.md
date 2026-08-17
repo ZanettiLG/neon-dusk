@@ -30,13 +30,13 @@
 - [ ] Account registration + login (JWT)
 - [ ] Character creation (name, origin, banca, 22-point attributes)
 - [ ] NIL energy — regen, consume, stim (syn-café)
-- [ ] Gigs — 5-phase loop (meet → legwork → execute → escape → wrap-up)
+- [ ] Trampos — 5-phase loop (meet → legwork → execute → escape → wrap-up)
 - [ ] Economy — wallets, vendor purchases, transaction log
-- [ ] Chrome — catalog, install, uninstall, humanity drain
+- [ ] Cromo — catalog, install, uninstall, humanity drain
 - [ ] Moral — leaderboard, thresholds, titles
 - [ ] PvP — attack, cooldown, power ranges
-- [ ] Saideira Hub — chat (SSE), legends, crew leaderboard
-- [ ] Crews — creation (Moral ≥ 25, 5k G$), invites, join, leave, chat
+- [ ] Saideira Hub — chat (SSE), legends, bonde leaderboard
+- [ ] Bondes — creation (Moral ≥ 25, 5k G$), invites, join, leave, chat
 - [ ] Round system — 14-day rounds, automated reset, intermission
 - [ ] Admin panel — player management, economy dashboard, params, audit log
 - [ ] Admin API — x-api-key + JWT admin role, rate limiting
@@ -46,14 +46,14 @@
 - [ ] Loading states — all action buttons show spinner & disable on submit
 - [ ] Portuguese error messages — all API errors mapped to PT-BR
 - [ ] Empty states — friendly messages for empty lists
-- [ ] Confirmation dialogs — destructive actions (uninstall chrome, abandon gig, ban, reset)
+- [ ] Confirmation dialogs — destructive actions (uninstall cromo, abandon trampo, ban, reset)
 - [ ] Mobile responsive — 375px+ working, no horizontal overflow
 - [ ] Accessibility — `lang="pt-BR"`, focus-visible outlines, labeled inputs
 
 ## Economy
 
-- [ ] Faucets — gig payouts, PvP rewards, initial balance (500 G$)
-- [ ] Sinks — vendor purchases, chrome install, crew creation
+- [ ] Faucets — trampo payouts, PvP rewards, initial balance (500 G$)
+- [ ] Sinks — vendor purchases, cromo install, bonde creation
 - [ ] Zero inflation — round reset wipes all Grana
 - [ ] Transaction log — append-only, check-constrained (after - before == amount)
 - [ ] Wallet versioning — optimistic locking prevents race conditions
@@ -61,13 +61,13 @@
 
 ## Round Reset
 
-- [ ] Active gigs wiped
-- [ ] Gig history wiped
-- [ ] Installed chrome wiped
+- [ ] Active trampos wiped
+- [ ] Trampo history wiped
+- [ ] Installed cromo wiped
 - [ ] PvP combat history wiped
 - [ ] Heat reset
 - [ ] Transaction log wiped
-- [ ] Crews wiped (memberships detached first)
+- [ ] Bondes wiped (memberships detached first)
 - [ ] Wallets zeroed
 - [ ] Characters reset: NIL=100, Moral=0, humanity=100
 - [ ] Legends preserved (permanent hall of fame)
@@ -79,7 +79,7 @@
 - [ ] Rate limiting — global per-IP (`@fastify/rate-limit`)
 - [ ] Per-action rate limits — register, login, PvP, chat
 - [ ] Circuit breaker — 3 failures → 24h ban per character
-- [ ] Cooldowns — gig accept (30s), PvP (1h), chat (5s), chrome (60s)
+- [ ] Cooldowns — trampo accept (30s), PvP (1h), chat (5s), cromo (60s)
 - [ ] JWT — HS256, 15min access, refresh token rotation
 - [ ] Admin protection — x-api-key + JWT admin role + admin rate limit
 - [ ] Audit log — every mutating action recorded with IP, UA, result
@@ -90,7 +90,7 @@
 ## Launch
 
 - [ ] Production env config — `NODE_ENV=production`, real JWT secrets
-- [ ] Database seeded — admin account, vendors, chrome catalog, gig templates
+- [ ] Database seeded — admin account, vendors, cromo catalog, trampo templates
 - [ ] Admin account — email + password set via `ADMIN_EMAIL`/`ADMIN_PASSWORD` env
 - [ ] DNS configured — neondusk.gg or staging subdomain
 - [ ] TLS — HTTPS via reverse proxy (nginx/caddy)

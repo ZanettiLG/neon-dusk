@@ -10,8 +10,8 @@ Isso preserva: filosofia do gênero PBBG, autoridade do servidor (anti-cheat) e 
 
 | Interação | Descrição |
 |---|---|
-| Teatro de rolagem | Ao executar gig, números correm 1-2s em font-data e travam no resultado (roll vs. chance) |
-| Cirurgia de chrome | Log do Ferrageiro digitando, batimento neural, custo de Humanidade piscando durante o cooldown |
+| Teatro de rolagem | Ao executar trampo, números correm 1-2s em font-data e travam no resultado (roll vs. chance) |
+| Cirurgia de cromo | Log do Ferrageiro digitando, batimento neural, custo de Humanidade piscando durante o cooldown |
 | Confronto PvP | Barras de poder colidem e revelam o resultado server-side |
 | Rank-up de Moral | Glitch dourado, título revelado, efeito breve no header |
 | Porta do Saideira | Segurança avalia Moral antes de liberar a entrada ("Sem moral, sem entrada, sem choro") |
@@ -31,7 +31,7 @@ Isso preserva: filosofia do gênero PBBG, autoridade do servidor (anti-cheat) e 
 
 ## Fase 3 (referência futura)
 
-- Fight Pit, Drone Races, Data-Trading, Corporate Roulette no formato apostar-e-revelar, nunca tempo real.
+- Rinha, Racha de Drones, Mercado de Dados, Roleta das Corp no formato apostar-e-revelar, nunca tempo real.
 - House edge publicado e auditável.
 
 ## Nunca fazer
@@ -40,4 +40,4 @@ Isso preserva: filosofia do gênero PBBG, autoridade do servidor (anti-cheat) e 
 - Quick time events.
 - Mira, reflexo ou timing.
 - Mapa aberto explorável.
-- Minigames isolados que não afetem economia, gigs, chrome, crew ou Moral.
+- Minigames isolados que não afetem economia, trampos, cromo, bonde ou Moral.
