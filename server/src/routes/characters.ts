@@ -1,10 +1,29 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
-import type { Character, NilConsumeResponse, NilStatus, NilStimResponse } from "@neon-dusk/shared";
+import { z } from "zod";
+import type {
+  Character,
+  CharacterEventsResponse,
+  NilConsumeResponse,
+  NilStatus,
+  NilStimResponse,
+} from "@neon-dusk/shared";
 import { createCharacter, createCharacterSchema } from "../services/character-service";
 import { consumeNil, consumeNilSchema, getNilStatus, useStim } from "../services/nil-service";
+import { listCharacterEvents } from "../services/event-service";
+import { requireCharacterId } from "../services/economy-service";
 import { authenticate } from "../middleware/auth";
 import { checkRateLimit } from "../lib/rate-limit";
+
+/** Query schema for the player event feed (ND-139). */
+const eventsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  // Semantic validation: reject impossible calendar dates (e.g. 2026-99-99)
+  // before they reach `new Date(cursor)` inside event-service and throw a 500.
+  // The server returns `createdAt` via toISOString() (UTC "Z"), which the
+  // frontend passes back verbatim — datetime({ offset: true }) accepts it.
+  cursor: z.string().datetime({ offset: true }).optional(),
+});
 
 export interface CharacterRoutesOptions {
   redis: Redis;
@@ -57,4 +76,11 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
       return useStim(redis, request.user.sub) as Promise<NilStimResponse>;
     },
   );
+
+  // GET /characters/me/events — read-only player event feed (Feature #139).
+  app.get("/characters/me/events", { preHandler: [authenticate] }, async (request) => {
+    const { limit, cursor } = eventsQuerySchema.parse(request.query);
+    const characterId = await requireCharacterId(request.user.sub);
+    return listCharacterEvents(characterId, limit, cursor) as Promise<CharacterEventsResponse>;
+  });
 }

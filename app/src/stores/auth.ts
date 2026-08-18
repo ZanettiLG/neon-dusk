@@ -178,7 +178,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ nilStatus: await api.get<NilStatus>("/api/characters/me/nil") });
         } catch (err) {
-          set({ nilError: err instanceof Error ? err.message : "Falha ao carregar NIL" });
+          set({ nilError: err instanceof ApiError ? err.message : "Falha ao carregar NIL" });
         } finally {
           set({ nilLoading: false });
         }
@@ -192,7 +192,7 @@ export const useAuthStore = create<AuthState>()(
           set({ nilStatus: res.status });
           return res;
         } catch (err) {
-          set({ nilError: err instanceof Error ? err.message : "Falha ao usar syn-café" });
+          set({ nilError: err instanceof ApiError ? err.message : "Falha ao usar syn-café" });
           throw err;
         } finally {
           set({ nilLoading: false });

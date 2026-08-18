@@ -4,7 +4,13 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import DashboardView from "@/views/DashboardView";
 import { useAuthStore } from "@/stores/auth";
-import type { Character, NilStatus, User } from "@neon-dusk/shared";
+import type {
+  Character,
+  CharacterEventsResponse,
+  InstalledChromeResponse,
+  NilStatus,
+  User,
+} from "@neon-dusk/shared";
 
 const mocks = vi.hoisted(() => ({
   api: {
@@ -65,6 +71,31 @@ const nilStatus: NilStatus = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
+const installedChrome: InstalledChromeResponse = {
+  installed: [],
+  effectiveHumanity: 97,
+  humanitySpent: 0,
+  statBonus: { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 },
+  hpBonus: 0,
+  gigSuccessBonus: 0,
+  nilMaxBonus: 0,
+};
+
+const eventsResponse: CharacterEventsResponse = {
+  events: [],
+  nextCursor: null,
+};
+
+/** Route the mocked GET by path — new dashboard endpoints get real fixtures. */
+function mockApiGet(nil: NilStatus = nilStatus) {
+  mocks.api.get.mockImplementation((path: string) => {
+    if (path === "/api/characters/me/nil") return Promise.resolve(nil);
+    if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
+    if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
+    return Promise.resolve(nil); // /api/round + leaderboard fallback
+  });
+}
+
 function renderDashboard() {
   return render(
     <MemoryRouter initialEntries={["/dashboard"]}>
@@ -84,7 +115,7 @@ describe("DashboardView", () => {
   });
 
   it("should render the character card, NIL bar and attributes", async () => {
-    mocks.api.get.mockResolvedValue(nilStatus);
+    mockApiGet();
     useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
     renderDashboard();
 
@@ -103,10 +134,18 @@ describe("DashboardView", () => {
     expect(screen.getByText("Body")).toBeInTheDocument();
     expect(screen.getAllByText("3")).toHaveLength(5);
     expect(mocks.api.get).toHaveBeenCalledWith("/api/characters/me/nil");
+
+    // Feature #139 sections: humanity bar, body map empty, event feed empty, quick actions.
+    expect(await screen.findByText("97 / 100")).toBeInTheDocument();
+    expect(screen.getByText("Nenhum cromo instalado")).toBeInTheDocument();
+    expect(screen.getByText("Nenhum evento recente.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "PvP" })).toHaveAttribute("href", "/pvp");
+    expect(mocks.api.get).toHaveBeenCalledWith("/api/chrome/installed");
+    expect(mocks.api.get).toHaveBeenCalledWith("/api/characters/me/events");
   });
 
   it("should show the empty state when no character is linked", async () => {
-    mocks.api.get.mockResolvedValue(nilStatus);
+    mockApiGet();
     useAuthStore.setState({ accessToken: "at", user, character: null });
     renderDashboard();
 
@@ -120,7 +159,7 @@ describe("DashboardView", () => {
   });
 
   it("should apply the stim and update the NIL bar", async () => {
-    mocks.api.get.mockResolvedValue(nilStatus);
+    mockApiGet();
     mocks.api.post.mockResolvedValue({
       added: 20,
       status: { ...nilStatus, current: 100, regenerating: false, nextTickSeconds: 0 },
@@ -147,8 +186,26 @@ describe("DashboardView", () => {
     expect(nilError.length).toBeGreaterThan(0);
   });
 
+  it("should show NIL indisponível and hide the NIL bar when the NIL endpoint is blocked", async () => {
+    mocks.api.get.mockImplementation((path: string) => {
+      if (path === "/api/characters/me/nil") return Promise.reject(new Error("network down"));
+      if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
+      if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
+      return Promise.resolve(nilStatus); // /api/round + leaderboard fallback
+    });
+    useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
+    renderDashboard();
+
+    // Degraded state: PT-BR error line instead of the contradictory 0 / 0 +
+    // "crítico" band + "NIL CHEIO" trio.
+    expect(await screen.findByText("NIL indisponível")).toBeInTheDocument();
+    expect(screen.queryByText("NIL CHEIO")).not.toBeInTheDocument();
+    expect(screen.queryByText("0 / 0")).not.toBeInTheDocument();
+    expect(screen.queryByText("crítico")).not.toBeInTheDocument();
+  });
+
   it("should log out and navigate to /login", async () => {
-    mocks.api.get.mockResolvedValue(nilStatus);
+    mockApiGet();
     mocks.api.post.mockResolvedValue(undefined);
     useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
     renderDashboard();
@@ -163,7 +220,7 @@ describe("DashboardView", () => {
   });
 
   it("shows SOFT CAP label for attributes at or above 15", async () => {
-    mocks.api.get.mockResolvedValue(nilStatus);
+    mockApiGet();
     const highStatChar: Character = {
       ...character,
       body: 16,
@@ -185,7 +242,7 @@ describe("DashboardView", () => {
   });
 
   it("does not show SOFT CAP label when all stats are below 15", async () => {
-    mocks.api.get.mockResolvedValue(nilStatus);
+    mockApiGet();
     useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
     renderDashboard();
 

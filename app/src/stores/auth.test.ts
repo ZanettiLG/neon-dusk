@@ -343,12 +343,25 @@ describe("useAuthStore", () => {
     });
 
     it("should set nilError without throwing when the request fails", async () => {
-      mocks.api.get.mockRejectedValue(new Error("boom"));
+      mocks.api.get.mockRejectedValue(
+        new mocks.ApiError(503, "NIL_UNAVAILABLE", "NIL indisponível"),
+      );
       useAuthStore.setState({ character });
 
       await expect(useAuthStore.getState().fetchNil()).resolves.toBeUndefined();
 
-      expect(useAuthStore.getState().nilError).toBe("boom");
+      expect(useAuthStore.getState().nilError).toBe("NIL indisponível");
+      expect(useAuthStore.getState().nilLoading).toBe(false);
+    });
+
+    it("should fall back to a PT-BR message for non-ApiError failures", async () => {
+      // Raw TypeError ("Failed to fetch") must never leak through to the UI.
+      mocks.api.get.mockRejectedValue(new TypeError("Failed to fetch"));
+      useAuthStore.setState({ character });
+
+      await expect(useAuthStore.getState().fetchNil()).resolves.toBeUndefined();
+
+      expect(useAuthStore.getState().nilError).toBe("Falha ao carregar NIL");
       expect(useAuthStore.getState().nilLoading).toBe(false);
     });
   });
@@ -370,7 +383,7 @@ describe("useAuthStore", () => {
     });
 
     it("should set nilError and rethrow on cooldown/failure", async () => {
-      mocks.api.post.mockRejectedValue(new Error("Em cooldown"));
+      mocks.api.post.mockRejectedValue(new mocks.ApiError(429, "COOLDOWN", "Em cooldown"));
 
       await expect(useAuthStore.getState().useStim()).rejects.toThrow("Em cooldown");
 

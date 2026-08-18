@@ -338,6 +338,29 @@ export interface AdminMetricsResponse {
   };
 }
 
+// --- Player Events (ND-139) ---------------------------------------------------
+// The runner dashboard event feed: a character's own game_events, mapped to a
+// coarse severity for UI color + glyph. Cursor-paginated by createdAt.
+
+/** Visual severity buckets for the event feed (color is never the only channel). */
+export const CHARACTER_EVENT_SEVERITIES = ["info", "success", "warning", "danger"] as const;
+export type CharacterEventSeverity = (typeof CHARACTER_EVENT_SEVERITIES)[number];
+
+/** One game event as shown in the dashboard feed. */
+export interface CharacterEvent {
+  id: string;
+  eventType: GameEventType;
+  severity: CharacterEventSeverity;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
+/** GET /api/characters/me/events response (cursor-paginated by createdAt). */
+export interface CharacterEventsResponse {
+  events: CharacterEvent[];
+  nextCursor: string | null;
+}
+
 // --- Chrome (cyberware) -------------------------------------------------------
 // Implants fill body slots, grant stat bonuses and drain humanity (100 base).
 // Slot capacities and humanity pricing follow 04-sistemas-e-progressao.md §3-4.
