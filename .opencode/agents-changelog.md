@@ -2,6 +2,30 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-18 — N2: Higiene da camada de banco (developer + code-reviewer)
+
+### Trigger
+Issue #158 documentou a degradação da camada de banco: migration consolidada de 1002 linhas (`0001_initial_schema.ts`, criada na migração Drizzle→Knex #122 e nunca mais migrações novas), lógica de seed duplicada (`seeds/01_data.ts` + `src/db/seed.ts`), scripts customizados duplicando knex nativo e 39 imports diretos de `db` — incluindo 4 rotas (health, saideira, abilities, street-cred). Causa-raiz no harness: nenhum check de higiene de migration/seed nem de layering de acesso a banco em developer.md e code-reviewer.md.
+
+### Changes
+
+#### developer (agent)
+- Self-review: 35 → 38 checks. Adicionados:
+  - Nova migration = um arquivo por entidade (uma tabela, `up` + `down`); nunca editar migration já aplicada
+  - Seeds idempotentes (upsert/onConflict — nunca `del()` + insert) e sem duplicar lógica de seed existente
+  - Rotas não importam `db` diretamente — queries do banco vivem em services
+
+#### code-reviewer (agent)
+- Critério 5 (Consistência) ganhou 3 sub-checks:
+  - **DB layering**: `db` direto em rotas é violação (services podem usar `db` até existir repository layer)
+  - **Migration hygiene**: schema novo por edição de migration já aplicada é violação
+  - **Seed duplication**: entidade semeada em 2+ lugares ou seed destrutivo é violação
+
+### Impact
+Esperado: features futuras criam migrations por entidade, seeds idempotentes e mantêm queries em services — interrompendo a consolidação incremental de `0001_initial_schema.ts` e o espalhamento de imports de `db`. O código legado degradado fica para o refactor da issue #158 (não tratado pelo harness).
+
+---
+
 ## 2026-08-18 — N1: Validação client-side espelhando schema do servidor (feature #138)
 
 ### Trigger

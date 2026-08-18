@@ -42,6 +42,9 @@ Código claro? DRY sem over-engineering? Nomes significativos? Complexidade cicl
 Segue padrões do projeto? Nomeação? Estrutura de arquivos? Stack definida?
 - **Duplicate UI components**: identical or near-identical component structure (same JSX shape, same props pattern) in 2+ views is a violation — flag for extraction to `src/client/components/shared/`. Check: scan new page files for repeated patterns (Tab components, card grids, filter bars, modal wrappers).
 - **Async style drift**: mixing `.then()` and `async/await` within the same file or across sibling files — flag for inconsistency. Prefer `async/await` throughout.
+- **DB layering**: new code importing `db` directly in routes (queries outside services) violates the architecture — flag with exact file:line. Services may use `db` until a repository layer exists; routes never do.
+- **Migration hygiene**: new schema added by editing an already-applied migration (e.g., appending tables to `0001_initial_schema.ts`) instead of a new migration file is a violation — applied migrations are immutable; each entity gets its own migration with `up`/`down`.
+- **Seed duplication**: the same entity seeded in 2+ places (or a destructive `del()` + insert instead of idempotent upsert/`onConflict`) is a violation.
 
 ### 6. Cobertura de Testes
 Testes cobrem casos críticos? Testes passam? Edge cases testados?

@@ -34,17 +34,14 @@ Skill de design de banco de dados. Schema, migrations, índices, constraints.
 
 ### Migration File Pattern
 
+**Regra: UMA entidade por migration** — cada migration cria/altera UMA tabela (ou entidade fortemente acoplada). Nunca edite uma migration já aplicada; schema novo sempre entra em migration nova (arquivo sequencial + `up`/`down`).
+
 ```typescript
-// db/migrations/0000_create_characters.ts
+// db/migrations/0002_create_characters.ts
 import { Knex } from 'knex'
 
 export function up(knex: Knex): Promise<void> {
-  return knex.schema
-    .createTable('users', table => {
-      table.uuid('id').primary().notNullable()
-      table.text('email').notNullable().unique()
-    })
-    .createTable('characters', table => {
+  return knex.schema.createTable('characters', table => {
       table.uuid('id').primary().notNullable()
       table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('cascade')
       table.text('name').notNullable().unique()
@@ -65,7 +62,7 @@ export function up(knex: Knex): Promise<void> {
 }
 
 export function down(knex: Knex): Promise<void> {
-  return knex.schema.dropTable('characters').dropTable('users')
+  return knex.schema.dropTable('characters')
 }
 ```
 
@@ -106,16 +103,19 @@ export function up(knex: Knex): Promise<void> {
 
 ### Seed Pattern
 
+**Regra: seeds idempotentes** — use upsert (`onConflict`/`merge`). Nunca `del()` + insert em produção (destrói FKs com ON DELETE RESTRICT e não re-roda com segurança). Um seed por entidade.
+
 ```typescript
-// db/seeds/01_roles.ts
+// db/seeds/02_characters.ts
 import { Knex } from 'knex'
 
 export async function seed(knex: Knex): Promise<void> {
-  await knex('characters').del() // clear in dependency order
-
-  await knex('characters').insert([
-    { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Vex', body: 5, reflexes: 8 }
-  ])
+  await knex('characters')
+    .insert([
+      { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Vex', body: 5, reflexes: 8 }
+    ])
+    .onConflict('id')
+    .ignore() // re-run safe: skips rows that already exist
 }
 ```
 
@@ -205,3 +205,9 @@ SELECT * FROM characters WHERE inventory @> '[{"item_id": "uuid"}]';
 - ❌ N+1 queries (um SELECT por linha em loop)
 - ❌ Soft delete sem partial index
 - ❌ Migrations sem down migration
+- ❌ Migration consolidada (todas as tabelas num arquivo só) — uma entidade por migration
+- ❌ Editar migration já aplicada — schema novo sempre em migration nova
+- ❌ Seed destrutivo (`del()` + insert) — seeds devem ser idempotentes (upsert/onConflict)
+- ❌ Lógica de seed duplicada — a mesma entidade semeada em 2+ lugares
+- ❌ Imports diretos de `db` em rotas — queries pertencem a services (repository layer quando existir)
+- ❌ Scripts customizados de migrate/seed quando o knex nativo resolve (`knex migrate:latest` / `knex seed:run`)

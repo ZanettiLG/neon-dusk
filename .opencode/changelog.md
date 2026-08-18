@@ -2,6 +2,19 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-18 — N2: sql-design corrigida — exemplos modelavam anti-padrões de banco
+
+### Trigger
+Issue #158 expôs o estado degradado da camada de banco (migration consolidada de 1002 linhas, seed duplicado, 39 imports diretos de `db`). A skill `sql-design` — carregada por architect, db-designer, developer e code-reviewer — modelava exatamente esses anti-padrões: o exemplo de migration criava múltiplas tabelas num arquivo e o seed pattern usava `.del()` destrutivo.
+
+### Change
+- **Migration File Pattern**: exemplo reescrito — UMA entidade por migration, com regra explícita de nunca editar migration já aplicada
+- **Seed Pattern**: reescrito com upsert idempotente (`onConflict('id').ignore()`), regra de um seed por entidade
+- **Anti-Padrões**: +6 entradas — migration consolidada, editar migration aplicada, seed destrutivo, seed duplicado, `db` direto em rotas, scripts customizados de migrate/seed quando knex nativo resolve
+
+### Impact
+Todo agente que carrega `sql-design` passa a receber exemplos e regras alinhados com a arquitetura-alvo da issue #158, mesmo antes do refactor ser implementado. Refactor do código legado permanece fora do escopo do harness.
+
 ## 2026-08-17 — N1: Nota de timers/countdown no react-patterns (feature #134)
 
 ### Trigger
