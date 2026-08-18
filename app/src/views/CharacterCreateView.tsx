@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CreateCharacterRequest } from "@neon-dusk/shared";
+import { ApiError } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import CharacterForm from "@/components/CharacterForm";
 
@@ -11,15 +12,22 @@ export default function CharacterCreateView() {
 
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   async function onSubmit(payload: CreateCharacterRequest): Promise<void> {
     setFormError(null);
+    setNameError(null);
     setLoading(true);
     try {
       await auth.createCharacter(payload);
       navigate("/dashboard");
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Falha na conexão");
+      // NAME_TAKEN maps to the codinome field; everything else stays in the banner.
+      if (err instanceof ApiError && err.code === "NAME_TAKEN") {
+        setNameError(err.message);
+      } else {
+        setFormError(err instanceof Error ? err.message : "Falha na conexão");
+      }
     } finally {
       setLoading(false);
     }
@@ -31,7 +39,7 @@ export default function CharacterCreateView() {
         <div className="space-y-1">
           <h2 className="font-heading text-2xl text-nd-gold tracking-widest">MONTAR PERSONAGEM</h2>
           <p className="text-nd-text-secondary text-sm">
-            Nome, origem, role e o seu corte de atributos. Depois disso, não tem volta.
+            Nome, origem, banca e o seu corte de atributos. Depois disso, não tem volta.
           </p>
         </div>
 
@@ -41,7 +49,12 @@ export default function CharacterCreateView() {
           </p>
         )}
 
-        <CharacterForm loading={loading} onSubmit={onSubmit} />
+        <CharacterForm
+          loading={loading}
+          nameError={nameError}
+          onNameChange={() => setNameError(null)}
+          onSubmit={onSubmit}
+        />
       </div>
     </div>
   );

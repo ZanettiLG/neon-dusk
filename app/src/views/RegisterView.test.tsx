@@ -82,10 +82,69 @@ describe("RegisterView", () => {
     expect(screen.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/login");
   });
 
+  it("should disable submit until email, password and confirm are valid", async () => {
+    renderRegister();
+
+    const submit = screen.getByRole("button", { name: "CADASTRAR" });
+    expect(submit).toBeDisabled();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("fixer@neondusk.gg"), "new@neondusk.gg");
+    await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "secret123");
+    await user.type(screen.getByPlaceholderText("Repita a senha"), "secret123");
+
+    // No uppercase → still invalid.
+    expect(submit).toBeDisabled();
+
+    await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "S");
+    await user.type(screen.getByPlaceholderText("Repita a senha"), "S");
+
+    expect(submit).toBeEnabled();
+  });
+
+  it.each(["not-an-email", "a@b.c", "a@b..c"])(
+    "should show an inline error for invalid email %s",
+    async (invalidEmail) => {
+      renderRegister();
+
+      await userEvent
+        .setup()
+        .type(screen.getByPlaceholderText("fixer@neondusk.gg"), invalidEmail);
+
+      expect(screen.getByRole("alert")).toHaveTextContent("E-mail inválido.");
+      expect(screen.getByRole("button", { name: "CADASTRAR" })).toBeDisabled();
+    },
+  );
+
+  it("should show an inline error for a short password", async () => {
+    renderRegister();
+
+    await userEvent.setup().type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "Ab1");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "A senha precisa de pelo menos 8 caracteres.",
+    );
+  });
+
+  it("should show an inline error when the password lacks an uppercase letter or a digit", async () => {
+    renderRegister();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "secretsss");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Inclua ao menos uma letra maiúscula.",
+    );
+
+    await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "S");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Inclua ao menos um número.");
+  });
+
   it("should show a mismatch error and not call the API when passwords differ", async () => {
     renderRegister();
 
-    await fillAndSubmit("new@neondusk.gg", "secret123", "different");
+    await fillAndSubmit("new@neondusk.gg", "Secret123", "different");
 
     expect(await screen.findByText("As senhas não coincidem")).toBeInTheDocument();
     expect(mocks.api.post).not.toHaveBeenCalled();
@@ -96,13 +155,13 @@ describe("RegisterView", () => {
     mocks.api.post.mockResolvedValue(authResponse);
     renderRegister();
 
-    await fillAndSubmit("new@neondusk.gg", "secret123", "secret123");
+    await fillAndSubmit("new@neondusk.gg", "Secret123", "Secret123");
 
     expect(await screen.findByText("DASHBOARD PAGE")).toBeInTheDocument();
     expect(useAuthStore.getState().accessToken).toBe("at");
     expect(mocks.api.post).toHaveBeenCalledWith("/api/auth/register", {
       email: "new@neondusk.gg",
-      password: "secret123",
+      password: "Secret123",
     });
   });
 
@@ -110,7 +169,7 @@ describe("RegisterView", () => {
     mocks.api.post.mockRejectedValue(new Error("Email já cadastrado"));
     renderRegister();
 
-    await fillAndSubmit("new@neondusk.gg", "secret123", "secret123");
+    await fillAndSubmit("new@neondusk.gg", "Secret123", "Secret123");
 
     expect(await screen.findByText("Email já cadastrado")).toBeInTheDocument();
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();

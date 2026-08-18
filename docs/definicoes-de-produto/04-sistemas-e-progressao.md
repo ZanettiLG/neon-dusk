@@ -1,5 +1,48 @@
 # Sistemas e Progressão
 
+## 0. Criação de Personagem
+
+### 0.1 Conta
+
+- Registro com **email válido** e **senha forte** (8–72 caracteres, ≥1 maiúscula, ≥1 dígito).
+- Login retorna **erro genérico** para email inexistente ou senha errada (anti-enumeração de contas).
+- Autenticação via **JWT**: access token (curto) + refresh token (rotativo, revogável).
+- Email e codinome são **únicos case-insensitive**.
+
+### 0.2 Personagem
+
+- **1 personagem por usuário por rodada** (1:1 durante a rodada; reseta a cada rodada).
+- **Codinome**: 2–24 caracteres, único.
+- **Origem**: 1 de 7 distritos de São Paulo.
+- **Banca**: 1 de 5 (Socorrista é Fase 2).
+
+### 0.3 Atributos na Criação
+
+- Escala de vida: 1–20.
+- Na criação: **3 de base em cada atributo + 7 pontos livres = 22**.
+- **Floor de criação: 3** — nenhum atributo pode ficar abaixo da base.
+- **Teto de criação: 10** — com 7 pontos livres, o máximo alcançável em um único atributo é 10.
+- Soft cap (15) e cap (20) são **inalcançáveis na criação** — só via progressão.
+
+### 0.4 Banca e Frase
+
+| Banca | Frase |
+|---|---|
+| **Bicho** | *"Você não precisa ser mais rápido que a bala. Só mais rápido que o alvo."* |
+| **Vulto** | *"A fechadura mais forte do mundo não serve de nada se a porta é o cérebro do guarda."* |
+| **Gambiarrista** | *"Toda máquina tem um ponto fraco. Eu encontro. Você explode."* |
+| **Despachante** | *"Não importa o que você sabe. Importa quem você conhece. E eu conheço todo mundo."* |
+| **Estradeiro** | *"A estrada não tem dono. Só tem quem passa primeiro."* |
+
+> **Nota**: Socorrista é Fase 2.
+
+### 0.5 Origem → Avatar
+
+- Avatar derivado da origem de forma **determinística client-side** (glifo + cor de destaque por distrito).
+- Retratos ilustrados são **fase posterior**.
+
+---
+
 ## 1. Atributos
 
 Baseado no sistema Cyberpunk RED (10 atributos), simplificado para 5 atributos com escala 1-20.

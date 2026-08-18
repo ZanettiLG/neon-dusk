@@ -2,6 +2,19 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-18 — N1: Validação client-side espelhando schema do servidor (feature #138)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE da feature #138 (Auth + criação de personagem, run_id nd-20260818-141500-auth-character). Score 4.5/5.0 (APPROVED_WITH_FIXES). Único finding: validação client-side que afirma espelhar o schema do servidor, mas usa regex mais permissiva que a do zod (`EMAIL_RE` aceita `a@b.c`, `z.email()` rejeita) — o erro só aparece no round-trip, o oposto do objetivo de erros inline. Causa raiz: o developer implementou a validação do cliente por aproximação, sem ler o schema exato do servidor.
+
+### Change
+- `developer` (agent): novo check no self-review — "Validação client-side de campos espelhados do servidor: copie a regra EXATA do schema do servidor (mesma regex/zod); nunca valide por aproximação — leia o schema do servidor antes de escrever o regex do cliente". Total de checks: 34 → 35.
+
+### Impact
+Esperado: eliminar divergência entre validação client-side e schema do servidor; erros de validação voltam a aparecer inline (antes do round-trip), alinhado ao objetivo de UX.
+
+---
+
 ## 2026-08-17 — N1: Lint no self-review do developer + contagem real de testes no test-writer (feature #134)
 
 ### Trigger

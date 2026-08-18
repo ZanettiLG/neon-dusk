@@ -125,6 +125,22 @@ describe("Feature #1 — characters API", () => {
       expect(body.details?.[0]?.path).toEqual(["attributes", "body"]);
     });
 
+    it("should return 400 when an attribute is below the creation floor of 3", async () => {
+      const { accessToken } = await registerAndGetTokens(uniqueEmail());
+
+      const res = await createCharacter(accessToken, {
+        name: uniqueName(),
+        origin: "o_fervo",
+        role: "tech",
+        attributes: { body: 2, reflexes: 5, intelligence: 5, technical: 5, cool: 5 }, // 22 total, body < 3
+      });
+
+      expect(res.status).toBe(400);
+      const body = await json<ErrorBody>(res);
+      expect(body.error).toBe("VALIDATION_ERROR");
+      expect(body.details?.[0]?.path).toEqual(["attributes", "body"]);
+    });
+
     it("should return 400 when an attribute is above 20", async () => {
       const { accessToken } = await registerAndGetTokens(uniqueEmail());
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ATTRIBUTE_KEYS, ATTR_TOTAL, MAX_ATTR, MIN_ATTR, NIL_MAX_BASE, ORIGINS, ROLES } from "@neon-dusk/shared";
+import { ATTRIBUTE_KEYS, ATTR_TOTAL, BASE_ATTRIBUTES, MAX_ATTR, NIL_MAX_BASE, ORIGINS, ROLES } from "@neon-dusk/shared";
 import type { Character } from "@neon-dusk/shared";
 import { db } from "../db";
 import { AppError } from "../middleware/error-handler";
@@ -17,12 +17,14 @@ export const createCharacterSchema = z.object({
     .max(24, "Name must be at most 24 characters"),
   origin: z.enum(ORIGINS),
   role: z.enum(ROLES),
+  // Creation floor is 3 (BASE_ATTRIBUTES): a stat can never drop below the
+  // 5×3 base line during creation (§0.3 of 04-sistemas-e-progressao.md).
   attributes: z.object({
-    body: z.number().int().min(MIN_ATTR).max(MAX_ATTR),
-    reflexes: z.number().int().min(MIN_ATTR).max(MAX_ATTR),
-    intelligence: z.number().int().min(MIN_ATTR).max(MAX_ATTR),
-    technical: z.number().int().min(MIN_ATTR).max(MAX_ATTR),
-    cool: z.number().int().min(MIN_ATTR).max(MAX_ATTR),
+    body: z.number().int().min(BASE_ATTRIBUTES).max(MAX_ATTR),
+    reflexes: z.number().int().min(BASE_ATTRIBUTES).max(MAX_ATTR),
+    intelligence: z.number().int().min(BASE_ATTRIBUTES).max(MAX_ATTR),
+    technical: z.number().int().min(BASE_ATTRIBUTES).max(MAX_ATTR),
+    cool: z.number().int().min(BASE_ATTRIBUTES).max(MAX_ATTR),
   }),
 });
 

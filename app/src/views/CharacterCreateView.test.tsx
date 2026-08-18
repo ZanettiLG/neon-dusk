@@ -15,11 +15,6 @@ const mocks = vi.hoisted(() => ({
     delete: vi.fn(),
   },
   setAccessToken: vi.fn(),
-}));
-
-vi.mock("@/api/client", () => ({
-  api: mocks.api,
-  setAccessToken: mocks.setAccessToken,
   ApiError: class extends Error {
     status: number;
     code: string;
@@ -29,6 +24,12 @@ vi.mock("@/api/client", () => ({
       this.code = code;
     }
   },
+}));
+
+vi.mock("@/api/client", () => ({
+  api: mocks.api,
+  setAccessToken: mocks.setAccessToken,
+  ApiError: mocks.ApiError,
 }));
 
 const character: Character = {
@@ -60,14 +61,14 @@ function renderCreate() {
   );
 }
 
-// Fill a valid form: name + origin + role + 7 free attribute points (22 total).
+// Fill a valid form: name + origin + banca + 7 free attribute points (22 total).
 async function fillValidForm() {
   const user = userEvent.setup();
-  await user.type(screen.getByPlaceholderText("Ex.: Cobra, Ghost, Viper"), "Ghost");
+  await user.type(screen.getByPlaceholderText("Ex.: Navalha, Vulto, Cupim"), "Ghost");
   await user.selectOptions(screen.getByRole("combobox"), "a_paraiso");
-  // ponytail: the "Role" label wraps all 5 role buttons, so the first one
-  // (Solo) inherits the whole label as accessible name — click "Netrunner".
-  await user.click(screen.getByRole("button", { name: "Netrunner" }));
+  // ponytail: the "Banca" label wraps all 5 banca buttons, so the first one
+  // (Bicho) inherits the whole label as accessible name — click "Vulto".
+  await user.click(screen.getByRole("button", { name: "Vulto" }));
   const increase = screen.getAllByRole("button", { name: "Aumentar" });
   for (let i = 0; i < 7; i++) {
     await user.click(increase[0]);
@@ -124,6 +125,51 @@ describe("CharacterCreateView", () => {
     expect(await screen.findByText("Codinome já em uso")).toBeInTheDocument();
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().character).toBeNull();
+  });
+
+  it("should map NAME_TAKEN to an inline error under the codinome field", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(409, "NAME_TAKEN", "Este codinome já está em uso."),
+    );
+    renderCreate();
+
+    await fillValidForm();
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
+    );
+
+    // Inline alert under the codinome field — not the generic banner.
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Este codinome já está em uso.",
+    );
+    expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
+    expect(useAuthStore.getState().character).toBeNull();
+  });
+
+  it("clears the inline NAME_TAKEN error as soon as the codinome is edited", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(409, "NAME_TAKEN", "Este codinome já está em uso."),
+    );
+    renderCreate();
+
+    await fillValidForm();
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Este codinome já está em uso.",
+    );
+
+    // Editing the name clears the inline error immediately (revalidates only on submit).
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByPlaceholderText("Ex.: Navalha, Vulto, Cupim"),
+      "X",
+    );
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("soft cap indicator is not shown when no stat reaches 15", async () => {

@@ -5,24 +5,28 @@ import {
   ATTR_TOTAL,
   BASE_ATTRIBUTES,
   MAX_ATTR,
-  MIN_ATTR,
   ORIGINS,
   ROLES,
   SOFT_CAP,
 } from "@neon-dusk/shared";
-import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS } from "@/lib/labels";
+import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS, ROLE_PHRASES, ROLE_PRIMARY_ATTRIBUTES } from "@/lib/labels";
+import CharacterAvatar from "@/components/CharacterAvatar";
 
 interface CharacterFormProps {
   loading: boolean;
+  /** Server-side error on the codinome field (e.g. NAME_TAKEN) — rendered inline. */
+  nameError?: string | null;
+  /** Called whenever the codinome input changes — lets the parent clear field errors. */
+  onNameChange?: () => void;
   onSubmit: (payload: CreateCharacterRequest) => void;
 }
 
 /**
- * Character creation form: codinome, origin district, role and the 22-point
- * attribute spread (5 × 3 base + 7 free). Validates locally before calling
- * onSubmit (port of CharacterForm.vue).
+ * Character creation form: codinome, origin district, banca and the 22-point
+ * attribute spread (5 × 3 base + 7 free, floor 3). Validates locally before
+ * calling onSubmit (port of CharacterForm.vue).
  */
-export default function CharacterForm({ loading, onSubmit }: CharacterFormProps) {
+export default function CharacterForm({ loading, nameError, onNameChange, onSubmit }: CharacterFormProps) {
   const [name, setName] = useState("");
   const [origin, setOrigin] = useState<Origin | "">("");
   const [role, setRole] = useState<Role | "">("");
@@ -51,7 +55,8 @@ export default function CharacterForm({ loading, onSubmit }: CharacterFormProps)
     const needed = attributes[key] >= SOFT_CAP ? 2 : 1;
     return remaining >= needed && attributes[key] < MAX_ATTR;
   };
-  const canDecrease = (key: AttributeKey) => attributes[key] > MIN_ATTR;
+  // Creation floor is 3 (BASE_ATTRIBUTES): stats never drop below the base line.
+  const canDecrease = (key: AttributeKey) => attributes[key] > BASE_ATTRIBUTES;
 
   function adjust(key: AttributeKey, delta: 1 | -1): void {
     if (delta === 1 && canIncrease(key)) {
@@ -91,56 +96,85 @@ export default function CharacterForm({ loading, onSubmit }: CharacterFormProps)
             type="text"
             required
             maxLength={24}
-            placeholder="Ex.: Cobra, Ghost, Viper"
+            placeholder="Ex.: Navalha, Vulto, Cupim"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              onNameChange?.();
+            }}
             className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
           />
+          {name.length > 0 && name.trim().length < 2 && (
+            <p role="alert" className="text-nd-magenta font-data text-xs">
+              O codinome precisa de pelo menos 2 caracteres.
+            </p>
+          )}
+          {nameError && (
+            <p role="alert" className="text-nd-magenta font-data text-xs">
+              {nameError}
+            </p>
+          )}
         </label>
 
         <label className="block space-y-1">
           <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
             Distrito de origem
           </span>
-          <select
-            value={origin}
-            required
-            onChange={(e) => setOrigin(e.target.value as Origin | "")}
-            className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
-          >
-            <option value="" disabled>
-              Selecione o distrito
-            </option>
-            {ORIGINS.map((o) => (
-              <option key={o} value={o}>
-                {ORIGIN_LABELS[o]}
+          <div className="flex items-center gap-3">
+            <select
+              value={origin}
+              required
+              onChange={(e) => setOrigin(e.target.value as Origin | "")}
+              className="flex-1 bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
+            >
+              <option value="" disabled>
+                Selecione o distrito
               </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-1 sm:col-span-2">
-          <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
-            Role
-          </span>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {ROLES.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRole(r)}
-                className={[
-                  "border rounded-terminal px-3 py-2 text-xs font-data uppercase tracking-wider transition-all",
-                  role === r
-                    ? "border-nd-magenta bg-nd-magenta/10 text-nd-magenta shadow-neon-magenta"
-                    : "border-nd-cyan/30 text-nd-text-secondary hover:border-nd-cyan/60 hover:text-nd-text",
-                ].join(" ")}
-              >
-                {ROLE_LABELS[r]}
-              </button>
-            ))}
+              {ORIGINS.map((o) => (
+                <option key={o} value={o}>
+                  {ORIGIN_LABELS[o]}
+                </option>
+              ))}
+            </select>
+            <CharacterAvatar origin={origin === "" ? null : origin} size="md" />
           </div>
         </label>
+
+        <div className="block space-y-1 sm:col-span-2">
+          <label className="block space-y-1">
+            <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
+              Banca
+            </span>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {ROLES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={[
+                    "border rounded-terminal px-3 py-2 text-xs font-data uppercase tracking-wider transition-all",
+                    role === r
+                      ? "border-nd-magenta bg-nd-magenta/10 text-nd-magenta shadow-neon-magenta"
+                      : "border-nd-cyan/30 text-nd-text-secondary hover:border-nd-cyan/60 hover:text-nd-text",
+                  ].join(" ")}
+                >
+                  {ROLE_LABELS[r]}
+                </button>
+              ))}
+            </div>
+          </label>
+          {role !== "" && (
+            <div className="border border-nd-cyan/20 bg-nd-bg/40 rounded-terminal px-3 py-2 space-y-1">
+              <p className="text-nd-text-secondary text-sm italic">
+                “{ROLE_PHRASES[role]}”
+              </p>
+              <p className="text-nd-cyan text-xs font-data">
+                Atributo primário:{" "}
+                {ROLE_PRIMARY_ATTRIBUTES[role].map((k) => ATTRIBUTE_LABELS[k]).join(", ")}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Attributes */}

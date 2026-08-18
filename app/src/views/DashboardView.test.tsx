@@ -89,7 +89,7 @@ describe("DashboardView", () => {
     renderDashboard();
 
     expect(await screen.findByText("Ghost")).toBeInTheDocument();
-    expect(screen.getByText("Solo · Origem: A Paraíso")).toBeInTheDocument();
+    expect(screen.getByText("Bicho · Origem: A Paraíso")).toBeInTheDocument();
     expect(screen.getByText("PAINEL DO CORREDOR")).toBeInTheDocument();
     expect(screen.getByText("fixer@neondusk.gg")).toBeInTheDocument();
     expect(screen.getByText("Desconectar")).toBeInTheDocument();

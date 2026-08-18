@@ -28,15 +28,16 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (34 checks)
+7. Self-review (35 checks)
 8. Handoff do código implementado
 
-## Self-Review (34 checks)
+## Self-Review (35 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
 - [ ] Tratamento de erro em TODAS as rotas (try/catch + error middleware)
 - [ ] Validação de input (Zod schema com constraints reais: complexidade de senha, ranges, formatos)
+- [ ] Validação client-side de campos espelhados do servidor: copie a regra EXATA do schema do servidor (mesma regex/zod); nunca valide por aproximação — leia o schema do servidor antes de escrever o regex do cliente
 - [ ] Consistência de nomeação: camelCase JS/TS, snake_case SQL, kebab-case arquivos
 - [ ] Nenhum segredo hardcoded (usa `process.env` ou `env.ts`)
 - [ ] CORS configurado corretamente
