@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PvpTarget, PvpCombatRecord, PvpAttackableResponse, PvpHistoryResponse } from "@neon-dusk/shared";
 import { api } from "@/api/client";
-import Tab from "@/components/shared/Tab";
+import Tab from "@/components/ui/Tab";
 
 type TabKey = "targets" | "history";
 
@@ -86,11 +86,11 @@ export default function PvpView() {
     <div className="py-8 space-y-6">
       <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">PvP</h2>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Tab active={tab === "targets"} onClick={() => setTab("targets")}>
+      <div className="flex flex-wrap items-center gap-2" role="tablist">
+        <Tab state={tab === "targets" ? "active" : "inactive"} onClick={() => setTab("targets")}>
           Alvos
         </Tab>
-        <Tab active={tab === "history"} onClick={() => setTab("history")}>
+        <Tab state={tab === "history" ? "active" : "inactive"} onClick={() => setTab("history")}>
           Histórico
         </Tab>
       </div>

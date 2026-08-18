@@ -78,6 +78,10 @@
     .btn-neon {
       min-height: 44px;
     }
+
+    .chip-tap {
+      min-height: 44px;
+    }
   }
 
   .btn-neon:disabled {

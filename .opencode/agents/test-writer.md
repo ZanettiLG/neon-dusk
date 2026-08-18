@@ -46,3 +46,4 @@ Escrever testes automatizados para features implementadas. Garantir cobertura de
 - Test names: `describe('Feature', () => { it('should do X when Y', () => {}) })`
 - Arrange/Act/Assert pattern
 - Mocks apenas para fronteiras externas (APIs, Redis); lógica de negócio testada sem mock
+- Reporte no handoff a contagem real de testes obtida do runner (total executado pela suite), nunca uma estimativa

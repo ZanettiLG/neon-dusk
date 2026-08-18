@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   tokens,
   bandFor,
+  bandForBands,
   RESOURCE_BAR_BANDS,
   type Band,
   type ResourceBarKey,
@@ -13,6 +14,46 @@ const resources = Object.entries(RESOURCE_BAR_BANDS) as [ResourceBarKey, Band[]]
 function bandContaining(bands: Band[], percent: number): Band | undefined {
   return bands.find((b) => percent >= b.min && percent <= b.max);
 }
+
+describe("bandForBands", () => {
+  const custom: Band[] = [
+    { min: 0, max: 49, color: "bg-nd-green", label: "baixo" },
+    { min: 50, max: 100, color: "bg-nd-magenta", label: "alto" },
+  ];
+
+  it("should clamp percent below 0 and above 100", () => {
+    expect(bandForBands(custom, -1)).toBe(custom[0]);
+    expect(bandForBands(custom, -100)).toBe(custom[0]);
+    expect(bandForBands(custom, 101)).toBe(custom[1]);
+    expect(bandForBands(custom, 150)).toBe(custom[1]);
+  });
+
+  it("should round fractional percents to the nearest integer", () => {
+    expect(bandForBands(custom, 49.4)).toBe(custom[0]);
+    expect(bandForBands(custom, 49.6)).toBe(custom[1]);
+    expect(bandForBands(custom, 0.4)).toBe(custom[0]);
+    expect(bandForBands(custom, 99.6)).toBe(custom[1]);
+  });
+
+  it("should resolve non-finite values to the first band", () => {
+    expect(bandForBands(custom, Number.NaN)).toBe(custom[0]);
+    expect(bandForBands(custom, Number.POSITIVE_INFINITY)).toBe(custom[0]);
+    expect(bandForBands(custom, Number.NEGATIVE_INFINITY)).toBe(custom[0]);
+  });
+
+  it("should return undefined when no band matches", () => {
+    const sparse: Band[] = [{ min: 10, max: 20, color: "bg-nd-gold", label: "faixa" }];
+    expect(bandForBands(sparse, 50)).toBeUndefined();
+  });
+
+  it("should agree with bandFor for every integer 0-100 across all resources", () => {
+    resources.forEach(([resource, bands]) => {
+      for (let n = 0; n <= 100; n++) {
+        expect(bandForBands(bands, n)).toBe(bandFor(resource, n));
+      }
+    });
+  });
+});
 
 describe("bandFor", () => {
   it.each(resources)("should clamp percent below 0 to the 0 band for %s", (resource, bands) => {

@@ -2,6 +2,29 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-17 — N1: Lint no self-review do developer + contagem real de testes no test-writer (feature #134)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE da feature #134 (Biblioteca de componentes base, run_id nd-20260817-220100-component-library). Score 4.5/5.0 (gate atingido, 2 ciclos de correção). Padrões observados:
+1. Developer não rodou `npm run lint` — o import morto em teste só foi detectado pelo code-reviewer, custando 1 ciclo extra.
+2. Contagens de testes inconsistentes — developer e test-writer reportaram "55 testes" quando o runner executou 63.
+
+### Changes
+
+#### developer (agent)
+- Self-review: novo check "`npm run lint` (raiz) passa com zero erros/warnings antes do handoff (imports mortos, variáveis não usadas, etc.)". Total de checks: 33 → 34.
+
+#### test-writer (agent)
+- Regra adicionada: "Reporte no handoff a contagem real de testes obtida do runner (total executado pela suite), nunca uma estimativa".
+
+#### qa-browser (agent) — observação, sem mudança
+- 2 cancelamentos/abortos na feature #134 (tarefas longas de browser). Sem evidência de defeito de design do agente; provável ruído de ambiente. Nenhuma alteração aplicada; monitorar nas próximas features.
+
+### Impact
+Esperado: eliminar o ciclo extra de lint (check passa a viver no self-review, não depende do reviewer); padronizar contagens de teste reportadas nos handoffs.
+
+---
+
 ## 2026-08-09 — N2: Migração Drizzle ORM → Knex.js (Skills + Agents)
 
 ### Trigger

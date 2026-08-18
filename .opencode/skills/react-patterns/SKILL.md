@@ -313,6 +313,21 @@ export default function ExampleListPage() {
 - Always `async/await`, never `.then()` in views
 - Separate view into its own file under `src/client/pages/` — lazy-loaded in router
 
+## Timers & Countdown
+
+O updater funcional de `setState` deve ser puro — em React 19 (StrictMode) ele pode ser invocado duas vezes, então efeitos colaterais ali rodam duplicado.
+
+```tsx
+// ❌ efeito colateral dentro do updater (roda 2x no StrictMode)
+setSeconds(prev => { clearInterval(id); return prev - 1 })
+
+// ✅ gerencie o intervalo no useEffect; updater puro
+useEffect(() => {
+  const id = setInterval(() => setSeconds(s => s - 1), 1000)
+  return () => clearInterval(id)
+}, [])
+```
+
 ## Responsividade
 
 - Mobile-first: 320px → 768px → 1024px

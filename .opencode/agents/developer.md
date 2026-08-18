@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (33 checks)
+7. Self-review (34 checks)
 8. Handoff do código implementado
 
-## Self-Review (33 checks)
+## Self-Review (34 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -52,6 +52,7 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Tipos de API response em `packages/shared/`, não duplicados entre server/app
 - [ ] DRY interno: funções utilitárias, tipos e constantes não duplicados dentro da própria feature (extrair para lib/ ou utils/ compartilhado)
 - [ ] `npx vitest run` passa com zero regressões antes do handoff (qualquer teste que passava antes deve continuar passando)
+- [ ] `npm run lint` (raiz) passa com zero erros/warnings antes do handoff (imports mortos, variáveis não usadas, etc.)
 - [ ] Docker operations ordered correctly — pull before run, up after pull (deploy scripts)
 - [ ] Workflow triggers that checkout code use correct ref — `workflow_run` needs explicit `ref: ${{ github.event.workflow_run.head_sha }}`, `push`/`pull_request` use default
 - [ ] Every Docker service has a healthcheck if a health endpoint exists (check `/api/health`, `/health`, or similar before writing compose)

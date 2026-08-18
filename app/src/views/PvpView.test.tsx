@@ -88,7 +88,7 @@ describe("PvpView", () => {
     expect(screen.getByText("Escudo de iniciante ativo")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Atacar" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Histórico" }));
+    await user.click(screen.getByRole("tab", { name: "Histórico" }));
 
     expect(await screen.findByText("VITÓRIA")).toBeInTheDocument();
     expect(screen.getByText("120 eds")).toBeInTheDocument();

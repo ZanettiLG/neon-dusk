@@ -88,7 +88,7 @@ describe("ChromeView", () => {
     expect(screen.getByText("500 eds")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Instalar" })).toBeInTheDocument();
 
-    await userEvent.setup().click(screen.getByRole("button", { name: "Meu Chrome" }));
+    await userEvent.setup().click(screen.getByRole("tab", { name: "Meu Chrome" }));
 
     expect(await screen.findByText("70")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Remover" })).toBeInTheDocument();

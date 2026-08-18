@@ -150,6 +150,21 @@ export const RESOURCE_BAR_BANDS = {
 export type ResourceBarKey = keyof typeof RESOURCE_BAR_BANDS;
 
 /**
+ * Pure band lookup shared by {@link bandFor} and MetricBar custom bands.
+ * Clamps and rounds `percent`, then returns the first band whose inclusive
+ * range contains it, or `undefined` when the array has no matching band.
+ * Non-finite values (NaN, ±Infinity) resolve to the FIRST band — the most
+ * critical state for ascending arrays (nil, hp, gigDifficulty, streetCred);
+ * `humanity` is ordered descending, so its first band is "Íntegro" (100–71).
+ * Bands are checked in order; bounds are inclusive (≥ min, ≤ max).
+ */
+export function bandForBands(bands: Band[], percent: number): Band | undefined {
+  if (!Number.isFinite(percent)) return bands[0];
+  const p = Math.min(100, Math.max(0, Math.round(percent)));
+  return bands.find((b) => p >= b.min && p <= b.max);
+}
+
+/**
  * Returns the band that contains `percent` for the given resource.
  *
  * Expected input: an integer percent 0–100. Fractions are rounded to the
@@ -160,13 +175,10 @@ export type ResourceBarKey = keyof typeof RESOURCE_BAR_BANDS;
  * streetCred). `humanity` is ordered descending, so its first band is
  * "Íntegro" (100–71) — see docs/design/05-design-tokens.md §15.
  *
- * Bands are checked in order; bounds are inclusive (≥ min, ≤ max).
+ * Fallback: last band (RESOURCE_BAR_BANDS covers every integer 0–100, so the
+ * fallback only guards against a misconfigured array).
  */
 export function bandFor(resource: ResourceBarKey, percent: number): Band {
   const bands = RESOURCE_BAR_BANDS[resource];
-  if (!Number.isFinite(percent)) return bands[0];
-  const p = Math.round(percent);
-  const clamped = Math.min(100, Math.max(0, p));
-  const band = bands.find((b) => clamped >= b.min && clamped <= b.max);
-  return band ?? bands[bands.length - 1];
+  return bandForBands(bands, percent) ?? bands[bands.length - 1];
 }

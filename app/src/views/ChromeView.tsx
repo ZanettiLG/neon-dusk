@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChromeDefinition, InstalledChromeRecord, InstalledChromeResponse } from "@neon-dusk/shared";
 import { api } from "@/api/client";
 import { CHROME_SLOT_LABELS } from "@/lib/labels";
-import Tab from "@/components/shared/Tab";
+import Tab from "@/components/ui/Tab";
 
 type TabKey = "catalog" | "installed";
 
@@ -117,11 +117,11 @@ export default function ChromeView() {
     <div className="py-8 space-y-6">
       <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">CHROME</h2>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Tab active={tab === "catalog"} onClick={() => setTab("catalog")}>
+      <div className="flex flex-wrap items-center gap-2" role="tablist">
+        <Tab state={tab === "catalog" ? "active" : "inactive"} onClick={() => setTab("catalog")}>
           Catálogo
         </Tab>
-        <Tab active={tab === "installed"} onClick={() => setTab("installed")}>
+        <Tab state={tab === "installed" ? "active" : "inactive"} onClick={() => setTab("installed")}>
           Meu Chrome
         </Tab>
       </div>

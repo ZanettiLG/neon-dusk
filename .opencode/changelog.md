@@ -2,6 +2,19 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-17 — N1: Nota de timers/countdown no react-patterns (feature #134)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE da feature #134. O ActionButton (countdown) colocava `clearInterval` dentro do updater funcional de `setState` — padrão impuro sutil em React 19 (StrictMode dupla-invocação do updater). Testado e idempotente, mas sinalizado como nit pelo reviewer.
+
+### Change
+- `react-patterns` skill: nova seção "Timers & Countdown" — updater de `setState` deve ser puro; efeitos colaterais (clearInterval/setState externo) ficam no `useEffect` com cleanup, não dentro do updater.
+
+### Impact
+Prevê o anti-padrão de countdown antes de chegar ao review; evita dupla-execução de efeitos colaterais no StrictMode do React 19.
+
+---
+
 ## 2026-08-17 — N1: Guard de terminologia com probe self-check e cobertura de arquivos soltos (issue #148)
 
 ### Trigger
