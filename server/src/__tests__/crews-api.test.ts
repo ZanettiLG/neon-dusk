@@ -5,7 +5,7 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
-import { ensureWallet } from "../services/economy-service";
+import { walletRepository as wallets } from "../repositories/wallet-repository";
 import type {
   AuthResponse,
   ChatHistoryResponse,
@@ -110,10 +110,10 @@ describe("ND-016 — Crews Básicas API", () => {
     return { accessToken, characterId: character.id, characterName };
   }
 
-  /** Seed a wallet with the given balance (ensureWallet creates it with 500). */
+  /** Seed a wallet with the given balance (wallets.ensure creates it with 500). */
   async function seedWallet(characterId: string, balance: number): Promise<void> {
     await db.transaction(async (trx) => {
-      await ensureWallet(characterId, trx);
+      await wallets.ensure(characterId, trx);
     });
     await db("character_wallets").where("character_id", characterId).update({ balance });
   }

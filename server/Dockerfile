@@ -61,8 +61,13 @@ COPY --from=build /app/server/package.json ./server/
 COPY --from=build /app/package.json ./
 
 # SQL migrations — used by the deploy script's one-shot migrate step
-# (docker compose run --workdir /app/server ... tsx server/src/db/migrate.ts)
+# (docker compose run --workdir /app/server ... knex --knexfile knexfile.ts migrate:latest)
 COPY server/migrations ./server/migrations
+
+# Seeds + knexfile — the app boot (src/server.ts → initDb) runs migrations
+# and seeds at startup via the knex CLI config in knexfile.ts.
+COPY server/seeds ./server/seeds
+COPY server/knexfile.ts ./server/knexfile.ts
 
 # Run as non-root (security best practice)
 USER node

@@ -3,13 +3,13 @@ import { db } from "../db";
 import { NIL_SYN_CAFE_AMOUNT } from "@neon-dusk/shared";
 import {
   buyFromVendor,
-  ensureWallet,
   getTransactions,
   getVendor,
   getWallet,
   listVendors,
   transfer,
 } from "../services/economy-service";
+import { walletRepository as walletRepo } from "../repositories/wallet-repository";
 import { insertTestCharacter, resetDb } from "./helpers";
 
 // ND-010 — economy service tests against the isolated test Postgres.
@@ -29,11 +29,11 @@ describe("economy service", () => {
     await resetDb();
   });
 
-  describe("ensureWallet", () => {
+  describe("wallets.ensure", () => {
     it("should create a wallet with seed capital (500) for a new character", async () => {
       const { characterId } = await insertTestCharacter();
 
-      const wallet = await db.transaction((trx) => ensureWallet(characterId, trx));
+      const wallet = await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       expect(wallet.balance).toBe(500);
       expect(wallet.lifetimeEarned).toBe(500);
@@ -45,7 +45,7 @@ describe("economy service", () => {
     it("should record an ADMIN_ADJUSTMENT seed transaction with balance_before 0 and balance_after 500", async () => {
       const { characterId } = await insertTestCharacter();
 
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const [seed] = await db("transaction_log")
         .select("*")
@@ -63,8 +63,8 @@ describe("economy service", () => {
     it("should be idempotent — not create a duplicate wallet or a second seed transaction", async () => {
       const { characterId } = await insertTestCharacter();
 
-      await db.transaction((trx) => ensureWallet(characterId, trx));
-      const second = await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
+      const second = await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const wallets = await db("character_wallets")
         .select("*")
@@ -83,7 +83,7 @@ describe("economy service", () => {
   describe("getWallet", () => {
     it("should return the wallet state for an existing wallet", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const wallet = await getWallet(characterId);
 
@@ -92,7 +92,7 @@ describe("economy service", () => {
       expect(wallet.version).toBe(0);
     });
 
-    it("should auto-create the wallet on first read (ensureWallet side effect)", async () => {
+    it("should auto-create the wallet on first read (wallets.ensure side effect)", async () => {
       const { characterId } = await insertTestCharacter();
 
       const wallet = await getWallet(characterId);
@@ -106,7 +106,7 @@ describe("economy service", () => {
 
     it("should return correct escrow/lifetime stats", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       await transfer(characterId, 500, "GIG_PAYOUT", "gig");
       await transfer(characterId, -200, "VENDOR_PURCHASE", "vendor");
 
@@ -121,7 +121,7 @@ describe("economy service", () => {
   describe("transfer — happy path", () => {
     it("should credit the balance and update lifetime stats", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const { wallet, transaction } = await transfer(characterId, 250, "GIG_PAYOUT", "gig-1");
 
@@ -137,7 +137,7 @@ describe("economy service", () => {
 
     it("should debit the balance and update lifetime stats", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const { wallet } = await transfer(characterId, -150, "VENDOR_PURCHASE", "vendor");
 
@@ -148,7 +148,7 @@ describe("economy service", () => {
 
     it("should write a transaction log entry with correct balances", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       await transfer(
         characterId,
@@ -176,7 +176,7 @@ describe("economy service", () => {
 
     it("should increment the wallet version on each write", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const first = await transfer(characterId, 10, "GIG_PAYOUT", "gig");
       const second = await transfer(characterId, 10, "GIG_PAYOUT", "gig");
@@ -189,7 +189,7 @@ describe("economy service", () => {
   describe("transfer — errors", () => {
     it("should return 400 INSUFFICIENT_FUNDS when debiting more than the balance", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       await expect(transfer(characterId, -1500, "VENDOR_PURCHASE", "vendor")).rejects.toMatchObject({
         statusCode: 400,
@@ -199,7 +199,7 @@ describe("economy service", () => {
 
     it("should retry and succeed on concurrent modification", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       // Two writers race on version 0; one wins, the other retries and lands.
       const [a, b] = await Promise.all([
@@ -214,7 +214,7 @@ describe("economy service", () => {
 
     it("should return 409 CONCURRENCY_CONFLICT after max retries are exhausted", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       // 10 writers all start from version 0. With MAX_RETRIES=3, the losers
       // that keep colliding on every attempt surface CONCURRENCY_CONFLICT.
@@ -245,7 +245,7 @@ describe("economy service", () => {
   describe("getTransactions", () => {
     it("should return transactions in descending order by createdAt", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       await transfer(characterId, 100, "GIG_PAYOUT", "first");
       await transfer(characterId, -50, "VENDOR_PURCHASE", "second");
 
@@ -261,7 +261,7 @@ describe("economy service", () => {
 
     it("should respect the limit", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       for (let i = 0; i < 5; i++) {
         await transfer(characterId, 10, "GIG_PAYOUT", `gig-${i}`);
       }
@@ -274,7 +274,7 @@ describe("economy service", () => {
 
     it("should paginate with a cursor and return null nextCursor on the last page", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       for (let i = 0; i < 5; i++) {
         await transfer(characterId, 10, "GIG_PAYOUT", `gig-${i}`);
       }
@@ -362,7 +362,7 @@ describe("economy service", () => {
   describe("buyFromVendor — happy path", () => {
     async function seedStore(opts: { price?: number; stock?: number } = {}) {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       const [vendor] = await db("vendors")
         .insert({
           name: `Store-${Date.now()}`,
@@ -442,7 +442,7 @@ describe("economy service", () => {
 
     it("should restore +20 NIL when buying CONSUMABLE/syn-cafe", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       await db("characters")
         .where("id", characterId)
         .update({ nil: 50 });
@@ -472,7 +472,7 @@ describe("economy service", () => {
   describe("buyFromVendor — errors", () => {
     async function seedStore(opts: { price?: number; stock?: number } = {}) {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       const [vendor] = await db("vendors")
         .insert({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
         .returning("*");
@@ -489,7 +489,7 @@ describe("economy service", () => {
 
     it("should return 404 when the vendor does not exist", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       await expect(
         buyFromVendor(characterId, "00000000-0000-0000-0000-000000000000", "weapon", "nova-9", 1),

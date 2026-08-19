@@ -2,6 +2,16 @@
 # ND-018: Deploy staging — pull images, restart stack, health check.
 set -euo pipefail
 
+# ⚠️ ONE-SHOT DB RESET REQUIRED before the FIRST deploy of the DB repository
+# layer refactor (#158): pre-refactor databases have `0001_initial_schema`
+# recorded in knex_migrations but the file no longer exists, so the boot-time
+# migrate:latest aborts. The new DDL is byte-equivalent; dev/staging data is
+# disposable. Reset once on the staging VPS:
+#   docker compose -f docker-compose.yml down -v
+# or, keeping containers up (via psql):
+#   DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+# After the reset, this script can run normally again.
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 COMPOSE_FILE="${ROOT_DIR}/docker-compose.yml"
@@ -10,6 +20,9 @@ echo "╔═══════════════════════�
 echo "║  ND-018 DEPLOY STAGING              ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
+echo "⚠️  One-shot DB reset required on the FIRST deploy of the DB repository"
+echo "    layer refactor (#158) — see the comment block at the top of this"
+echo "    script. Only needed once per environment."
 
 # 1. Pull latest images
 echo "[1/3] Pulling images..."

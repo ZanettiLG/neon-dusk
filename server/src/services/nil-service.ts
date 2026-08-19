@@ -7,8 +7,9 @@ import {
   NIL_SYN_CAFE_AMOUNT,
   NIL_SYN_CAFE_COOLDOWN_S,
 } from "@neon-dusk/shared";
-import { db } from "../db";
 import { AppError } from "../middleware/error-handler";
+import { characterRepository as characters } from "../repositories/character-repository";
+import type { CharacterRow } from "../repositories/character-repository";
 
 // Neon Dusk — NIL (energy) service
 // ============================================================================
@@ -17,12 +18,7 @@ import { AppError } from "../middleware/error-handler";
 // +1 NIL per 5 minutes, capped at `max_nil` (03-mecanicas-core.md §1).
 
 /** Database row shape for characters (snake_case subset used by NIL operations). */
-interface DbCharacter {
-  id: string;
-  nil: number;
-  max_nil: number;
-  nil_updated_at: Date;
-}
+type DbCharacter = Pick<CharacterRow, "id" | "nil" | "max_nil" | "nil_updated_at">;
 
 export interface RegenResult {
   newNil: number;
@@ -46,7 +42,9 @@ export function calculateRegen(currentNil: number, maxNil: number, lastUpdated: 
 }
 
 /** Map a character row to a live NIL readout, applying passive regen lazily. */
-export function toNilStatus(row: DbCharacter): NilStatus {
+export function toNilStatus(
+  row: Pick<CharacterRow, "nil" | "max_nil" | "nil_updated_at">,
+): NilStatus {
   const { newNil, nextTickSeconds } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
   return {
     current: newNil,
@@ -59,11 +57,11 @@ export function toNilStatus(row: DbCharacter): NilStatus {
 
 /** Load the caller's character row, 404 when none exists. */
 async function findCharacter(userId: string): Promise<DbCharacter> {
-  const rows = await db("characters").select().where("user_id", userId).limit(1);
-  if (!rows.length) {
+  const row = await characters.findByUserId(userId);
+  if (!row) {
     throw new AppError(404, "CHARACTER_NOT_FOUND", "Nenhum personagem encontrado para esta conta");
   }
-  return rows[0];
+  return row;
 }
 
 /**
@@ -105,17 +103,8 @@ export async function consumeNil(userId: string, amount: number): Promise<NilCon
   // falls through to the null-check below.
   const rawNil = row.nil;
 
-  const rows = await db("characters")
-    .update({
-      nil: db.raw("LEAST(??, ?? + ?) - ?", ["max_nil", "nil", regenOffset, amount]),
-      nil_updated_at: new Date(),
-    })
-    .where("user_id", userId)
-    .where("nil", ">=", rawNil) // optimistic lock: fail if another tx modified nil
-    .whereRaw("LEAST(??, ?? + ?) >= ?", ["max_nil", "nil", regenOffset, amount]) // belt-and-suspenders
-    .returning("*");
+  const updated = await characters.updateNilSpend(row.id, regenOffset, amount, rawNil);
 
-  const updated = rows[0];
   if (!updated) {
     throw new AppError(400, "INSUFFICIENT_NIL", "NIL insuficiente");
   }
@@ -156,13 +145,8 @@ export async function useStim(redis: Redis, userId: string): Promise<NilStimResp
   // overwriting the consumption (lost-update guard).
   const rawNil = row.nil;
 
-  const rows = await db("characters")
-    .update({ nil: newNil, nil_updated_at: new Date() })
-    .where("user_id", userId)
-    .where("nil", ">=", rawNil) // optimistic lock
-    .returning("*");
+  const updated = await characters.updateNilSetGuarded(row.id, newNil, rawNil);
 
-  const updated = rows[0];
   if (!updated) {
     // Don't waste the cooldown on a failed write — let the player retry.
     await redis.del(key);

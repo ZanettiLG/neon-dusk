@@ -16,7 +16,7 @@ import {
   listAvailableGigs,
   wrapUpGig,
 } from "../services/gig-service";
-import { seedGigs } from "../db/seed";
+import { seedGigs } from "../seed/content-seeds";
 import type {
   ActiveGig,
   AuthResponse,
@@ -68,7 +68,7 @@ describe("ND-011 — gigs service & API", () => {
     redis.disconnect();
 
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
-    await seedGigs();
+    await seedGigs(db);
   });
 
   afterAll(async () => {
@@ -106,8 +106,8 @@ describe("ND-011 — gigs service & API", () => {
       expect(rows).toHaveLength(19);
     });
 
-    it("should be idempotent — a second run inserts nothing", async () => {
-      expect(await seedGigs()).toBe(0);
+    it("should be idempotent — a second run upserts nothing new", async () => {
+      expect(await seedGigs(db)).toBe(19);
       const rows = await db("gigs").select("*");
       expect(rows).toHaveLength(19);
     });

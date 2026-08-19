@@ -7,9 +7,9 @@ import { insertTestCharacter, resetDb } from "./helpers";
 
 // ND-053 — action cooldown gate (checkCooldown). Unit tests against a
 // dedicated redis db (14). The middleware CHECKS the key (keyed by the DB
-// character id resolved via requireCharacterId — NOT the JWT sub); the route
+// character id resolved via characters.requireByUserId — NOT the JWT sub); the route
 // handler sets it after success (ADR-2) — tests set it directly to simulate.
-// A real user+character row is required: requireCharacterId throws
+// A real user+character row is required: requireByUserId throws
 // NO_CHARACTER for a sub without a character.
 
 const REDIS_TEST_DB = "redis://localhost:56379/14"; // shared with crews-api (sequential fork, self-flushed)
@@ -50,7 +50,7 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
     const preHandler = checkCooldown(redis, "chat_message");
 
     // Route handler sets the key after a successful action (ADR-2), keyed by
-    // the DB character id — the same id requireCharacterId resolves.
+    // the DB character id — the same id requireByUserId resolves.
     await redis.setex(`cooldown:${characterId}:chat_message`, cooldownConfig.chat_message.durationMs / 1000, "1");
 
     const auditContext = {};
@@ -97,7 +97,7 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
   it("should reject with 404 NO_CHARACTER when the user has no character", async () => {
     const preHandler = checkCooldown(redis, "chat_message");
 
-    // requireCharacterId runs before the Redis check — a sub without a
+    // requireByUserId runs before the Redis check — a sub without a
     // character must be rejected, not silently allowed.
     await expect(preHandler(requestFor(randomUUID()))).rejects.toMatchObject({
       statusCode: 404,

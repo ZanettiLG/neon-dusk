@@ -11,7 +11,7 @@ import type {
 import { createCharacter, createCharacterSchema } from "../services/character-service";
 import { consumeNil, consumeNilSchema, getNilStatus, useStim } from "../services/nil-service";
 import { listCharacterEvents } from "../services/event-service";
-import { requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 import { authenticate } from "../middleware/auth";
 import { checkRateLimit } from "../lib/rate-limit";
 
@@ -80,7 +80,7 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
   // GET /characters/me/events — read-only player event feed (Feature #139).
   app.get("/characters/me/events", { preHandler: [authenticate] }, async (request) => {
     const { limit, cursor } = eventsQuerySchema.parse(request.query);
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     return listCharacterEvents(characterId, limit, cursor) as Promise<CharacterEventsResponse>;
   });
 }

@@ -1,4 +1,3 @@
-import type { Knex } from "knex";
 import type {
   ActiveGig,
   Attributes,
@@ -17,7 +16,6 @@ import type {
   Role,
 } from "@neon-dusk/shared";
 import { NIL_REGEN_INTERVAL_MS, NIL_REGEN_RATE } from "@neon-dusk/shared";
-import { db } from "../db";
 import { AppError } from "../middleware/error-handler";
 import {
   applyHeatDecay,
@@ -36,15 +34,25 @@ import {
   rollGigOutcome,
 } from "../game/gigs";
 import { calculateGigSuccessBonus, calculateStatBonus } from "../game/chrome";
+import type { ChromeDefinition } from "@neon-dusk/shared";
 import { calculateCrewBonuses } from "../game/crews.js";
 import {
   getSilverTongueBonus,
   canRunSecondGig,
   computeConsumption,
 } from "../game/abilities";
-import { ensureWallet } from "./economy-service";
 import { transferEddies } from "../game/economy";
 import { emitEvent } from "../telemetry/emit-event";
+import { withTransaction } from "../db";
+import type { Queryable } from "../repositories";
+import { characterRepository as characters } from "../repositories/character-repository";
+import { walletRepository as wallets } from "../repositories/wallet-repository";
+import { transactionRepository as transactions } from "../repositories/transaction-repository";
+import { chromeRepository as chrome } from "../repositories/chrome-repository";
+import { crewRepository as crews } from "../repositories/crew-repository";
+import { heatRepository as heat } from "../repositories/heat-repository";
+import { gigRepository as gigs } from "../repositories/gig-repository";
+import type { ActiveGigJoinedRow } from "../repositories/gig-repository";
 
 // Neon Dusk — Gig service (orchestration over the pure game logic)
 // ============================================================================
@@ -53,60 +61,10 @@ import { emitEvent } from "../telemetry/emit-event";
 // by the game/gigs.ts state machine and stored verbatim. NIL spend (accept)
 // and wallet credit (wrap up) use the same in-transaction optimistic-lock
 // patterns as nil-service and chrome-service, so every multi-row write is
-// atomic.
-
-/** Queryable client union — helpers run against `db` or a Knex transaction. */
-type Queryable = typeof db | Knex.Transaction;
-
-/** Row shape of an active_gigs ⋈ gigs join. */
-interface ActiveGigJoined {
-  id: string;
-  gigId: string;
-  gigName: string;
-  gigType: string;
-  gigTier: string;
-  phase: string;
-  status: string;
-  acceptedAt: Date;
-  legworkStartedAt: Date | null;
-  legworkCompleted: boolean;
-  legworkMinutes: number;
-  executeOutcome: string | null;
-  escapeOutcome: string | null;
-  actualPayout: number | null;
-  escapeDifficulty: number;
-}
-
-/** Columns shared by the active-gig queries (active_gigs ⋈ gigs). */
-function activeGigSelect(q: Queryable) {
-  return q("active_gigs")
-    .select({
-      id: "active_gigs.id",
-      gigId: "active_gigs.gig_id",
-      gigName: "gigs.name",
-      gigType: "gigs.type",
-      gigTier: "gigs.tier",
-      phase: "active_gigs.phase",
-      status: "active_gigs.status",
-      acceptedAt: "active_gigs.accepted_at",
-      legworkStartedAt: "active_gigs.legwork_started_at",
-      legworkCompleted: "active_gigs.legwork_completed",
-      legworkMinutes: "gigs.legwork_minutes",
-      executeOutcome: "active_gigs.execute_outcome",
-      escapeOutcome: "active_gigs.escape_outcome",
-      actualPayout: "active_gigs.actual_payout",
-      escapeDifficulty: "gigs.escape_difficulty",
-    })
-    .join("gigs", "active_gigs.gig_id", "gigs.id");
-}
-
-/** Query builder for the active-gig join (used to derive the row type). */
-function activeGigQuery(q: Queryable, characterId: string) {
-  return activeGigSelect(q).where("active_gigs.character_id", characterId).limit(1);
-}
+// atomic. All table access goes through the repositories (#158).
 
 /** Map an active_gigs ⋈ gigs row to the API shape (ISO timestamps). */
-function toActiveGig(row: ActiveGigJoined): ActiveGig {
+function toActiveGig(row: ActiveGigJoinedRow): ActiveGig {
   return {
     id: row.id,
     gigId: row.gigId,
@@ -156,16 +114,12 @@ function cooldownRemainingFor(lastAt: Date | string | null, cooldownMinutes: num
 
 /** Sum of the character's installed-chrome gig success bonus (percentage points). */
 async function getGigSuccessBonus(q: Queryable, characterId: string): Promise<number> {
-  const installed = await q("installed_chrome")
-    .select("chrome_definition_id")
-    .where("character_id", characterId);
+  const installed = await chrome.listInstalledDefinitionIds(characterId, q);
   if (installed.length === 0) return 0;
 
-  const defIds = installed.map((i: Record<string, unknown>) => i.chrome_definition_id as string);
-  const defs = await q("chrome_definitions")
-    .select()
-    .whereIn("id", defIds);
-  return calculateGigSuccessBonus(defs);
+  const defIds = installed.map((i) => i.chrome_definition_id);
+  const defs = await chrome.listDefinitionsByIds(defIds, q);
+  return calculateGigSuccessBonus(defs as unknown as ChromeDefinition[]);
 }
 
 /** Sum of the character's installed-chrome attribute bonuses (all 5 stats). */
@@ -173,35 +127,25 @@ async function getChromeStatBonus(
   q: Queryable,
   characterId: string,
 ): Promise<Attributes> {
-  const installed = await q("installed_chrome")
-    .select("chrome_definition_id")
-    .where("character_id", characterId);
+  const installed = await chrome.listInstalledDefinitionIds(characterId, q);
   if (installed.length === 0) {
     return { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 };
   }
 
-  const defIds = installed.map((i: Record<string, unknown>) => i.chrome_definition_id as string);
-  const defs = await q("chrome_definitions")
-    .select()
-    .whereIn("id", defIds);
-  return calculateStatBonus(defs);
-}
-
-/** Count active members in a crew. */
-async function getCrewMemberCount(q: Queryable, crewId: string): Promise<number> {
-  const [row] = await q("crew_members")
-    .count("* as count")
-    .where("crew_id", crewId);
-  return Number(row?.count ?? 0);
+  const defIds = installed.map((i) => i.chrome_definition_id);
+  const defs = await chrome.listDefinitionsByIds(defIds, q);
+  return calculateStatBonus(defs as unknown as ChromeDefinition[]);
 }
 
 /**
  * Load the character's active gig joined with its template, or null.
  * Shared by every phase transition.
  */
-async function queryActiveGig(q: Queryable, characterId: string): Promise<ActiveGigJoined | null> {
-  const rows = await activeGigQuery(q, characterId);
-  return rows[0] ?? null;
+async function queryActiveGig(
+  characterId: string,
+  q?: Queryable,
+): Promise<ActiveGigJoinedRow | null> {
+  return gigs.findActiveGig(characterId, q);
 }
 
 /** Best-effort telemetry write — a Redis/DB hiccup must never fail the action. */
@@ -220,25 +164,19 @@ function trackGigEvent(
  * (requirements met, cooldown), the character's active gig and today's count.
  */
 export async function listAvailableGigs(characterId: string): Promise<GigBoardResponse> {
-  const [character] = await db("characters")
-    .select()
-    .where("id", characterId)
-    .limit(1);
+  const character = await characters.findById(characterId);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
   const attrs = toAttributes(character);
   const now = new Date();
 
-  const gigRows = await db("gigs").select().orderBy("tier", "asc").orderBy("difficulty", "asc");
+  const gigRows = await gigs.listCatalog();
 
   // Last completion per gig template → per-gig cooldowns.
-  const completions = await db("gig_history")
-    .select({ gigId: "gig_id", lastAt: db.raw("max(completed_at)") })
-    .where("character_id", characterId)
-    .groupBy("gig_id");
-  const lastByGig = new Map(completions.map((c: Record<string, unknown>) => [c.gigId as string, c.lastAt as Date]));
+  const completions = await gigs.listLastCompletions(characterId);
+  const lastByGig = new Map(completions.map((c) => [c.gigId, c.lastAt as Date]));
 
-  const board: GigListItem[] = gigRows.map((g: Record<string, unknown>) => {
+  const board: GigListItem[] = gigRows.map((g) => {
     const requiredStats = g.required_stats as Record<string, number>;
     const meetsRequirements =
       meetsStatRequirements(attrs, requiredStats) && Number(character.street_cred) >= Number(g.required_street_cred);
@@ -258,7 +196,7 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
     };
   });
 
-  const active = await queryActiveGig(db, characterId);
+  const active = await queryActiveGig(characterId);
 
   return {
     gigs: board,
@@ -268,7 +206,7 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
 
 /** GET /api/gigs/active — the character's active gig, or null. */
 export async function getActiveGig(characterId: string): Promise<ActiveGig | null> {
-  const active = await queryActiveGig(db, characterId);
+  const active = await queryActiveGig(characterId);
   return active ? toActiveGig(active) : null;
 }
 
@@ -277,13 +215,10 @@ export async function getGigDetail(
   characterId: string,
   gigId: string,
 ): Promise<GigDetailResponse> {
-  const [gig] = await db("gigs").select().where("id", gigId).limit(1);
+  const gig = await gigs.findById(gigId);
   if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
 
-  const [character] = await db("characters")
-    .select()
-    .where("id", characterId)
-    .limit(1);
+  const character = await characters.findById(characterId);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
   const requiredStats = gig.required_stats as Record<string, number>;
@@ -291,12 +226,7 @@ export async function getGigDetail(
     meetsStatRequirements(toAttributes(character), requiredStats) &&
     Number(character.street_cred) >= Number(gig.required_street_cred);
 
-  const [last] = await db("gig_history")
-    .select("completed_at as lastAt")
-    .where("character_id", characterId)
-    .where("gig_id", gigId)
-    .orderBy("completed_at", "desc")
-    .limit(1);
+  const last = await gigs.findLastCompletion(characterId, gigId);
   const cdRemaining = cooldownRemainingFor(last?.lastAt ?? null, Number(gig.cooldown_minutes), new Date());
 
   const template: GigTemplate = {
@@ -327,46 +257,21 @@ export async function getGigDetail(
  * cooldown and NIL, then atomically opens an active gig.
  */
 export async function acceptGig(characterId: string, gigId: string): Promise<GigAcceptResponse> {
-  return db.transaction(async (trx) => {
-    const [character] = await trx("characters")
-      .select(
-        "id",
-        "role",
-        "street_cred",
-        "nil",
-        "max_nil",
-        "nil_updated_at",
-        "body",
-        "reflexes",
-        "intelligence",
-        "technical",
-        "cool",
-        "ability_active_until",
-        "ability_cooldown_until",
-      )
-      .where("id", characterId)
-      .limit(1);
+  return withTransaction(async (trx) => {
+    const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
-    const [gig] = await trx("gigs").select().where("id", gigId).limit(1);
+    const gig = await gigs.findById(gigId, trx);
     if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
 
     // Lock the row: INSERT first (unique character_id) — a concurrent accept
     // loses the race here and fails BEFORE any NIL is spent.
-    const insertResult = await trx("active_gigs")
-      .insert({ character_id: characterId, gig_id: gigId })
-      .onConflict("character_id")
-      .ignore()
-      .returning("*");
-    const inserted = insertResult[0];
+    const inserted = await gigs.openActiveGig(characterId, gigId, trx);
     if (!inserted) {
       // Feature #65: Long Haul — nomads can run a second concurrent gig when
       // the ability is active. ponytail: the DB unique constraint on
       // active_gigs.character_id still blocks this; drop it when Long Haul ships.
-      const [existingCount] = await trx("active_gigs")
-        .count("* as count")
-        .where("character_id", characterId);
-      const currentGigs = Number(existingCount?.count ?? 0);
+      const currentGigs = await gigs.countActiveGigs(characterId, trx);
       const longHaul = canRunSecondGig(
         character.role as Role,
         character.ability_active_until ? new Date(character.ability_active_until) : null,
@@ -376,13 +281,11 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
       if (longHaul) {
         // Consume Long Haul — the second gig starts now.
         const consumed = computeConsumption(character.role as Role);
-        await trx("characters")
-          .update({
-            ability_active_until: consumed.activeUntil,
-            ability_cooldown_until: consumed.cooldownUntil,
-            updated_at: new Date(),
-          })
-          .where("id", characterId);
+        await characters.updateAbilityState(
+          characterId,
+          { activeUntil: consumed.activeUntil, cooldownUntil: consumed.cooldownUntil },
+          trx,
+        );
         // TODO: drop the unique constraint on active_gigs.character_id, then
         // allow the second INSERT to proceed here. For now, throw a clear error.
         throw new AppError(
@@ -412,12 +315,7 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
         throw new AppError(403, "INSUFFICIENT_STATS", "Atributos não atendem aos requisitos da gig");
       }
 
-      const [last] = await trx("gig_history")
-        .select("completed_at as lastAt")
-        .where("character_id", characterId)
-        .where("gig_id", gigId)
-        .orderBy("completed_at", "desc")
-        .limit(1);
+      const last = await gigs.findLastCompletion(characterId, gigId, trx);
       if (last && !isCooldownExpired(new Date(last.lastAt), Number(gig.cooldown_minutes))) {
         throw new AppError(400, "GIG_COOLDOWN", "Esta gig ainda está em cooldown");
       }
@@ -431,15 +329,7 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
       const nilCost = Number(gig.nil_cost);
       const rawNil = Number(character.nil);
 
-      const [updated] = await trx("characters")
-        .update({
-          nil: db.raw("LEAST(max_nil, nil + ?) - ?", [regenOffset, nilCost]),
-          nil_updated_at: new Date(),
-        })
-        .where("id", characterId)
-        .where("nil", ">=", rawNil)
-        .whereRaw("LEAST(max_nil, nil + ?) >= ?", [regenOffset, nilCost])
-        .returning("*");
+      const updated = await characters.updateNilSpend(characterId, regenOffset, nilCost, rawNil, trx);
       if (!updated) {
         throw new AppError(400, "INSUFFICIENT_NIL", `NIL insuficiente (precisa de ${nilCost})`);
       }
@@ -467,7 +357,7 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
     } catch (err) {
       // Any validation failure after the INSERT rolls the gig back — the
       // player only pays NIL for a successfully accepted gig.
-      await trx("active_gigs").delete().where("id", inserted.id);
+      await gigs.deleteActiveGig(inserted.id, trx);
       throw err;
     }
   });
@@ -478,8 +368,8 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
  * when it elapses, execute gets +20% success and payout.
  */
 export async function doLegwork(characterId: string, gigId: string): Promise<ActiveGig> {
-  return db.transaction(async (trx) => {
-    const active = await queryActiveGig(trx, characterId);
+  return withTransaction(async (trx) => {
+    const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
 
@@ -488,9 +378,11 @@ export async function doLegwork(characterId: string, gigId: string): Promise<Act
       throw new AppError(409, "INVALID_PHASE_TRANSITION", `Não é possível iniciar legwork a partir de ${active.phase}`);
     }
 
-    await trx("active_gigs")
-      .update({ phase: next, legwork_started_at: new Date(), updated_at: new Date() })
-      .where("id", active.id);
+    await gigs.transitionActiveGig(
+      active.id,
+      { phase: next, legwork_started_at: new Date(), updated_at: new Date() },
+      trx,
+    );
 
     return toActiveGig({ ...active, phase: next, legworkStartedAt: new Date() });
   });
@@ -502,12 +394,12 @@ export async function doLegwork(characterId: string, gigId: string): Promise<Act
  * it applies the +20% bonus once the timer has elapsed.
  */
 export async function executeGig(characterId: string, gigId: string): Promise<GigExecuteResponse> {
-  return db.transaction(async (trx) => {
-    const active = await queryActiveGig(trx, characterId);
+  return withTransaction(async (trx) => {
+    const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
 
-    const [gig] = await trx("gigs").select().where("id", active.gigId).limit(1);
+    const gig = await gigs.findById(active.gigId, trx);
     if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
 
     const skippedLegwork = active.phase === "meet";
@@ -533,10 +425,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       );
     }
 
-    const [character] = await trx("characters")
-      .select()
-      .where("id", characterId)
-      .limit(1);
+    const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
     const { primary } = getRelevantStats(gig.type as GigType, toAttributes(character));
@@ -549,7 +438,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
     // Crew bonus: +N percentage points to gig success (ND-016).
     let crewBonus = 0;
     if (character.crew_id) {
-      const crewCount = await getCrewMemberCount(trx, character.crew_id);
+      const crewCount = await crews.memberCount(character.crew_id, trx);
       const bonuses = calculateCrewBonuses(crewCount);
       const gigBonus = bonuses.find((b) => b.type === "gig_success");
       if (gigBonus) crewBonus = gigBonus.value;
@@ -565,15 +454,17 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       ? calculatePayout(Number(gig.base_reward), { legworkBonus: legworkDone, successBonus: true })
       : 0;
 
-    await trx("active_gigs")
-      .update({
+    await gigs.transitionActiveGig(
+      active.id,
+      {
         phase: next,
         legwork_completed: legworkDone,
         execute_outcome: outcome.success ? "success" : "failure",
         actual_payout: actualPayout,
         updated_at: new Date(),
-      })
-      .where("id", active.id);
+      },
+      trx,
+    );
 
     return {
       activeGig: toActiveGig({
@@ -594,11 +485,11 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
  * escape outcome; the heat it generates is committed at wrap up.
  */
 export async function escapeGig(characterId: string, gigId: string): Promise<GigEscapeResponse> {
-  return db.transaction(async (trx) => {
-    const active = await queryActiveGig(trx, characterId);
+  return withTransaction(async (trx) => {
+    const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
-    const [gig] = await trx("gigs").select().where("id", active.gigId).limit(1);
+    const gig = await gigs.findById(active.gigId, trx);
     if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
 
     // ponytail: idempotent escape — server already committed, client retrying
@@ -619,17 +510,10 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
       throw new AppError(409, "INVALID_PHASE_TRANSITION", "Fuga só está disponível após executar");
     }
 
-    const [character] = await trx("characters")
-      .select()
-      .where("id", characterId)
-      .limit(1);
+    const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
-    const [districtHeat] = await trx("heat")
-      .select("amount", "updated_at")
-      .where("character_id", characterId)
-      .where("district", gig.district)
-      .limit(1);
+    const districtHeat = await heat.getForDistrict(characterId, gig.district, trx);
 
     const { heat: effectiveHeat } = applyHeatDecay(
       Number(districtHeat?.amount ?? 0),
@@ -641,13 +525,15 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     const outcome = rollGigOutcome(chance);
     const heatGenerated = calculateHeat(Number(gig.heat_generated), (active.executeOutcome ?? "failure") as "success" | "failure");
 
-    await trx("active_gigs")
-      .update({
+    await gigs.transitionActiveGig(
+      active.id,
+      {
         phase: "escape",
         escape_outcome: outcome.success ? "success" : "failure",
         updated_at: new Date(),
-      })
-      .where("id", active.id);
+      },
+      trx,
+    );
 
     return {
       activeGig: toActiveGig({
@@ -667,8 +553,8 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
  * active gig. All wallet/character/heat writes are one atomic transaction.
  */
 export async function wrapUpGig(characterId: string, gigId: string): Promise<GigWrapupResponse> {
-  return db.transaction(async (trx) => {
-    const active = await queryActiveGig(trx, characterId);
+  return withTransaction(async (trx) => {
+    const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
     // The wrap_up action is taken while in the escape phase (see the phase
@@ -679,19 +565,10 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     }
     const terminalPhase = canTransition("escape", "wrap_up");
 
-    const [gig] = await trx("gigs").select().where("id", active.gigId).limit(1);
+    const gig = await gigs.findById(active.gigId, trx);
     if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
 
-    const [character] = await trx("characters")
-      .select(
-        "id",
-        "role",
-        "street_cred",
-        "ability_active_until",
-        "ability_cooldown_until",
-      )
-      .where("id", characterId)
-      .limit(1);
+    const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
     // Feature #65: Silver Tongue — fixer ability boosts payout +50% and SC +25%.
@@ -717,7 +594,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const heatDelta = calculateHeat(Number(gig.heat_generated), (active.executeOutcome ?? "failure") as "success" | "failure");
 
     // 1. Wallet credit — optimistic lock (same pattern as buyFromVendor).
-    const wallet = await ensureWallet(characterId, trx);
+    const wallet = await wallets.ensure(characterId, trx);
     let newBalance = wallet.balance;
     if (payout > 0) {
       const result = transferEddies(wallet, payout, {
@@ -726,29 +603,28 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
         referenceType: "gig",
         referenceId: gig.id,
       });
-      const [updatedWallet] = await trx("character_wallets")
-        .update({
-          balance: result.wallet.balance,
-          lifetime_earned: result.wallet.lifetimeEarned,
-          version: wallet.version + 1,
-          updated_at: new Date(),
-        })
-        .where("character_id", characterId)
-        .where("version", wallet.version)
-        .returning("*");
+      const updatedWallet = await wallets.updateOptimistic(
+        characterId,
+        wallet.version,
+        { balance: result.wallet.balance, lifetime_earned: result.wallet.lifetimeEarned },
+        trx,
+      );
       if (!updatedWallet) {
         throw new AppError(409, "CONCURRENCY_CONFLICT", "Carteira alterada concorrentemente. Tente novamente.");
       }
-      await trx("transaction_log").insert({
-        character_id: characterId,
-        type: "GIG_PAYOUT",
-        amount: payout,
-        balance_before: result.transaction.balanceBefore,
-        balance_after: result.transaction.balanceAfter,
-        source: result.transaction.source,
-        reference_type: "gig",
-        reference_id: gig.id,
-      });
+      await transactions.insert(
+        {
+          character_id: characterId,
+          type: "GIG_PAYOUT",
+          amount: payout,
+          balance_before: result.transaction.balanceBefore,
+          balance_after: result.transaction.balanceAfter,
+          source: result.transaction.source,
+          reference_type: "gig",
+          reference_id: gig.id,
+        },
+        trx,
+      );
       newBalance = updatedWallet.balance;
     }
 
@@ -759,50 +635,29 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const currentSC = Number(character.street_cred);
     const newStreetCred = Math.min(100, currentSC + streetCredGained);
     const scGranted = newStreetCred - currentSC;
-    await trx("characters")
-      .update({
-        street_cred: newStreetCred,
-        max_street_cred_achieved: db.raw("GREATEST(max_street_cred_achieved, ?)", [newStreetCred]),
-        last_activity_at: db.fn.now(),
-        updated_at: new Date(),
-      })
-      .where("id", characterId);
+    await characters.updateStreetCredAndActivity(characterId, newStreetCred, trx);
 
     // Feature #65: consume Silver Tongue after the gig action.
     if (silverTongue) {
       const consumed = computeConsumption(character.role as Role);
-      await trx("characters")
-        .update({
-          ability_active_until: consumed.activeUntil,
-          ability_cooldown_until: consumed.cooldownUntil,
-          updated_at: new Date(),
-        })
-        .where("id", characterId);
+      await characters.updateAbilityState(
+        characterId,
+        { activeUntil: consumed.activeUntil, cooldownUntil: consumed.cooldownUntil },
+        trx,
+      );
     }
 
     // 3. District heat — apply decay then upsert (one row per character + district).
     if (heatDelta > 0) {
       // Read current heat to apply lazy decay before adding new heat.
-      const [existingHeat] = await trx("heat")
-        .select("amount", "updated_at")
-        .where("character_id", characterId)
-        .where("district", gig.district as string)
-        .limit(1);
+      const existingHeat = await heat.getForDistrict(characterId, gig.district as string, trx);
 
       const { heat: decayedHeat } = existingHeat
         ? applyHeatDecay(Number(existingHeat.amount), new Date(existingHeat.updated_at))
         : { heat: 0 };
       const newHeat = decayedHeat + heatDelta;
 
-      await trx("heat")
-        .insert({
-          character_id: characterId,
-          district: gig.district as string,
-          amount: newHeat,
-          updated_at: new Date(),
-        })
-        .onConflict(["character_id", "district"])
-        .merge({ amount: newHeat, updated_at: new Date() });
+      await heat.upsert(characterId, gig.district as string, newHeat, trx);
     }
 
     // 4. History entry — the phases actually visited.
@@ -810,19 +665,22 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     if (active.legworkStartedAt) phasesCompleted.push("legwork");
     phasesCompleted.push("execute", "escape", terminalPhase ?? "wrap_up");
 
-    await trx("gig_history").insert({
-      character_id: characterId,
-      gig_id: gig.id,
-      outcome,
-      phases_completed: phasesCompleted,
-      payout,
-      street_cred_gained: scGranted,
-      heat_accumulated: heatDelta,
-      district: gig.district as string,
-    });
+    await gigs.insertHistory(
+      {
+        character_id: characterId,
+        gig_id: gig.id,
+        outcome,
+        phases_completed: phasesCompleted,
+        payout,
+        street_cred_gained: scGranted,
+        heat_accumulated: heatDelta,
+        district: gig.district as string,
+      },
+      trx,
+    );
 
     // 5. Close the active gig.
-    await trx("active_gigs").delete().where("id", active.id);
+    await gigs.closeActiveGig(active.id, trx);
 
     trackGigEvent(
       outcome === "success" ? "GIG_COMPLETED" : "GIG_FAILED",
@@ -848,37 +706,31 @@ export async function abandonGig(
   characterId: string,
   gigId: string,
 ): Promise<{ outcome: "abandoned"; message: string }> {
-  return db.transaction(async (trx) => {
+  return withTransaction(async (trx) => {
     // 1. Find active gig for this character.
-    const [active] = await trx("active_gigs")
-      .select()
-      .where("character_id", characterId)
-      .where("gig_id", gigId)
-      .limit(1);
+    const active = await gigs.findActiveGigByGig(characterId, gigId, trx);
     if (!active) {
       throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa para abandonar");
     }
 
     // 2. Get the gig district for the history entry.
-    const [gig] = await trx("gigs")
-      .select("district")
-      .where("id", active.gig_id)
-      .limit(1);
+    const gig = await gigs.findDistrict(active.gig_id, trx);
     const district = gig?.district ?? "Desconhecido";
 
     // 3. Delete active gig.
-    await trx("active_gigs")
-      .delete()
-      .where("character_id", characterId);
+    await gigs.closeActiveGigsForCharacter(characterId, trx);
 
     // 4. Write history with outcome "abandoned".
-    await trx("gig_history").insert({
-      character_id: characterId,
-      gig_id: gigId,
-      outcome: "abandoned",
-      phases_completed: [active.phase],
-      district,
-    });
+    await gigs.insertHistory(
+      {
+        character_id: characterId,
+        gig_id: gigId,
+        outcome: "abandoned",
+        phases_completed: [active.phase],
+        district,
+      },
+      trx,
+    );
 
     return {
       outcome: "abandoned" as const,
@@ -897,49 +749,26 @@ export async function getGigHistory(
   limit: number = 20,
   cursor?: string,
 ): Promise<GigHistoryResponse> {
-  let query = db("gig_history")
-    .select({
-      id: "gig_history.id",
-      gigId: "gig_history.gig_id",
-      gigName: "gigs.name",
-      tier: "gigs.tier",
-      type: "gigs.type",
-      outcome: "gig_history.outcome",
-      payout: "gig_history.payout",
-      streetCredGained: "gig_history.street_cred_gained",
-      heatAccumulated: "gig_history.heat_accumulated",
-      district: "gig_history.district",
-      completedAt: "gig_history.completed_at",
-    })
-    .join("gigs", "gig_history.gig_id", "gigs.id")
-    .where("gig_history.character_id", characterId);
-
-  if (cursor) {
-    query = query.where("gig_history.completed_at", "<", new Date(cursor));
-  }
-
-  const rows = await query
-    .orderBy("gig_history.completed_at", "desc")
-    .limit(limit + 1);
+  const rows = await gigs.listHistory(characterId, limit, cursor);
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
-  const history: GigHistoryEntry[] = page.map((row: Record<string, unknown>) => ({
-    id: row.id as string,
-    gigId: row.gigId as string,
-    gigName: row.gigName as string,
-    tier: row.tier as string,
-    type: row.type as string,
-    outcome: row.outcome as string,
+  const history: GigHistoryEntry[] = page.map((row) => ({
+    id: row.id,
+    gigId: row.gigId,
+    gigName: row.gigName,
+    tier: row.tier,
+    type: row.type,
+    outcome: row.outcome,
     payout: Number(row.payout),
     streetCredGained: Number(row.streetCredGained),
     heatAccumulated: Number(row.heatAccumulated),
-    district: row.district as string,
-    completedAt: new Date(row.completedAt as string | Date).toISOString(),
+    district: row.district,
+    completedAt: new Date(row.completedAt).toISOString(),
   }));
 
   return {
     history,
-    nextCursor: hasMore ? new Date(page[page.length - 1].completedAt as string | Date).toISOString() : null,
+    nextCursor: hasMore ? new Date(page[page.length - 1].completedAt).toISOString() : null,
   };
 }

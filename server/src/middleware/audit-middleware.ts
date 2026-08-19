@@ -2,7 +2,7 @@ import fp from "fastify-plugin";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AuditResult } from "../lib/audit-log";
 import { auditLog } from "../lib/audit-log";
-import { requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 
 // Neon Dusk — onResponse audit hook (ND-053)
 // ============================================================================
@@ -35,7 +35,7 @@ export function setAuditContext(
   action: string,
 ): (request: FastifyRequest) => Promise<void> {
   return async (request) => {
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     request.audit_context = {
       action,
       characterId,

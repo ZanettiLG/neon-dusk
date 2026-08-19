@@ -11,7 +11,7 @@ import { checkCooldown } from "../middleware/cooldown";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { validate } from "../middleware/validate";
 import { checkActionRateLimit, circuitBreakerConfig } from "../lib/rate-limit";
-import { requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
 
@@ -94,8 +94,8 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
       },
       async (request, reply) => {
         // ADR-2: cooldown is keyed by the DB character id — the same id
-        // checkCooldown resolves via requireCharacterId (NOT the JWT sub).
-        const characterId = await requireCharacterId(request.user.sub);
+        // checkCooldown resolves via characters.requireByUserId (NOT the JWT sub).
+        const characterId = (await characters.requireByUserId(request.user.sub)).id;
         await redis.setex(`cooldown:${characterId}:chat_message`, 5, "1");
         return reply.status(201).send({ ok: true });
       },
@@ -211,7 +211,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     expect(JSON.stringify(invalidBody.details)).toContain("message");
 
     // ADR-2: the cooldown key (keyed by character id, resolved via
-    // requireCharacterId) is only set after a successful action.
+    // characters.requireByUserId) is only set after a successful action.
     expect(await redis.exists(`cooldown:${characterId}:chat_message`)).toBe(0);
 
     // The failed validation is still audit-logged with result validation_error.

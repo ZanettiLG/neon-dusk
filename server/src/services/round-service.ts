@@ -1,8 +1,9 @@
 // Neon Dusk — Round service (ND-017)
 // ============================================================================
-// The ONLY module that touches the database for round lifecycle. Game logic
-// lives in game/round-reset.ts (pure functions); this module sequences the
-// reset inside a single transaction and answers round-info/history queries.
+// The ONLY module that orchestrates round lifecycle. Game logic lives in
+// game/round-reset.ts (pure functions); this module sequences the reset
+// inside a single transaction and answers round-info/history queries. All
+// table access goes through the repositories (#158).
 
 import type {
   RoundHistoryEntry,
@@ -10,7 +11,6 @@ import type {
   RoundInfoResponse,
   RoundStatsSnapshot,
 } from "@neon-dusk/shared";
-import { db, type Queryable } from "../db";
 import { env } from "../env";
 import { AppError } from "../middleware/error-handler";
 import {
@@ -19,6 +19,11 @@ import {
   calculateRoundStats,
   type LegendCandidate,
 } from "../game/round-reset";
+import { withTransaction } from "../db";
+import type { Queryable } from "../repositories";
+import { characterRepository as characters } from "../repositories/character-repository";
+import { legendRepository as legends } from "../repositories/legend-repository";
+import { roundRepository as rounds } from "../repositories/round-repository";
 
 /** ms in one day (ROUND_DURATION_DAYS is expressed in days). */
 const DAY_MS = 86_400_000;
@@ -43,12 +48,6 @@ type SnapshotRow = {
   top_sc_value: number | null;
 };
 
-/** Row shape of the legend candidates query. */
-type LegendRow = {
-  character_name: string;
-  crew_name: string | null;
-};
-
 /**
  * Execute a full round reset in a single transaction:
  * 1. Capture + persist round stats (before any wipe)
@@ -59,11 +58,8 @@ type LegendRow = {
  * Throws AppError(409) when there is no active round to reset.
  */
 export async function performRoundReset(): Promise<RoundResetResult> {
-  return db.transaction(async (trx) => {
-    const [activeRound] = await trx("rounds")
-      .select()
-      .where("status", "active")
-      .limit(1);
+  return withTransaction(async (trx) => {
+    const activeRound = await rounds.findActive(trx);
     if (!activeRound) {
       throw new AppError(409, "NO_ACTIVE_ROUND", "Não há rodada ativa para resetar");
     }
@@ -89,12 +85,12 @@ export async function performRoundReset(): Promise<RoundResetResult> {
         legendsInducted = await inductLegends(trx, activeRound.round_number);
       }
 
-      // Execute the step's SQL directly via Knex raw.
-      const result = await trx.raw(step.sql);
+      // Execute the step's SQL directly via the repository.
+      const result = await rounds.executeStep(trx, step.sql);
 
       // Capture the snapshot row (step 1) for caller observability.
       if (step.description === "capture_round_stats" && result.rows?.[0]) {
-        const row = result.rows[0] as SnapshotRow;
+        const row = result.rows[0] as unknown as SnapshotRow;
         stats = calculateRoundStats({
           totalGigsCompleted: Number(row.total_gigs_completed ?? 0),
           totalEddiesEarned: Number(row.total_eddies_earned ?? 0),
@@ -124,14 +120,8 @@ export async function performRoundReset(): Promise<RoundResetResult> {
  * reset wipes reputation. Returns the number of inducted legends.
  */
 async function inductLegends(tx: Queryable, roundNumber: number): Promise<number> {
-  const result = await tx.raw(`
-    SELECT ch."name" AS "character_name", c."name" AS "crew_name"
-    FROM "characters" ch
-    LEFT JOIN "crews" c ON c."id" = ch."crew_id"
-    WHERE ch."street_cred" = 100
-  `);
+  const rows = await characters.listLegendCandidates(tx);
 
-  const rows = result.rows as LegendRow[];
   const candidates: LegendCandidate[] = rows.map((r) => ({
     characterName: r.character_name,
     crewName: r.crew_name ?? null,
@@ -139,7 +129,7 @@ async function inductLegends(tx: Queryable, roundNumber: number): Promise<number
   }));
 
   const legendStep = buildLegendInserts(candidates);
-  if (legendStep) await tx.raw(legendStep.sql);
+  if (legendStep) await legends.executeInserts(tx, legendStep.sql);
   return candidates.length;
 }
 
@@ -153,7 +143,7 @@ export async function getCurrentRound(): Promise<RoundInfoResponse> {
   const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
   const now = Date.now();
 
-  const [active] = await db("rounds").select().where("status", "active").limit(1);
+  const active = await rounds.findActive();
 
   if (active) {
     const started = new Date(active.started_at).getTime();
@@ -183,7 +173,7 @@ export async function getCurrentRound(): Promise<RoundInfoResponse> {
 
   // Degenerate state (no active round — pre-seed or manual DB edit). Fall
   // back to intermission with unknown start, anchored on the latest round.
-  const [latest] = await db("rounds").select().orderBy("round_number", "desc").limit(1);
+  const latest = await rounds.findLatest();
   const anchor = latest?.ended_at ?? latest?.started_at ?? new Date(now);
   return {
     roundNumber: (latest?.round_number ?? 0) + 1,
@@ -204,29 +194,7 @@ export async function getRoundHistory(
   cursor: number | undefined,
   limit: number,
 ): Promise<RoundHistoryResponse> {
-  let query = db("rounds")
-    .select({
-      roundNumber: "rounds.round_number",
-      startedAt: "rounds.started_at",
-      endedAt: "rounds.ended_at",
-      totalGigsCompleted: "round_stats.total_gigs_completed",
-      totalEddiesEarned: "round_stats.total_eddies_earned",
-      totalPvpFights: "round_stats.total_pvp_fights",
-      totalActiveCharacters: "round_stats.total_active_characters",
-      topCrewName: "round_stats.top_crew_name",
-      topScCharacterName: "round_stats.top_sc_character_name",
-      topScValue: "round_stats.top_sc_value",
-    })
-    .join("round_stats", "round_stats.round_id", "rounds.id")
-    .whereNotNull("rounds.ended_at");
-
-  if (cursor !== undefined) {
-    query = query.where("rounds.round_number", "<", cursor);
-  }
-
-  const rows = await query
-    .orderBy("rounds.round_number", "desc")
-    .limit(limit + 1);
+  const rows = await rounds.listEnded(cursor, limit);
 
   const hasMore = rows.length > limit;
   const page = rows.slice(0, limit);

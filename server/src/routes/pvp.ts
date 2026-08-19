@@ -8,7 +8,7 @@ import { checkCooldown } from "../middleware/cooldown";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
-import { requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 import {
   executeAttack,
   getAttackableTargets,
@@ -64,7 +64,7 @@ export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
       ],
     },
     async (request): Promise<PvpCombatResult> => {
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const { targetId } = request.body as z.infer<typeof attackSchema>;
 
       request.audit_context!.payload = { targetId };

@@ -15,7 +15,7 @@ import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
-import { requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 import {
   abandonGig,
   acceptGig,
@@ -54,27 +54,27 @@ export async function gigRoutes(app: FastifyInstance) {
 
   // GET /api/gigs — board: all gigs + active gig + daily count
   app.get("/gigs", { preHandler: [authenticate] }, async (request): Promise<GigBoardResponse> => {
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     return listAvailableGigs(characterId);
   });
 
   // GET /api/gigs/active — the character's active gig (null when none)
   app.get("/gigs/active", { preHandler: [authenticate] }, async (request): Promise<ActiveGig | null> => {
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     return getActiveGig(characterId);
   });
 
   // GET /api/gigs/history — cursor-paginated completed gigs
   app.get("/gigs/history", { preHandler: [authenticate] }, async (request): Promise<GigHistoryResponse> => {
     const query = historyQuery.parse(request.query);
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     return getGigHistory(characterId, query.limit, query.cursor);
   });
 
   // GET /api/gigs/:id — single template with requirement flags
   app.get("/gigs/:id", { preHandler: [authenticate] }, async (request): Promise<GigDetailResponse> => {
     const { id } = uuidParam.parse(request.params);
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     return getGigDetail(characterId, id);
   });
 
@@ -91,7 +91,7 @@ export async function gigRoutes(app: FastifyInstance) {
     },
     async (request): Promise<GigAcceptResponse> => {
       const { id } = uuidParam.parse(request.params);
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { gigId: id };
 
@@ -112,7 +112,7 @@ export async function gigRoutes(app: FastifyInstance) {
     },
     async (request): Promise<ActiveGig> => {
       const { id } = uuidParam.parse(request.params);
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { gigId: id };
 
@@ -133,7 +133,7 @@ export async function gigRoutes(app: FastifyInstance) {
     },
     async (request): Promise<GigExecuteResponse> => {
       const { id } = uuidParam.parse(request.params);
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { gigId: id };
 
@@ -154,7 +154,7 @@ export async function gigRoutes(app: FastifyInstance) {
     },
     async (request): Promise<GigEscapeResponse> => {
       const { id } = uuidParam.parse(request.params);
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { gigId: id };
 
@@ -175,7 +175,7 @@ export async function gigRoutes(app: FastifyInstance) {
     },
     async (request): Promise<GigAbandonResponse> => {
       const { id } = uuidParam.parse(request.params);
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { gigId: id };
 
@@ -196,7 +196,7 @@ export async function gigRoutes(app: FastifyInstance) {
     },
     async (request): Promise<GigWrapupResponse> => {
       const { id } = uuidParam.parse(request.params);
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { gigId: id };
       const result = await wrapUpGig(characterId, id);

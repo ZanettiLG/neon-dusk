@@ -4,13 +4,14 @@ import { buildApp } from "../app";
 import { env } from "../env";
 import { startTestServer, json, type HealthBody } from "./helpers";
 
-// Mock the DB module BEFORE importing the app — the health route imports `db`
-// from "../db" and calls `db.execute(...)`. Forcing it to throw simulates a
-// disconnected database so the endpoint reports "degraded".
+// Mock the DB module BEFORE importing the app — the health route imports
+// `checkConnection` from "../db" and awaits it. Forcing it to reject
+// simulates a disconnected database so the endpoint reports "degraded".
+// `db` is exported as a dummy because repositories bind it at module load
+// (they are never exercised by this test — only /api/health is hit).
 vi.mock("../db", () => ({
-  db: {
-    execute: vi.fn().mockRejectedValue(new Error("connection refused")),
-  },
+  db: {},
+  checkConnection: vi.fn().mockRejectedValue(new Error("connection refused")),
 }));
 
 describe("GET /api/health — degraded services", () => {

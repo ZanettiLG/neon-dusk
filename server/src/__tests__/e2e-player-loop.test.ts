@@ -22,7 +22,7 @@ import type {
   GigBoardResponse,
   GigWrapupResponse,
 } from "@neon-dusk/shared";
-import { seedGigs } from "../db/seed";
+import { seedGigs } from "../seed/content-seeds";
 // DB 0: redis:7-alpine default max 16 databases (0-15)
 const REDIS_TEST_DB = "redis://localhost:56379/0";
 const PASSWORD = "StrongPass123!";
@@ -50,7 +50,7 @@ describe("ND-018 — e2e player loop", () => {
 
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     server = await startTestServer(app);
-    await seedGigs();
+    await seedGigs(db);
   });
 
   afterAll(async () => {

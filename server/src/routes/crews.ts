@@ -24,10 +24,14 @@ import { checkActionRateLimit } from "../lib/rate-limit";
 import { AppError } from "../middleware/error-handler";
 import { escapeHtml } from "../lib/escape-html";
 import { sseAuthenticate } from "../lib/sse-auth";
-import { db, type Queryable } from "../db";
+import { withTransaction } from "../db";
 import { transferEddies } from "../game/economy";
 import { calculateCrewBonuses } from "../game/crews";
-import { ensureWallet, requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
+import { walletRepository as wallets } from "../repositories/wallet-repository";
+import { transactionRepository as transactions } from "../repositories/transaction-repository";
+import { crewRepository as crews } from "../repositories/crew-repository";
+import type { CrewRow } from "../repositories/crew-repository";
 
 // Neon Dusk — Crew routes (ND-016: Crews Básicas, ND-053)
 // ============================================================================
@@ -89,27 +93,15 @@ const chatHistoryKey = (crewId: string) => `crew:${crewId}:chat:history`;
 // ---------------------------------------------------------------------------
 
 /** Fetch a crew or throw AppError(404). */
-async function getCrew(crewId: string): Promise<Record<string, unknown>> {
-  const [crew] = await db("crews").select().where("id", crewId).limit(1);
+async function getCrew(crewId: string): Promise<CrewRow> {
+  const crew = await crews.findById(crewId);
   if (!crew) throw new AppError(404, "CREW_NOT_FOUND", "Crew não encontrada");
   return crew;
 }
 
-/** Count current members (the DB trigger enforces the hard cap). */
-async function memberCount(tx: Queryable, crewId: string): Promise<number> {
-  const [row] = await tx("crew_members")
-    .count("* as count")
-    .where("crew_id", crewId);
-  return Number(row?.count ?? 0);
-}
-
 /** Throw AppError(403) unless the character is a crew member. */
 async function requireMember(crewId: string, characterId: string): Promise<void> {
-  const [member] = await db("crew_members")
-    .select("id")
-    .where("crew_id", crewId)
-    .where("character_id", characterId)
-    .limit(1);
+  const member = await crews.hasMember(crewId, characterId);
   if (!member) throw new AppError(403, "NOT_CREW_MEMBER", "Você não é membro desta crew");
 }
 
@@ -119,13 +111,6 @@ function requireLeader(crew: { leader_id?: string }, characterId: string): void 
   if (leaderId !== characterId) {
     throw new AppError(403, "NOT_CREW_LEADER", "Apenas o líder da crew pode fazer isso");
   }
-}
-
-/** Nullify `crew_id` on a character (leave / kick / dissolve). */
-async function clearMembership(tx: Queryable, characterId: string): Promise<void> {
-  await tx("characters")
-    .update({ crew_id: null, updated_at: new Date() })
-    .where("id", characterId);
 }
 
 // ---------------------------------------------------------------------------
@@ -149,30 +134,27 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     },
     async (request, reply): Promise<CreateCrewResponse> => {
       const { name, tag } = request.body as z.infer<typeof createCrewSchema>;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { name, tag };
 
       // Eligibility: SC gate + already-affiliated guard (one crew per char).
-      const [leader] = await db("characters")
-        .select("name", "street_cred as streetCred", "crew_id as crewId")
-        .where("id", characterId)
-        .limit(1);
+      const leader = await characters.findById(characterId);
       if (!leader) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
-      if (leader.crewId) throw new AppError(409, "ALREADY_IN_CREW", "Você já está em uma crew");
-      if (leader.streetCred < CREW_CREATE_SC) {
+      if (leader.crew_id) throw new AppError(409, "ALREADY_IN_CREW", "Você já está em uma crew");
+      if (leader.street_cred < CREW_CREATE_SC) {
         throw new AppError(
           400,
           "SC_TOO_LOW",
-          `Fundar uma crew requer ${CREW_CREATE_SC} de Street Cred (você tem ${leader.streetCred})`,
+          `Fundar uma crew requer ${CREW_CREATE_SC} de Street Cred (você tem ${leader.street_cred})`,
         );
       }
       // One transaction: debit wallet (optimistic lock, audit entry), reject
       // duplicate name/tag inside the tx (friendly 409 instead of the DB unique
       // constraint's opaque 500 — the constraints still backstop a concurrent
       // race, and a race loses by committing first).
-      const { crew, member } = await db.transaction(async (trx) => {
-        const wallet = await ensureWallet(characterId, trx as unknown as Queryable);
+      const { crew, member } = await withTransaction(async (trx) => {
+        const wallet = await wallets.ensure(characterId, trx);
         const availableFunds = wallet.balance - wallet.escrow;
         if (availableFunds < CREW_CREATE_COST) {
           throw new AppError(
@@ -181,30 +163,23 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
             `Fundar uma crew custa ${CREW_CREATE_COST} eddies (você tem ${availableFunds})`,
           );
         }
-        const [dupName] = await trx("crews")
-          .select("id")
-          .where("name", name)
-          .limit(1);
+        const dupName = await crews.findByName(name, trx);
         if (dupName) throw new AppError(409, "DUPLICATE_NAME", "Já existe uma crew com este nome");
-        const [dupTag] = await trx("crews")
-          .select("id")
-          .where("tag", tag)
-          .limit(1);
+        const dupTag = await crews.findByTag(tag, trx);
         if (dupTag) throw new AppError(409, "DUPLICATE_TAG", "Já existe uma crew com esta tag");
         const debit = transferEddies(wallet, -CREW_CREATE_COST, {
           type: "CREW_CREATION",
           source: `Crew creation (${name} [${tag}])`,
         });
-        const [updatedWallet] = await trx("character_wallets")
-          .update({
+        const updatedWallet = await wallets.updateOptimistic(
+          characterId,
+          wallet.version,
+          {
             balance: debit.wallet.balance,
             lifetime_spent: debit.wallet.lifetimeSpent,
-            version: wallet.version + 1,
-            updated_at: new Date(),
-          })
-          .where("character_id", characterId)
-          .where("version", wallet.version)
-          .returning("*");
+          },
+          trx,
+        );
         if (!updatedWallet) {
           throw new AppError(
             409,
@@ -212,24 +187,21 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
             "Modificação concorrente detectada. Tente novamente.",
           );
         }
-        await trx("transaction_log").insert({
-          character_id: characterId,
-          type: "CREW_CREATION",
-          amount: debit.transaction.amount,
-          balance_before: debit.transaction.balanceBefore,
-          balance_after: debit.transaction.balanceAfter,
-          source: debit.transaction.source,
-        });
+        await transactions.insert(
+          {
+            character_id: characterId,
+            type: "CREW_CREATION",
+            amount: debit.transaction.amount,
+            balance_before: debit.transaction.balanceBefore,
+            balance_after: debit.transaction.balanceAfter,
+            source: debit.transaction.source,
+          },
+          trx,
+        );
 
-        const [crew] = await trx("crews")
-          .insert({ name, tag, leader_id: characterId })
-          .returning("*");
-        const [member] = await trx("crew_members")
-          .insert({ crew_id: crew.id, character_id: characterId })
-          .returning("*");
-        await trx("characters")
-          .update({ crew_id: crew.id, updated_at: new Date() })
-          .where("id", characterId);
+        const crew = await crews.insert({ name, tag, leader_id: characterId }, trx);
+        const member = await crews.insertMember(crew.id, characterId, trx);
+        await characters.setCrewId(characterId, crew.id, trx);
         return { crew, member };
       });
 
@@ -245,7 +217,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
           id: member.id,
           characterId,
           characterName: leader.name,
-          streetCred: leader.streetCred,
+          streetCred: leader.street_cred,
           joinedAt: new Date(member.joined_at).toISOString(),
         },
       });
@@ -259,25 +231,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     async (): Promise<
       Array<{ id: string; name: string; tag: string; leaderId: string; memberCount: number }>
     > => {
-      const rows = await db("crews")
-        .select({
-          id: "crews.id",
-          name: "crews.name",
-          tag: "crews.tag",
-          leaderId: "crews.leader_id",
-          memberCount: db.raw(
-            "(SELECT count(*)::int FROM crew_members WHERE crew_members.crew_id = crews.id)",
-          ),
-        })
-        .orderBy("crews.created_at");
-
-      return rows.map((r: Record<string, unknown>) => ({
-        id: r.id as string,
-        name: r.name as string,
-        tag: r.tag as string,
-        leaderId: r.leaderId as string,
-        memberCount: Number(r.memberCount ?? 0),
-      }));
+      return crews.listAllWithMemberCount();
     },
   );
 
@@ -289,48 +243,30 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       const crewId = (request.params as { id: string }).id;
       const crew = await getCrew(crewId);
 
-      const memberRows = await db("crew_members")
-        .select({
-          id: "crew_members.id",
-          characterId: "crew_members.character_id",
-          characterName: "characters.name",
-          streetCred: "characters.street_cred",
-          joinedAt: "crew_members.joined_at",
-        })
-        .join("characters", "characters.id", "crew_members.character_id")
-        .where("crew_members.crew_id", crewId)
-        .orderBy("crew_members.joined_at");
+      const memberRows = await crews.listMembers(crewId);
 
       const bonuses = calculateCrewBonuses(memberRows.length);
 
       // ponytail: materialize the whole ranking (O(crews)) — MVP scale is a
       // handful of crews; revisit with a window function if it grows.
-      const ranked = await db("crews")
-        .select({
-          id: "crews.id",
-          totalSC: db.raw("COALESCE(SUM(characters.street_cred), 0)::int"),
-        })
-        .leftJoin("crew_members", "crew_members.crew_id", "crews.id")
-        .leftJoin("characters", "characters.id", "crew_members.character_id")
-        .groupBy("crews.id")
-        .orderByRaw("COALESCE(SUM(characters.street_cred), 0) DESC");
-      const position = ranked.findIndex((row: Record<string, unknown>) => row.id === crewId);
+      const ranked = await crews.listRanking();
+      const position = ranked.findIndex((row) => row.id === crewId);
       const leaderboardPosition = position === -1 ? null : position + 1;
 
       return {
         crew: {
-          id: crew.id as string,
-          name: crew.name as string,
-          tag: crew.tag as string,
-          leaderId: crew.leader_id as string,
-          createdAt: new Date(crew.created_at as string).toISOString(),
+          id: crew.id,
+          name: crew.name,
+          tag: crew.tag,
+          leaderId: crew.leader_id,
+          createdAt: new Date(crew.created_at).toISOString(),
         },
-        members: memberRows.map((member: Record<string, unknown>) => ({
-          id: member.id as string,
-          characterId: member.characterId as string,
-          characterName: member.characterName as string,
-          streetCred: member.streetCred as number,
-          joinedAt: new Date(member.joinedAt as string).toISOString(),
+        members: memberRows.map((member) => ({
+          id: member.id,
+          characterId: member.characterId,
+          characterName: member.characterName,
+          streetCred: member.streetCred,
+          joinedAt: new Date(member.joinedAt).toISOString(),
         })),
         bonuses,
         leaderboardPosition,
@@ -354,23 +290,20 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     async (request, reply): Promise<CrewInvite> => {
       const crewId = (request.params as { id: string }).id;
       const { characterId: targetId } = request.body as z.infer<typeof inviteSchema>;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { crewId, targetCharacterId: targetId };
 
       const crew = await getCrew(crewId);
       requireLeader(crew, characterId);
-      if ((await memberCount(db, crewId)) >= CREW_MAX_SIZE) {
+      if ((await crews.memberCount(crewId)) >= CREW_MAX_SIZE) {
         throw new AppError(409, "CREW_FULL", `Crew cheia (máx. ${CREW_MAX_SIZE} membros)`);
       }
 
-      const [target] = await db("characters")
-        .select("id", "street_cred as streetCred", "crew_id as crewId")
-        .where("id", targetId)
-        .limit(1);
+      const target = await characters.findById(targetId);
       if (!target) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
-      if (target.crewId) throw new AppError(409, "ALREADY_IN_CREW", "Este personagem já está em uma crew");
-      if (target.streetCred < CREW_RECRUIT_SC) {
+      if (target.crew_id) throw new AppError(409, "ALREADY_IN_CREW", "Este personagem já está em uma crew");
+      if (target.street_cred < CREW_RECRUIT_SC) {
         throw new AppError(
           400,
           "SC_TOO_LOW",
@@ -380,26 +313,20 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
 
       // One pending invite per (crew, character): reject a live duplicate,
       // replace an expired one (the unique constraint would reject the row).
-      const [existing] = await db("crew_invites")
-        .select("id", "expires_at as expiresAt")
-        .where("crew_id", crewId)
-        .where("character_id", targetId)
-        .limit(1);
+      const existing = await crews.findInvite(crewId, targetId);
       if (existing) {
-        if (new Date(existing.expiresAt) > new Date()) {
+        if (new Date(existing.expires_at) > new Date()) {
           throw new AppError(409, "ALREADY_INVITED", "Este personagem já foi convidado");
         }
-        await db("crew_invites").delete().where("id", existing.id);
+        await crews.deleteInvite(existing.id);
       }
 
-      const [invite] = await db("crew_invites")
-        .insert({
-          crew_id: crewId,
-          character_id: targetId,
-          invited_by: characterId,
-          expires_at: new Date(Date.now() + INVITE_TTL_MS),
-        })
-        .returning("*");
+      const invite = await crews.createInvite({
+        crew_id: crewId,
+        character_id: targetId,
+        invited_by: characterId,
+        expires_at: new Date(Date.now() + INVITE_TTL_MS),
+      });
       if (!invite) throw new AppError(500, "INVITE_FAILED", "Não foi possível criar o convite");
 
       // Set cooldown AFTER success (ADR-2) — 60s.
@@ -429,37 +356,26 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     },
     async (request, reply): Promise<CrewDetailResponse["members"][number]> => {
       const crewId = (request.params as { id: string }).id;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { crewId };
 
-      const { member, target } = await db.transaction(async (trx) => {
-        const [invite] = await trx("crew_invites")
-          .select()
-          .where("crew_id", crewId)
-          .where("character_id", characterId)
-          .limit(1);
+      const { member, target } = await withTransaction(async (trx) => {
+        const invite = await crews.findInvite(crewId, characterId, trx);
         if (!invite) throw new AppError(404, "NO_INVITE", "Você não tem um convite para esta crew");
         if (new Date(invite.expires_at) <= new Date()) {
           throw new AppError(410, "INVITE_EXPIRED", "Convite expirado — peça um novo");
         }
-        if ((await memberCount(trx, crewId)) >= CREW_MAX_SIZE) {
+        if ((await crews.memberCount(crewId, trx)) >= CREW_MAX_SIZE) {
           throw new AppError(409, "CREW_FULL", `Crew cheia (máx. ${CREW_MAX_SIZE} membros)`);
         }
         // Guard against joining a second crew (unique character_id backstops).
-        const [target] = await trx("characters")
-          .select("id", "name", "street_cred as streetCred")
-          .where("id", characterId)
-          .limit(1);
+        const target = await characters.findById(characterId, trx);
         if (!target) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-        const [member] = await trx("crew_members")
-          .insert({ crew_id: crewId, character_id: characterId })
-          .returning("*");
-        await trx("crew_invites").delete().where("id", invite.id);
-        await trx("characters")
-          .update({ crew_id: crewId, updated_at: new Date() })
-          .where("id", characterId);
+        const member = await crews.insertMember(crewId, characterId, trx);
+        await crews.deleteInvite(invite.id, trx);
+        await characters.setCrewId(characterId, crewId, trx);
 
         return { member, target };
       });
@@ -470,7 +386,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         id: member.id,
         characterId,
         characterName: target.name,
-        streetCred: target.streetCred,
+        streetCred: target.street_cred,
         joinedAt: new Date(member.joined_at).toISOString(),
       });
     },
@@ -489,7 +405,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     },
     async (request, reply) => {
       const crewId = (request.params as { id: string }).id;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const crew = await getCrew(crewId);
 
       request.audit_context!.payload = { crewId };
@@ -499,12 +415,9 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       }
       await requireMember(crewId, characterId);
 
-      await db.transaction(async (trx) => {
-        await trx("crew_members")
-          .delete()
-          .where("crew_id", crewId)
-          .where("character_id", characterId);
-        await clearMembership(trx, characterId);
+      await withTransaction(async (trx) => {
+        await crews.removeMember(crewId, characterId, trx);
+        await characters.setCrewId(characterId, null, trx);
       });
 
       return reply.status(204).send();
@@ -527,7 +440,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         id: string;
         characterId: string;
       };
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const crew = await getCrew(crewId);
 
       request.audit_context!.payload = { crewId, targetCharacterId: targetId };
@@ -538,12 +451,9 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       }
       await requireMember(crewId, targetId);
 
-      await db.transaction(async (trx) => {
-        await trx("crew_members")
-          .delete()
-          .where("crew_id", crewId)
-          .where("character_id", targetId);
-        await clearMembership(trx, targetId);
+      await withTransaction(async (trx) => {
+        await crews.removeMember(crewId, targetId, trx);
+        await characters.setCrewId(targetId, null, trx);
       });
 
       return reply.status(204).send();
@@ -563,20 +473,18 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     },
     async (request, reply) => {
       const crewId = (request.params as { id: string }).id;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const crew = await getCrew(crewId);
 
       request.audit_context!.payload = { crewId };
 
       requireLeader(crew, characterId);
 
-      await db.transaction(async (trx) => {
-        await trx("characters")
-          .update({ crew_id: null, updated_at: new Date() })
-          .where("crew_id", crewId);
-        await trx("crew_invites").delete().where("crew_id", crewId);
-        await trx("crew_members").delete().where("crew_id", crewId);
-        await trx("crews").delete().where("id", crewId);
+      await withTransaction(async (trx) => {
+        await characters.clearCrewForMembers(crewId, trx);
+        await crews.deleteInvitesForCrew(crewId, trx);
+        await crews.removeAllMembers(crewId, trx);
+        await crews.delete(crewId, trx);
       });
       await redis.del(chatHistoryKey(crewId));
 
@@ -590,7 +498,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     { preHandler: [authenticate] },
     async (request): Promise<ChatHistoryResponse> => {
       const crewId = (request.params as { id: string }).id;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       await requireMember(crewId, characterId);
 
       const raw = await redis.lrange(chatHistoryKey(crewId), 0, CHAT_HISTORY_MAX - 1);
@@ -616,22 +524,19 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     async (request, reply): Promise<ChatMessage> => {
       const crewId = (request.params as { id: string }).id;
       const { message } = request.body as z.infer<typeof chatSendSchema>;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const crew = await getCrew(crewId);
       await requireMember(crewId, characterId);
 
       request.audit_context!.payload = { crewId, messageLength: message.length };
 
-      const [char] = await db("characters")
-        .select("name")
-        .where("id", characterId)
-        .limit(1);
+      const char = await characters.findById(characterId);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
       const chatMessage: ChatMessage = {
         id: randomUUID(),
         characterName: char.name,
-        crewTag: crew.tag as string,
+        crewTag: crew.tag,
         message: escapeHtml(message),
         createdAt: new Date().toISOString(),
       };
@@ -652,7 +557,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   // Uses reply.raw + reply.hijack() (ADR-1): Fastify serialization is bypassed.
   app.get("/crews/:id/chat/stream", { preHandler: [sseAuthenticate] }, async (request, reply) => {
     const crewId = (request.params as { id: string }).id;
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     await requireMember(crewId, characterId);
 
     reply.raw.writeHead(200, {

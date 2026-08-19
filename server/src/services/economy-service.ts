@@ -1,19 +1,24 @@
 import type { TransactionRecord, TransactionType, VendorRecord } from "@neon-dusk/shared";
 import { NIL_SYN_CAFE_AMOUNT } from "@neon-dusk/shared";
-import { db } from "../db";
-import type { Queryable } from "../db";
 import { AppError } from "../middleware/error-handler";
 import { calculatePrice, transferEddies, type WalletState } from "../game/economy";
 import { calculateRegen } from "./nil-service";
+import { withTransaction } from "../db";
+import { characterRepository as characters } from "../repositories/character-repository";
+import { walletRepository as wallets } from "../repositories/wallet-repository";
+import { transactionRepository as transactions } from "../repositories/transaction-repository";
+import { vendorRepository as vendors } from "../repositories/vendor-repository";
+import type { TransactionRow } from "../repositories/transaction-repository";
 
 // Neon Dusk — Economy service (orchestration over the pure game logic)
 // ============================================================================
 // Wallets use optimistic locking: every write bumps `version` and only
 // commits if the row still matches the version read earlier. Concurrent
 // writers get a CONCURRENCY error and the caller retries.
+// Wallet/character persistence lives in the repositories (#158). Callers
+// resolve character ids via `characters.requireByUserId` and seed wallets
+// via `wallets.ensure` directly — no service-level shims.
 
-/** Seed capital granted when a character's wallet is first created. */
-const INITIAL_BALANCE = 500;
 /** Max attempts for optimistic-lock write retries (exponential backoff). */
 const MAX_RETRIES = 3;
 
@@ -21,18 +26,7 @@ const MAX_RETRIES = 3;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Map a raw transaction_log row (snake_case) to the public camelCase contract. */
-function toPublicTransaction(row: {
-  id: string;
-  character_id: string;
-  type: string;
-  amount: number;
-  balance_before: number;
-  balance_after: number;
-  source: string;
-  reference_type: string | null;
-  reference_id: string | null;
-  created_at: Date;
-}): TransactionRecord {
+function toPublicTransaction(row: TransactionRow): TransactionRecord {
   return {
     id: row.id,
     characterId: row.character_id,
@@ -48,121 +42,22 @@ function toPublicTransaction(row: {
 }
 
 /**
- * Ensure a character has a wallet. Creates one with INITIAL_BALANCE (and an
- * ADMIN_ADJUSTMENT audit entry) the first time; otherwise returns it as-is.
- */
-export async function ensureWallet(characterId: string, tx: Queryable): Promise<WalletState> {
-  const existing = await tx("character_wallets")
-    .select()
-    .where("character_id", characterId)
-    .limit(1);
-
-  if (existing.length > 0) {
-    const w = existing[0];
-    return {
-      balance: w.balance,
-      escrow: w.escrow,
-      lifetimeEarned: w.lifetime_earned,
-      lifetimeSpent: w.lifetime_spent,
-      version: w.version,
-    };
-  }
-
-  // Create wallet with seed capital. Concurrent requests may both reach this
-  // INSERT (SELECT-then-INSERT race); ON CONFLICT DO NOTHING makes the loser a
-  // no-op instead of a UNIQUE(character_id) violation.
-  const insertResult = await tx("character_wallets")
-    .insert({
-      character_id: characterId,
-      balance: INITIAL_BALANCE,
-      lifetime_earned: INITIAL_BALANCE,
-      escrow: 0,
-      lifetime_spent: 0,
-      version: 0,
-    })
-    .onConflict("character_id")
-    .ignore()
-    .returning("*");
-
-  const wallet = insertResult[0];
-
-  if (!wallet) {
-    // A concurrent request created the wallet first — re-read it. The conflict
-    // means the row is committed, so this select is guaranteed to find it.
-    const [existing] = await tx("character_wallets")
-      .select()
-      .where("character_id", characterId)
-      .limit(1);
-
-    if (!existing) {
-      throw new AppError(500, "WALLET_CREATE_FAILED", "Falha ao criar carteira");
-    }
-    return {
-      balance: existing.balance,
-      escrow: existing.escrow,
-      lifetimeEarned: existing.lifetime_earned,
-      lifetimeSpent: existing.lifetime_spent,
-      version: existing.version,
-    };
-  }
-
-  // Record seed transaction (only when THIS call created the wallet, so a
-  // concurrent loser never writes a duplicate ADMIN_ADJUSTMENT entry).
-  await tx("transaction_log").insert({
-    character_id: characterId,
-    type: "ADMIN_ADJUSTMENT",
-    amount: INITIAL_BALANCE,
-    balance_before: 0,
-    balance_after: INITIAL_BALANCE,
-    source: "Initial seed capital",
-    reference_type: "system",
-  });
-
-  return {
-    balance: wallet.balance,
-    escrow: wallet.escrow,
-    lifetimeEarned: wallet.lifetime_earned,
-    lifetimeSpent: wallet.lifetime_spent,
-    version: wallet.version,
-  };
-}
-
-/**
- * Resolve the current user's character id (users have exactly one character).
- * Throws AppError(404) when the user has not created a character yet.
- */
-export async function requireCharacterId(userId: string): Promise<string> {
-  const [character] = await db("characters")
-    .select("id")
-    .where("user_id", userId)
-    .limit(1);
-
-  if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
-  return character.id;
-}
-
-/**
  * Get wallet (read-only, no lock). Auto-creates with seed capital on first
  * read so a brand-new character can always see their balance.
  */
 export async function getWallet(characterId: string): Promise<WalletState> {
-  const [wallet] = await db("character_wallets")
-    .select()
-    .where("character_id", characterId)
-    .limit(1);
+  const row = await wallets.getById(characterId);
 
-  if (!wallet) {
-    return db.transaction(async (trx) =>
-      ensureWallet(characterId, trx as unknown as Queryable),
-    );
+  if (!row) {
+    return withTransaction(async (trx) => wallets.ensure(characterId, trx));
   }
 
   return {
-    balance: wallet.balance,
-    escrow: wallet.escrow,
-    lifetimeEarned: wallet.lifetime_earned,
-    lifetimeSpent: wallet.lifetime_spent,
-    version: wallet.version,
+    balance: row.balance,
+    escrow: row.escrow,
+    lifetimeEarned: row.lifetime_earned,
+    lifetimeSpent: row.lifetime_spent,
+    version: row.version,
   };
 }
 
@@ -182,12 +77,9 @@ export async function transfer(
 ): Promise<{ wallet: WalletState; transaction: TransactionRecord }> {
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      return await db.transaction(async (trx) => {
+      return await withTransaction(async (trx) => {
         // Read current wallet state (or seed it on first use)
-        const [row] = await trx("character_wallets")
-          .select()
-          .where("character_id", characterId)
-          .limit(1);
+        const row = await wallets.getById(characterId, trx);
 
         const wallet: WalletState = row
           ? {
@@ -197,7 +89,7 @@ export async function transfer(
               lifetimeSpent: row.lifetime_spent,
               version: row.version,
             }
-          : await ensureWallet(characterId, trx as unknown as Queryable);
+          : await wallets.ensure(characterId, trx);
 
         // Apply transfer via game logic. Escrow is committed but not spendable:
         // check available funds (balance − escrow) BEFORE the debit so a
@@ -215,26 +107,25 @@ export async function transfer(
         const result = transferEddies(wallet, amount, { type, source, referenceType, referenceId });
 
         // Optimistic update with version check
-        const [updated] = await trx("character_wallets")
-          .update({
+        const updated = await wallets.updateOptimistic(
+          characterId,
+          wallet.version,
+          {
             balance: result.wallet.balance,
             escrow: result.wallet.escrow,
             lifetime_earned: result.wallet.lifetimeEarned,
             lifetime_spent: result.wallet.lifetimeSpent,
-            version: result.wallet.version + 1,
-            updated_at: new Date(),
-          })
-          .where("character_id", characterId)
-          .where("version", wallet.version)
-          .returning("*");
+          },
+          trx,
+        );
 
         if (!updated) {
           throw new Error("CONCURRENCY");
         }
 
         // Append audit entry
-        const [txLog] = await trx("transaction_log")
-          .insert({
+        const txLog = await transactions.insert(
+          {
             character_id: characterId,
             type: result.transaction.type,
             amount: result.transaction.amount,
@@ -243,12 +134,13 @@ export async function transfer(
             source: result.transaction.source,
             reference_type: result.transaction.referenceType ?? null,
             reference_id: result.transaction.referenceId ?? null,
-          })
-          .returning("*");
+          },
+          trx,
+        );
 
         return {
           wallet: { ...result.wallet, version: updated.version },
-          transaction: toPublicTransaction(txLog),
+          transaction: toPublicTransaction(txLog!),
         };
       });
     } catch (err) {
@@ -285,17 +177,7 @@ export async function getTransactions(
   limit: number = 20,
   cursor?: string,
 ): Promise<{ transactions: TransactionRecord[]; nextCursor: string | null }> {
-  let query = db("transaction_log")
-    .select()
-    .where("character_id", characterId);
-
-  if (cursor) {
-    query = query.where("created_at", "<", new Date(cursor));
-  }
-
-  const rows = await query
-    .orderBy("created_at", "desc")
-    .limit(limit + 1); // one extra row to know if there's a next page
+  const rows = await transactions.listForCharacter(characterId, limit, cursor);
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
@@ -313,10 +195,7 @@ export async function getTransactions(
  * List active vendors (id, name, type, district), ordered by name.
  */
 export async function listVendors(): Promise<VendorRecord[]> {
-  return db("vendors")
-    .select("id", "name", "type", "district")
-    .where("is_active", true)
-    .orderBy("name");
+  return vendors.list();
 }
 
 /**
@@ -336,31 +215,11 @@ export async function getVendor(vendorId: string): Promise<{
     humanityCost: number | null;
   }>;
 }> {
-  const [vendor] = await db("vendors").select().where("id", vendorId).limit(1);
+  const vendor = await vendors.getById(vendorId);
 
   if (!vendor) throw new AppError(404, "VENDOR_NOT_FOUND", "Vendedor não encontrado");
 
-  const inventory = await db("vendor_inventory")
-    .select(
-      "vendor_inventory.id",
-      "vendor_inventory.vendor_id as vendorId",
-      "vendor_inventory.item_type as itemType",
-      "vendor_inventory.item_id as itemId",
-      "vendor_inventory.price",
-      "vendor_inventory.stock",
-      "chrome_definitions.id as chromeDefinitionId",
-      "chrome_definitions.humanity_cost as humanityCost",
-    )
-    .leftJoin(
-      "chrome_definitions",
-      function () {
-        // ponytail: Knex join condition builder — equivalent to
-        // item_type = 'CHROME' AND item_id = chrome_definitions.slug
-        this.on("vendor_inventory.item_id", "=", "chrome_definitions.slug")
-          .andOn("vendor_inventory.item_type", "=", db.raw("'CHROME'"));
-      },
-    )
-    .where("vendor_inventory.vendor_id", vendorId);
+  const inventory = await vendors.listInventory(vendorId);
 
   return {
     vendor: {
@@ -401,14 +260,9 @@ export async function buyFromVendor(
     throw new AppError(400, "INVALID_QUANTITY", "Quantidade deve ser um número inteiro positivo");
   }
 
-  return db.transaction(async (trx) => {
+  return withTransaction(async (trx) => {
     // 1. Get vendor item
-    const [item] = await trx("vendor_inventory")
-      .select()
-      .where("vendor_id", vendorId)
-      .where("item_type", itemType)
-      .where("item_id", itemId)
-      .limit(1);
+    const item = await vendors.findStockItem(vendorId, itemType, itemId, trx);
 
     if (!item) throw new AppError(404, "ITEM_NOT_FOUND", "Item não encontrado neste vendedor");
 
@@ -418,7 +272,7 @@ export async function buyFromVendor(
     }
 
     // 3. Get wallet (seed on first use)
-    const wallet = await ensureWallet(characterId, trx as unknown as Queryable);
+    const wallet = await wallets.ensure(characterId, trx);
 
     // 4. Calculate price
     const totalPrice = calculatePrice(item.price) * quantity;
@@ -440,16 +294,15 @@ export async function buyFromVendor(
     });
 
     // 7. Update wallet with optimistic lock
-    const [updated] = await trx("character_wallets")
-      .update({
+    const updated = await wallets.updateOptimistic(
+      characterId,
+      wallet.version,
+      {
         balance: result.wallet.balance,
         lifetime_spent: result.wallet.lifetimeSpent,
-        version: wallet.version + 1,
-        updated_at: new Date(),
-      })
-      .where("character_id", characterId)
-      .where("version", wallet.version)
-      .returning("*");
+      },
+      trx,
+    );
 
     if (!updated) {
       throw new AppError(
@@ -460,14 +313,17 @@ export async function buyFromVendor(
     }
 
     // 8. Insert audit entry
-    await trx("transaction_log").insert({
-      character_id: characterId,
-      type: "VENDOR_PURCHASE",
-      amount: -totalPrice,
-      balance_before: result.transaction.balanceBefore,
-      balance_after: result.transaction.balanceAfter,
-      source: result.transaction.source,
-    });
+    await transactions.insert(
+      {
+        character_id: characterId,
+        type: "VENDOR_PURCHASE",
+        amount: -totalPrice,
+        balance_before: result.transaction.balanceBefore,
+        balance_after: result.transaction.balanceAfter,
+        source: result.transaction.source,
+      },
+      trx,
+    );
 
     // 9. Decrement stock atomically (relative, guarded against oversell).
     // The UPDATE serializes concurrent buyers on the vendor_inventory row lock:
@@ -475,26 +331,16 @@ export async function buyFromVendor(
     // committed stock and re-evaluates the WHERE. A stale absolute value can
     // never overwrite a correct one (fixes the concurrent-buyer lost update).
     if (item.stock >= 0) {
-      const [decremented] = await trx("vendor_inventory")
-        .update({ stock: trx.raw("stock - ?", [quantity]) })
-        .where("id", item.id)
-        .where("stock", ">=", quantity)
-        .returning("stock");
-
-      if (!decremented) {
-        // A concurrent buyer drained the remaining stock after the step-2
-        // pre-check. Same business error as the pre-check; the transaction
-        // rolls back the wallet debit and the audit entry.
-        throw new AppError(400, "OUT_OF_STOCK", "Esgotado");
-      }
+      // Repository method decrements atomically (relative, guarded against
+      // oversell) and throws OUT_OF_STOCK if a concurrent buyer drained the
+      // remaining stock after the step-2 pre-check. The transaction rolls
+      // back the wallet debit and the audit entry.
+      await vendors.decrementStock(item.id, quantity, trx);
     }
 
     // 10. Paid syn-café restores +20 NIL instantly, no cooldown.
     if (itemType === "CONSUMABLE" && itemId === "syn-cafe") {
-      const [character] = await trx("characters")
-        .select("nil", "max_nil", "nil_updated_at")
-        .where("id", characterId)
-        .limit(1);
+      const character = await characters.findNilSnapshot(characterId, trx);
 
       if (character) {
         const { newNil: current } = calculateRegen(
@@ -503,9 +349,7 @@ export async function buyFromVendor(
           new Date(character.nil_updated_at),
         );
         const restored = Math.min(character.max_nil, current + NIL_SYN_CAFE_AMOUNT);
-        await trx("characters")
-          .update({ nil: restored, nil_updated_at: new Date() })
-          .where("id", characterId);
+        await characters.updateNilSet(characterId, restored, trx);
       }
     }
 

@@ -3,9 +3,12 @@ import { buildApp } from "./app";
 import { startRoundCheckCron } from "./cron/round-check";
 import { seedAdminAccount } from "./seed/admin-seed";
 import { seedTestUser } from "./seed/test-user-seed";
-import { seedAll } from "./db/seed";
+import { initDb } from "./db";
 
 async function main() {
+  // Apply migrations + content seeds before serving traffic (idempotent).
+  await initDb();
+
   const app = await buildApp({ env });
 
   const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
@@ -25,8 +28,6 @@ async function main() {
     await seedAdminAccount();
     // Seed persistent test user for QA (idempotent).
     await seedTestUser();
-    // ND-054: seed content catalog (chrome, vendors, gigs, loot) — idempotent upserts.
-    await seedAll();
     // ND-017: hourly round-expiry check (single-instance MVP, ADR-4).
     startRoundCheckCron(app);
   } catch (err) {

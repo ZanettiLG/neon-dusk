@@ -103,10 +103,18 @@ jobs:
             docker compose --env-file .env.production -f docker-compose.prod.yml pull
 
             # Run migrations (idempotent — safe on every deploy).
-            # workdir /app/server so drizzle's ./migrations folder resolves;
-            # tsx is hoisted to /app/node_modules in the image.
+            # ⚠️ ONE-SHOT DB RESET REQUIRED before the FIRST deploy of the DB
+            # repository layer refactor (#158): pre-refactor databases have
+            # `0001_initial_schema` recorded in knex_migrations but the file no
+            # longer exists, so this migrate:latest step aborts. The new DDL is
+            # byte-equivalent; dev/staging data is disposable. Reset once on
+            # the VPS before the first deploy of this change:
+            #   docker compose --env-file .env.production -f docker-compose.prod.yml down -v
+            # or (via psql): DROP SCHEMA public CASCADE; CREATE SCHEMA public;
+            # workdir /app/server so the knexfile and ./migrations resolve;
+            # the knex CLI is hoisted to /app/node_modules in the image.
             docker compose --env-file .env.production -f docker-compose.prod.yml run --rm --no-deps \
-              --workdir /app/server server /app/node_modules/.bin/tsx /app/server/src/db/migrate.ts
+              --workdir /app/server server /app/node_modules/.bin/knex --knexfile knexfile.ts migrate:latest
 
             # Replace changed containers
             docker compose --env-file .env.production -f docker-compose.prod.yml up -d --remove-orphans

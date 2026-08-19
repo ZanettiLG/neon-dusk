@@ -11,7 +11,7 @@ import { checkCircuitBreaker } from "../middleware/circuit-breaker";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
-import { requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 import {
   installChrome,
   listChromeCatalog,
@@ -52,7 +52,7 @@ export async function chromeRoutes(app: FastifyInstance) {
 
   // GET /api/chrome/installed — player's loadout + effective bonuses
   app.get("/chrome/installed", { preHandler: [authenticate] }, async (request) => {
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     return listInstalledChrome(characterId) as Promise<InstalledChromeResponse>;
   });
 
@@ -70,7 +70,7 @@ export async function chromeRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const body = request.body as z.infer<typeof installSchema>;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { chromeDefinitionId: body.chromeDefinitionId, vendorId: body.vendorId };
 
@@ -94,7 +94,7 @@ export async function chromeRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const body = request.body as z.infer<typeof uninstallSchema>;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { installedChromeId: body.installedChromeId };
 

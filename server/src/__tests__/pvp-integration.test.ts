@@ -5,7 +5,7 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, registerTestUser, type TestServer } from "./helpers";
 import { db } from "../db";
-import { ensureWallet } from "../services/economy-service";
+import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { rateLimitConfig } from "../lib/rate-limit";
 import type {
   PvpAttackableResponse,
@@ -148,10 +148,10 @@ describe("ND-014 — PvP combat API", () => {
     return { userId: auth.user.id, characterId: character.id, accessToken: auth.accessToken };
   }
 
-  /** Seed a wallet with the given balance (ensureWallet creates it with 500). */
+  /** Seed a wallet with the given balance (wallets.ensure creates it with 500). */
   async function seedWallet(characterId: string, balance: number): Promise<void> {
     await db.transaction(async (trx) => {
-      await ensureWallet(characterId, trx);
+      await wallets.ensure(characterId, trx);
     });
     await db("character_wallets")
       .where("character_id", characterId)

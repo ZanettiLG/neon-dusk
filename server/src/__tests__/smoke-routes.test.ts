@@ -16,7 +16,7 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, resetRounds } from "./helpers";
 import type { AuthResponse, Character } from "@neon-dusk/shared";
-import { seedGigs } from "../db/seed";
+import { seedGigs } from "../seed/content-seeds";
 import { db } from "../db";
 
 // DB 0: redis:7-alpine default max 16 databases (0-15)
@@ -51,7 +51,7 @@ describe("ND-018 — smoke test (all routes)", () => {
 
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     server = await startTestServer(app);
-    await seedGigs();
+    await seedGigs(db);
 
     // Register + create character once for JWT tests
     const email = uniqueEmail();

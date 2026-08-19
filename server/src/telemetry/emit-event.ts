@@ -1,4 +1,4 @@
-import { db } from "../db";
+import { gameEventRepository as gameEvents } from "../repositories/game-event-repository";
 import type { GameEventType } from "./event-types";
 
 // Neon Dusk — Telemetry event persistence (ND-007)
@@ -18,9 +18,9 @@ export interface EmitEventInput {
 
 /** Insert one game event row. Best-effort — callers wrap in catch(). */
 export async function emitEvent(input: EmitEventInput): Promise<void> {
-  await db("game_events").insert({
-    event_type: input.eventType,
-    actor_id: input.actorId,
+  await gameEvents.insert({
+    eventType: input.eventType,
+    actorId: input.actorId,
     payload: input.payload ?? {},
   });
 }

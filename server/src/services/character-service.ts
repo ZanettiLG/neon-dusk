@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { ATTRIBUTE_KEYS, ATTR_TOTAL, BASE_ATTRIBUTES, MAX_ATTR, NIL_MAX_BASE, ORIGINS, ROLES } from "@neon-dusk/shared";
 import type { Character } from "@neon-dusk/shared";
-import { db } from "../db";
 import { AppError } from "../middleware/error-handler";
 import { NOMAD_MAX_NIL_BONUS } from "../game/abilities";
 import { toPublicCharacter } from "../lib/transformers";
+import { characterRepository as characters } from "../repositories/character-repository";
 
 // Neon Dusk — Character service
 // ============================================================================
@@ -45,53 +45,32 @@ export async function createCharacter(
     );
   }
 
-  const existing = await db("characters").select().where("user_id", userId).limit(1);
-  if (existing.length) {
+  const existing = await characters.findByUserId(userId);
+  if (existing) {
     throw new AppError(409, "CHARACTER_EXISTS", "Você já tem um personagem");
   }
 
-  const nameTaken = await db("characters")
-    .select("id")
-    .whereRaw("lower(name) = ?", [input.name.trim().toLowerCase()])
-    .limit(1);
-  if (nameTaken.length) {
+  const nameTaken = await characters.findNameTaken(input.name.trim());
+  if (nameTaken) {
     throw new AppError(409, "NAME_TAKEN", "Esse nome já está em uso");
   }
 
-  try {
-    const [row] = await db("characters")
-      .insert({
-        user_id: userId,
-        name: input.name.trim(),
-        origin: input.origin,
-        role: input.role,
-        body: attrs.body,
-        reflexes: attrs.reflexes,
-        intelligence: attrs.intelligence,
-        technical: attrs.technical,
-        cool: attrs.cool,
-        // Feature #65: nomads get +20% max NIL.
-        max_nil: input.role === "nomad"
-          ? Math.ceil(NIL_MAX_BASE * (1 + NOMAD_MAX_NIL_BONUS))
-          : NIL_MAX_BASE,
-      })
-      .returning("*");
-    return toPublicCharacter(row);
-  } catch (err) {
-    // Safety net for the case-insensitive unique name index (lower(name)).
-    if (isUniqueViolation(err)) {
-      throw new AppError(409, "NAME_TAKEN", "Esse nome já está em uso");
-    }
-    throw err;
-  }
-}
-
-/** Detect Postgres unique violation (SQLSTATE 23505). */
-function isUniqueViolation(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code?: string }).code === "23505"
-  );
+  // Unique violations on insert (the lower(name) index) map to NAME_TAKEN
+  // inside the repository (pg-errors mapping).
+  const row = await characters.insert({
+    user_id: userId,
+    name: input.name.trim(),
+    origin: input.origin,
+    role: input.role,
+    body: attrs.body,
+    reflexes: attrs.reflexes,
+    intelligence: attrs.intelligence,
+    technical: attrs.technical,
+    cool: attrs.cool,
+    // Feature #65: nomads get +20% max NIL.
+    max_nil: input.role === "nomad"
+      ? Math.ceil(NIL_MAX_BASE * (1 + NOMAD_MAX_NIL_BONUS))
+      : NIL_MAX_BASE,
+  });
+  return toPublicCharacter(row);
 }

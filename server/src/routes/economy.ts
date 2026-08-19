@@ -2,7 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { EconomyBalanceResponse, TransactionListResponse } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
-import { getTransactions, getWallet, requireCharacterId } from "../services/economy-service";
+import { getTransactions, getWallet } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 
 // Neon Dusk — Economy routes (wallet balance + transaction history)
 // ============================================================================
@@ -13,7 +14,7 @@ import { getTransactions, getWallet, requireCharacterId } from "../services/econ
 export async function economyRoutes(app: FastifyInstance) {
   // GET /api/economy/balance
   app.get("/economy/balance", { preHandler: [authenticate] }, async (request) => {
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     const wallet = await getWallet(characterId);
     const response: EconomyBalanceResponse = {
       balance: wallet.balance,
@@ -33,7 +34,7 @@ export async function economyRoutes(app: FastifyInstance) {
     });
     const query = querySchema.parse(request.query);
 
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     const result = await getTransactions(characterId, query.limit, query.cursor);
     return result as TransactionListResponse;
   });

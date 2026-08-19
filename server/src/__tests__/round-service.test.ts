@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll, beforeEach, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { db } from "../db";
-import { ensureWallet } from "../services/economy-service";
+import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { getCurrentRound, getRoundHistory, performRoundReset } from "../services/round-service";
 import { checkAndReset } from "../cron/round-check";
 import { AppError } from "../middleware/error-handler";
@@ -235,7 +235,7 @@ describe("ND-017 — Round service (integration)", () => {
       // Wallet with balance + lifetime earnings (the stats capture sums
       // lifetime_earned across all wallets).
       await db.transaction(async (trx) => {
-        await ensureWallet(a.characterId, trx);
+        await wallets.ensure(a.characterId, trx);
       });
       await db("character_wallets")
         .where("character_id", a.characterId)

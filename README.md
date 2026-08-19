@@ -6,7 +6,7 @@ A cyberpunk RPG PWA, AI-orchestrated via OpenCode agents.
 
 ## Stack
 
-- **Backend**: Node.js 22 + TypeScript + Fastify + PostgreSQL (Drizzle) + Redis (ioredis)
+- **Backend**: Node.js 22 + TypeScript + Fastify + PostgreSQL (Knex.js) + Redis (ioredis)
 - **Frontend**: React 19 + Zustand + Tailwind CSS + PWA (Vite)
 - **Infra**: Docker Compose (PostgreSQL 16 + Redis 7), npm workspaces monorepo
 
@@ -33,6 +33,28 @@ npm run dev
 
 Verify: `curl http://localhost:3000/api/health` returns `{"status":"ok",...}`.
 
+## ⚠️ Upgrade de ambiente existente (one-shot)
+
+A refatoração #158 (camada de repository) dividiu a migration consolidada
+`0001_initial_schema` em 25 migrations por tabela. Bancos criados ANTES dessa
+refatoração têm `0001_initial_schema` gravado em `knex_migrations`, mas o
+arquivo não existe mais — `migrate:latest` aborta nesses ambientes.
+
+Como o DDL novo é byte-equivalente ao antigo e os dados de dev/staging são
+descartáveis, o upgrade é um reset one-shot antes do primeiro boot:
+
+```bash
+# Opção A — recriar os volumes do compose (apaga o banco do container)
+docker compose down -v
+
+# Opção B — limpar o schema mantendo o container de pé (via psql)
+docker compose exec -T postgres psql -U neondusk -d neondusk \
+  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+```
+
+Depois do reset, o próximo boot (ou `npm run db:migrate`) recria o schema a
+partir das novas migrations. NÃO rode isso em banco com dados que importam.
+
 ## Commands
 
 | Command                          | Purpose                          |
@@ -43,9 +65,8 @@ Verify: `curl http://localhost:3000/api/health` returns `{"status":"ok",...}`.
 | `npm run typecheck`              | `tsc --noEmit` for server + app  |
 | `npm run lint`                   | ESLint 9 (flat config)           |
 | `npm run format`                 | Prettier write                   |
-| `npm run db:generate`            | Generate Drizzle migration       |
-| `npm run db:migrate`             | Apply migrations                 |
-| `npm run db:studio`              | Drizzle Studio                   |
+| `npm run db:migrate`             | Apply migrations (Knex)         |
+| `npm run db:seed -w server`      | Seed content (Knex)             |
 
 ## Structure
 

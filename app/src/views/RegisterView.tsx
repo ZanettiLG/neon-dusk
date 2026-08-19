@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/auth";
 // 8-72 chars, ≥1 uppercase, ≥1 digit. Kept local so feedback is instant.
 // EMAIL_RE mirrors the zod v3 z.string().email() regex (node_modules/zod/v3/types.js)
 // so the client rejects exactly what server/src/services/auth-service.ts rejects.
-const EMAIL_RE = /^(?!\.)(?!.*\.\.)([A-Z0-9_'+\-\.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9\-]*\.)+[A-Z]{2,}$/i;
+const EMAIL_RE = /^(?!\.)(?!.*\.\.)([A-Z0-9_'+\-.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\.)+[A-Z]{2,}$/i;
 
 /** First failing password rule, or null when the field is valid/empty. */
 function passwordError(password: string): string | null {

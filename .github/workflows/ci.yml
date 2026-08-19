@@ -81,6 +81,9 @@ jobs:
       - name: Run database migrations
         run: npm run db:migrate
 
+      - name: Run database seeds
+        run: npm run db:seed
+
       - name: Run tests
         run: npm run test
 

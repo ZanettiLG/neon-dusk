@@ -1,19 +1,14 @@
-import { db } from "../db";
+import { auditRepository as audit } from "../repositories/audit-repository";
+import type { AuditResult as RepositoryAuditResult } from "../repositories/audit-repository";
 
 // Neon Dusk — Fire-and-forget audit logger (ND-053)
 // ============================================================================
 // Every mutating game action is logged to the `audit_log` table via this
 // function. It uses the void pattern from auth.ts (trackActiveUser) — a DB
-// hiccup must never fail or delay the main request.
+// hiccup must never fail or delay the main request. The write itself is
+// delegated to the audit repository (#158).
 
-export type AuditResult =
-  | "allowed"
-  | "blocked"
-  | "rate_limited"
-  | "validation_error"
-  | "circuit_break"
-  | "cooldown_active"
-  | "server_error";
+export type AuditResult = RepositoryAuditResult;
 
 export interface AuditLogEntry {
   characterId: string;
@@ -31,17 +26,5 @@ export interface AuditLogEntry {
  * audit writes are independent of the game operation's outcome).
  */
 export function auditLog(entry: AuditLogEntry): void {
-  void db("audit_log")
-    .insert({
-      character_id: entry.characterId,
-      action: entry.action,
-      ip: entry.ip,
-      user_agent: entry.userAgent,
-      payload: entry.payload ?? {},
-      result: entry.result,
-    })
-    .catch((err) => {
-      // Best-effort only — audit must never fail the game.
-      console.error("[audit-log] Failed to write audit entry:", err);
-    });
+  audit.record(entry);
 }

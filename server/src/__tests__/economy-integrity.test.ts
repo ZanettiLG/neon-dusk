@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { db } from "../db";
-import { buyFromVendor, ensureWallet, getWallet, transfer } from "../services/economy-service";
+import { buyFromVendor, getWallet, transfer } from "../services/economy-service";
+import { walletRepository as walletRepo } from "../repositories/wallet-repository";
 import { insertTestCharacter, resetDb } from "./helpers";
 
 // ND-010 — integrity tests: money conservation, optimistic locking under race
@@ -23,7 +24,7 @@ describe("economy integrity", () => {
   describe("money conservation", () => {
     it("should keep the ledger balanced across many transfers (Σ deltas = 0)", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       // 5 credits of 100, 5 debits of 100 → net zero after the seed.
       for (let i = 0; i < 5; i++) {
@@ -54,7 +55,7 @@ describe("economy integrity", () => {
 
       // Seed both wallets (2 × 500 injected).
       for (const { characterId } of [a, b]) {
-        await db.transaction((trx) => ensureWallet(characterId, trx));
+        await db.transaction((trx) => walletRepo.ensure(characterId, trx));
       }
       // Cross-wallet movement: A earns 300, spends 100 → B receives 100.
       await transfer(a.characterId, 300, "GIG_PAYOUT", "gig");
@@ -77,7 +78,7 @@ describe("economy integrity", () => {
   describe("optimistic locking under race conditions", () => {
     it("should not lose updates when many transfers race the same wallet", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       // 10 concurrent +20 transfers on a wallet starting at 500.
       const results = await Promise.allSettled(
@@ -95,7 +96,7 @@ describe("economy integrity", () => {
 
     it("should produce sequential version numbers without gaps or duplicates", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const results = await Promise.allSettled(
         Array.from({ length: 6 }, (_, i) => transfer(characterId, 5, "GIG_PAYOUT", `v-${i}`)),
@@ -127,7 +128,7 @@ describe("economy integrity", () => {
 
     it("should keep the race-safe when mixing credits and debits concurrently", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const ops = Array.from({ length: 8 }, (_, i) =>
         i % 2 === 0
@@ -153,7 +154,7 @@ describe("economy integrity", () => {
   describe("atomicity", () => {
     it("should roll back the wallet debit when the stock decrement fails mid-transaction", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const [vendor] = await db("vendors")
         .insert({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })
@@ -206,7 +207,7 @@ describe("economy integrity", () => {
 
     it("should leave no partial state when a concurrent buyer loses the race", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction((trx) => ensureWallet(characterId, trx));
+      await db.transaction((trx) => walletRepo.ensure(characterId, trx));
 
       const [vendor] = await db("vendors")
         .insert({ name: `Store-${Date.now()}`, type: "FIXER", district: "o_fluxo" })

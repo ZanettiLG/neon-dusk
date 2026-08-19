@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { db } from "../db";
 import { resetDb, resetRounds, insertTestCharacter } from "./helpers";
-import { seedAll } from "../db/seed";
+import { seedChrome, seedVendors, seedGigs as seedGigsFn, seedLoot } from "../seed/content-seeds";
 import { performRoundReset } from "../services/round-service";
-import { ensureWallet } from "../services/economy-service";
+import { walletRepository as wallets } from "../repositories/wallet-repository";
 
 // ND-054 — seed executor integration tests. Real Postgres on the isolated
 // test stack (docker-compose.test.yml). These tests run the ACTUAL seed
-// functions (seedAll/seedGigs from db/seed.ts) against a truncated catalog
-// so counts are deterministic, then verify idempotency, content correctness,
-// round-reset compatibility and wallet integrity.
+// functions (seeds/01-04) against a truncated catalog so counts are
+// deterministic, then verify idempotency, content correctness, round-reset
+// compatibility and wallet integrity.
 //
 // NOTE: the test DB must be migrated (db:migrate) before this suite — the
 // chrome-integration suite already depends on seeded chrome_definitions rows
@@ -22,6 +22,27 @@ const CONTENT_COUNTS = {
   inventory: 8,
   loot: 9,
 } as const;
+
+/** Run the content seed (chrome + vendors + inventory + gigs + loot). */
+async function seedAll(): Promise<{
+  chrome: number;
+  vendors: number;
+  inventory: number;
+  gigs: number;
+  loot: number;
+}> {
+  const chrome = await seedChrome(db);
+  const vendorResult = await seedVendors(db);
+  const gigs = await seedGigsFn(db);
+  const loot = await seedLoot(db);
+  return {
+    chrome,
+    vendors: vendorResult.vendors,
+    inventory: vendorResult.inventory,
+    gigs,
+    loot,
+  };
+}
 
 async function count(tableName: string): Promise<number> {
   const [row] = await db(tableName).select(db.raw("count(*)::int as n"));
@@ -49,11 +70,11 @@ describe("ND-054 — seed executor (db/seed)", () => {
 
     it("should be idempotent — a second run changes nothing", async () => {
       const first = await seedAll();
-      expect(first.gigs).toBe(0); // no-op re-run inserts 0 gigs
       expect(first).toMatchObject({
         chrome: 5,
         vendors: 4,
         inventory: 8,
+        gigs: 19, // upsert processes every template (merge, not insert-only)
         loot: 9,
       });
 
@@ -174,7 +195,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
     it("should not touch existing character data when the seed runs", async () => {
       const { characterId } = await insertTestCharacter();
       await db.transaction(async (trx) => {
-        await ensureWallet(characterId, trx);
+        await wallets.ensure(characterId, trx);
       });
 
       await seedAll();
@@ -196,7 +217,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
       const [gig] = await db("gigs").select("*").limit(1);
       const [def] = await db("chrome_definitions").select("*").limit(1);
       await db.transaction(async (trx) => {
-        await ensureWallet(characterId, trx);
+        await wallets.ensure(characterId, trx);
       });
 
       // Real player state the reset must wipe.
@@ -258,9 +279,9 @@ describe("ND-054 — seed executor (db/seed)", () => {
     it("should create a new wallet with INITIAL_BALANCE 500 and an audit entry", async () => {
       const { characterId } = await insertTestCharacter();
 
-      const wallet = await db.transaction(async (trx) => ensureWallet(characterId, trx));
+      const wallet = await db.transaction(async (trx) => wallets.ensure(characterId, trx));
 
-      // ensureWallet returns the internal camelCase WalletState (public API
+      // wallets.ensure returns the internal camelCase WalletState (public API
       // contract); the raw DB row is snake_case (asserted below).
       expect(wallet).toMatchObject({ balance: 500, escrow: 0, lifetimeEarned: 500, lifetimeSpent: 0 });
       const [log] = await db("transaction_log")
@@ -277,7 +298,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
 
     it("should not reset an existing wallet when the seed runs", async () => {
       const { characterId } = await insertTestCharacter();
-      await db.transaction(async (trx) => ensureWallet(characterId, trx));
+      await db.transaction(async (trx) => wallets.ensure(characterId, trx));
       await db("character_wallets")
         .where("character_id", characterId)
         .update({ balance: 1234 });

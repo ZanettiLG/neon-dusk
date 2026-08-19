@@ -19,10 +19,11 @@ import { checkActionRateLimit } from "../lib/rate-limit";
 import { AppError } from "../middleware/error-handler";
 import { escapeHtml } from "../lib/escape-html";
 import { sseAuthenticate } from "../lib/sse-auth";
-import { requireCharacterId } from "../services/economy-service";
-import { db } from "../db";
 import { env } from "../env";
-import { UNNAMED_DRINK } from "../game/round-reset";
+import { characterRepository as characters } from "../repositories/character-repository";
+import { crewRepository as crews } from "../repositories/crew-repository";
+import { legendRepository as legends } from "../repositories/legend-repository";
+import { roundRepository as rounds } from "../repositories/round-repository";
 
 // Neon Dusk — Saideira Hub routes (ND-015, ND-053)
 // ============================================================================
@@ -109,12 +110,8 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     // Round data comes from the rounds table (ND-017): the active round's
     // number + end time, and the last reset timestamp (most recent ended).
     const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
-    const [active] = await db("rounds").select().where("status", "active").limit(1);
-    const [lastEnded] = await db("rounds")
-      .select("ended_at as endedAt")
-      .whereNotNull("ended_at")
-      .orderBy("round_number", "desc")
-      .limit(1);
+    const active = await rounds.findActive();
+    const lastEnded = await rounds.findLastEnded();
 
     return {
       onlineCount,
@@ -141,24 +138,18 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     },
     async (request, reply): Promise<ChatMessage> => {
       const { message } = request.body as z.infer<typeof chatSendSchema>;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { messageLength: message.length };
 
       // Resolve the character name + crew tag (direct query — 1 row).
-      const [char] = await db("characters")
-        .select("name", "crew_id as crewId")
-        .where("id", characterId)
-        .limit(1);
+      const char = await characters.findById(characterId);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
       // ND-016: attach the crew tag when the character belongs to a crew.
       let crewTag: string | null = null;
-      if (char.crewId) {
-        const [crew] = await db("crews")
-          .select("tag")
-          .where("id", char.crewId)
-          .limit(1);
+      if (char.crew_id) {
+        const crew = await crews.findTagById(char.crew_id);
         crewTag = crew?.tag ?? null;
       }
 
@@ -190,7 +181,7 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
   // Uses reply.raw + reply.hijack() (ADR-1): Fastify serialization is bypassed.
   app.get("/saideira/chat/stream", { preHandler: [sseAuthenticate] }, async (request, reply) => {
     // Validate the character exists — no character means no balcony seat.
-    await requireCharacterId(request.user.sub);
+    await characters.requireByUserId(request.user.sub);
 
     reply.raw.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -255,15 +246,15 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     "/saideira/legends",
     { preHandler: [authenticate] },
     async (): Promise<LegendsResponse> => {
-      const rows = await db("legends").select().orderBy("achieved_at", "desc");
+      const rows = await legends.listTop();
 
       return {
-        legends: rows.map((r: Record<string, unknown>) => ({
-          id: r.id as string,
-          characterName: r.character_name as string,
-          drinkName: r.drink_name as string,
-          achievedAt: new Date(r.achieved_at as string).toISOString(),
-          crewName: (r.crew_name as string) ?? null,
+        legends: rows.map((r) => ({
+          id: r.id,
+          characterName: r.character_name,
+          drinkName: r.drink_name,
+          achievedAt: new Date(r.achieved_at).toISOString(),
+          crewName: r.crew_name ?? null,
         })),
       };
     },
@@ -285,21 +276,14 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     },
     async (request, reply): Promise<NameDrinkResponse> => {
       const { drinkName } = request.body as z.infer<typeof nameDrinkSchema>;
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { drinkName };
 
-      const [char] = await db("characters")
-        .select("name")
-        .where("id", characterId)
-        .limit(1);
+      const char = await characters.findById(characterId);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-      const [legend] = await db("legends")
-        .update({ drink_name: drinkName })
-        .where("character_name", char.name)
-        .where("drink_name", UNNAMED_DRINK)
-        .returning("*");
+      const legend = await legends.updateDrinkName(char.name, drinkName);
       if (!legend) {
         throw new AppError(
           404,
@@ -325,18 +309,7 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     "/saideira/leaderboard/crews",
     { preHandler: [authenticate] },
     async (): Promise<CrewLeaderboardResponse> => {
-      const totalSC = db.raw("COALESCE(SUM(characters.street_cred), 0)::int");
-      const rows = await db("crews")
-        .select({
-          name: "crews.name",
-          totalSC,
-          memberCount: db.raw("COUNT(crew_members.character_id)::int"),
-        })
-        .leftJoin("crew_members", "crew_members.crew_id", "crews.id")
-        .leftJoin("characters", "characters.id", "crew_members.character_id")
-        .groupBy("crews.id")
-        .orderBy("totalSC", "desc")
-        .limit(5);
+      const rows = await crews.listLeaderboard(5);
 
       return {
         crews: rows.map((row, index) => ({

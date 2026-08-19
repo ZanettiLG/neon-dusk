@@ -6,9 +6,9 @@
 // multi-instance deployment would need a Redis lock to avoid double resets.
 
 import type { FastifyInstance } from "fastify";
-import { db } from "../db";
 import { env } from "../env";
 import { performRoundReset } from "../services/round-service";
+import { roundRepository as rounds } from "../repositories/round-repository";
 
 /** How often the round expiry is checked. */
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
@@ -39,7 +39,7 @@ export function startRoundCheckCron(app: FastifyInstance): NodeJS.Timeout {
 export async function checkAndReset(app: FastifyInstance): Promise<void> {
   const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
 
-  const [activeRound] = await db("rounds").select().where("status", "active").limit(1);
+  const activeRound = await rounds.findActive();
 
   if (!activeRound) {
     app.log.debug("round-check: no active round, skipping");

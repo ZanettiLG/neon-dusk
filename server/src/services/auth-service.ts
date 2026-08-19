@@ -3,8 +3,6 @@ import bcrypt from "bcrypt";
 import type Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import type { AuthResponse, Character, User, UserWithCharacter } from "@neon-dusk/shared";
-import { db } from "../db";
-import type { Queryable } from "../db";
 import { AppError } from "../middleware/error-handler";
 import { toPublicCharacter } from "../lib/transformers";
 import {
@@ -14,6 +12,9 @@ import {
   signAccessToken,
 } from "../lib/auth";
 import { checkRateLimit } from "../lib/rate-limit";
+import { userRepository as users } from "../repositories/user-repository";
+import { characterRepository as characters } from "../repositories/character-repository";
+import type { UserRow } from "../repositories/user-repository";
 
 // Neon Dusk — Auth service
 // ============================================================================
@@ -39,22 +40,12 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 
-/** Database row shape for the `users` table (snake_case columns). */
-interface DbUser {
-  id: string;
-  email: string;
-  password_hash: string;
-  role: "player" | "admin";
-  created_at: Date;
-  updated_at: Date;
-}
-
 const BCRYPT_ROUNDS = 12;
 const LOGIN_RATE_LIMIT = { max: 500, windowMs: 60_000 };
 const REGISTER_RATE_LIMIT = { max: 300, windowMs: 60_000 };
 
 /** Strip the password hash off a DB user row (snake → public camelCase). */
-function toPublicUser(row: DbUser): User {
+function toPublicUser(row: UserRow): User {
   return {
     id: row.id,
     email: row.email,
@@ -64,23 +55,16 @@ function toPublicUser(row: DbUser): User {
   };
 }
 
-async function findCharacterByUser(
-  userId: string,
-  queryable: Queryable = db,
-): Promise<Character | null> {
-  const rows = await queryable("characters").select().where("user_id", userId).limit(1);
-  return rows.length ? toPublicCharacter(rows[0]) : null;
-}
-
-async function findUserByEmail(email: string): Promise<DbUser | null> {
-  const rows = await db("users").select().where("email", email).limit(1);
-  return rows.length ? rows[0] : null;
+/** Load the user's character (users have at most one). */
+async function findCharacterByUser(userId: string): Promise<Character | null> {
+  const row = await characters.findByUserId(userId);
+  return row ? toPublicCharacter(row) : null;
 }
 
 async function buildAuthResponse(
   app: FastifyInstance,
   redis: Redis,
-  user: DbUser,
+  user: UserRow,
 ): Promise<AuthResponse> {
   const [accessToken, refreshToken, character] = await Promise.all([
     signAccessToken(app, { id: user.id, email: user.email, role: user.role }),
@@ -98,12 +82,12 @@ export async function registerUser(
 ): Promise<AuthResponse> {
   await checkRateLimit(redis, `register:${input.email}`, REGISTER_RATE_LIMIT.max, REGISTER_RATE_LIMIT.windowMs);
 
-  if (await findUserByEmail(input.email)) {
+  if (await users.findByEmail(input.email)) {
     throw new AppError(409, "EMAIL_TAKEN", "Já existe uma conta com este email");
   }
 
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_ROUNDS);
-  const [user] = await db("users").insert({ email: input.email, password_hash: passwordHash }).returning("*");
+  const user = await users.insert({ email: input.email, password_hash: passwordHash });
 
   return buildAuthResponse(app, redis, user);
 }
@@ -116,7 +100,7 @@ export async function loginUser(
 ): Promise<AuthResponse> {
   await checkRateLimit(redis, `login:${input.email}`, LOGIN_RATE_LIMIT.max, LOGIN_RATE_LIMIT.windowMs);
 
-  const user = await findUserByEmail(input.email);
+  const user = await users.findByEmail(input.email);
   // Same error for unknown email vs wrong password (no account enumeration).
   if (!user || !(await bcrypt.compare(input.password, user.password_hash))) {
     throw new AppError(401, "INVALID_CREDENTIALS", "Email ou senha inválidos");
@@ -136,12 +120,12 @@ export async function refreshSession(
     throw new AppError(401, "INVALID_REFRESH_TOKEN", "Refresh token inválido ou expirado");
   }
 
-  const rows = await db("users").select().where("id", userId).limit(1);
-  if (!rows.length) {
+  const user = await users.findById(userId);
+  if (!user) {
     throw new AppError(401, "INVALID_REFRESH_TOKEN", "Refresh token inválido ou expirado");
   }
 
-  return buildAuthResponse(app, redis, rows[0]);
+  return buildAuthResponse(app, redis, user);
 }
 
 /** Invalidate a refresh token (logout). Idempotent. */
@@ -151,9 +135,9 @@ export async function logoutUser(redis: Redis, token: string): Promise<void> {
 
 /** Fetch the authenticated user and their character (if any). */
 export async function getUserWithCharacter(userId: string): Promise<UserWithCharacter> {
-  const rows = await db("users").select().where("id", userId).limit(1);
-  if (!rows.length) {
+  const user = await users.findById(userId);
+  if (!user) {
     throw new AppError(404, "USER_NOT_FOUND", "Usuário não existe mais");
   }
-  return { user: toPublicUser(rows[0]), character: await findCharacterByUser(userId) };
+  return { user: toPublicUser(user), character: await findCharacterByUser(userId) };
 }

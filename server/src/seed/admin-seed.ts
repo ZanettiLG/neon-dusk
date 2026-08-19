@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
-import { db } from "../db";
 import { env } from "../env";
+import { userRepository as users } from "../repositories/user-repository";
 
 // Neon Dusk — Admin account seeder (ND-052)
 // ============================================================================
@@ -22,19 +22,17 @@ export async function seedAdminAccount(): Promise<void> {
 
   const lowerEmail = env.ADMIN_EMAIL.toLowerCase();
 
-  const existing = await db("users")
-    .select("id")
-    .whereRaw("lower(email) = ?", [lowerEmail])
-    .limit(1);
+  // Emails are stored lowercase; the functional index enforces uniqueness.
+  const existing = await users.findByEmail(lowerEmail);
 
-  if (existing.length > 0) {
+  if (existing) {
     console.log("[admin-seed] Admin account already exists — skipping");
     return;
   }
 
   const passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, BCRYPT_ROUNDS);
 
-  await db("users").insert({
+  await users.insert({
     email: lowerEmail,
     password_hash: passwordHash,
     role: "admin",

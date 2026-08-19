@@ -7,11 +7,11 @@ import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
 import { AppError } from "../middleware/error-handler";
+import { characterRepository as characters } from "../repositories/character-repository";
 import {
   buyFromVendor,
   getVendor,
   listVendors,
-  requireCharacterId,
 } from "../services/economy-service";
 
 // Neon Dusk — Vendor routes (listing, detail, purchase)
@@ -58,7 +58,7 @@ export async function vendorRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const { id: vendorId } = paramsSchema.parse(request.params);
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const body = request.body as z.infer<typeof buyBodySchema>;
 
       if (body.itemType === "CHROME") {

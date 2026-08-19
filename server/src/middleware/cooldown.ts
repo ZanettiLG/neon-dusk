@@ -1,6 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import type Redis from "ioredis";
-import { requireCharacterId } from "../services/economy-service";
+import { characterRepository as characters } from "../repositories/character-repository";
 import { AppError } from "./error-handler";
 
 // Neon Dusk — Redis-backed action cooldown preHandler (ND-053)
@@ -40,7 +40,7 @@ export function checkCooldown(
   const entry = cooldownConfig[actionType];
 
   return async (request) => {
-    const characterId = await requireCharacterId(request.user.sub);
+    const characterId = (await characters.requireByUserId(request.user.sub)).id;
     const key = `cooldown:${characterId}:${actionType}`;
 
     try {

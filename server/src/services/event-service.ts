@@ -4,7 +4,7 @@ import type {
   CharacterEventsResponse,
   GameEventType,
 } from "@neon-dusk/shared";
-import { db } from "../db";
+import { gameEventRepository as gameEvents } from "../repositories/game-event-repository";
 
 // Neon Dusk — Player event feed (ND-139)
 // ============================================================================
@@ -30,14 +30,6 @@ export function severityFor(eventType: GameEventType): CharacterEventSeverity {
   }
 }
 
-/** Raw game_events row shape (snake_case columns). */
-interface DbGameEventRow {
-  id: string;
-  event_type: GameEventType;
-  payload: Record<string, unknown>;
-  created_at: Date;
-}
-
 /**
  * List a character's own events, newest first, cursor-paginated by createdAt.
  * Fetches `limit + 1` rows to detect whether a next page exists; the cursor is
@@ -48,27 +40,17 @@ export async function listCharacterEvents(
   limit: number,
   cursor?: string,
 ): Promise<CharacterEventsResponse> {
-  let query = db("game_events")
-    .select("id", "event_type", "payload", "created_at")
-    .where("actor_id", characterId);
-
-  if (cursor) {
-    query = query.where("created_at", "<", new Date(cursor));
-  }
-
-  const rows = (await query
-    .orderBy("created_at", "desc")
-    .limit(limit + 1)) as DbGameEventRow[]; // one extra row to detect hasMore
+  const rows = await gameEvents.listCharacterEvents(characterId, limit, cursor);
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
   const events: CharacterEvent[] = page.map((row) => ({
     id: row.id,
-    eventType: row.event_type,
-    severity: severityFor(row.event_type),
+    eventType: row.eventType,
+    severity: severityFor(row.eventType),
     payload: row.payload ?? {},
-    createdAt: new Date(row.created_at).toISOString(),
+    createdAt: new Date(row.createdAt).toISOString(),
   }));
 
   const nextCursor = hasMore ? events[events.length - 1].createdAt : null;

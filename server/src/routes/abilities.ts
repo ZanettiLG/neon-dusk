@@ -1,10 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type { AbilityState } from "@neon-dusk/shared";
 import { ROLE_TO_ABILITY } from "@neon-dusk/shared";
-import { db } from "../db";
 import { AppError } from "../middleware/error-handler";
 import { authenticate } from "../middleware/auth";
-import { requireCharacterId } from "../services/economy-service";
 import {
   canActivateAbility,
   computeActivation,
@@ -12,20 +10,12 @@ import {
   isAbilityActive,
 } from "../game/abilities";
 import { emitEvent } from "../telemetry/emit-event";
+import { characterRepository as characters } from "../repositories/character-repository";
 
 // Neon Dusk — Role Abilities routes (Feature #65)
 // ============================================================================
 // POST /api/abilities/activate — activate the character's role ability.
 // GET  /api/abilities/status  — current ability state (active/cooldown/ready).
-
-/** Database row subset for abilities route (snake_case columns). */
-interface AbilitiesCharacterRow {
-  id: string;
-  user_id: string;
-  role: string;
-  ability_active_until: Date | null;
-  ability_cooldown_until: Date | null;
-}
 
 /** Build AbilityState from character timestamps. */
 function buildAbilityState(
@@ -56,13 +46,9 @@ export async function abilitiesRoutes(app: FastifyInstance) {
       cooldownUntil: string;
       message: string;
     }> => {
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
-      const rows = await db("characters")
-        .select()
-        .where("id", characterId)
-        .limit(1);
-      const character = rows[0] as AbilitiesCharacterRow | undefined;
+      const character = await characters.findById(characterId);
       if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
       const role = character.role as "solo" | "netrunner" | "tech" | "fixer" | "nomad";
@@ -86,13 +72,10 @@ export async function abilitiesRoutes(app: FastifyInstance) {
 
       const activation = computeActivation(role);
 
-      await db("characters")
-        .update({
-          ability_active_until: activation.activeUntil,
-          ability_cooldown_until: activation.cooldownUntil,
-          updated_at: new Date(),
-        })
-        .where("id", characterId);
+      await characters.updateAbilityState(characterId, {
+        activeUntil: activation.activeUntil,
+        cooldownUntil: activation.cooldownUntil,
+      });
 
       // Fire-and-forget telemetry.
       void emitEvent({
@@ -116,13 +99,9 @@ export async function abilitiesRoutes(app: FastifyInstance) {
     "/abilities/status",
     { preHandler: [authenticate] },
     async (request): Promise<AbilityState> => {
-      const characterId = await requireCharacterId(request.user.sub);
+      const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
-      const rows = await db("characters")
-        .select()
-        .where("id", characterId)
-        .limit(1);
-      const character = rows[0] as AbilitiesCharacterRow | undefined;
+      const character = await characters.findById(characterId);
       if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
       return buildAbilityState(

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
-import { db } from "../db";
+import { checkConnection } from "../db";
 
 export interface HealthRouteOptions {
   redis: Redis;
@@ -41,7 +41,7 @@ export async function healthRoutes(app: FastifyInstance, opts: HealthRouteOption
       };
 
       try {
-        await db.raw("SELECT 1");
+        await checkConnection();
         services.database = "connected";
       } catch {
         services.database = "disconnected";
