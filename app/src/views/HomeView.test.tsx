@@ -91,7 +91,7 @@ describe("HomeView CTAs (landing-nav)", () => {
     userId: "u1",
     name: "Ghost",
     origin: "a_paraiso",
-    role: "solo",
+    role: "bicho",
     body: 3,
     reflexes: 3,
     intelligence: 3,

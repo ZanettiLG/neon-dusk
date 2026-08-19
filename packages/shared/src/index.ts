@@ -17,8 +17,8 @@ export interface HealthResponse {
 
 // --- Account & Character (Feature #1) ---------------------------------------
 
-/** Character roles (5 classes). */
-export const ROLES = ["solo", "netrunner", "tech", "fixer", "nomad"] as const;
+/** Character roles (5 bancas) — Neon Dusk brand names (06-terminologia-e-ip.md). */
+export const ROLES = ["bicho", "vulto", "gambiarrista", "despachante", "estradeiro"] as const;
 export type Role = (typeof ROLES)[number];
 
 /** Origin districts of São Paulo (7 districts). */
@@ -76,13 +76,13 @@ export const ABILITY_TYPES = [
 ] as const;
 export type AbilityType = (typeof ABILITY_TYPES)[number];
 
-/** Maps each role to its signature ability. */
+/** Maps each banca to its signature ability. */
 export const ROLE_TO_ABILITY: Record<Role, AbilityType> = {
-  solo: "combat_trance",
-  netrunner: "deep_dive",
-  tech: "overclock",
-  fixer: "silver_tongue",
-  nomad: "long_haul",
+  bicho: "combat_trance",
+  vulto: "deep_dive",
+  gambiarrista: "overclock",
+  despachante: "silver_tongue",
+  estradeiro: "long_haul",
 };
 
 /** API readout of a character's current ability state. */

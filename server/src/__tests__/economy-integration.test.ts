@@ -98,7 +98,7 @@ describe("Feature #3 — economy & vendors API", () => {
       body: JSON.stringify({
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       }),
     });

@@ -51,10 +51,10 @@ export async function abilitiesRoutes(app: FastifyInstance) {
       const character = await characters.findById(characterId);
       if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-      const role = character.role as "solo" | "netrunner" | "tech" | "fixer" | "nomad";
+      const role = character.role as "bicho" | "vulto" | "gambiarrista" | "despachante" | "estradeiro";
 
-      // netrunner deep_dive is phase-2 — not implemented in MVP.
-      if (role === "netrunner") {
+      // vulto deep_dive is phase-2 — not implemented in MVP.
+      if (role === "vulto") {
         throw new AppError(503, "ABILITY_PHASE_2", "Deep Dive será implementado na Fase 2 (hacking)");
       }
 

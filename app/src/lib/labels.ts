@@ -13,29 +13,29 @@ export const ORIGIN_LABELS: Record<Origin, string> = {
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
-  solo: "Bicho",
-  netrunner: "Vulto",
-  tech: "Gambiarrista",
-  fixer: "Despachante",
-  nomad: "Estradeiro",
+  bicho: "Bicho",
+  vulto: "Vulto",
+  gambiarrista: "Gambiarrista",
+  despachante: "Despachante",
+  estradeiro: "Estradeiro",
 };
 
 /** Diegetic one-liner per banca (04-sistemas-e-progressao.md §0.4). */
 export const ROLE_PHRASES: Record<Role, string> = {
-  solo: "Você não precisa ser mais rápido que a bala. Só mais rápido que o alvo.",
-  netrunner: "A fechadura mais forte do mundo não serve de nada se a porta é o cérebro do guarda.",
-  tech: "Toda máquina tem um ponto fraco. Eu encontro. Você explode.",
-  fixer: "Não importa o que você sabe. Importa quem você conhece. E eu conheço todo mundo.",
-  nomad: "A estrada não tem dono. Só tem quem passa primeiro.",
+  bicho: "Você não precisa ser mais rápido que a bala. Só mais rápido que o alvo.",
+  vulto: "A fechadura mais forte do mundo não serve de nada se a porta é o cérebro do guarda.",
+  gambiarrista: "Toda máquina tem um ponto fraco. Eu encontro. Você explode.",
+  despachante: "Não importa o que você sabe. Importa quem você conhece. E eu conheço todo mundo.",
+  estradeiro: "A estrada não tem dono. Só tem quem passa primeiro.",
 };
 
 /** Primary attributes per banca (04-sistemas-e-progressao.md §2). */
 export const ROLE_PRIMARY_ATTRIBUTES: Record<Role, AttributeKey[]> = {
-  solo: ["body", "reflexes"],
-  netrunner: ["intelligence"],
-  tech: ["technical"],
-  fixer: ["cool"],
-  nomad: ["reflexes"],
+  bicho: ["body", "reflexes"],
+  vulto: ["intelligence"],
+  gambiarrista: ["technical"],
+  despachante: ["cool"],
+  estradeiro: ["reflexes"],
 };
 
 export const ATTRIBUTE_LABELS: Record<AttributeKey, string> = {

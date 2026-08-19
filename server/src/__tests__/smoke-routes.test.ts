@@ -64,7 +64,7 @@ describe("ND-018 — smoke test (all routes)", () => {
       {
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
       },
       headers,
@@ -122,7 +122,7 @@ describe("ND-018 — smoke test (all routes)", () => {
       {
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
       },
       headers,

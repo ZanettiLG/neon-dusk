@@ -78,7 +78,7 @@ describe("Feature #1 — characters API", () => {
       const res = await createCharacter(accessToken, {
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       });
 
@@ -88,7 +88,7 @@ describe("Feature #1 — characters API", () => {
       expect(body.userId).toBeTruthy();
       expect(body.name).toMatch(/^Ghost-/);
       expect(body.origin).toBe("a_paraiso");
-      expect(body.role).toBe("solo");
+      expect(body.role).toBe("bicho");
       expect(body).toMatchObject(validAttributes());
       expect(typeof body.createdAt).toBe("string");
       expect(typeof body.updatedAt).toBe("string");
@@ -100,7 +100,7 @@ describe("Feature #1 — characters API", () => {
       const res = await createCharacter(accessToken, {
         name: uniqueName(),
         origin: "o_fervo",
-        role: "netrunner",
+        role: "vulto",
         attributes: { body: 3, reflexes: 3, intelligence: 3, technical: 3, cool: 3 }, // 15
       });
 
@@ -115,7 +115,7 @@ describe("Feature #1 — characters API", () => {
       const res = await createCharacter(accessToken, {
         name: uniqueName(),
         origin: "o_fervo",
-        role: "tech",
+        role: "gambiarrista",
         attributes: { body: 0, reflexes: 4, intelligence: 5, technical: 6, cool: 7 },
       });
 
@@ -131,7 +131,7 @@ describe("Feature #1 — characters API", () => {
       const res = await createCharacter(accessToken, {
         name: uniqueName(),
         origin: "o_fervo",
-        role: "tech",
+        role: "gambiarrista",
         attributes: { body: 2, reflexes: 5, intelligence: 5, technical: 5, cool: 5 }, // 22 total, body < 3
       });
 
@@ -147,7 +147,7 @@ describe("Feature #1 — characters API", () => {
       const res = await createCharacter(accessToken, {
         name: uniqueName(),
         origin: "o_fervo",
-        role: "fixer",
+        role: "despachante",
         attributes: { body: 21, reflexes: 0, intelligence: 0, technical: 0, cool: 1 },
       });
 
@@ -163,7 +163,7 @@ describe("Feature #1 — characters API", () => {
       const created = await createCharacter(first.accessToken, {
         name,
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       });
       expect(created.status).toBe(201);
@@ -172,7 +172,7 @@ describe("Feature #1 — characters API", () => {
       const res = await createCharacter(second.accessToken, {
         name: name.toLowerCase(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       });
 
@@ -186,7 +186,7 @@ describe("Feature #1 — characters API", () => {
       const created = await createCharacter(accessToken, {
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       });
       expect(created.status).toBe(201);
@@ -194,7 +194,7 @@ describe("Feature #1 — characters API", () => {
       const res = await createCharacter(accessToken, {
         name: uniqueName(),
         origin: "o_fluxo",
-        role: "nomad",
+        role: "estradeiro",
         attributes: validAttributes(),
       });
 
@@ -207,7 +207,7 @@ describe("Feature #1 — characters API", () => {
       const res = await server.post("/api/characters", {
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       });
 
@@ -226,7 +226,7 @@ describe("Feature #1 — characters API", () => {
       await createCharacter(accessToken, {
         name,
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       });
 

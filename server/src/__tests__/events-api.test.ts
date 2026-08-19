@@ -76,7 +76,7 @@ describe("GET /api/characters/me/events (player event feed)", () => {
       body: JSON.stringify({
         name: `Runner-${Date.now()}-${seq++}`,
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       }),
     });

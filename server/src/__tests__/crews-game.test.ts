@@ -24,7 +24,7 @@ const STREET_CRED: CrewBonus = {
 };
 
 describe("calculateCrewBonuses", () => {
-  it("should return no bonuses for a solo member (memberCount 1)", () => {
+  it("should return no bonuses for a single-member crew (memberCount 1)", () => {
     expect(calculateCrewBonuses(1)).toEqual([]);
   });
 

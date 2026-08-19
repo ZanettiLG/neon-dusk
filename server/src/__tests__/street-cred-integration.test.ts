@@ -88,7 +88,7 @@ describe("ND-013 — street-cred API", () => {
       payload: {
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
       },
     });

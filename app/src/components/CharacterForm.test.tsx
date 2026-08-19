@@ -161,7 +161,7 @@ describe("CharacterForm", () => {
       expect.objectContaining({
         name: "Ghost",
         origin: "a_paraiso",
-        role: "netrunner",
+        role: "vulto",
         attributes: expect.objectContaining({ body: 10 }),
       }),
     );

@@ -129,7 +129,7 @@ describe("Feature #4 — cromo API", () => {
       body: JSON.stringify({
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       }),
     });

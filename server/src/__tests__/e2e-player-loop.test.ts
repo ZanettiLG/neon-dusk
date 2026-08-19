@@ -73,7 +73,7 @@ describe("ND-018 — e2e player loop", () => {
         {
           name: uniqueName(),
           origin: "a_quebrada",
-          role: "solo",
+          role: "bicho",
           attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
         },
         headers,
@@ -219,7 +219,7 @@ describe("ND-018 — e2e player loop", () => {
         {
           name: uniqueName(),
           origin: "o_fervo",
-          role: "solo",
+          role: "bicho",
           attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
         },
         headers2,

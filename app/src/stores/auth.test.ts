@@ -51,7 +51,7 @@ const character: Character = {
   userId: "u1",
   name: "Ghost",
   origin: "a_paraiso",
-  role: "solo",
+  role: "bicho",
   body: 3,
   reflexes: 3,
   intelligence: 3,
@@ -309,7 +309,7 @@ describe("useAuthStore", () => {
       const created = await useAuthStore.getState().createCharacter({
         name: "Ghost",
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 5, intelligence: 4, technical: 4, cool: 4 },
       });
 
@@ -317,7 +317,7 @@ describe("useAuthStore", () => {
       expect(useAuthStore.getState().character).toEqual(character);
       expect(mocks.api.post).toHaveBeenCalledWith(
         "/api/characters",
-        expect.objectContaining({ name: "Ghost", role: "solo" }),
+        expect.objectContaining({ name: "Ghost", role: "bicho" }),
       );
     });
   });

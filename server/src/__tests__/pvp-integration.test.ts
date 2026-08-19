@@ -20,8 +20,8 @@ import type {
 // attack rate-limit counters and cooldown keys never leak across files.
 //
 // Determinism: combat uses Math.random in the service, so every fight is set
-// up with a 10-point base-power gap between non-solo characters. With base 15
-// vs 5 (both "netrunner", no solo multiplier), the attacker's minimum roll
+// up with a 10-point base-power gap between non-bicho characters. With base 15
+// vs 5 (both "vulto", no bicho multiplier), the attacker's minimum roll
 // (16) exceeds the defender's maximum roll (15) — the attacker ALWAYS wins.
 
 const REDIS_TEST_DB = "redis://localhost:56379/12";
@@ -130,7 +130,7 @@ describe("ND-014 — PvP combat API", () => {
         user_id: auth.user.id,
         name: uniqueName(),
         origin: "a_paraiso",
-        role: opts.role ?? "netrunner",
+        role: opts.role ?? "vulto",
         body: attributes.body,
         reflexes: attributes.reflexes,
         intelligence: attributes.intelligence,

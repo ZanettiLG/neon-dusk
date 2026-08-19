@@ -137,7 +137,7 @@ export function resolveAbilityState(
  * Check whether a character can activate their role ability.
  *
  * Uses resolveAbilityState internally to handle timestamp expiry.
- * Deep Dive (netrunner) is gated behind phase2 regardless of state —
+ * Deep Dive (vulto) is gated behind phase2 regardless of state —
  * it is a framework-only ability during MVP.
  *
  * @param role          - Character's role.
@@ -147,7 +147,7 @@ export function resolveAbilityState(
  * @returns Activation check result.
  *
  * @edgecases Unknown role → { canActivate: false, reason: "phase2" } (defensive).
- *           netrunner always returns "phase2" regardless of timestamps.
+ *           vulto always returns "phase2" regardless of timestamps.
  */
 export function canActivateAbility(
   role: Role,
@@ -155,7 +155,7 @@ export function canActivateAbility(
   cooldownUntil: Date | null,
   now?: Date,
 ): { canActivate: boolean; reason?: "cooldown" | "already_active" | "phase2" } {
-  if (role === "netrunner") {
+  if (role === "vulto") {
     return { canActivate: false, reason: "phase2" };
   }
 
@@ -227,7 +227,7 @@ export function computeActivation(
  *   - Overclock: consumed on cromo purchase
  *   - Silver Tongue: consumed on trampo completion
  *   - Long Haul: consumed when the second trampo starts
- *   - Deep Dive: consumed when a netrunner action is taken (phase2)
+ *   - Deep Dive: consumed when a vulto action is taken (phase2)
  *
  * Combat Trance is duration-based — its consumption is automatic on expiry.
  *
@@ -256,7 +256,7 @@ export function computeConsumption(
 }
 
 /**
- * Returns Combat Trance bonuses when the solo's ability is currently active.
+ * Returns Combat Trance bonuses when the bicho's ability is currently active.
  *
  * @param role          - Character's role.
  * @param activeUntil   - Current active effect timestamp.
@@ -264,7 +264,7 @@ export function computeConsumption(
  * @param now           - Reference time (injectable).
  * @returns Multipliers for body and reflexes, or null if not active.
  *
- * @edgecases Non-solo role → null. Expired trance (auto-transitioned) → null.
+ * @edgecases Non-bicho role → null. Expired trance (auto-transitioned) → null.
  */
 export function getCombatTranceBonus(
   role: Role,
@@ -272,7 +272,7 @@ export function getCombatTranceBonus(
   cooldownUntil: Date | null,
   now?: Date,
 ): { bodyMultiplier: number; reflexesMultiplier: number } | null {
-  if (role !== "solo") return null;
+  if (role !== "bicho") return null;
 
   const { state } = resolveAbilityState(role, activeUntil, cooldownUntil, now);
   if (state !== "active") return null;
@@ -301,7 +301,7 @@ export function getOverclockBonus(
   cooldownUntil: Date | null,
   now?: Date,
 ): { costMultiplier: number; humanityCost: number } | null {
-  if (role !== "tech") return null;
+  if (role !== "gambiarrista") return null;
 
   const { state } = resolveAbilityState(role, activeUntil, cooldownUntil, now);
   if (state !== "active") return null;
@@ -330,7 +330,7 @@ export function getSilverTongueBonus(
   cooldownUntil: Date | null,
   now?: Date,
 ): { eddieMultiplier: number; scMultiplier: number } | null {
-  if (role !== "fixer") return null;
+  if (role !== "despachante") return null;
 
   const { state } = resolveAbilityState(role, activeUntil, cooldownUntil, now);
   if (state !== "active") return null;
@@ -339,9 +339,9 @@ export function getSilverTongueBonus(
 }
 
 /**
- * Check whether a nomad can accept a second active trampo (Long Haul).
+ * Check whether an estradeiro can accept a second active trampo (Long Haul).
  *
- * Nomads can have 2 active trampos instead of 1 when Long Haul is active.
+ * Estradeiros can have 2 active trampos instead of 1 when Long Haul is active.
  * The ability is consumed when the second trampo starts (caller must call
  * computeConsumption afterwards).
  *
@@ -350,9 +350,9 @@ export function getSilverTongueBonus(
  * @param cooldownUntil       - Current cooldown timestamp.
  * @param currentActiveGigs   - How many trampos the character already has active.
  * @param now                 - Reference time (injectable).
- * @returns True when the nomad can run a second trampo.
+ * @returns True when the estradeiro can run a second trampo.
  *
- * @edgecases Non-nomad role → false. Long Haul not active → false.
+ * @edgecases Non-estradeiro role → false. Long Haul not active → false.
  *           Already at 2 trampos → false (cap). 0 active trampos → false (no second
  *           without a first — callers must check normal trampo capacity separately).
  */
@@ -363,7 +363,7 @@ export function canRunSecondGig(
   currentActiveGigs: number,
   now?: Date,
 ): boolean {
-  if (role !== "nomad") return false;
+  if (role !== "estradeiro") return false;
   if (currentActiveGigs >= 2) return false;
 
   const { state } = resolveAbilityState(role, activeUntil, cooldownUntil, now);

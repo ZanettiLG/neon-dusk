@@ -268,7 +268,7 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
     // loses the race here and fails BEFORE any NIL is spent.
     const inserted = await gigs.openActiveGig(characterId, gigId, trx);
     if (!inserted) {
-      // Feature #65: Long Haul — nomads can run a second concurrent trampo when
+      // Feature #65: Long Haul — estradeiros can run a second concurrent trampo when
       // the ability is active. ponytail: the DB unique constraint on
       // active_gigs.character_id still blocks this; drop it when Long Haul ships.
       const currentGigs = await gigs.countActiveGigs(characterId, trx);

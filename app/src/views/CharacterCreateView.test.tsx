@@ -37,7 +37,7 @@ const character: Character = {
   userId: "u1",
   name: "Ghost",
   origin: "a_paraiso",
-  role: "netrunner",
+  role: "vulto",
   body: 10,
   reflexes: 3,
   intelligence: 3,
@@ -106,7 +106,7 @@ describe("CharacterCreateView", () => {
       expect.objectContaining({
         name: "Ghost",
         origin: "a_paraiso",
-        role: "netrunner",
+        role: "vulto",
         attributes: expect.objectContaining({ body: 10 }),
       }),
     );

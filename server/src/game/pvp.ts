@@ -14,7 +14,7 @@ export interface CombatPowerInput {
   reflexes: number;
   chromePower: number;
   role: Role;
-  /** Feature #65: true when the solo's Combat Trance ability is active. */
+  /** Feature #65: true when the bicho's Combat Trance ability is active. */
   tranceActive?: boolean;
   rng?: () => number;
 }
@@ -128,13 +128,13 @@ export function calculateCombatPower(input: CombatPowerInput): number {
     Math.floor(rng() * (RANDOM_BONUS_MAX - RANDOM_BONUS_MIN + 1)) +
     RANDOM_BONUS_MIN;
 
-  // Feature #65: Combat Trance boosts body + reflexes before the solo multiplier.
-  const effectiveBody = tranceActive && role === "solo" ? Math.ceil(body * 1.25) : body;
-  const effectiveReflexes = tranceActive && role === "solo" ? Math.ceil(reflexes * 1.25) : reflexes;
+  // Feature #65: Combat Trance boosts body + reflexes before the bicho multiplier.
+  const effectiveBody = tranceActive && role === "bicho" ? Math.ceil(body * 1.25) : body;
+  const effectiveReflexes = tranceActive && role === "bicho" ? Math.ceil(reflexes * 1.25) : reflexes;
 
   let base = effectiveBody + effectiveReflexes + chromePower + randomBonus;
 
-  if (role === "solo") {
+  if (role === "bicho") {
     base = Math.ceil(base * SOLO_MULTIPLIER);
     if (rng() <= SOLO_CRIT_CHANCE) {
       base = Math.ceil(base * SOLO_CRIT_MULTIPLIER);

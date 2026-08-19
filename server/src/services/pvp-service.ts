@@ -185,7 +185,7 @@ export async function executeAttack(
     const weeklyAttacks = await countWeeklyAttacks(attackerId, targetId, trx);
     const grieferPenalty = isGriefLimited(weeklyAttacks);
 
-    // Resolve the fight (game logic incl. solo role multiplier + crit).
+    // Resolve the fight (game logic incl. bicho role multiplier + crit).
     const { winner, attackerPower, defenderPower } = resolveCombat({
       attacker: {
         body: attacker.body,

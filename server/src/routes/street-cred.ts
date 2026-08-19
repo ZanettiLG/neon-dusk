@@ -97,7 +97,7 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
       .map((row, index) => ({
         position: index + 1,
         characterName: row.name,
-        // ND-016: crew affiliation, null for solo runners.
+        // ND-016: crew affiliation, null for runners without a crew.
         crewName: row.crewName ?? null,
         score: row.score,
         title: getTitle(row.score),

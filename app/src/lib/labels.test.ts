@@ -19,17 +19,17 @@ describe("VENDOR_TYPE_LABELS", () => {
 });
 
 describe("ROLE_LABELS", () => {
-  it('should map fixer to "Despachante"', () => {
-    expect(ROLE_LABELS.fixer).toBe("Despachante");
+  it('should map despachante to "Despachante"', () => {
+    expect(ROLE_LABELS.despachante).toBe("Despachante");
   });
 
   it("should use brand labels for every role (no banned third-party terms)", () => {
     expect(ROLE_LABELS).toEqual({
-      solo: "Bicho",
-      netrunner: "Vulto",
-      tech: "Gambiarrista",
-      fixer: "Despachante",
-      nomad: "Estradeiro",
+      bicho: "Bicho",
+      vulto: "Vulto",
+      gambiarrista: "Gambiarrista",
+      despachante: "Despachante",
+      estradeiro: "Estradeiro",
     });
   });
 });

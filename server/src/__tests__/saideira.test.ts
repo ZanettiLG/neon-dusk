@@ -99,7 +99,7 @@ describe("ND-015 — Saideira Hub API", () => {
       {
         name: characterName,
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
       },
       authHeader(accessToken),
@@ -547,9 +547,9 @@ describe("ND-015 — Saideira Hub API", () => {
     it("should cap the crew leaderboard at 5 entries", async () => {
       const { accessToken } = await registerApiUser();
       for (let i = 0; i < 6; i++) {
-        const solo = await registerApiUser();
+        const member = await registerApiUser();
         await seedCrew(`Crew ${i}`, `C${i}${i}`, [
-          { characterId: solo.characterId, streetCred: 10 + i },
+          { characterId: member.characterId, streetCred: 10 + i },
         ]);
       }
 

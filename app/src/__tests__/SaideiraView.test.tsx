@@ -71,7 +71,7 @@ function character(streetCred: number): Character {
     userId: "user-1",
     name: "Ghost",
     origin: "a_paraiso",
-    role: "solo",
+    role: "bicho",
     body: 5,
     reflexes: 4,
     intelligence: 4,

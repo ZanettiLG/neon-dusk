@@ -40,15 +40,15 @@ export async function seedTestUser(): Promise<void> {
     role: "player",
   });
 
-  // ponytail: roleEnum has no "runner" — using "solo" (closest generalist archetype).
+  // ponytail: roleEnum has no "runner" — using "bicho" (closest generalist archetype).
   // ponytail: CHECK constraint requires attr sum == 22, so we distribute the 7 free
-  // points across the 5 base stats (3 each = 15): body=5 reflex=5 int=5 tech=4
+  // points across the 5 base stats (3 each = 15): body=5 reflex=5 int=5 technical=4
   // cool=3 = 22. Adjust if point-buy rules change.
   const newChar = await characters.insert({
     user_id: newUser.id,
     name: "Zanetti",
     origin: "a_quebrada",
-    role: "solo",
+    role: "bicho",
     body: 5,
     reflexes: 5,
     intelligence: 5,

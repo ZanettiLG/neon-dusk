@@ -74,7 +74,7 @@ describe("Feature #2 — NIL API", () => {
       body: JSON.stringify({
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: validAttributes(),
       }),
     });

@@ -67,8 +67,8 @@ export async function createCharacter(
     intelligence: attrs.intelligence,
     technical: attrs.technical,
     cool: attrs.cool,
-    // Feature #65: nomads get +20% max NIL.
-    max_nil: input.role === "nomad"
+    // Feature #65: estradeiro gets +20% max NIL.
+    max_nil: input.role === "estradeiro"
       ? Math.ceil(NIL_MAX_BASE * (1 + NOMAD_MAX_NIL_BONUS))
       : NIL_MAX_BASE,
   });

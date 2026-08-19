@@ -147,7 +147,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
       {
         name: uniqueName(),
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
       },
       authHeader(accessToken),

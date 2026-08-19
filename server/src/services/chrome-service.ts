@@ -80,7 +80,7 @@ export async function installChrome(
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-    // Feature #65: Overclock — 50% discount + 0 humanity cost for techs.
+    // Feature #65: Overclock — 50% discount + 0 humanity cost for gambiarristas.
     const overclockActive = getOverclockBonus(
       character.role as Role,
       character.ability_active_until,

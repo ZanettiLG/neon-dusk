@@ -65,7 +65,7 @@ describe("calculateCombatPower", () => {
       body: 10,
       reflexes: 5,
       chromePower: 3,
-      role: "netrunner",
+      role: "vulto",
       rng: () => 0,
     });
     expect(power).toBe(19); // 10 + 5 + 3 + 1
@@ -76,7 +76,7 @@ describe("calculateCombatPower", () => {
       body: 10,
       reflexes: 5,
       chromePower: 3,
-      role: "netrunner",
+      role: "vulto",
       rng: () => 0.99,
     });
     expect(power).toBe(28); // 10 + 5 + 3 + 10
@@ -87,7 +87,7 @@ describe("calculateCombatPower", () => {
       body: 10,
       reflexes: 5,
       chromePower: 0,
-      role: "netrunner",
+      role: "vulto",
       rng: () => 0.5,
     });
     expect(power).toBe(21); // 15 + 6
@@ -98,7 +98,7 @@ describe("calculateCombatPower", () => {
       body: 0,
       reflexes: 0,
       chromePower: 0,
-      role: "netrunner",
+      role: "vulto",
       rng: () => 0,
     });
     expect(power).toBe(1);
@@ -110,7 +110,7 @@ describe("calculateCombatPower", () => {
         body: 4,
         reflexes: 3,
         chromePower: 2,
-        role: "netrunner",
+        role: "vulto",
         rng: Math.random,
       });
       expect(power).toBeGreaterThanOrEqual(10);
@@ -119,74 +119,74 @@ describe("calculateCombatPower", () => {
   });
 });
 
-describe("calculateCombatPower — solo role bonus", () => {
-  it("should apply the +10% bonus (rounded up) for solo role", () => {
-    const solo = calculateCombatPower({
+describe("calculateCombatPower — bicho role bonus", () => {
+  it("should apply the +10% bonus (rounded up) for bicho role", () => {
+    const bicho = calculateCombatPower({
       body: 10,
       reflexes: 5,
       chromePower: 0,
-      role: "solo",
+      role: "bicho",
       rng: () => 0.5, // random bonus 6 → base 21, crit check 0.5 > 0.05
     });
-    expect(solo).toBe(24); // ceil(21 * 1.1)
+    expect(bicho).toBe(24); // ceil(21 * 1.1)
   });
 
-  it("should not apply the bonus for non-solo roles", () => {
-    const netrunner = calculateCombatPower({
+  it("should not apply the bonus for non-bicho roles", () => {
+    const vulto = calculateCombatPower({
       body: 10,
       reflexes: 5,
       chromePower: 0,
-      role: "netrunner",
+      role: "vulto",
       rng: () => 0.5,
     });
-    expect(netrunner).toBe(21); // 21, no multiplier
+    expect(vulto).toBe(21); // 21, no multiplier
   });
 
-  it("should apply the same base roll to solo as non-solo before the multiplier", () => {
-    const solo = calculateCombatPower({
+  it("should apply the same base roll to bicho as non-bicho before the multiplier", () => {
+    const bicho = calculateCombatPower({
       body: 8,
       reflexes: 4,
       chromePower: 2,
-      role: "solo",
+      role: "bicho",
       rng: () => 0.5, // +6 → base 20
     });
-    expect(solo).toBe(22); // ceil(20 * 1.1)
+    expect(bicho).toBe(22); // ceil(20 * 1.1)
   });
 
-  it("should apply Combat Trance +25% (rounded up) to body and reflexes before the solo multiplier", () => {
+  it("should apply Combat Trance +25% (rounded up) to body and reflexes before the bicho multiplier", () => {
     // Feature #65: tranceActive boosts body and reflexes first: ceil(10 * 1.25) = 13 each
     const trance = calculateCombatPower({
       body: 10,
       reflexes: 10,
       chromePower: 0,
-      role: "solo",
+      role: "bicho",
       tranceActive: true,
       rng: () => 0.5, // random bonus 6 → base 32
     });
     expect(trance).toBe(36); // ceil(32 * 1.1), no crit at 0.5
   });
 
-  it("should ignore tranceActive for a non-solo role", () => {
-    const fixer = calculateCombatPower({
+  it("should ignore tranceActive for a non-bicho role", () => {
+    const despachante = calculateCombatPower({
       body: 10,
       reflexes: 10,
       chromePower: 0,
-      role: "fixer",
+      role: "despachante",
       tranceActive: true,
       rng: () => 0.5, // random bonus 6 → base 26, no multipliers
     });
-    expect(fixer).toBe(26);
+    expect(despachante).toBe(26);
   });
 });
 
-describe("calculateCombatPower — solo crit", () => {
+describe("calculateCombatPower — bicho crit", () => {
   it("should trigger the crit (+50%) when rng lands at 4% (≤ 5%)", () => {
     const power = calculateCombatPower({
       body: 10,
       reflexes: 5,
       chromePower: 0,
-      role: "solo",
-      rng: () => 0.04, // roll +1 → 16, solo 18, crit → ceil(18 * 1.5)
+      role: "bicho",
+      rng: () => 0.04, // roll +1 → 16, bicho 18, crit → ceil(18 * 1.5)
     });
     expect(power).toBe(27);
   });
@@ -196,10 +196,10 @@ describe("calculateCombatPower — solo crit", () => {
       body: 10,
       reflexes: 5,
       chromePower: 0,
-      role: "solo",
+      role: "bicho",
       rng: () => 0.06,
     });
-    expect(power).toBe(18); // 16 → solo 18, no crit
+    expect(power).toBe(18); // 16 → bicho 18, no crit
   });
 
   it("should apply the multiplier only once when a crit triggers", () => {
@@ -207,18 +207,18 @@ describe("calculateCombatPower — solo crit", () => {
       body: 2,
       reflexes: 2,
       chromePower: 0,
-      role: "solo",
-      rng: () => 0, // roll +1 → 5, solo ceil(5.5)=6, crit ceil(9)=9
+      role: "bicho",
+      rng: () => 0, // roll +1 → 5, bicho ceil(5.5)=6, crit ceil(9)=9
     });
     expect(power).toBe(9);
   });
 
-  it("should not crit for non-solo roles even at 4%", () => {
+  it("should not crit for non-bicho roles even at 4%", () => {
     const power = calculateCombatPower({
       body: 10,
       reflexes: 5,
       chromePower: 0,
-      role: "fixer",
+      role: "despachante",
       rng: () => 0.04,
     });
     expect(power).toBe(16); // no multiplier, no crit path at all
@@ -230,16 +230,16 @@ describe("calculateCombatPower — solo crit", () => {
 describe("resolveCombat", () => {
   it("should declare the attacker the winner when power is strictly higher", () => {
     const result = resolveCombat({
-      attacker: { body: 10, reflexes: 5, chromePower: 0, role: "netrunner", rng: () => 0 },
-      defender: { body: 3, reflexes: 2, chromePower: 0, role: "netrunner", rng: () => 0 },
+      attacker: { body: 10, reflexes: 5, chromePower: 0, role: "vulto", rng: () => 0 },
+      defender: { body: 3, reflexes: 2, chromePower: 0, role: "vulto", rng: () => 0 },
     });
     expect(result).toEqual({ winner: "attacker", attackerPower: 16, defenderPower: 6 });
   });
 
   it("should declare the defender the winner on a tie (equal power)", () => {
     const result = resolveCombat({
-      attacker: { body: 5, reflexes: 4, chromePower: 0, role: "netrunner", rng: () => 0 },
-      defender: { body: 5, reflexes: 4, chromePower: 0, role: "netrunner", rng: () => 0 },
+      attacker: { body: 5, reflexes: 4, chromePower: 0, role: "vulto", rng: () => 0 },
+      defender: { body: 5, reflexes: 4, chromePower: 0, role: "vulto", rng: () => 0 },
     });
     expect(result.winner).toBe("defender");
     expect(result.attackerPower).toBe(10);
@@ -248,16 +248,16 @@ describe("resolveCombat", () => {
 
   it("should declare the defender the winner when the defender's power is higher", () => {
     const result = resolveCombat({
-      attacker: { body: 3, reflexes: 2, chromePower: 0, role: "netrunner", rng: () => 0 },
-      defender: { body: 10, reflexes: 5, chromePower: 0, role: "netrunner", rng: () => 0 },
+      attacker: { body: 3, reflexes: 2, chromePower: 0, role: "vulto", rng: () => 0 },
+      defender: { body: 10, reflexes: 5, chromePower: 0, role: "vulto", rng: () => 0 },
     });
     expect(result.winner).toBe("defender");
   });
 
   it("should give the defender the win on a 0-0 stalemate", () => {
     const result = resolveCombat({
-      attacker: { body: 0, reflexes: 0, chromePower: 0, role: "netrunner", rng: () => 0 },
-      defender: { body: 0, reflexes: 0, chromePower: 0, role: "netrunner", rng: () => 0 },
+      attacker: { body: 0, reflexes: 0, chromePower: 0, role: "vulto", rng: () => 0 },
+      defender: { body: 0, reflexes: 0, chromePower: 0, role: "vulto", rng: () => 0 },
     });
     expect(result.winner).toBe("defender");
   });

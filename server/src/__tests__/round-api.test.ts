@@ -96,7 +96,7 @@ describe("ND-017 — Round & Legends API", () => {
       {
         name: characterName,
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
       },
       authHeader(accessToken),

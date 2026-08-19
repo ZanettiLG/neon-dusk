@@ -112,7 +112,7 @@ export async function insertTestCharacter(opts?: {
       user_id: user.id,
       name,
       origin: opts?.origin ?? "a_paraiso",
-      role: opts?.role ?? "solo",
+      role: opts?.role ?? "bicho",
       body: 5,
       reflexes: 4,
       intelligence: 4,

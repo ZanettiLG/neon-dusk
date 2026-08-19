@@ -100,7 +100,7 @@ describe("ND-016 — Crews Básicas API", () => {
       {
         name: characterName,
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho",
         attributes: { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 },
       },
       authHeader(accessToken),
@@ -440,7 +440,7 @@ describe("ND-016 — Crews Básicas API", () => {
   // ─── GET /api/crews/:id — details ──────────────────────────────────────────
 
   describe("GET /api/crews/:id", () => {
-    it("should return the crew with members and no bonuses for a solo crew", async () => {
+    it("should return the crew with members and no bonuses for a single-member crew", async () => {
       const leader = await registerApiUser();
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
