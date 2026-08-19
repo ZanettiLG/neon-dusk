@@ -5,7 +5,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,6 +18,7 @@ function runGuard(fixtures) {
   const dir = mkdtempSync(join(tmpdir(), 'terminologia-'))
   try {
     for (const [name, content] of Object.entries(fixtures)) {
+      mkdirSync(dirname(join(dir, name)), { recursive: true })
       writeFileSync(join(dir, name), content)
     }
     try {
@@ -85,3 +86,23 @@ test('should honor caseSensitive class rules: Title-case Netrunner fails, lowerc
 // por transitividade: o self-check roda no início de TODA execução do guard
 // (inclusive nos testes acima e no CI), abortando com exit 1 se um probe
 // deixar de disparar — o que falharia os testes (b)/(c) que esperam exit 0.
+
+test('should exit 0 on banned term inside server/migrations (immutable history)', () => {
+  // Migrações aplicadas são histórico imutável (#169): o guard não as varre.
+  // O mesmo conteúdo fora de migrations já é coberto pelo teste "eddies" acima.
+  const { status, stdout } = runGuard({
+    'server/migrations/010-applied.ts':
+      "// migration aplicada\nconst msg = 'Pagou 50 eddies na hora';\n",
+  })
+  assert.equal(status, 0, `stdout: ${stdout}`)
+})
+
+test('should exit 1 on banned term in subdir with similar name (suffix match boundary)', () => {
+  // Fronteira do sufixo: apenas o path exato server/migrations é excluído.
+  // Um vizinho homônimo (migrations2) deve continuar varrido.
+  const { status, stdout } = runGuard({
+    'server/migrations2/bad.ts': "const msg = 'Pagou 50 eddies na hora';\n",
+  })
+  assert.equal(status, 1)
+  assert.match(stdout, /bad\.ts:1:eddies/)
+})

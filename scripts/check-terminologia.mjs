@@ -196,7 +196,19 @@ function selfCheck() {
 // isoladas; token embutido em identificador (adjacente a [A-Za-z0-9_.]) é
 // interno e passa.
 
-const CODE_ROOTS = envRoots ?? ['app/src', 'server/src', 'server/seeds', 'server/migrations', 'packages/shared/src']
+const CODE_ROOTS = envRoots ?? ['app/src', 'server/src', 'server/seeds', 'packages/shared/src']
+
+// Diretórios excluídos da varredura de código (#169): migrations já aplicadas
+// são histórico imutável — renomear termo em migration aplicada é anti-padrão.
+// Migrações NOVAS continuam sujeitas a revisão humana no PR. Match por sufixo
+// de path: exclui o diretório real no repo E um subdir homônimo em tempdir sob
+// TERMINOLOGIA_ROOTS (permite teste de fixture).
+const CODE_EXCLUDE = ['server/migrations']
+
+/** Verdadeiro se `p` é um diretório listado em CODE_EXCLUDE (sufixo de path, #169). */
+function isExcludedDir(p) {
+  return CODE_EXCLUDE.some((ex) => p.endsWith(`/${ex}`) || p === ex)
+}
 
 // Extensões varridas no código (.mts/.cts incluídos caso venham a existir).
 const CODE_EXTS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.js', '.sql']
@@ -306,6 +318,7 @@ function walkCode(dir) {
     if (st.isDirectory()) {
       const base = entry.toLowerCase()
       if (base === 'node_modules' || base === 'dist' || base === 'build') continue
+      if (isExcludedDir(p)) continue
       files.push(...walkCode(p))
     } else if (CODE_EXTS.some((ext) => p.endsWith(ext))) {
       files.push(p)
