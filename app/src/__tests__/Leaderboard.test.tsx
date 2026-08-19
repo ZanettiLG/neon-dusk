@@ -56,7 +56,7 @@ describe("Leaderboard", () => {
 
     // Table headers.
     expect(screen.getByText("#")).toBeInTheDocument();
-    expect(screen.getByText("Runner")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Corredor" })).toBeInTheDocument();
     expect(screen.getByText("Título")).toBeInTheDocument();
     expect(screen.getByText("M")).toBeInTheDocument();
 
@@ -65,7 +65,7 @@ describe("Leaderboard", () => {
     expect(screen.getByText("Rex")).toBeInTheDocument();
     expect(screen.getByText("Kiro")).toBeInTheDocument();
     expect(screen.getByText("Elite")).toBeInTheDocument();
-    expect(screen.getByText("Corredor")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Corredor" })).toBeInTheDocument();
     expect(screen.getByText("Pro")).toBeInTheDocument();
     expect(screen.getByText("80")).toBeInTheDocument();
     expect(screen.getByText("50")).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe("Leaderboard", () => {
     // 5 skeleton rows.
     const skeletons = container.querySelectorAll('[class*="animate-pulse"]');
     expect(skeletons).toHaveLength(5);
-    expect(screen.queryByText("Nenhum runner ainda.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nenhum corredor ainda.")).not.toBeInTheDocument();
   });
 
   it("should show the empty state message when there are no entries", () => {
@@ -88,7 +88,7 @@ describe("Leaderboard", () => {
 
     render(<Leaderboard />);
 
-    expect(screen.getByText("Nenhum runner ainda.")).toBeInTheDocument();
+    expect(screen.getByText("Nenhum corredor ainda.")).toBeInTheDocument();
   });
 
   it("should show the error state with a retry button that refetches", async () => {

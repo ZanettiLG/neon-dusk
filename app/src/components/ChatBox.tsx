@@ -31,7 +31,7 @@ const STATUS_CONFIG: Record<
 
 /**
  * Saideira chat — real-time tavern chatter. Renders the SSE message stream
- * (auto-scrolled), highlights the current runner's rows in cyan and sends via
+ * (auto-scrolled), highlights the current corredor's rows in cyan and sends via
  * POST /api/saideira/chat. Shows a three-tier connection indicator:
  * green (live), yellow (reconnecting with backoff), red (offline after 3+
  * failures). Enter sends; MVP has no multiline.
@@ -134,7 +134,7 @@ export default function ChatBox() {
             value={draft}
             maxLength={MAX_MESSAGE_LENGTH}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Diz aí, runner..."
+            placeholder="Diz aí, corredor..."
             className="w-full bg-nd-bg border border-nd-cyan/20 rounded-terminal px-3 py-2 text-sm text-nd-text placeholder:text-nd-text-secondary focus:border-nd-cyan focus:outline-none"
             disabled={sendLoading}
           />

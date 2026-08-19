@@ -31,7 +31,7 @@ describe("ChatBox", () => {
   it("renders without error (baseline)", () => {
     render(<ChatBox />);
     expect(screen.getByText("CIDADE // CHAT")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Diz aí, runner...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Diz aí, corredor...")).toBeInTheDocument();
   });
 
   it("shows connected indicator (green) when chatStatus is connected", () => {

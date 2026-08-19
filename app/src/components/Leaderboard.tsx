@@ -11,7 +11,7 @@ function titleBadgeClass(title: string): string {
 
 /**
  * Public top-50 street-cred leaderboard (Dashboard section). Fetches on mount,
- * highlights the current runner's row with a cyan edge, skeleton rows while
+ * highlights the current corredor's row with a cyan edge, skeleton rows while
  * loading and a retry button on failure.
  */
 export default function Leaderboard() {
@@ -48,14 +48,14 @@ export default function Leaderboard() {
           ))}
         </div>
       ) : !leaderboard || leaderboard.length === 0 ? (
-        <p className="text-nd-text-secondary text-sm font-data">Nenhum runner ainda.</p>
+        <p className="text-nd-text-secondary text-sm font-data">Nenhum corredor ainda.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-data">
             <thead>
               <tr className="text-left text-nd-text-secondary text-[10px] uppercase tracking-widest">
                 <th className="py-1 pr-2 font-normal">#</th>
-                <th className="py-1 pr-2 font-normal">Runner</th>
+                <th className="py-1 pr-2 font-normal">Corredor</th>
                 <th className="py-1 pr-2 font-normal">Título</th>
                 <th className="py-1 font-normal text-right">M</th>
               </tr>

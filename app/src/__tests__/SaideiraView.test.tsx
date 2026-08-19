@@ -201,7 +201,7 @@ describe("SaideiraView", () => {
 
     renderView();
 
-    expect(screen.getByPlaceholderText("Diz aí, runner...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Diz aí, corredor...")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ENVIAR" })).toBeInTheDocument();
   });
 
