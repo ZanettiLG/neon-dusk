@@ -105,6 +105,32 @@ describe("StreetCredDisplay", () => {
     expect(container.querySelector('[style*="width"]')).toBeNull();
   });
 
+  it("should render the Lenda de SP tier with a progress bar toward Legend", () => {
+    useAuthStore.setState({ character: {} as never });
+    useStreetCredStore.setState({
+      info: {
+        score: 95,
+        title: "Lenda de SP",
+        maxAchieved: 95,
+        nextThreshold: { score: 100, title: "Legend" },
+        scToNext: 5,
+      },
+      loading: false,
+      error: null,
+    });
+
+    const { container } = renderDisplay();
+
+    expect(screen.getByText("95")).toBeInTheDocument();
+    expect(screen.getByText("LENDA DE SP")).toBeInTheDocument();
+    // Progress bar spans the 90→100 band (not 75→100) — mirror ladder must
+    // include the 90 threshold.
+    const bar = container.querySelector('[style*="width"]');
+    expect(bar).not.toBeNull();
+    const pct = Number.parseFloat((bar as HTMLElement).style.width);
+    expect(pct).toBe(50);
+  });
+
   it("should hide entirely when the fetch errored", () => {
     useAuthStore.setState({ character: {} as never });
     useStreetCredStore.setState({ info: null, loading: false, error: "Falha ao carregar Moral" });

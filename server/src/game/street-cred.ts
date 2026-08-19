@@ -33,6 +33,7 @@ export const STREET_CRED_THRESHOLDS: readonly StreetCredThreshold[] = [
   { score: 25, title: "Pro" },
   { score: 50, title: "Corredor" },
   { score: 75, title: "Elite" },
+  { score: 90, title: "Lenda de SP" }, // provisório — 04-sistemas-e-progressao.md §5
   { score: 100, title: "Legend" },
 ];
 

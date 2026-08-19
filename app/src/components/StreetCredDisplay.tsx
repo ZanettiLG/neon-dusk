@@ -6,7 +6,7 @@ import { tokens } from "@/lib/tokens";
 // ponytail: the server's StreetCredInfo carries the next threshold but not the
 // current floor; the progress bar needs both, so the ladder is mirrored here.
 // Keep in sync with STREET_CRED_THRESHOLDS in server/src/game/street-cred.ts.
-const SC_THRESHOLDS = [0, 10, 25, 50, 75, 100] as const;
+const SC_THRESHOLDS = [0, 10, 25, 50, 75, 90, 100] as const;
 
 /** Highest threshold at or below `score` (the current rank's floor). */
 function thresholdFloor(score: number): number {

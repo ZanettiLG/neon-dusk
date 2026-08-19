@@ -15,14 +15,15 @@ import {
 // ─── Thresholds ─────────────────────────────────────────────────────────────
 
 describe("STREET_CRED_THRESHOLDS", () => {
-  it("should define six thresholds from Unknown to Legend", () => {
-    expect(STREET_CRED_THRESHOLDS).toHaveLength(6);
+  it("should define seven thresholds from Unknown to Legend", () => {
+    expect(STREET_CRED_THRESHOLDS).toHaveLength(7);
     expect(STREET_CRED_THRESHOLDS[0]).toEqual({ score: 0, title: "Unknown" });
     expect(STREET_CRED_THRESHOLDS[1]).toEqual({ score: 10, title: "Runner" });
     expect(STREET_CRED_THRESHOLDS[2]).toEqual({ score: 25, title: "Pro" });
     expect(STREET_CRED_THRESHOLDS[3]).toEqual({ score: 50, title: "Corredor" });
     expect(STREET_CRED_THRESHOLDS[4]).toEqual({ score: 75, title: "Elite" });
-    expect(STREET_CRED_THRESHOLDS[5]).toEqual({ score: 100, title: "Legend" });
+    expect(STREET_CRED_THRESHOLDS[5]).toEqual({ score: 90, title: "Lenda de SP" });
+    expect(STREET_CRED_THRESHOLDS[6]).toEqual({ score: 100, title: "Legend" });
   });
 });
 
@@ -62,10 +63,16 @@ describe("getTitle", () => {
     expect(getTitle(74)).toBe("Corredor");
   });
 
-  it("should return 'Elite' for scores between 75 and 99", () => {
+  it("should return 'Elite' for scores between 75 and 89", () => {
     expect(getTitle(75)).toBe("Elite");
     expect(getTitle(88)).toBe("Elite");
-    expect(getTitle(99)).toBe("Elite");
+    expect(getTitle(89)).toBe("Elite");
+  });
+
+  it("should return 'Lenda de SP' for scores between 90 and 99", () => {
+    expect(getTitle(90)).toBe("Lenda de SP");
+    expect(getTitle(95)).toBe("Lenda de SP");
+    expect(getTitle(99)).toBe("Lenda de SP");
   });
 
   it("should return 'Legend' for score 100", () => {
@@ -105,8 +112,16 @@ describe("getNextThreshold", () => {
     expect(getNextThreshold(50)).toEqual({ score: 75, title: "Elite" });
   });
 
-  it("should return Legend for score 75", () => {
-    expect(getNextThreshold(75)).toEqual({ score: 100, title: "Legend" });
+  it("should return Lenda de SP for score 75", () => {
+    expect(getNextThreshold(75)).toEqual({ score: 90, title: "Lenda de SP" });
+  });
+
+  it("should return Lenda de SP for score 89", () => {
+    expect(getNextThreshold(89)).toEqual({ score: 90, title: "Lenda de SP" });
+  });
+
+  it("should return Legend for score 90", () => {
+    expect(getNextThreshold(90)).toEqual({ score: 100, title: "Legend" });
   });
 
   it("should return Legend for score 99", () => {
@@ -163,8 +178,16 @@ describe("getThresholdFloor", () => {
     expect(getThresholdFloor(75)).toBe(75);
   });
 
-  it("should return 75 for maxAchieved 99 (Elite)", () => {
-    expect(getThresholdFloor(99)).toBe(75);
+  it("should return 75 for maxAchieved 89 (still Elite)", () => {
+    expect(getThresholdFloor(89)).toBe(75);
+  });
+
+  it("should return 90 for maxAchieved 90 (Lenda de SP)", () => {
+    expect(getThresholdFloor(90)).toBe(90);
+  });
+
+  it("should return 90 for maxAchieved 99 (still Lenda de SP)", () => {
+    expect(getThresholdFloor(99)).toBe(90);
   });
 
   it("should return 100 for maxAchieved 100 (Legend)", () => {
@@ -494,13 +517,13 @@ describe("Decay edge cases", () => {
   const NOW = new Date("2026-08-07T12:00:00.000Z");
   const DAY = 86_400_000;
 
-  it("should decay from 95 to Elite floor (75) but not below", () => {
-    // maxAchieved=95 → floor=75, maxDecay=20
-    // At 15 days: raw = (15-7)*5 = 40, clamped to 20
+  it("should decay from 95 to Lenda de SP floor (90) but not below", () => {
+    // maxAchieved=95 → floor=90 (Lenda de SP), maxDecay=5
+    // At 15 days: raw = (15-7)*5 = 40, clamped to 5
     const last = new Date(NOW.getTime() - 15 * DAY);
     const result = calculateDecay(last, 95, 95, NOW);
-    expect(result.effectiveScore).toBe(75);
-    expect(result.decayAmount).toBe(20);
+    expect(result.effectiveScore).toBe(90);
+    expect(result.decayAmount).toBe(5);
   });
 
   it("should exactly hit the floor when raw decay equals max decay", () => {
