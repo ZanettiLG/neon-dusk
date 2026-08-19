@@ -56,7 +56,7 @@ describe("rate limiting", () => {
     const body = await json<RateLimitedBody>(res);
     expect(body.error).toBe("RATE_LIMITED");
     expect(typeof body.message).toBe("string");
-    expect(body.message).toMatch(/Too many requests/);
+    expect(body.message).toMatch(/Muitas requisições/);
     expect(body.retryAfter).toBeGreaterThan(0);
   });
 });

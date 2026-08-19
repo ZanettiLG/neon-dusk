@@ -23,7 +23,7 @@ export default function StatusBar() {
       ) : healthError ? (
         <span
           className="text-nd-magenta cursor-pointer"
-          title="Click to retry"
+          title="Clique para tentar de novo"
           onClick={() => void checkHealth()}
         >
           ◌ offline

@@ -67,7 +67,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     errorResponseBuilder: (request, context) => ({
       statusCode: 429, // so the global error handler maps this to RATE_LIMITED
       error: "RATE_LIMITED",
-      message: `Too many requests. Retry after ${Math.ceil(context.ttl / 1000)}s.`,
+      message: `Muitas requisições. Tente de novo em ${Math.ceil(context.ttl / 1000)}s.`,
       retryAfter: Math.ceil(context.ttl / 1000),
     }),
   });
