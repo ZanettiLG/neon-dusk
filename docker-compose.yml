@@ -55,7 +55,7 @@ services:
     container_name: neondusk-grafana
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3002:3000"
     environment:
       # Anonymous read access — the ops dashboard is not sensitive.
       GF_AUTH_ANONYMOUS_ENABLED: "true"

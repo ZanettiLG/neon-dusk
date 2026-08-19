@@ -2,7 +2,7 @@
 description: Delegates complex decisions to a powerful reasoning model (Claude Opus 4.8) with a minimal system prompt. Receives full decision context with options, criteria, and constraints; returns structured JSON with decision, rationale, trade-offs, risks, and confidence. No domain knowledge loaded -- unbiased by harness skills.
 mode: subagent
 hidden: true
-model: opencode-go/kimi-k3
+model: opencode-go/glm-5.3
 temperature: 0.1
 thinking:
   type: enabled
