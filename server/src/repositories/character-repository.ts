@@ -107,7 +107,7 @@ export interface CharacterRepository {
     rawNil: number,
     q?: Queryable,
   ): Promise<{ nil: number; max_nil: number; nil_updated_at: Date } | undefined>;
-  /** Syn-café restore — plain NIL write (vendor purchase path). */
+  /** Pingado restore — plain NIL write (vendor purchase path). */
   updateNilSet(id: string, nil: number, q?: Queryable): Promise<void>;
   /** Stim restore with optimistic lock (`nil >= rawNil`), returning the row. */
   updateNilSetGuarded(
@@ -159,7 +159,7 @@ export interface CharacterRepository {
       crewName: string | null;
     }>
   >;
-  /** NIL snapshot for the syn-café restore (nil/max_nil/nil_updated_at). */
+  /** NIL snapshot for the Pingado restore (nil/max_nil/nil_updated_at). */
   findNilSnapshot(
     id: string,
     q?: Queryable,

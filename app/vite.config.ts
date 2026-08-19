@@ -53,7 +53,7 @@ export default defineConfig({
       manifest: {
         name: "Neon Dusk",
         short_name: "NeonDusk",
-        description: "Build your chrome. Burn your name. Leave a legend.",
+        description: "Build your cromo. Burn your name. Leave a legend.",
         theme_color: "#0a0a0a",
         background_color: "#0a0a0a",
         display: "standalone",

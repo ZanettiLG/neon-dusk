@@ -24,7 +24,7 @@ export default function HomeView() {
           NEON<span className="text-nd-magenta">//</span>DUSK
         </h2>
         <p className="text-nd-text-secondary text-lg font-body max-w-md mx-auto">
-          Build your chrome. Burn your name. Leave a legend.
+          Build your cromo. Burn your name. Leave a legend.
         </p>
       </div>
 

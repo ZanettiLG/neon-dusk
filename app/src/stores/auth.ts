@@ -184,7 +184,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      /** Drink a syn-café: +20 NIL with a 1h cooldown. Throws on cooldown/full. */
+      /** Drink a Pingado: +20 NIL with a 1h cooldown. Throws on cooldown/full. */
       useStim: async () => {
         set({ nilLoading: true, nilError: null });
         try {
@@ -192,7 +192,7 @@ export const useAuthStore = create<AuthState>()(
           set({ nilStatus: res.status });
           return res;
         } catch (err) {
-          set({ nilError: err instanceof ApiError ? err.message : "Falha ao usar syn-café" });
+          set({ nilError: err instanceof ApiError ? err.message : "Falha ao usar Pingado" });
           throw err;
         } finally {
           set({ nilLoading: false });

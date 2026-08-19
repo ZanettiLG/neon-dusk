@@ -167,7 +167,7 @@ describe("ND-018 — e2e player loop", () => {
       const scRes = await server.get("/api/street-cred", headers);
       expect(scRes.status, "Moral").toBe(200);
 
-      // ---- STEP 7: Buy chrome (Kiroshi Optics) ----
+      // ---- STEP 7: Buy chrome (Óptica Vidraça) ----
       const chromeRes = await server.get("/api/chrome", headers);
       expect(chromeRes.status, "chrome catalog").toBe(200);
       // GET /api/chrome returns a bare ChromeDefinition[] (shared contract).
@@ -175,7 +175,7 @@ describe("ND-018 — e2e player loop", () => {
         chromeRes,
       );
 
-      // Find Kiroshi Optics or any ocular chrome
+      // Find Óptica Vidraça or any ocular chrome
       const kiroshi =
         chromeCatalog.find((c) => c.slug.includes("kiroshi")) ??
         chromeCatalog.find((c) => c.slug.includes("optic")) ??

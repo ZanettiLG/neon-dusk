@@ -357,7 +357,7 @@ describe("Feature #4 — chrome API", () => {
 
     it("should return 400 INSUFFICIENT_FUNDS when the wallet cannot cover the price", async () => {
       const { accessToken } = await registerAndCreateCharacter();
-      // Gorilla Arms = 2500 de Grana > 500 seed balance.
+      // Braço de Ferro = 2500 de Grana > 500 seed balance.
       const res = await installChrome(accessToken, await defId("gorilla-arms"));
 
       expect(res.status).toBe(400);
@@ -437,10 +437,10 @@ describe("Feature #4 — chrome API", () => {
       expect(char!.max_nil).toBe(110); // 100 base + 10 from Neural Booster
     });
 
-    it("should NOT increase NIL max when installing Gorilla Arms (non-neural)", async () => {
+    it("should NOT increase NIL max when installing Braço de Ferro (non-neural)", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
 
-      // Fetch balance to trigger wallet creation, then top up for Gorilla Arms (2500 de Grana).
+      // Fetch balance to trigger wallet creation, then top up for Braço de Ferro (2500 de Grana).
       await fetch(`${base()}/api/economy/balance`, { headers: authHeader(accessToken) });
       await db("character_wallets")
         .where("character_id", characterId)

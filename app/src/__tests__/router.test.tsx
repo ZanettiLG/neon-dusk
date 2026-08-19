@@ -222,7 +222,7 @@ describe("router: new views", () => {
 
     renderAt("/chrome");
 
-    expect(await screen.findByText("CHROME")).toBeInTheDocument();
+    expect(await screen.findByText("CROMO")).toBeInTheDocument();
     expect(await screen.findByText("Nenhum implante disponível.")).toBeInTheDocument();
   });
 

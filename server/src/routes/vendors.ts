@@ -62,7 +62,7 @@ export async function vendorRoutes(app: FastifyInstance) {
       const body = request.body as z.infer<typeof buyBodySchema>;
 
       if (body.itemType === "CHROME") {
-        throw new AppError(400, "INVALID_PURCHASE", "Chrome deve ser comprado e instalado diretamente no vendedor.");
+        throw new AppError(400, "INVALID_PURCHASE", "Cromo deve ser comprado e instalado diretamente no vendedor.");
       }
 
       request.audit_context!.payload = { vendorId, itemType: body.itemType, itemId: body.itemId, quantity: body.quantity };

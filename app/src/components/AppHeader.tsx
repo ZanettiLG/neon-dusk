@@ -22,7 +22,7 @@ export default function AppHeader() {
                   <Link to="/dashboard" className="nav-link">Painel</Link>
                   <Link to="/gigs" className="nav-link">Trampos</Link>
                   <Link to="/saideira" className="nav-link">Saideira</Link>
-                  <Link to="/chrome" className="nav-link">Chrome</Link>
+                  <Link to="/chrome" className="nav-link">Cromo</Link>
                   <Link to="/vendors" className="nav-link">Vendedores</Link>
                   <Link to="/pvp" className="nav-link">PvP</Link>
                   <Link to="/economy" className="nav-link">Economia</Link>

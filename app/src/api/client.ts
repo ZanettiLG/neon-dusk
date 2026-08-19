@@ -124,14 +124,14 @@ const PT_BR_ERRORS: Record<string, string> = {
 
   // NIL
   INSUFFICIENT_NIL: "NIL insuficiente.",
-  NIL_STIM_COOLDOWN: "Syn-café em cooldown. Aguarde.",
+  NIL_STIM_COOLDOWN: "Pingado em cooldown. Aguarde.",
   NIL_FULL: "NIL já está cheio.",
   NIL_CONCURRENT_MODIFICATION: "NIL foi modificado por outra ação. Tente novamente.",
 
   // Chrome
   CHROME_NOT_FOUND: "Implante não encontrado.",
   ALREADY_INSTALLED: "Este implante já está instalado.",
-  SLOT_FULL: "Slot de chrome ocupado.",
+  SLOT_FULL: "Slot de cromo ocupado.",
   HUMANITY_TOO_LOW: "Humanidade insuficiente para este implante.",
   INSTALLED_CHROME_NOT_FOUND: "Implante instalado não encontrado.",
 

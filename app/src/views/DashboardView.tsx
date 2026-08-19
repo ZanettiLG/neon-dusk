@@ -31,7 +31,7 @@ const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
 
 /**
  * Runner dashboard: character card (avatar, attributes), NIL bar with live
- * regen countdown, syn-café stim, humanity + chrome body map, recent event
+ * regen countdown, Pingado (ampola), humanity + cromo body map, recent event
  * feed, quick actions, leaderboard and logout (port of DashboardView.vue).
  */
 export default function DashboardView() {
@@ -232,7 +232,7 @@ export default function DashboardView() {
                         disabled={nilLoading || !nilStatus.regenerating}
                         onClick={() => void onUseStim()}
                       >
-                        SYN-CAFÉ
+                        PINGADO
                       </button>
                       <span className="text-[10px] font-data text-nd-text-secondary">
                         Brinde gratuito — 1h cooldown
@@ -251,7 +251,7 @@ export default function DashboardView() {
             {/* Humanidade + chrome body map (Feature #139) */}
             <div className="space-y-2">
               <h4 className="font-data text-xs uppercase tracking-widest text-nd-text-secondary">
-                HUMANIDADE // CHROME
+                HUMANIDADE // CROMO
               </h4>
               {installedLoading ? (
                 <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>

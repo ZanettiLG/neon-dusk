@@ -34,6 +34,8 @@ export interface VendorInventoryJoinedRow {
   price: number;
   stock: number;
   chromeDefinitionId: string | null;
+  /** Display name from chrome_definitions when `itemType === "CHROME"`. */
+  chromeDefinitionName: string | null;
   humanityCost: number | null;
 }
 
@@ -85,6 +87,7 @@ export function createVendorRepository(q: Queryable = db): VendorRepository {
           "vendor_inventory.price",
           "vendor_inventory.stock",
           "chrome_definitions.id as chromeDefinitionId",
+          "chrome_definitions.name as chromeDefinitionName",
           "chrome_definitions.humanity_cost as humanityCost",
         )
         .leftJoin(

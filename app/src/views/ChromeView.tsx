@@ -56,7 +56,7 @@ export default function ChromeView() {
       setInstalled(data);
     } catch (e) {
       if (!mountedRef.current) return;
-      setInstalledError(e instanceof Error ? e.message : "Falha ao carregar chrome instalado");
+      setInstalledError(e instanceof Error ? e.message : "Falha ao carregar cromo instalado");
     } finally {
       if (mountedRef.current) setInstalledLoading(false);
     }
@@ -115,14 +115,14 @@ export default function ChromeView() {
 
   return (
     <div className="py-8 space-y-6">
-      <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">CHROME</h2>
+      <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">CROMO</h2>
 
       <div className="flex flex-wrap items-center gap-2" role="tablist">
         <Tab state={tab === "catalog" ? "active" : "inactive"} onClick={() => setTab("catalog")}>
           Catálogo
         </Tab>
         <Tab state={tab === "installed" ? "active" : "inactive"} onClick={() => setTab("installed")}>
-          Meu Chrome
+          Meu Cromo
         </Tab>
       </div>
 

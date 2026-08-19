@@ -14,7 +14,7 @@ import type { CharacterRow } from "../repositories/character-repository";
 // Neon Dusk — NIL (energy) service
 // ============================================================================
 // Lazy-write design: GET reads apply regen in memory only; only consume and
-// syn-café persist (updating `nil` + `nil_updated_at` together). Rate is
+// Pingado persist (updating `nil` + `nil_updated_at` together). Rate is
 // +1 NIL per 5 minutes, capped at `max_nil` (03-mecanicas-core.md §1).
 
 /** Database row shape for characters (snake_case subset used by NIL operations). */
@@ -113,7 +113,7 @@ export async function consumeNil(userId: string, amount: number): Promise<NilCon
 }
 
 /**
- * Syn-café: instantly restores +20 NIL (capped at max), gated by a 1h Redis
+ * Pingado: instantly restores +20 NIL (capped at max), gated by a 1h Redis
  * cooldown key per character. Returns the amount actually restored.
  */
 export async function useStim(redis: Redis, userId: string): Promise<NilStimResponse> {
@@ -126,7 +126,7 @@ export async function useStim(redis: Redis, userId: string): Promise<NilStimResp
   const acquired = await redis.set(key, "1", "EX", NIL_SYN_CAFE_COOLDOWN_S, "NX");
   if (acquired !== "OK") {
     const ttl = await redis.ttl(key);
-    throw new AppError(400, "NIL_STIM_COOLDOWN", "Syn-café ainda está em cooldown", {
+    throw new AppError(400, "NIL_STIM_COOLDOWN", "Pingado ainda está em cooldown", {
       retryAfterSeconds: ttl > 0 ? ttl : NIL_SYN_CAFE_COOLDOWN_S,
     });
   }

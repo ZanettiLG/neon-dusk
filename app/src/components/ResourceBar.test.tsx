@@ -61,10 +61,10 @@ describe("ResourceBar", () => {
         value={80}
         max={100}
         resource="nil"
-        action={<button>SYN-CAFÉ</button>}
+        action={<button>PINGADO</button>}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "SYN-CAFÉ" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PINGADO" })).toBeInTheDocument();
   });
 });

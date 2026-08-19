@@ -212,6 +212,7 @@ export async function getVendor(vendorId: string): Promise<{
     price: number;
     stock: number;
     chromeDefinitionId: string | null;
+    chromeDefinitionName: string | null;
     humanityCost: number | null;
   }>;
 }> {
@@ -338,7 +339,7 @@ export async function buyFromVendor(
       await vendors.decrementStock(item.id, quantity, trx);
     }
 
-    // 10. Paid syn-café restores +20 NIL instantly, no cooldown.
+    // 10. Paid Pingado (itemId "syn-cafe") restores +20 NIL instantly, no cooldown.
     if (itemType === "CONSUMABLE" && itemId === "syn-cafe") {
       const character = await characters.findNilSnapshot(characterId, trx);
 

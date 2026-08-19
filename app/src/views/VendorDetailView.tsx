@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { VendorWithInventory, VendorInventoryRecord } from "@neon-dusk/shared";
 import { api } from "@/api/client";
-import { VENDOR_TYPE_LABELS } from "@/lib/labels";
+import { VENDOR_TYPE_LABELS, ITEM_TYPE_LABELS, ITEM_ID_LABELS } from "@/lib/labels";
 
 /**
  * Single vendor detail page — info header plus buyable inventory table.
@@ -43,7 +43,7 @@ export default function VendorDetailView() {
     try {
       if (item.itemType === "CHROME") {
         if (!item.chromeDefinitionId) {
-          throw new Error("Definição de chrome não encontrada");
+          throw new Error("Definição de cromo não encontrada");
         }
         await api.post("/api/chrome/install", { chromeDefinitionId: item.chromeDefinitionId, vendorId: id });
         setBuyMsg("Implante instalado!");
@@ -65,6 +65,16 @@ export default function VendorDetailView() {
     if (item.itemType === "CHROME") return "Comprar & Instalar";
     if (item.itemType === "CONSUMABLE" && item.itemId === "syn-cafe") return "Restaurar NIL (+20)";
     return "Comprar";
+  }
+
+  /**
+   * User-facing name for an inventory row. Chrome uses the joined definition
+   * name (e.g. "Braço de Ferro"); other items use the PT label map. Unknown
+   * ids render "—" — raw slugs never leak to the UI.
+   */
+  function displayName(item: VendorInventoryRecord): string {
+    if (item.chromeDefinitionName) return item.chromeDefinitionName;
+    return ITEM_ID_LABELS[item.itemId] ?? "—";
   }
 
   if (loading) {
@@ -113,7 +123,7 @@ export default function VendorDetailView() {
             <thead>
               <tr className="border-b border-nd-cyan/20 text-nd-text-secondary text-xs uppercase tracking-widest">
                 <th className="py-2 pr-4">Tipo</th>
-                <th className="py-2 pr-4">ID</th>
+                <th className="py-2 pr-4">Item</th>
                 <th className="py-2 pr-4">Preço</th>
                 <th className="py-2 pr-4">Humanidade</th>
                 <th className="py-2 pr-4">Estoque</th>
@@ -123,8 +133,8 @@ export default function VendorDetailView() {
             <tbody>
               {inventory.map((item: VendorInventoryRecord) => (
                 <tr key={item.id} className="border-b border-nd-cyan/10">
-                  <td className="py-2 pr-4 text-nd-cyan">{item.itemType}</td>
-                  <td className="py-2 pr-4 text-nd-text">{item.itemId}</td>
+                  <td className="py-2 pr-4 text-nd-cyan">{ITEM_TYPE_LABELS[item.itemType] ?? item.itemType}</td>
+                  <td className="py-2 pr-4 text-nd-text">{displayName(item)}</td>
                   <td className="py-2 pr-4 text-nd-gold">G$ {item.price}</td>
                   <td className="py-2 pr-4 text-nd-magenta">
                     {item.itemType === "CHROME" && item.humanityCost != null

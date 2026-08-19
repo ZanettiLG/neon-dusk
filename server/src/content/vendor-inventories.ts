@@ -50,14 +50,14 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
     inventory: [], // o despachante não vende itens — o quadro de trampos é separado
   },
 
-  // ── Zé do Pó (Stim Dealer, O Fervo) ─────────────────────────────────────
+  // ── Zé do Pó (Traficante de ampolas, O Fervo) ────────────────────────────
   {
     id: "00000000-0000-4000-8000-000000000003",
     name: "Zé do Pó",
     type: "STIM_DEALER",
     district: "o_fervo",
     description:
-      "Traficante de stims no coração do Fervo. Preços baixos, qualidade duvidosa.",
+      "Traficante de ampolas no coração do Fervo. Preços baixos, qualidade duvidosa.",
     inventory: [
       { itemType: "CONSUMABLE", itemId: "syn-cafe", price: 50, stock: -1 },
     ],

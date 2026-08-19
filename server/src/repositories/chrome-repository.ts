@@ -172,7 +172,7 @@ export function createChromeRepository(q: Queryable = db): ChromeRepository {
         // Implant record — unique(character, definition) is the last line of
         // defense against concurrent duplicate installs.
         if (isUniqueViolation(err)) {
-          throw new AppError(409, "ALREADY_INSTALLED", "Chrome já instalado");
+          throw new AppError(409, "ALREADY_INSTALLED", "Cromo já instalado");
         }
         throw err;
       }

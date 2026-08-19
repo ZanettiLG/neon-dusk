@@ -50,7 +50,7 @@ describe("calculateStatBonus", () => {
     expect(result).toEqual({ ...ZERO_BONUS, intelligence: 2, reflexes: 2 });
   });
 
-  it("should map an implant with a body bonus (Gorilla Arms) to the body key", () => {
+  it("should map an implant with a body bonus (Braço de Ferro) to the body key", () => {
     const result = calculateStatBonus([def({ bonuses: { body: 3 } })]);
     expect(result).toEqual({ ...ZERO_BONUS, body: 3 });
   });
@@ -99,7 +99,7 @@ describe("calculateGigSuccessBonus", () => {
     expect(calculateGigSuccessBonus([])).toBe(0);
   });
 
-  it("should return the gig_success_rate bonus of a single implant (Kiroshi Optics)", () => {
+  it("should return the gig_success_rate bonus of a single implant (Óptica Vidraça)", () => {
     expect(calculateGigSuccessBonus([def({ bonuses: { gig_success_rate: 5 } })])).toBe(5);
   });
 
@@ -129,7 +129,7 @@ describe("calculateNilMaxBonus", () => {
     expect(result).toBe(30);
   });
 
-  it("should return 0 for non-neural implants (Gorilla Arms)", () => {
+  it("should return 0 for non-neural implants (Braço de Ferro)", () => {
     expect(calculateNilMaxBonus([def({ bonuses: { body: 3 } })])).toBe(0);
   });
 

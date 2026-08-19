@@ -13,7 +13,7 @@ export default function QuickActions() {
         Saideira
       </Link>
       <Link to="/chrome" className="btn-neon text-xs px-3 py-2">
-        Chrome
+        Cromo
       </Link>
       <Link to="/pvp" className="btn-neon text-xs px-3 py-2">
         PvP

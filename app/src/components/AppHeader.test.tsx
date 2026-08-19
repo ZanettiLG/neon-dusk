@@ -123,7 +123,7 @@ describe("AppHeader nav (landing-nav)", () => {
     expect(screen.getByRole("link", { name: "Painel" })).toHaveAttribute("href", "/dashboard");
     expect(screen.getByRole("link", { name: "Trampos" })).toHaveAttribute("href", "/gigs");
     expect(screen.getByRole("link", { name: "Saideira" })).toHaveAttribute("href", "/saideira");
-    expect(screen.getByRole("link", { name: "Chrome" })).toHaveAttribute("href", "/chrome");
+    expect(screen.getByRole("link", { name: "Cromo" })).toHaveAttribute("href", "/chrome");
     expect(screen.getByRole("link", { name: "Vendedores" })).toHaveAttribute("href", "/vendors");
     expect(screen.getByRole("link", { name: "PvP" })).toHaveAttribute("href", "/pvp");
     expect(screen.getByRole("link", { name: "Economia" })).toHaveAttribute("href", "/economy");
@@ -174,7 +174,7 @@ describe("AppHeader nav (landing-nav)", () => {
 
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
     // Character links stay visible alongside the admin link.
-    expect(screen.getByRole("link", { name: "Chrome" })).toHaveAttribute("href", "/chrome");
+    expect(screen.getByRole("link", { name: "Cromo" })).toHaveAttribute("href", "/chrome");
   });
 
   it("should render the Admin link for admins without a character (no character links)", () => {

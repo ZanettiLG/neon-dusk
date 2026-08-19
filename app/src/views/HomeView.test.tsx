@@ -57,7 +57,7 @@ describe("HomeView", () => {
 
     expect(screen.getByRole("heading", { name: "NEON // DUSK" })).toBeInTheDocument();
     expect(
-      screen.getByText("Build your chrome. Burn your name. Leave a legend."),
+      screen.getByText("Build your cromo. Burn your name. Leave a legend."),
     ).toBeInTheDocument();
 
     expect(screen.getByText("System Status")).toBeInTheDocument();

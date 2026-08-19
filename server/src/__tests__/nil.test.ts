@@ -15,7 +15,7 @@ import { NIL_REGEN_INTERVAL_MS } from "@neon-dusk/shared";
 import { calculateRegen } from "../services/nil-service";
 
 // Feature #2 — NIL (energy) API integration tests: live readout (lazy regen),
-// consume (spend), and syn-café (restore with cooldown). Runs against the real
+// consume (spend), and Pingado (restore with cooldown). Runs against the real
 // Fastify app + Postgres + a dedicated redis db (4) that is flushed before the
 // run, so neither the global per-IP rate limit nor leftover `nil:stim:*`
 // cooldown keys leak between runs (same pattern as auth.test.ts / db 2).

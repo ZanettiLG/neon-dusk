@@ -167,7 +167,7 @@ describe("DashboardView", () => {
     useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
     renderDashboard();
 
-    const stim = await screen.findByRole("button", { name: "SYN-CAFÉ" });
+    const stim = await screen.findByRole("button", { name: "PINGADO" });
     await userEvent.setup().click(stim);
 
     expect(await screen.findByText("100 / 100")).toBeInTheDocument();

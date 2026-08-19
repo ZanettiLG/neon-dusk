@@ -67,7 +67,7 @@ export async function installChrome(
 ): Promise<ChromeInstallResponse> {
   // 1. Chrome definition must exist and be active
   const definition = await chrome.findDefinition(chromeDefinitionId);
-  if (!definition) throw new AppError(404, "CHROME_NOT_FOUND", "Chrome não encontrado");
+  if (!definition) throw new AppError(404, "CHROME_NOT_FOUND", "Cromo não encontrado");
 
   // 2. Vendor must stock this chrome (item_type='CHROME', item_id=slug)
   const stockItem = await chrome.findStockItem(vendorId, definition.slug);
@@ -91,7 +91,7 @@ export async function installChrome(
     const loadout = await chrome.listInstalled(characterId, trx);
 
     if (loadout.some((row) => row.definitionId === chromeDefinitionId)) {
-      throw new AppError(409, "ALREADY_INSTALLED", "Chrome já instalado");
+      throw new AppError(409, "ALREADY_INSTALLED", "Cromo já instalado");
     }
 
     // 5. Slot capacity (one definition per install, so counts never double)
@@ -107,7 +107,7 @@ export async function installChrome(
     // 6. Humanity cost — overclock makes it free
     const effectiveHumanityCost = overclockActive ? 0 : definition.humanity_cost;
     if (!validateHumanityAfterInstall(character.humanity, effectiveHumanityCost)) {
-      throw new AppError(400, "HUMANITY_TOO_LOW", "Humanidade insuficiente para instalar este chrome");
+      throw new AppError(400, "HUMANITY_TOO_LOW", "Humanidade insuficiente para instalar este cromo");
     }
 
     // 7. Wallet debit with optimistic locking (pattern of buyFromVendor)
@@ -211,7 +211,7 @@ export async function uninstallChrome(
   // Load the implant joined with its definition; scoping by characterId makes
   // a foreign id indistinguishable from a missing one (404 either way).
   const row = await chrome.findInstalledById(installedChromeId, characterId);
-  if (!row) throw new AppError(404, "INSTALLED_CHROME_NOT_FOUND", "Chrome instalado não encontrado");
+  if (!row) throw new AppError(404, "INSTALLED_CHROME_NOT_FOUND", "Cromo instalado não encontrado");
 
   const character = await characters.findById(characterId);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");

@@ -74,7 +74,24 @@ export const CHROME_SLOT_LABELS: Record<string, string> = {
 // Vendor types (ND-010)
 export const VENDOR_TYPE_LABELS: Record<string, string> = {
   RIPPERDOC: "Ferrageiro",
-  STIM_DEALER: "Stim Dealer",
+  STIM_DEALER: "Traficante de ampolas",
   FIXER: "Despachante",
   BLACK_MARKET: "Mercado Negro",
+};
+
+// Vendor inventory (ND-010): item types are internal enums — display labels
+// follow 06-terminologia-e-ip.md (chrome → cromo, stim → ampola).
+export const ITEM_TYPE_LABELS: Record<string, string> = {
+  CHROME: "Cromo",
+  CONSUMABLE: "Ampola",
+  LOOT: "Loot",
+};
+
+// Display names for non-chrome vendor items. Internal itemId → PT label
+// (syn-cafe → Pingado per 06-terminologia-e-ip.md); chrome items get their
+// name from the joined chrome_definitions row instead (see VendorDetailView).
+export const ITEM_ID_LABELS: Record<string, string> = {
+  "syn-cafe": "Pingado",
+  "combat-stim": "Ampola de Combate",
+  "access-chip": "Chip de Acesso",
 };

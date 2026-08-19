@@ -42,18 +42,18 @@ export const CHROME_DEFINITIONS: ChromeSeedEntry[] = [
   },
   {
     slug: "kiroshi-optics",
-    name: "Kiroshi Optics",
+    name: "Óptica Vidraça",
     slot: "ocular",
     tier: 1,
     bonuses: { reflexes: 2, gig_success_rate: 5 },
     humanityCost: 4,
     basePrice: 1800,
     description:
-      "Óptica Kiroshi de entrada. +2 REF, +5% sucesso em trampos. Scanner térmico integrado.",
+      "Óptica Vidraça de entrada. +2 REF, +5% sucesso em trampos. Scanner térmico integrado.",
   },
   {
     slug: "gorilla-arms",
-    name: "Gorilla Arms",
+    name: "Braço de Ferro",
     slot: "arms",
     tier: 2,
     bonuses: { body: 3 },
