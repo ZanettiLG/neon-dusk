@@ -34,8 +34,8 @@ function Tab({
 }
 
 /**
- * Despachante Cupim's gig board — the first contact with the underworld. Lists the
- * T1-T2 catalog filtered by tier/type and hosts the active-gig panel.
+ * Despachante Cupim's trampo board — the first contact with the underworld. Lists the
+ * T1-T2 catalog filtered by tier/type and hosts the active-trampo panel.
  */
 export default function GigBoardView() {
   const board = useGigStore((s) => s.board);
@@ -55,8 +55,8 @@ export default function GigBoardView() {
   }, [fetchBoard]);
 
   const filtered = useMemo(() => {
-    const gigs = board?.gigs ?? [];
-    return gigs.filter(
+    const trampos = board?.gigs ?? [];
+    return trampos.filter(
       (g) => (tier === "all" || g.tier === tier) && (type === "all" || g.type === type),
     );
   }, [board, tier, type]);
@@ -93,7 +93,7 @@ export default function GigBoardView() {
         </div>
       </div>
 
-      {/* Active gig */}
+      {/* Trampo ativo */}
       {hasActiveGig && <ActiveGigPanel />}
 
       {/* Filters */}
@@ -142,10 +142,10 @@ export default function GigBoardView() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((gig) => (
+          {filtered.map((trampo) => (
             <GigCard
-              key={gig.id}
-              gig={gig}
+              key={trampo.id}
+              trampo={trampo}
               disabled={Boolean(board?.activeGig) || actionLoading}
               onAccept={(id) => void onAccept(id)}
             />

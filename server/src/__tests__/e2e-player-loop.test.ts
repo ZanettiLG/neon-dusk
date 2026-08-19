@@ -96,14 +96,14 @@ describe("ND-018 — e2e player loop", () => {
       const balBody = await json<{ balance: number }>(balRes);
       expect(balBody.balance).toBe(500); // seed capital
 
-      // ---- STEP 4: List gigs ----
+      // ---- STEP 4: Listar trampos ----
       const boardRes = await server.get("/api/gigs", headers);
-      expect(boardRes.status, "list gigs").toBe(200);
+      expect(boardRes.status, "listar trampos").toBe(200);
       const board = await json<GigBoardResponse>(boardRes);
       expect(board.gigs.length).toBeGreaterThanOrEqual(3);
 
-      // ---- STEP 5: Accept 3 T1 gigs ----
-      // Pick 3 T1 gigs of different types: Extraction, Delivery, Sabotage
+      // ---- STEP 5: Accept 3 T1 trampos ----
+      // Pick 3 T1 trampos of different types: Extraction, Delivery, Sabotage
       const t1Gigs = board.gigs.filter(
         (g) => g.tier === "t1" && g.meetsRequirements,
       );
@@ -115,15 +115,15 @@ describe("ND-018 — e2e player loop", () => {
         const g = t1Gigs.find((g2) => g2.type === type && !selected.includes(g2.id));
         if (g) selected.push(g.id);
       }
-      expect(selected.length, "found 3 gig types").toBe(3);
+      expect(selected.length, "found 3 trampo types").toBe(3);
 
       for (const gigId of selected) {
         // Step 5a: Accept
         const acceptRes = await server.post(`/api/gigs/${gigId}/accept`, {}, headers);
-        expect([200, 201], `accept gig ${gigId}`).toContain(acceptRes.status);
+        expect([200, 201], `accept trampo ${gigId}`).toContain(acceptRes.status);
 
         // Step 5b: Bypass legwork timer via direct DB update
-        // ponytail: bypass legwork timer via DB — waiting 5-30min per gig would
+        // ponytail: bypass legwork timer via DB — waiting 5-30min per trampo would
         // make this test O(hours). Backdate legwork_started_at so the timer gate
         // (ND-078) passes.
         await db("active_gigs")
@@ -138,18 +138,18 @@ describe("ND-018 — e2e player loop", () => {
         // Step 5c: Execute
         const executeRes = await server.post(`/api/gigs/${gigId}/execute`, {}, headers);
         // Execute may fail (wrong phase, insufficient NIL, etc.) — acceptable
-        expect([200, 400], `execute gig ${gigId}`).toContain(executeRes.status);
+        expect([200, 400], `execute trampo ${gigId}`).toContain(executeRes.status);
 
         // Always attempt cleanup (escape + wrapup) to avoid dirty state leaking
-        // into later steps (chrome install, PvP, crew creation).
+        // into later steps (cromo install, PvP, crew creation).
         if (executeRes.status === 200) {
           // Step 5d: Escape
           const escapeRes = await server.post(`/api/gigs/${gigId}/escape`, {}, headers);
-          expect(escapeRes.status, `escape gig ${gigId}`).toBe(200);
+          expect(escapeRes.status, `escape trampo ${gigId}`).toBe(200);
 
           // Step 5e: Wrapup
           const wrapupRes = await server.post(`/api/gigs/${gigId}/wrapup`, {}, headers);
-          expect(wrapupRes.status, `wrapup gig ${gigId}`).toBe(200);
+          expect(wrapupRes.status, `wrapup trampo ${gigId}`).toBe(200);
           const wrapup = await json<GigWrapupResponse>(wrapupRes);
           expect(wrapup.outcome).toBeTruthy();
         } else {
@@ -162,43 +162,43 @@ describe("ND-018 — e2e player loop", () => {
       // ---- STEP 6: Verify NIL spent, Grana earned, Moral increased ----
       const afterGigs = await server.get("/api/economy/balance", headers);
       const afterBody = await json<{ balance: number }>(afterGigs);
-      expect(afterBody.balance, "Grana after gigs").toBeGreaterThan(500);
+      expect(afterBody.balance, "Grana after trampos").toBeGreaterThan(500);
 
       const scRes = await server.get("/api/street-cred", headers);
       expect(scRes.status, "Moral").toBe(200);
 
-      // ---- STEP 7: Buy chrome (Óptica Vidraça) ----
+      // ---- STEP 7: Buy cromo (Óptica Vidraça) ----
       const chromeRes = await server.get("/api/chrome", headers);
-      expect(chromeRes.status, "chrome catalog").toBe(200);
-      // GET /api/chrome returns a bare ChromeDefinition[] (shared contract).
+      expect(chromeRes.status, "cromo catalog").toBe(200);
+      // GET `/api/chrome` returns a bare ChromeDefinition[] (shared contract).
       const chromeCatalog = await json<Array<{ id: string; slug: string; name: string }>>(
         chromeRes,
       );
 
-      // Find Óptica Vidraça or any ocular chrome
-      const kiroshi =
-        chromeCatalog.find((c) => c.slug.includes("kiroshi")) ??
+      // Find Óptica Vidraça or any ocular cromo
+      const vidraca =
+        chromeCatalog.find((c) => c.slug.includes("kiroshi-optics")) ??
         chromeCatalog.find((c) => c.slug.includes("optic")) ??
         chromeCatalog[0];
 
-      if (kiroshi) {
-        // Get a vendor that sells chrome (bare VendorRecord[] contract).
+      if (vidraca) {
+        // Get a vendor that sells cromo (bare VendorRecord[] contract).
         const vendorRes = await server.get("/api/vendors", headers);
         expect(vendorRes.status, "vendors").toBe(200);
         const vendors = await json<Array<{ id: string }>>(vendorRes);
 
         const ferrageiro = vendors[0];
-        if (ferrageiro && kiroshi) {
+        if (ferrageiro && vidraca) {
           const installRes = await server.post(
             "/api/chrome/install",
-            { chromeDefinitionId: kiroshi.id, vendorId: ferrageiro.id },
+            { chromeDefinitionId: vidraca.id, vendorId: ferrageiro.id },
             headers,
           );
           // May fail if insufficient funds or slot already filled — that's fine
           if (installRes.status === 200 || installRes.status === 201) {
             // ---- STEP 8: Verify Grana debited, Humanity reduced ----
             const installedRes = await server.get("/api/chrome/installed", headers);
-            expect(installedRes.status, "installed chrome").toBe(200);
+            expect(installedRes.status, "installed cromo").toBe(200);
           }
         }
       }

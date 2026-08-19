@@ -28,7 +28,7 @@ import type {
   GigWrapupResponse,
 } from "@neon-dusk/shared";
 
-// ND-011 — gigs service + API integration tests. Real Postgres/Redis on the
+// ND-011 — trampos service + API integration tests. Real Postgres/Redis on the
 // isolated test stack (docker-compose.test.yml). Routes are exercised with
 // app.inject() (supertest is incompatible with Fastify 5 + rate-limit).
 // Dedicated redis db (10) so rate-limit counters never leak across files.
@@ -36,7 +36,7 @@ import type {
 // Character template used throughout (insertTestCharacter defaults):
 //   body 5, reflexes 4, intelligence 4, technical 4, cool 5 — SC 0, NIL 100.
 // "Corre da Farmácia" (T1, delivery): {cool:3}, SC 0, NIL 10, reward 500,
-// heat 5, legwork 5 min, cooldown 10 min, district Babilônia — the gig every
+// heat 5, legwork 5 min, cooldown 10 min, district Babilônia — the trampo every
 // fresh character can take.
 
 const REDIS_TEST_DB = "redis://localhost:56379/10";
@@ -56,7 +56,7 @@ interface ErrorBody {
   message: string;
 }
 
-describe("ND-011 — gigs service & API", () => {
+describe("ND-011 — trampos service & API", () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
@@ -77,17 +77,17 @@ describe("ND-011 — gigs service & API", () => {
 
   /** DB row of a seeded template, by display name. */
   async function gigByName(name: string) {
-    const [gig] = await db("gigs").select("*").where("name", name).limit(1);
-    if (!gig) throw new Error(`seeded gig not found: ${name}`);
-    return gig;
+    const [trampo] = await db("gigs").select("*").where("name", name).limit(1);
+    if (!trampo) throw new Error(`seeded trampo not found: ${name}`);
+    return trampo;
   }
 
-  /** The gig every fresh test character qualifies for. */
+  /** The trampo every fresh test character qualifies for. */
   async function farmaGig() {
     return gigByName("Corre da Farmácia");
   }
 
-  /** Force the active gig into the escape phase with a deterministic outcome. */
+  /** Force the active trampo into the escape phase with a deterministic outcome. */
   async function forceEscapePhase(characterId: string, opts: { outcome: "success" | "failure" }) {
     await db("active_gigs")
       .where("character_id", characterId)
@@ -100,8 +100,8 @@ describe("ND-011 — gigs service & API", () => {
       });
   }
 
-  describe("gig catalog seeding (db/seed)", () => {
-    it("should seed the 19 static templates (T1-T5) into the gigs table", async () => {
+  describe("trampo catalog seeding (db/seed)", () => {
+    it("should seed the 19 static templates (T1-T5) into the `gigs` table", async () => {
       const rows = await db("gigs").select("*");
       expect(rows).toHaveLength(19);
     });
@@ -114,7 +114,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("listAvailableGigs", () => {
-    it("should return the full board for a fresh character: 19 gigs, no active gig", async () => {
+    it("should return the full board for a fresh character: 19 trampos, no active trampo", async () => {
       const { characterId } = await insertTestCharacter();
 
       const board = await listAvailableGigs(characterId);
@@ -159,7 +159,7 @@ describe("ND-011 — gigs service & API", () => {
       }
     });
 
-    it("should flag meetsRequirements true when stats and Moral allow the gig", async () => {
+    it("should flag meetsRequirements true when stats and Moral allow the trampo", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
 
@@ -177,7 +177,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(entry.meetsRequirements).toBe(false); // reflexes 4 < 5
     });
 
-    it("should flag meetsRequirements false for T2 gigs when Moral is below 5", async () => {
+    it("should flag meetsRequirements false for T2 trampos when Moral is below 5", async () => {
       const { characterId } = await insertTestCharacter();
       const bagre = await gigByName("Bagre Ensaboado"); // T2, SC 5
 
@@ -186,7 +186,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(entry.meetsRequirements).toBe(false); // SC 0 < 5
     });
 
-    it("should report a fresh gig with no history as having 0 cooldown", async () => {
+    it("should report a fresh trampo with no history as having 0 cooldown", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
 
@@ -244,12 +244,12 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("getActiveGig", () => {
-    it("should return null when the character has no active gig", async () => {
+    it("should return null when the character has no active trampo", async () => {
       const { characterId } = await insertTestCharacter();
       expect(await getActiveGig(characterId)).toBeNull();
     });
 
-    it("should return the active gig with the template join after accepting", async () => {
+    it("should return the active trampo with the template join after accepting", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await acceptGig(characterId, farma.id);
@@ -284,7 +284,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(detail.cooldownRemaining).toBe(0);
     });
 
-    it("should throw 404 GIG_NOT_FOUND for an unknown gig", async () => {
+    it("should throw 404 GIG_NOT_FOUND for an unknown trampo", async () => {
       const { characterId } = await insertTestCharacter();
       await expect(getGigDetail(characterId, ZERO_ID)).rejects.toMatchObject({
         statusCode: 404,
@@ -294,7 +294,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("acceptGig", () => {
-    it("should open the gig in the meet phase and deduct NIL", async () => {
+    it("should open the trampo in the meet phase and deduct NIL", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
 
@@ -305,7 +305,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(res.nilRemaining).toBe(90); // 100 - 10
     });
 
-    it("should reject a second accept while a gig is active (no double NIL spend)", async () => {
+    it("should reject a second accept while a trampo is active (no double NIL spend)", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await acceptGig(characterId, farma.id);
@@ -321,7 +321,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(active!.gigId).toBe(farma.id);
     });
 
-    it("should accept a second gig once the first is wrapped up (same day)", async () => {
+    it("should accept a second trampo once the first is wrapped up (same day)", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       const extravio = await gigByName("Encomenda Extraviada");
@@ -334,7 +334,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(res.nilRemaining).toBe(78); // 100 - 10 (farma) - 12 (extravio)
     });
 
-    it("should throw 400 INSUFFICIENT_NIL and roll back the active gig when NIL is too low", async () => {
+    it("should throw 400 INSUFFICIENT_NIL and roll back the active trampo when NIL is too low", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await db("characters").where("id", characterId).update({ nil: 5 });
@@ -344,13 +344,13 @@ describe("ND-011 — gigs service & API", () => {
         code: "INSUFFICIENT_NIL",
       });
 
-      // Rolled back: no active gig row, NIL untouched.
+      // Rolled back: no active trampo row, NIL untouched.
       expect(await getActiveGig(characterId)).toBeNull();
       const [char] = await db("characters").select("nil").where("id", characterId);
       expect(char!.nil).toBe(5);
     });
 
-    it("should throw 403 INSUFFICIENT_STREET_CRED for a T2 gig below SC 5 and roll back", async () => {
+    it("should throw 403 INSUFFICIENT_STREET_CRED for a T2 trampo below SC 5 and roll back", async () => {
       const { characterId } = await insertTestCharacter();
       const bagre = await gigByName("Bagre Ensaboado"); // T2, SC 5
 
@@ -361,7 +361,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(await getActiveGig(characterId)).toBeNull();
     });
 
-    it("should accept a T2 gig once the character has 5 Moral and the stats", async () => {
+    it("should accept a T2 trampo once the character has 5 Moral and the stats", async () => {
       const { characterId } = await insertTestCharacter();
       const bagre = await gigByName("Bagre Ensaboado"); // requires {body: 6, technical: 5}
       await db("characters")
@@ -387,7 +387,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(char!.nil).toBe(100); // NIL untouched on rollback
     });
 
-    it("should throw 400 GIG_COOLDOWN when the same gig was completed recently", async () => {
+    it("should throw 400 GIG_COOLDOWN when the same trampo was completed recently", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await db("gig_history").insert({
@@ -428,7 +428,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(res.activeGig.gigName).toBe("Corre da Farmácia");
     });
 
-    it("should throw 404 GIG_NOT_FOUND for an unknown gig", async () => {
+    it("should throw 404 GIG_NOT_FOUND for an unknown trampo", async () => {
       const { characterId } = await insertTestCharacter();
       await expect(acceptGig(characterId, ZERO_ID)).rejects.toMatchObject({
         statusCode: 404,
@@ -457,7 +457,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(active.legworkStartedAt).not.toBeNull();
     });
 
-    it("should throw 404 NO_ACTIVE_GIG when no gig is active", async () => {
+    it("should throw 404 NO_ACTIVE_GIG when no trampo is active", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await expect(doLegwork(characterId, farma.id)).rejects.toMatchObject({
@@ -466,7 +466,7 @@ describe("ND-011 — gigs service & API", () => {
       });
     });
 
-    it("should throw 409 GIG_MISMATCH when the id is not the active gig", async () => {
+    it("should throw 409 GIG_MISMATCH when the id is not the active trampo", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       const extravio = await gigByName("Encomenda Extraviada");
@@ -535,7 +535,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(res.activeGig.actualPayout).toBe(res.outcome.success ? 660 : 0); // 500 × 1.2 × 1.1
     });
 
-    it("should throw 404 NO_ACTIVE_GIG when no gig is active", async () => {
+    it("should throw 404 NO_ACTIVE_GIG when no trampo is active", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await expect(executeGig(characterId, farma.id)).rejects.toMatchObject({
@@ -586,7 +586,7 @@ describe("ND-011 — gigs service & API", () => {
       });
     });
 
-    it("should throw 404 NO_ACTIVE_GIG when no gig is active", async () => {
+    it("should throw 404 NO_ACTIVE_GIG when no trampo is active", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await expect(escapeGig(characterId, farma.id)).rejects.toMatchObject({
@@ -613,7 +613,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(res.heatAccumulated).toBe(5);
       expect(res.newBalance).toBe(1160); // 500 seed + 660
 
-      // Active gig is closed.
+      // Active trampo is closed.
       expect(await getActiveGig(characterId)).toBeNull();
 
       // History entry recorded.
@@ -708,7 +708,7 @@ describe("ND-011 — gigs service & API", () => {
         .select("*")
         .where("character_id", characterId)
         .andWhere("district", farma.district);
-      expect(heatRow!.amount).toBe(10); // 5 pre-existing + 5 from the gig
+      expect(heatRow!.amount).toBe(10); // 5 pre-existing + 5 from the trampo
     });
 
     it("should throw 409 INVALID_PHASE_TRANSITION before the escape phase", async () => {
@@ -728,7 +728,7 @@ describe("ND-011 — gigs service & API", () => {
       });
     });
 
-    it("should throw 404 NO_ACTIVE_GIG when no gig is active", async () => {
+    it("should throw 404 NO_ACTIVE_GIG when no trampo is active", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await expect(wrapUpGig(characterId, farma.id)).rejects.toMatchObject({
@@ -745,7 +745,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(res).toEqual({ history: [], nextCursor: null });
     });
 
-    it("should list the completed gig newest-first after a wrap up", async () => {
+    it("should list the completed trampo newest-first after a wrap up", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await acceptGig(characterId, farma.id);
@@ -833,7 +833,7 @@ describe("ND-011 — gigs service & API", () => {
       const body = res.json() as GigBoardResponse;
       expect(body.gigs).toHaveLength(19);
       expect(body.activeGig).toBeNull();
-      // Fresh character meets the easiest gig (cool 5 ≥ 3) but not the Mula
+      // Fresh character meets the easiest trampo (cool 5 ≥ 3) but not the Mula
       // Noturna (reflexes 4 < 5) nor any T2 (SC 0 < 5).
       const byName = new Map(body.gigs.map((g) => [g.name, g]));
       expect(byName.get("Corre da Farmácia")!.meetsRequirements).toBe(true);
@@ -849,7 +849,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("GET /api/gigs/active", () => {
-    it("should return null when no gig is active", async () => {
+    it("should return null when no trampo is active", async () => {
       const { accessToken: token } = await registerApiUser();
 
       const res = await app.inject({
@@ -869,7 +869,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("GET /api/gigs/:id", () => {
-    it("should return the gig template with flags", async () => {
+    it("should return the trampo template with flags", async () => {
       const { accessToken: token } = await registerApiUser();
       const farma = await farmaGig();
 
@@ -938,7 +938,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("POST /api/gigs/:id/accept", () => {
-    it("should accept a gig, open it in the meet phase and deduct NIL", async () => {
+    it("should accept a trampo, open it in the meet phase and deduct NIL", async () => {
       const { accessToken: token } = await registerApiUser();
       const farma = await farmaGig();
 
@@ -986,7 +986,7 @@ describe("ND-011 — gigs service & API", () => {
       expect((res.json() as ErrorBody).error).toBe("VALIDATION_ERROR");
     });
 
-    it("should return 404 GIG_NOT_FOUND for an unknown gig", async () => {
+    it("should return 404 GIG_NOT_FOUND for an unknown trampo", async () => {
       const { accessToken: token } = await registerApiUser();
       const res = await app.inject({
         method: "POST",
@@ -1005,7 +1005,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("POST /api/gigs/:id/legwork", () => {
-    it("should move the active gig into the legwork phase", async () => {
+    it("should move the active trampo into the legwork phase", async () => {
       const { accessToken: token } = await registerApiUser();
       const farma = await farmaGig();
       await app.inject({
@@ -1057,7 +1057,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(body.activeGig.actualPayout).toBe(body.outcome.success ? 550 : 0);
     });
 
-    it("should return 404 NO_ACTIVE_GIG when there is no active gig", async () => {
+    it("should return 404 NO_ACTIVE_GIG when there is no active trampo", async () => {
       const { accessToken: token } = await registerApiUser();
       const farma = await farmaGig();
 
@@ -1230,7 +1230,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("POST /api/gigs/:id/wrapup", () => {
-    it("should complete the 5-phase loop: wrap up after escaping pays out and closes the gig", async () => {
+    it("should complete the 5-phase loop: wrap up after escaping pays out and closes the trampo", async () => {
       const { accessToken: token, characterId } = await registerApiUser();
       const farma = await farmaGig(); // reward 500, heat 5, legwork 5 min
       await app.inject({

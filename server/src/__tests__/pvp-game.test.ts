@@ -20,39 +20,39 @@ import { transferEddies } from "../game/economy";
 
 const DAY_MS = 86_400_000;
 
-function chrome(bonuses: ChromeBonuses) {
+function implant(bonuses: ChromeBonuses) {
   return { bonuses };
 }
 
 // ─── calculateChromePower ────────────────────────────────────────────────────
 
 describe("calculateChromePower", () => {
-  it("should return 0 for no installed chrome", () => {
+  it("should return 0 for no installed cromo", () => {
     expect(calculateChromePower([])).toBe(0);
   });
 
   it("should sum the body bonus of a single implant", () => {
-    expect(calculateChromePower([chrome({ body: 2 })])).toBe(2);
+    expect(calculateChromePower([implant({ body: 2 })])).toBe(2);
   });
 
   it("should sum body and reflexes bonuses across multiple implants", () => {
-    const installed = [chrome({ body: 2, reflexes: 3 }), chrome({ body: 1, reflexes: 1 })];
+    const installed = [implant({ body: 2, reflexes: 3 }), implant({ body: 1, reflexes: 1 })];
     expect(calculateChromePower(installed)).toBe(7);
   });
 
   it("should ignore bonuses to non-combat stats (intelligence, cool, technical)", () => {
-    const installed = [chrome({ intelligence: 4, cool: 5, technical: 3 })];
+    const installed = [implant({ intelligence: 4, cool: 5, technical: 3 })];
     expect(calculateChromePower(installed)).toBe(0);
   });
 
   it("should treat missing/undefined body and reflexes as 0", () => {
-    expect(calculateChromePower([chrome({})])).toBe(0);
-    expect(calculateChromePower([chrome({ body: undefined })])).toBe(0);
-    expect(calculateChromePower([chrome({ cool: 2, max_hp: 10 })])).toBe(0);
+    expect(calculateChromePower([implant({})])).toBe(0);
+    expect(calculateChromePower([implant({ body: undefined })])).toBe(0);
+    expect(calculateChromePower([implant({ cool: 2, max_hp: 10 })])).toBe(0);
   });
 
   it("should mix combat and non-combat bonuses, summing only body + reflexes", () => {
-    const installed = [chrome({ body: 2, intelligence: 9 }), chrome({ reflexes: 3, cool: 1 })];
+    const installed = [implant({ body: 2, intelligence: 9 }), implant({ reflexes: 3, cool: 1 })];
     expect(calculateChromePower(installed)).toBe(5);
   });
 });
@@ -60,7 +60,7 @@ describe("calculateChromePower", () => {
 // ─── calculateCombatPower ────────────────────────────────────────────────────
 
 describe("calculateCombatPower", () => {
-  it("should be body + reflexes + chrome + 1 on the minimum random roll (rng 0)", () => {
+  it("should be body + reflexes + cromo + 1 on the minimum random roll (rng 0)", () => {
     const power = calculateCombatPower({
       body: 10,
       reflexes: 5,
@@ -71,7 +71,7 @@ describe("calculateCombatPower", () => {
     expect(power).toBe(19); // 10 + 5 + 3 + 1
   });
 
-  it("should be body + reflexes + chrome + 10 on the maximum random roll (rng 0.99)", () => {
+  it("should be body + reflexes + cromo + 10 on the maximum random roll (rng 0.99)", () => {
     const power = calculateCombatPower({
       body: 10,
       reflexes: 5,

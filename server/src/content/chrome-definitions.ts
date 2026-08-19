@@ -1,9 +1,9 @@
 import type { ChromeSlot } from "@neon-dusk/shared";
 
-// Neon Dusk — Chrome Definitions Seed (ND-054 Data Seeding)
+// Neon Dusk — Cromo Definitions Seed (ND-054 Data Seeding)
 // ============================================================================
 // 5 implant definitions for MVP (04-sistemas-e-progressao.md §3-4).
-// Tiers 1-2 only; higher-tier chrome ships in Phase 2.
+// Tiers 1-2 only; higher-tier cromo ships in Phase 2.
 // Slugs are stable identifiers used by vendor inventory and loot tables.
 
 export interface ChromeSeedEntry {

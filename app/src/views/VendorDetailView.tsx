@@ -68,7 +68,7 @@ export default function VendorDetailView() {
   }
 
   /**
-   * User-facing name for an inventory row. Chrome uses the joined definition
+   * User-facing name for an inventory row. Cromo uses the joined definition
    * name (e.g. "Braço de Ferro"); other items use the PT label map. Unknown
    * ids render "—" — raw slugs never leak to the UI.
    */

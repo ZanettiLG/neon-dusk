@@ -39,7 +39,7 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
   });
 
   // NIL — energy readout + spend + Pingado (Feature #2). GET is read-only:
-  // regen is applied in memory and never persisted. Consume/stim are rate
+  // regen is applied in memory and never persisted. Consumo e Pingado são rate
   // limited per account (not per IP): the limiter runs at preHandler (after
   // authenticate) so `request.user.sub` is always set.
   app.get("/characters/me/nil", { preHandler: [authenticate] }, async (request) => {

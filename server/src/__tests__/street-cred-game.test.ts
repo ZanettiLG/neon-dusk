@@ -342,7 +342,7 @@ describe("calculateDecay", () => {
 describe("calculateSCAward", () => {
   // ── T1 (1–3) ───────────────────────────────────────────────────────────
 
-  it("should return 0 for a failed T1 gig", () => {
+  it("should return 0 for a failed T1 trampo", () => {
     expect(calculateSCAward("t1", 5, false, () => 0.5)).toBe(0);
   });
 
@@ -441,11 +441,11 @@ describe("calculateSCAward", () => {
 
   // ── Failure cases ──────────────────────────────────────────────────────
 
-  it("should return 0 for a failed T2 gig", () => {
+  it("should return 0 for a failed T2 trampo", () => {
     expect(calculateSCAward("t2", 7, false, () => 0.5)).toBe(0);
   });
 
-  it("should return 0 for a failed T5 gig", () => {
+  it("should return 0 for a failed T5 trampo", () => {
     expect(calculateSCAward("t5", 25, false, () => 0.1)).toBe(0);
   });
 

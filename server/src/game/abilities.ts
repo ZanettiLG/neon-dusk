@@ -46,15 +46,15 @@ export const ABILITY_COOLDOWNS: Record<AbilityType, number> = {
 export const ABILITY_DURATIONS: Record<AbilityType, number> = {
   combat_trance: 30 * 60_000, // 30 minutes (docs: "ativa por 30min")
   deep_dive: 0,               // one-shot (framework-only in MVP)
-  overclock: 0,               // one-shot: consumed on next chrome purchase
-  silver_tongue: 0,           // one-shot: consumed on next gig completion
-  long_haul: 0,               // one-shot: consumed when second gig starts
+  overclock: 0,               // one-shot: consumed on next cromo purchase
+  silver_tongue: 0,           // one-shot: consumed on next trampo completion
+  long_haul: 0,               // one-shot: consumed when second trampo starts
 };
 
 /** Passive bonuses — always active, independent of ability state. */
 export const NOMAD_MAX_NIL_BONUS = 0.2;    // +20% max NIL
 export const FIXER_DISCOUNT = 0.15;         // 15% vendor discount
-export const TECH_EXTRA_SLOTS = 1;          // +1 chrome slot
+export const TECH_EXTRA_SLOTS = 1;          // +1 cromo slot
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -224,9 +224,9 @@ export function computeActivation(
  *
  * Sets activeUntil to null, cooldownUntil to now + cooldown duration.
  * Called when the game event that "consumes" the ability fires:
- *   - Overclock: consumed on chrome purchase
- *   - Silver Tongue: consumed on gig completion
- *   - Long Haul: consumed when the second gig starts
+ *   - Overclock: consumed on cromo purchase
+ *   - Silver Tongue: consumed on trampo completion
+ *   - Long Haul: consumed when the second trampo starts
  *   - Deep Dive: consumed when a netrunner action is taken (phase2)
  *
  * Combat Trance is duration-based — its consumption is automatic on expiry.
@@ -339,22 +339,22 @@ export function getSilverTongueBonus(
 }
 
 /**
- * Check whether a nomad can accept a second active gig (Long Haul).
+ * Check whether a nomad can accept a second active trampo (Long Haul).
  *
- * Nomads can have 2 active gigs instead of 1 when Long Haul is active.
- * The ability is consumed when the second gig starts (caller must call
+ * Nomads can have 2 active trampos instead of 1 when Long Haul is active.
+ * The ability is consumed when the second trampo starts (caller must call
  * computeConsumption afterwards).
  *
  * @param role               - Character's role.
  * @param activeUntil         - Current active effect timestamp.
  * @param cooldownUntil       - Current cooldown timestamp.
- * @param currentActiveGigs   - How many gigs the character already has active.
+ * @param currentActiveGigs   - How many trampos the character already has active.
  * @param now                 - Reference time (injectable).
- * @returns True when the nomad can run a second gig.
+ * @returns True when the nomad can run a second trampo.
  *
  * @edgecases Non-nomad role → false. Long Haul not active → false.
- *           Already at 2 gigs → false (cap). 0 active gigs → false (no second
- *           without a first — callers must check normal gig capacity separately).
+ *           Already at 2 trampos → false (cap). 0 active trampos → false (no second
+ *           without a first — callers must check normal trampo capacity separately).
  */
 export function canRunSecondGig(
   role: Role,

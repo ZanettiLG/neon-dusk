@@ -10,7 +10,7 @@ import {
   validateSlotAvailability,
 } from "../game/chrome";
 
-// Feature #4 — unit tests for the pure chrome game logic (no DB, no mocks).
+// Feature #4 — unit tests for the pure cromo game logic (no DB, no mocks).
 // Follows 04-sistemas-e-progressao.md §3-4 balance anchors: humanity drains,
 // slot capacities from SLOT_CAPACITY, stat bonuses are deltas on top of base.
 
@@ -20,8 +20,8 @@ const ZERO_BONUS = { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 
 function def(overrides: Partial<ChromeDefinition> = {}): ChromeDefinition {
   return {
     id: "00000000-0000-4000-8000-000000000000",
-    slug: "test-chrome",
-    name: "Test Chrome",
+    slug: "test-cromo",
+    name: "Cromo de Teste",
     slot: "frontal_cortex",
     tier: 1,
     bonuses: {},
@@ -103,7 +103,7 @@ describe("calculateGigSuccessBonus", () => {
     expect(calculateGigSuccessBonus([def({ bonuses: { gig_success_rate: 5 } })])).toBe(5);
   });
 
-  it("should sum gig success bonuses across implants", () => {
+  it("should sum trampo success bonuses across implants", () => {
     const result = calculateGigSuccessBonus([
       def({ bonuses: { gig_success_rate: 2 } }),
       def({ bonuses: { gig_success_rate: 3 } }),

@@ -32,8 +32,8 @@ interface GigState {
 }
 
 /**
- * Gigs store (Zustand singleton) — Despachante Cupim board, the 5-phase loop of the
- * active gig and cursor-paginated history. Phase actions patch `board.activeGig`
+ * Trampos store (singleton Zustand) — quadro do Despachante Cupim, o loop de 5 fases do
+ * trampo ativo e o histórico paginado por cursor. Ações de fase patcheiam `board.activeGig`
  * straight from the server response; wrap up clears it and refreshes the board.
  */
 export const useGigStore = create<GigState>((set, get) => ({
@@ -122,7 +122,7 @@ export const useGigStore = create<GigState>((set, get) => ({
       const res = await api.post<GigWrapupResponse>(`/api/gigs/${id}/wrapup`, {});
       set((s) => ({ lastWrapup: res, board: s.board ? { ...s.board, activeGig: null } : null }));
       // Payout/street-cred changed — refresh the board so cooldowns reflect
-      // the completed gig (best-effort; the wrapup already resolved).
+      // the completed trampo (best-effort; the wrapup already resolved).
       void get().fetchBoard();
       void useAuthStore.getState().fetchNil();
       return res;

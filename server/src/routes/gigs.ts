@@ -30,11 +30,11 @@ import {
 } from "../services/gig-service";
 import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
 
-// Neon Dusk — Gig routes (Despachante Cupim board, 5-phase loop)
+// Neon Dusk — Trampo routes (quadro do Despachante Cupim, loop de 5 fases)
 // ============================================================================
 // Every endpoint resolves the caller's character from their JWT sub claim.
-// Phase transitions (legwork/execute/escape/wrapup) take the gig id in the
-// path and verify it against the character's active gig.
+// Phase transitions (legwork/execute/escape/wrapup) take the trampo id in the
+// path and verify it against the character's active trampo.
 //
 // ND-053: All POST endpoints are guarded by circuit-break, per-action rate
 // limits, and audit logging.
@@ -52,7 +52,7 @@ const historyQuery = z.object({
 export async function gigRoutes(app: FastifyInstance) {
   const redis = app.redis;
 
-  // GET /api/gigs — board: all gigs + active gig + daily count
+  // GET `/api/gigs` — quadro: todos os trampos + trampo ativo + contagem diária
   app.get("/gigs", { preHandler: [authenticate] }, async (request): Promise<GigBoardResponse> => {
     const characterId = (await characters.requireByUserId(request.user.sub)).id;
     return listAvailableGigs(characterId);

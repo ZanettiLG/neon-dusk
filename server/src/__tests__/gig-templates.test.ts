@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { GIG_TEMPLATES } from "../content/gig-templates";
 import type { GigType } from "../game/gigs";
 
-// ND-011 — seed data integrity for the 19 hand-crafted gig templates (T1-T5).
+// ND-011 — seed data integrity for the 19 hand-crafted trampo templates (T1-T5).
 // Guards the balance anchors from 03-mecanicas-core.md §2 and the DB CHECK
 // constraints in schema.ts (gigs_*): any template that violates one of these
 // would fail at INSERT time, so this suite catches drift before seeding.
@@ -33,7 +33,7 @@ describe("GIG_TEMPLATES", () => {
     expect(GIG_TEMPLATES.filter((t) => t.tier === "t5")).toHaveLength(3);
   });
 
-  it("should use only valid gig types with the designed distribution (7/6/6)", () => {
+  it("should use only valid trampo types with the designed distribution (7/6/6)", () => {
     for (const t of GIG_TEMPLATES) {
       expect(VALID_TYPES).toContain(t.type);
     }

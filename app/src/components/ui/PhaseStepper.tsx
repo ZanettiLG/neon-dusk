@@ -15,7 +15,7 @@ const SIZE = {
 } as const;
 
 /**
- * Horizontal multi-phase progress indicator (gig loop, install flow...).
+ * Horizontal multi-phase progress indicator (trampo loop, install flow...).
  * Current step gets aria-current="step"; errored step shows a "!" glyph.
  */
 export default function PhaseStepper({

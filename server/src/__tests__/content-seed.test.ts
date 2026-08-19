@@ -50,7 +50,7 @@ describe("GIG_TEMPLATES (content/gig-templates.ts)", () => {
     expect(GIG_TEMPLATES.filter((g) => g.tier === "t5")).toHaveLength(3);
   });
 
-  it("should spread across the 3 gig types", () => {
+  it("should spread across the 3 trampo types", () => {
     const byType = (t: string) => GIG_TEMPLATES.filter((g) => g.type === t).length;
     expect(byType("extraction")).toBe(7);
     expect(byType("delivery")).toBe(6);
@@ -126,7 +126,7 @@ describe("GIG_TEMPLATES (content/gig-templates.ts)", () => {
     }
   });
 
-  it("should not repeat gig names (name is the upsert key)", () => {
+  it("should not repeat trampo names (name is the upsert key)", () => {
     const names = GIG_TEMPLATES.map((g) => g.name);
     expect(new Set(names).size).toBe(names.length);
   });
@@ -147,7 +147,7 @@ describe("CHROME_DEFINITIONS (content/chrome-definitions.ts)", () => {
     }
   });
 
-  it("should use a valid chrome slot", () => {
+  it("should use a valid cromo slot", () => {
     for (const c of CHROME_DEFINITIONS) {
       expect(CHROME_SLOTS).toContain(c.slot);
     }
@@ -208,7 +208,7 @@ describe("VENDOR_SEED (content/vendor-inventories.ts)", () => {
     }
   });
 
-  it("should reference only existing chrome slugs in CHROME inventory items", () => {
+  it("should reference only existing cromo slugs in `CHROME` inventory items", () => {
     const chromeSlugs = new Set(CHROME_DEFINITIONS.map((c) => c.slug));
     for (const v of VENDOR_SEED) {
       for (const item of v.inventory) {
@@ -219,7 +219,7 @@ describe("VENDOR_SEED (content/vendor-inventories.ts)", () => {
     }
   });
 
-  it("should carry 8 inventory rows total (5 ferrageiro, 0 despachante, 1 stim, 2 black market)", () => {
+  it("should carry 8 inventory rows total (5 ferrageiro, 0 despachante, 1 ampola, 2 black market)", () => {
     const counts = VENDOR_SEED.map((v) => v.inventory.length);
     expect(counts).toEqual([5, 0, 1, 2]);
   });
@@ -259,10 +259,10 @@ describe("LOOT_TABLES (content/loot-tables.ts)", () => {
   });
 });
 
-// ─── Cross-file: chrome slugs referenced by content ────────────────────────
+// ─── Cross-file: cromo slugs referenced by content ────────────────────────
 
 describe("content cross-file integrity", () => {
-  it("should only reference known chrome slugs anywhere in the catalog", () => {
+  it("should only reference known cromo slugs anywhere in the catalog", () => {
     const chromeSlugs = new Set(CHROME_DEFINITIONS.map((c) => c.slug));
     for (const v of VENDOR_SEED) {
       for (const item of v.inventory) {

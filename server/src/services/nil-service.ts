@@ -82,7 +82,7 @@ export const consumeNilSchema = z.object({
     .max(100, "Amount too large"),
 });
 
-/** Deduct NIL (e.g. a gig) from the user's character and persist the new snapshot. */
+/** Deduct NIL (e.g. um trampo) from the user's character and persist the new snapshot. */
 export async function consumeNil(userId: string, amount: number): Promise<NilConsumeResponse> {
   const row = await findCharacter(userId);
   const { newNil: current } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
@@ -121,7 +121,7 @@ export async function useStim(redis: Redis, userId: string): Promise<NilStimResp
   const { newNil: current } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
 
   // Atomic cooldown gate — SET NX succeeds only when the key is absent, so two
-  // concurrent stims can't both pass the guard (the loser gets COOLDOWN).
+  // concurrent ampolas can't both pass the guard (the loser gets COOLDOWN).
   const key = `nil:stim:${row.id}`;
   const acquired = await redis.set(key, "1", "EX", NIL_SYN_CAFE_COOLDOWN_S, "NX");
   if (acquired !== "OK") {

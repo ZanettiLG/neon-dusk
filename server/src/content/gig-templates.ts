@@ -1,6 +1,6 @@
-// Neon Dusk — Gig Template Seeds (ND-054 Data Seeding)
+// Neon Dusk — Trampo Template Seeds (ND-054 Data Seeding)
 // ============================================================================
-// 19 hand-crafted gig templates spanning T1-T5 (6 × T1, 4 × T2, 3 × T3,
+// 19 hand-crafted trampo templates spanning T1-T5 (6 × T1, 4 × T2, 3 × T3,
 // 3 × T4, 3 × T5). The T3-T5 tiers were added in the T3-T5 progression pass
 // (PR #111, closes #110) with SC gates 15/30/50 — see 03-mecanicas-core.md §2.
 // Types: 7 extraction, 6 delivery, 6 sabotage.
@@ -18,7 +18,7 @@
 // cooldownMinutes is NOT included — the seed script derives it
 // (T1=10, T2=15, T3=20, T4=25, T5=30, per balance pass #114).
 
-/** Static seed data for a gig template. */
+/** Static seed data for a trampo template. */
 export interface GigTemplateSeed {
   name: string;
   description: string;

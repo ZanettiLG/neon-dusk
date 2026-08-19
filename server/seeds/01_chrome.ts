@@ -2,7 +2,7 @@ import type { Knex } from "knex";
 import { seedChrome } from "../src/seed/content-seeds";
 
 /**
- * Neon Dusk — Seed 01: Chrome definitions
+ * Neon Dusk — Seed 01: Cromo definitions
  * ============================================================================
  * Implant catalog from src/content/chrome-definitions.ts. Idempotent upsert
  * by slug (content drift is corrected on re-run).

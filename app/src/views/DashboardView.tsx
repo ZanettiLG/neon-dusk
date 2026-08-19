@@ -57,7 +57,7 @@ export default function DashboardView() {
   const [countdown, setCountdown] = useState(0);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // --- Humanity + chrome body map (Feature #139) --------------------------------
+  // --- Humanidade + cromo body map (Feature #139) --------------------------------
 
   const [installed, setInstalled] = useState<InstalledChromeResponse | null>(null);
   const [installedLoading, setInstalledLoading] = useState(true);
@@ -248,7 +248,7 @@ export default function DashboardView() {
               <p className="text-nd-magenta text-sm font-data">NIL indisponível</p>
             )}
 
-            {/* Humanidade + chrome body map (Feature #139) */}
+            {/* Humanidade + cromo body map (Feature #139) */}
             <div className="space-y-2">
               <h4 className="font-data text-xs uppercase tracking-widest text-nd-text-secondary">
                 HUMANIDADE // CROMO

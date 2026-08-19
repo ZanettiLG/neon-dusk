@@ -14,7 +14,7 @@ import type {
   InstalledChromeResponse,
 } from "@neon-dusk/shared";
 
-// Feature #4 — chrome API integration tests. Real HTTP against the app
+// Feature #4 — cromo API integration tests. Real HTTP against the app
 // (Fastify + Postgres + Redis on the isolated test stack). Dedicated redis db
 // (6) so rate-limit counters never leak across files.
 //
@@ -60,7 +60,7 @@ interface ErrorBody {
   details?: { path: (string | number)[]; message: string }[];
 }
 
-describe("Feature #4 — chrome API", () => {
+describe("Feature #4 — cromo API", () => {
   let app: FastifyInstance;
   let server: Awaited<ReturnType<typeof startTestServer>>;
   const base = () => `http://127.0.0.1:${server.port}`;
@@ -76,7 +76,7 @@ describe("Feature #4 — chrome API", () => {
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     server = await startTestServer(app);
 
-    // Re-seed Doc Fios (wiped by resetDb) with its fixed id + chrome inventory.
+    // Re-seed Doc Fios (wiped by resetDb) with its fixed id + cromo inventory.
     await db("vendors").insert({
       id: DOC_FIOS_ID,
       name: "Doc Fios",
@@ -95,7 +95,7 @@ describe("Feature #4 — chrome API", () => {
       })),
     );
 
-    // Sync chrome definitions to match the content seed (migration rows may be stale).
+    // Sync cromo definitions to match the content seed (migration rows may be stale).
     await db("chrome_definitions")
       .where("slug", "neural-booster")
       .update({ bonuses: { intelligence: 2, nil_max: 10 } });
@@ -142,7 +142,7 @@ describe("Feature #4 — chrome API", () => {
     return { accessToken, characterId: character!.id };
   }
 
-  /** DB id of a seeded chrome definition, by slug. */
+  /** DB id of a seeded cromo definition, by slug. */
   async function defId(slug: string): Promise<string> {
     const [row] = await db("chrome_definitions")
       .select("id")
@@ -151,7 +151,7 @@ describe("Feature #4 — chrome API", () => {
     return row!.id;
   }
 
-  /** A ferrageiro that stocks no chrome at all. */
+  /** A ferrageiro that stocks no cromo at all. */
   async function seedEmptyRipperdoc(): Promise<string> {
     const [vendor] = await db("vendors")
       .insert({
@@ -177,7 +177,7 @@ describe("Feature #4 — chrome API", () => {
   }
 
   describe("GET /api/chrome", () => {
-    it("should return all 5 active chrome definitions", async () => {
+    it("should return all 5 active cromo definitions", async () => {
       const { accessToken } = await registerAndCreateCharacter();
 
       const res = await fetch(`${base()}/api/chrome`, { headers: authHeader(accessToken) });
@@ -298,7 +298,7 @@ describe("Feature #4 — chrome API", () => {
   });
 
   describe("POST /api/chrome/install", () => {
-    it("should install chrome, deduct Grana and reduce humanity", async () => {
+    it("should install cromo, deduct Grana and reduce humanity", async () => {
       const { accessToken } = await registerAndCreateCharacter();
       const neural = await defId("neural-booster");
 
@@ -312,7 +312,7 @@ describe("Feature #4 — chrome API", () => {
       expect(body.walletBalance).toBe(200); // 500 - 300
     });
 
-    it("should reject a second install of the same chrome with 409", async () => {
+    it("should reject a second install of the same cromo with 409", async () => {
       const { accessToken } = await registerAndCreateCharacter();
       const neural = await defId("neural-booster");
       await installChrome(accessToken, neural);
@@ -324,7 +324,7 @@ describe("Feature #4 — chrome API", () => {
       expect(body.error).toBe("ALREADY_INSTALLED");
     });
 
-    it("should return 404 for an unknown chrome definition", async () => {
+    it("should return 404 for an unknown cromo definition", async () => {
       const { accessToken } = await registerAndCreateCharacter();
 
       const res = await installChrome(accessToken, ZERO_ID);
@@ -344,7 +344,7 @@ describe("Feature #4 — chrome API", () => {
       expect(body.error).toBe("ITEM_NOT_FOUND");
     });
 
-    it("should return 404 when the vendor does not stock the chrome", async () => {
+    it("should return 404 when the vendor does not stock the cromo", async () => {
       const { accessToken } = await registerAndCreateCharacter();
       const vendorId = await seedEmptyRipperdoc();
 
@@ -506,7 +506,7 @@ describe("Feature #4 — chrome API", () => {
       });
     });
 
-    it("should return 404 when the installed chrome belongs to another character", async () => {
+    it("should return 404 when the installed cromo belongs to another character", async () => {
       const { accessToken: ownerToken } = await registerAndCreateCharacter();
       const install = await json<ChromeInstallResponse>(
         await installChrome(ownerToken, await defId("neural-booster")),
@@ -524,7 +524,7 @@ describe("Feature #4 — chrome API", () => {
       expect(body.error).toBe("INSTALLED_CHROME_NOT_FOUND");
     });
 
-    it("should return 404 for a non-existent installed chrome id", async () => {
+    it("should return 404 for a non-existent installed cromo id", async () => {
       const { accessToken } = await registerAndCreateCharacter();
 
       const res = await server.post(
@@ -538,7 +538,7 @@ describe("Feature #4 — chrome API", () => {
       expect(body.error).toBe("INSTALLED_CHROME_NOT_FOUND");
     });
 
-    it("should return 400 for a non-uuid installed chrome id", async () => {
+    it("should return 400 for a non-uuid installed cromo id", async () => {
       const { accessToken } = await registerAndCreateCharacter();
 
       const res = await server.post(

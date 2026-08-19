@@ -6,13 +6,13 @@ import { formatCountdown } from "@/lib/format";
 import { bandFor } from "@/lib/tokens";
 
 interface GigCardProps {
-  gig: GigListItem;
-  /** True while an action is in flight or another gig is already accepted. */
+  trampo: GigListItem;
+  /** True while an action is in flight or another trampo is already accepted. */
   disabled: boolean;
   onAccept: (id: string) => void;
 }
 
-/** Tailwind classes per gig type (badge + accent). */
+/** Tailwind classes per trampo type (badge + accent). */
 const TYPE_STYLES: Record<GigType, { badge: string; bar: string }> = {
   extraction: { badge: "text-nd-magenta border-nd-magenta/40 bg-nd-magenta/10", bar: "bg-nd-magenta" },
   delivery: { badge: "text-nd-cyan border-nd-cyan/40 bg-nd-cyan/10", bar: "bg-nd-cyan" },
@@ -20,44 +20,44 @@ const TYPE_STYLES: Record<GigType, { badge: string; bar: string }> = {
 };
 
 /**
- * One gig on the Despachante Cupim board: type/tier badges, difficulty bar, reward
+ * One trampo on the Despachante Cupim board: type/tier badges, difficulty bar, reward
  * and NIL cost, per-attribute requirements (checked against the character)
  * and a live cooldown countdown.
  */
-export default function GigCard({ gig, disabled, onAccept }: GigCardProps) {
+export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
   const character = useAuthStore((s) => s.character);
-  const typeStyle = TYPE_STYLES[gig.type];
+  const typeStyle = TYPE_STYLES[trampo.type];
 
   // Live cooldown countdown (resyncs whenever the server pushes a new value).
-  const [remaining, setRemaining] = useState(gig.cooldownRemaining);
+  const [remaining, setRemaining] = useState(trampo.cooldownRemaining);
   useEffect(() => {
-    setRemaining(gig.cooldownRemaining);
-    if (gig.cooldownRemaining <= 0) return;
+    setRemaining(trampo.cooldownRemaining);
+    if (trampo.cooldownRemaining <= 0) return;
     const timer = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
     return () => clearInterval(timer);
-  }, [gig.cooldownRemaining, gig.id]);
+  }, [trampo.cooldownRemaining, trampo.id]);
 
   const onCooldown = remaining > 0;
-  const acceptDisabled = disabled || onCooldown || !gig.meetsRequirements;
+  const acceptDisabled = disabled || onCooldown || !trampo.meetsRequirements;
 
   return (
     <article className="card flex flex-col gap-3">
       {/* Header: name + badges */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="font-heading text-lg text-nd-text leading-tight">{gig.name}</h3>
+          <h3 className="font-heading text-lg text-nd-text leading-tight">{trampo.name}</h3>
           <p className="text-nd-text-secondary text-xs font-data mt-0.5">
-            {GIG_TYPE_LABELS[gig.type]} // {gig.district}
+            {GIG_TYPE_LABELS[trampo.type]} // {trampo.district}
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <span className="font-data text-[10px] uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 border-nd-green/40 text-nd-green">
-            {gig.tier.toUpperCase()}
+            {trampo.tier.toUpperCase()}
           </span>
           <span
             className={`font-data text-[10px] uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 ${typeStyle.badge}`}
           >
-            {GIG_TYPE_LABELS[gig.type]}
+            {GIG_TYPE_LABELS[trampo.type]}
           </span>
         </div>
       </div>
@@ -66,12 +66,12 @@ export default function GigCard({ gig, disabled, onAccept }: GigCardProps) {
       <div className="space-y-1">
         <div className="flex items-center justify-between text-[10px] font-data uppercase tracking-widest text-nd-text-secondary">
           <span>Dificuldade</span>
-          <span>{gig.difficulty}</span>
+          <span>{trampo.difficulty}</span>
         </div>
         <div className="h-1.5 w-full bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${bandFor("gigDifficulty", gig.difficulty).color}`}
-            style={{ width: `${Math.min(100, gig.difficulty)}%` }}
+            className={`h-full rounded-full transition-all duration-500 ${bandFor("gigDifficulty", trampo.difficulty).color}`}
+            style={{ width: `${Math.min(100, trampo.difficulty)}%` }}
           ></div>
         </div>
       </div>
@@ -79,17 +79,17 @@ export default function GigCard({ gig, disabled, onAccept }: GigCardProps) {
       {/* Reward + NIL cost */}
       <div className="flex items-center justify-between gap-3">
         <span className="font-data text-sm text-nd-gold">
-          G$ {gig.baseReward.toLocaleString("pt-BR")}
+          G$ {trampo.baseReward.toLocaleString("pt-BR")}
         </span>
         <span className="font-data text-xs text-nd-text-secondary">
-          NIL <span className="text-nd-cyan">{gig.nilCost}</span>
+          NIL <span className="text-nd-cyan">{trampo.nilCost}</span>
         </span>
       </div>
 
       {/* Requirements */}
-      {Object.keys(gig.requiredStats ?? {}).length > 0 && (
+      {Object.keys(trampo.requiredStats ?? {}).length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {Object.entries(gig.requiredStats ?? {}).map(([key, required]) => {
+          {Object.entries(trampo.requiredStats ?? {}).map(([key, required]) => {
             const charRecord = character as unknown as Record<string, number> | null;
             const met = (charRecord?.[key] ?? 0) >= required;
             return (
@@ -115,7 +115,7 @@ export default function GigCard({ gig, disabled, onAccept }: GigCardProps) {
           <span className="font-data text-[11px] text-nd-text-secondary">
             cooldown {formatCountdown(remaining)}
           </span>
-        ) : !gig.meetsRequirements ? (
+        ) : !trampo.meetsRequirements ? (
           <span className="font-data text-[11px] text-nd-magenta">requisitos não atendidos</span>
         ) : (
           <span className="font-data text-[11px] text-nd-text-secondary">disponível</span>
@@ -123,7 +123,7 @@ export default function GigCard({ gig, disabled, onAccept }: GigCardProps) {
         <button
           className="btn-neon text-xs px-3 py-1.5"
           disabled={acceptDisabled}
-          onClick={() => onAccept(gig.id)}
+          onClick={() => onAccept(trampo.id)}
         >
           Aceitar
         </button>

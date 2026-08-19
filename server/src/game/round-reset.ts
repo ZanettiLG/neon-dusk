@@ -7,7 +7,7 @@
 //
 // Reset contract (docs/definicoes-de-produto/04-sistemas-e-progressao.md):
 // attributes → base 3, street_cred → 0 (max_street_cred_achieved persists,
-// ADR-7), NIL → 100, humanity → 100, chrome wiped, crews dissolved, gigs/pvp/
+// ADR-7), NIL → 100, humanity → 100, cromo wiped, crews dissolved, trampos/pvp/
 // heat/transaction history wiped, wallets zeroed. SC 100 characters are
 // inducted into the Legends table BEFORE Moral is zeroed.
 
@@ -106,7 +106,7 @@ SELECT
       description: "end_current_round",
       sql: `UPDATE "rounds" SET "status" = 'ended', "ended_at" = now() WHERE "status" = 'active'`,
     },
-    // 4-13. Wipe per-round state (order: gigs → chrome → pvp → heat → audit → crews).
+    // 4-13. Wipe per-round state (order: trampos → cromo → pvp → heat → audit → crews).
     { description: "wipe_active_gigs", sql: `DELETE FROM "active_gigs"` },
     { description: "wipe_gig_history", sql: `DELETE FROM "gig_history"` },
     { description: "wipe_installed_chrome", sql: `DELETE FROM "installed_chrome"` },

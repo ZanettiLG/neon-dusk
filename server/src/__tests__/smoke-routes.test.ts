@@ -161,8 +161,8 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect([200, 404]).toContain(res.status);
   });
 
-  // ─── Chrome (JWT) ────────────────────────────────────────────────────────
-  it("GET /api/chrome → 200 (JWT)", async () => {
+  // ─── `/api/chrome` (JWT) ──────────────────────────────────────────────────────
+  it("GET `/api/chrome` → 200 (JWT)", async () => {
     const res = await server.get("/api/chrome", headers);
     expect(res.status).toBe(200);
   });
@@ -172,8 +172,8 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect(res.status).toBe(200);
   });
 
-  // ─── Gigs (JWT) ──────────────────────────────────────────────────────────
-  it("GET /api/gigs → 200 (JWT)", async () => {
+  // ─── `/api/gigs` (JWT) ──────────────────────────────────────────────────────────
+  it("GET `/api/gigs` → 200 (JWT)", async () => {
     const res = await server.get("/api/gigs", headers);
     expect(res.status).toBe(200);
   });
@@ -189,7 +189,7 @@ describe("ND-018 — smoke test (all routes)", () => {
   });
 
   it("GET /api/gigs/:id → 200/404 (JWT)", async () => {
-    // Get a real gig ID from the board
+    // Get a real trampo ID from the board
     const boardRes = await server.get("/api/gigs", headers);
     const board = await json<{ gigs: Array<{ id: string }> }>(boardRes);
     const gigId = board.gigs[0]?.id ?? "00000000-0000-0000-0000-000000000000";

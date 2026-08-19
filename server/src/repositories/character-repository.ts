@@ -109,7 +109,7 @@ export interface CharacterRepository {
   ): Promise<{ nil: number; max_nil: number; nil_updated_at: Date } | undefined>;
   /** Pingado restore — plain NIL write (vendor purchase path). */
   updateNilSet(id: string, nil: number, q?: Queryable): Promise<void>;
-  /** Stim restore with optimistic lock (`nil >= rawNil`), returning the row. */
+  /** Ampola restore with optimistic lock (`nil >= rawNil`), returning the row. */
   updateNilSetGuarded(
     id: string,
     nil: number,
@@ -132,7 +132,7 @@ export interface CharacterRepository {
   clearCrewForMembers(crewId: string, q?: Queryable): Promise<void>;
   /** Admin ban/unban. Returns the row id, or undefined when not found. */
   updateBan(id: string, isBanned: boolean, q?: Queryable): Promise<{ id: string } | undefined>;
-  /** PvP candidate scan — base-power bracket in SQL, chrome filtered in JS. */
+  /** PvP candidate scan — base-power bracket in SQL, cromo filtered in JS. */
   listAttackableTargets(
     attackerId: string,
     opts: { minPower: number; maxPower: number; immunityCutoff: Date; limit: number },

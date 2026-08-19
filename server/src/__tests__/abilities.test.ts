@@ -223,11 +223,11 @@ describe("canRunSecondGig", () => {
     expect(canRunSecondGig("nomad", null, null, 1, NOW)).toBe(false);
   });
 
-  it("should return false when already at 2 active gigs", () => {
+  it("should return false when already at 2 active trampos", () => {
     expect(canRunSecondGig("nomad", at(MIN), null, 2, NOW)).toBe(false);
   });
 
-  it("should return true when active and below 2 active gigs", () => {
+  it("should return true when active and below 2 active trampos", () => {
     expect(canRunSecondGig("nomad", at(MIN), null, 1, NOW)).toBe(true);
   });
 

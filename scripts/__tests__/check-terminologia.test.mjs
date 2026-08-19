@@ -106,3 +106,87 @@ test('should exit 1 on banned term in subdir with similar name (suffix match bou
   assert.equal(status, 1)
   assert.match(stdout, /bad\.ts:1:eddies/)
 })
+
+// ─── Extensão #180: termos canônicos limpos nos cards #165-#167/#179 ───────
+
+test('should exit 1 with the six #180 labels on user-facing prose', () => {
+  const { status, stdout } = runGuard({
+    'bad-gig.ts': "const msg = 'Aceitou a gig na hora';\n",
+    'bad-chrome.ts': "const msg = 'Implante de chrome';\n",
+    'bad-stim.ts': "const msg = 'stim barato na esquina';\n",
+    'bad-kiroshi.ts': "const msg = 'Óptica Kiroshi instalada';\n",
+    'bad-syn.ts': "const msg = 'Um syn-café pra acordar';\n",
+    'bad-gorilla.ts': "const msg = 'Gorilla Arms de titânio';\n",
+  })
+  assert.equal(status, 1)
+  for (const [file, label] of [
+    ['bad-gig', 'gig'],
+    ['bad-chrome', 'chrome (implantes)'],
+    ['bad-stim', 'stim'],
+    ['bad-kiroshi', 'kiroshi'],
+    ['bad-syn', 'syn-café'],
+    ['bad-gorilla', 'gorilla arms'],
+  ]) {
+    assert.match(stdout, new RegExp(`${file}\\.ts:1:${label.replace('(', '\\(').replace(')', '\\)')}`))
+  }
+})
+
+test('should exit 0 on #180 internal tokens (routes, enum strings, itemIds, SQL table)', () => {
+  // Tokens ancorados à esquerda por aspas/backtick/slash/dois-pontos/hífen —
+  // nunca prosa ("aceitou a gig" tem espaço antes do termo e segue banido).
+  const { status, stdout } = runGuard({
+    'tokens-180.ts': [
+      "export const ROUTES = ['/api/gigs', '/api/chrome', '/api/chrome/install']",
+      "export const TYPES = ['gig', 'GIGS', 'CHROME', 'CONSUMABLE']",
+      "export const ITEMS = ['kiroshi-optics', 'syn-cafe', 'combat-stim']",
+      "export const KEY = `nil:stim:${'id'}`",
+      "export const SQL = 'TRUNCATE TABLE gigs, chrome_definitions CASCADE'",
+      "export const TABLE = db('gigs')",
+      '',
+    ].join('\n'),
+  })
+  assert.equal(status, 0, `stdout: ${stdout}`)
+})
+
+test('should exit 0 on #180 embedded identifiers and field declarations', () => {
+  const { status, stdout } = runGuard({
+    'ids-180.ts': [
+      'export function useGigStore(gigId: string) { return gigId }',
+      'export const chromePower = 5',
+      'export const totalGigSuccessBonus = (gig_success_rate: number) => gig_success_rate',
+      'export interface Board { gigs: unknown[]; chrome: number; activeGig?: unknown }',
+      '',
+    ].join('\n'),
+  })
+  assert.equal(status, 0, `stdout: ${stdout}`)
+})
+
+test('should not let an embedded identifier mask a bare violation on the same line (#180 multi-match)', () => {
+  // Um identificador embutido no início da linha (calculateChromePower) não
+  // pode esconder uma ocorrência solta mais adiante na mesma linha.
+  const { status, stdout } = runGuard({
+    'mask.ts': 'expect(calculateChromePower([implant({})])).toBe(0); const msg = "implante de chrome";\n',
+  })
+  assert.equal(status, 1)
+  assert.match(stdout, /mask\.ts:1:chrome \(implantes\)/)
+})
+
+test('should exit 1 when "kiroshi optics" prose leaks through the itemId allowlist (#180 review)', () => {
+  // O itemId interno é sempre citado ("kiroshi-optics"); a allowlist é
+  // ancorada nos dois lados, então prosa ("kiroshi optics na promoção")
+  // não pode mais ser eximida pelo token.
+  const { status, stdout } = runGuard({
+    'kiroshi-leak.ts': '// kiroshi optics na promoção da semana\n',
+  })
+  assert.equal(status, 1)
+  assert.match(stdout, /kiroshi-leak\.ts:1:kiroshi/)
+})
+
+test('should keep exempting the declaration allowlist for "const gig: GigListItem" (#180 review regression)', () => {
+  // Regressão do finding 2: a allowlist de declaração de campo continua
+  // eximindo a linha de declaração (comportamento preservado).
+  const { status, stdout } = runGuard({
+    'decl-gig.ts': 'const gig: GigListItem = row;\n',
+  })
+  assert.equal(status, 0, `stdout: ${stdout}`)
+})

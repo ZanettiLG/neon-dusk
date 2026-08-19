@@ -9,13 +9,13 @@ export type ActionStatus = "default" | "loading" | "cooldown" | "blocked" | "err
 /** Semantic color tones for badges. */
 export type Tone = "neutral" | "success" | "danger" | "gold" | "hack" | "tier";
 
-/** Roll outcome for combat/gig resolution chips. `null` = not yet resolved. */
+/** Roll outcome for combat/trampo resolution chips. `null` = not yet resolved. */
 export type Outcome = "success" | "failure" | "critical" | null;
 
 /** Severity levels for EventLog entries. */
 export type EventSeverity = "info" | "success" | "warning" | "danger";
 
-/** One step of a multi-phase process (gig loop, install flow, etc.). */
+/** One step of a multi-phase process (trampo loop, install flow, etc.). */
 export interface PhaseStep {
   id: string;
   label: string;

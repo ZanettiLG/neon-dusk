@@ -10,7 +10,7 @@ export interface TabProps {
 }
 
 /**
- * Tab button for view-level switching (Chrome, PvP, ...). Rendered inside a
+ * Tab button for view-level switching (Cromo, PvP, ...). Rendered inside a
  * container with role="tablist". 44px touch target on coarse pointers (.chip-tap).
  * `disabledReason` is rendered as sr-only text referenced by aria-describedby
  * (announced by AT and available to touch users via accessibility tree), with

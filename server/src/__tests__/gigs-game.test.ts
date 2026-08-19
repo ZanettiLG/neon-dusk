@@ -17,7 +17,7 @@ import {
   STAT_SCALING,
 } from "../game/gigs";
 
-// ND-011 — unit tests for the pure gig game logic (no DB, no mocks).
+// ND-011 — unit tests for the pure trampo game logic (no DB, no mocks).
 // Formulas from 03-mecanicas-core.md §2-3: success capped at 0.95 / floored
 // at 0.05, legwork +20%, success +10%, failure heat ×2, escape penalized by
 // district heat (every 100 heat doubles the difficulty).
@@ -97,12 +97,12 @@ describe("calculateSuccessChance", () => {
     expect(calculateSuccessChance(10, 0, 50)).toBe(0.95);
   });
 
-  it("should add the chrome bonus to the scaled stat before dividing", () => {
+  it("should add the cromo bonus to the scaled stat before dividing", () => {
     // stat=0, chromeBonus=5 → 5 / 10 = 0.50
     expect(calculateSuccessChance(0, 5, 10)).toBe(0.5);
   });
 
-  it("should cap at 95% even with a large chrome bonus", () => {
+  it("should cap at 95% even with a large cromo bonus", () => {
     expect(calculateSuccessChance(5, 50, 10)).toBe(0.95);
   });
 
@@ -111,7 +111,7 @@ describe("calculateSuccessChance", () => {
     expect(calculateSuccessChance(0, 0, 100)).toBe(0.05);
   });
 
-  it("should floor at 5% when scaled stat + chrome is negative", () => {
+  it("should floor at 5% when scaled stat + cromo is negative", () => {
     // stat=0, chromeBonus=-10 → -10 / 10 = -1 → floored 0.05
     expect(calculateSuccessChance(0, -10, 10)).toBe(0.05);
   });
@@ -225,7 +225,7 @@ describe("calculatePayout", () => {
     expect(calculatePayout(1000, { legworkBonus: true })).toBe(1200);
   });
 
-  it("should apply +10% for a successful gig", () => {
+  it("should apply +10% for a successful trampo", () => {
     expect(calculatePayout(1000, { successBonus: true })).toBe(1100);
   });
 
@@ -319,13 +319,13 @@ describe("calculateEscapeChance", () => {
 });
 
 describe("calculateStreetCred", () => {
-  it("should grant 1-3 SC for T1 gigs (inclusive range)", () => {
+  it("should grant 1-3 SC for T1 trampos (inclusive range)", () => {
     expect(calculateStreetCred("t1", () => 0)).toBe(1);
     expect(calculateStreetCred("t1", () => 0.5)).toBe(2);
     expect(calculateStreetCred("t1", () => 0.9999)).toBe(3);
   });
 
-  it("should grant 3-8 SC for T2 gigs (inclusive range)", () => {
+  it("should grant 3-8 SC for T2 trampos (inclusive range)", () => {
     expect(calculateStreetCred("t2", () => 0)).toBe(3);
     expect(calculateStreetCred("t2", () => 0.2)).toBe(4);
     expect(calculateStreetCred("t2", () => 0.9999)).toBe(8);
@@ -342,7 +342,7 @@ describe("calculateStreetCred", () => {
     }
   });
 
-  it("should grant 8-15 SC for T3 gigs (fuzz)", () => {
+  it("should grant 8-15 SC for T3 trampos (fuzz)", () => {
     for (let i = 0; i < 50; i++) {
       const sc = calculateStreetCred("t3", Math.random);
       expect(sc).toBeGreaterThanOrEqual(8);
@@ -350,7 +350,7 @@ describe("calculateStreetCred", () => {
     }
   });
 
-  it("should grant 15-25 SC for T4 gigs (fuzz)", () => {
+  it("should grant 15-25 SC for T4 trampos (fuzz)", () => {
     for (let i = 0; i < 50; i++) {
       const sc = calculateStreetCred("t4", Math.random);
       expect(sc).toBeGreaterThanOrEqual(15);
@@ -358,7 +358,7 @@ describe("calculateStreetCred", () => {
     }
   });
 
-  it("should grant 25-40 SC for T5 gigs (fuzz)", () => {
+  it("should grant 25-40 SC for T5 trampos (fuzz)", () => {
     for (let i = 0; i < 50; i++) {
       const sc = calculateStreetCred("t5", Math.random);
       expect(sc).toBeGreaterThanOrEqual(25);

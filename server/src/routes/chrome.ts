@@ -19,11 +19,11 @@ import {
   uninstallChrome,
 } from "../services/chrome-service";
 
-// Neon Dusk — Chrome routes (catalog, loadout, install, uninstall)
+// Neon Dusk — Cromo routes (catalog, loadout, install, uninstall)
 // ============================================================================
 // All endpoints resolve the caller's character from their JWT sub claim.
 // Install/uninstall are the only mutating endpoints and run atomically inside
-// the chrome service's transactions.
+// the `chrome-service` transactions.
 //
 // ND-053: Install/uninstall are guarded by circuit-break, per-action rate
 // limits, validation, and audit logging.
@@ -40,7 +40,7 @@ const uninstallSchema = z.object({
 export async function chromeRoutes(app: FastifyInstance) {
   const redis = app.redis;
 
-  // GET /api/chrome — active catalog, optionally filtered by tier/slot
+  // GET `/api/chrome` — catálogo ativo, opcionalmente filtrado por tier/slot
   app.get("/chrome", { preHandler: [authenticate] }, async (request) => {
     const querySchema = z.object({
       tier: z.coerce.number().int().min(1).max(5).optional(),

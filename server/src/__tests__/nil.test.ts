@@ -255,7 +255,7 @@ describe("Feature #2 — NIL API", () => {
 
   describe("POST /api/characters/me/nil/use-stim", () => {
     it("should return 400 NIL_FULL when NIL is already full", async () => {
-      // Fresh character sits at 100/100; the stim guard rejects instead of
+      // Fresh character sits at 100/100; the ampola guard rejects instead of
       // burning the 1h cooldown for zero gain.
       const accessToken = await registerAndCreateCharacter(uniqueEmail());
 
@@ -293,9 +293,9 @@ describe("Feature #2 — NIL API", () => {
       expect(body.status.current).toBe(100);
     });
 
-    it("should reject a second stim with NIL_STIM_COOLDOWN and retryAfterSeconds", async () => {
+    it("should reject a second ampola with NIL_STIM_COOLDOWN and retryAfterSeconds", async () => {
       const accessToken = await registerAndCreateCharacter(uniqueEmail());
-      await consumeNil(accessToken, 20); // 80 → stim lands exactly at 100
+      await consumeNil(accessToken, 20); // 80 → ampola lands exactly at 100
 
       const first = await useStim(accessToken);
       expect(first.status).toBe(200);
@@ -398,7 +398,7 @@ describe("calculateRegen", () => {
     expect(result.nextTickSeconds).toBe(300);
   });
 
-  it("should still regen when the max is above 100 (chrome later)", () => {
+  it("should still regen when the max is above 100 (cromo later)", () => {
     const result = calculateRegen(150, 200, new Date(NOW.getTime() - NIL_REGEN_INTERVAL_MS));
 
     expect(result.newNil).toBe(151);

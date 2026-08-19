@@ -46,7 +46,7 @@ export const ATTRIBUTE_LABELS: Record<AttributeKey, string> = {
   cool: "Cool",
 };
 
-// Gigs (ND-011): pt-BR labels for gig types and the 5-phase loop.
+// Trampos (ND-011): labels pt-BR para os tipos de trampo e o loop de 5 fases.
 export const GIG_TYPE_LABELS: Record<GigType, string> = {
   extraction: "Extração",
   delivery: "Entrega",
@@ -61,7 +61,7 @@ export const GIG_PHASE_LABELS: Record<GigPhase, string> = {
   wrap_up: "Wrap Up",
 };
 
-// Chrome slots (ND-010)
+// Slots de cromo (ND-010)
 export const CHROME_SLOT_LABELS: Record<string, string> = {
   frontal_cortex: "Córtex Frontal",
   ocular: "Ocular",
@@ -80,15 +80,15 @@ export const VENDOR_TYPE_LABELS: Record<string, string> = {
 };
 
 // Vendor inventory (ND-010): item types are internal enums — display labels
-// follow 06-terminologia-e-ip.md (chrome → cromo, stim → ampola).
+// follow 06-terminologia-e-ip.md (implante → cromo, estimulante → ampola).
 export const ITEM_TYPE_LABELS: Record<string, string> = {
   CHROME: "Cromo",
   CONSUMABLE: "Ampola",
   LOOT: "Loot",
 };
 
-// Display names for non-chrome vendor items. Internal itemId → PT label
-// (syn-cafe → Pingado per 06-terminologia-e-ip.md); chrome items get their
+// Display names for non-cromo vendor items. Internal itemId → PT label
+// (itemId interno → Pingado conforme 06-terminologia-e-ip.md); cromo items get their
 // name from the joined chrome_definitions row instead (see VendorDetailView).
 export const ITEM_ID_LABELS: Record<string, string> = {
   "syn-cafe": "Pingado",

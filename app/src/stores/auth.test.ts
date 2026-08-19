@@ -372,7 +372,7 @@ describe("useAuthStore", () => {
       status: { ...nilStatus, current: 100, regenerating: false, nextTickSeconds: 0 },
     };
 
-    it("should apply the stim status and return the response", async () => {
+    it("should apply the ampola status and return the response", async () => {
       mocks.api.post.mockResolvedValue(stimResponse);
 
       const out = await useAuthStore.getState().useStim();

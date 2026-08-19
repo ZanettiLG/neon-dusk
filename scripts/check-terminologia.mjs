@@ -232,6 +232,17 @@ const CODE_BANNED = [
   { label: 'Nomad (classe)', re: /\bNomad\b/, caseSensitive: true },
   { label: 'Medtech (classe)', re: /\bmedtech\b/i },
   { label: 'choom', re: /choom/i },
+  // Extensão #180: termos canônicos já limpos nos cards #165-#167/#179 entram
+  // na varredura de código. Sem \b no regex — a regra word-boundary do código
+  // (isEmbeddedToken) já isola identificadores embutidos (gigId, useGigStore,
+  // chromePower); palavras isoladas caem na varredura (user-facing vs token
+  // interno é resolvido por CODE_ALLOWED pontual).
+  { label: 'gig', re: /gigs?/i },
+  { label: 'chrome (implantes)', re: /chrome/i },
+  { label: 'stim', re: /stims?/i },
+  { label: 'kiroshi', re: /kiroshi/i },
+  { label: 'syn-café', re: /syn[- ]?caf[eé]/i },
+  { label: 'gorilla arms', re: /gorilla arms/i },
 ]
 
 // Self-check do CODE_BANNED (mesmo padrão do PROBES): cada probe deve disparar
@@ -248,23 +259,57 @@ const CODE_PROBES = {
   'Nomad (classe)': 'A Nomad cruzou a fronteira.',
   'Medtech (classe)': 'A medtech aplicou a ampola.',
   'choom': 'Ei, choom, se liga.',
+  'gig': 'Aceitou a gig.',
+  'chrome (implantes)': 'Implante de chrome.',
+  'stim': 'stim barato na esquina.',
+  'kiroshi': 'Óptica Kiroshi instalada.',
+  'syn-café': 'syn-café na esquina.',
+  'gorilla arms': 'Gorilla Arms de titânio.',
 }
 
 // Allowlist pontual de tokens internos legítimos como palavras isoladas.
-// Regex aplicado à LINHA: se casar, a linha passa (as regras são ancoradas a
-// formas precisas — chave de propriedade seguida de `:` ou palavra exata entre
-// aspas — para nunca cobrir prosa user-facing como "pagou 50 eddies").
+// Cada entrada tem `on` (label do CODE_BANNED que ela exime — regras
+// label-scoped, sem vazamento entre termos) e um regex ancorado a formas
+// precisas de token (aspas/slash/dois-pontos/hífen nos DOIS lados, ou chave
+// de propriedade seguida de `:`) — prosa user-facing como "pagou 50 eddies"
+// ou "aceitou a gig" nunca casa. Entradas com `match` testam só o trecho
+// casado (linha original, caixa preservada).
 const CODE_ALLOWED = [
   // Chave/declaração de campo `eddies` (API field): `eddies: number` em
   // packages/shared, `eddies: Number(...)` em admin-service.
-  { label: 'campo eddies (declaração)', re: /\beddies\s*:/i },
+  { label: 'campo eddies (declaração)', re: /\beddies\??\s*:/i, on: 'eddies' },
   // Enum string e item id internos entre aspas: type: "eddies",
   // itemId: "eddies", itemType: "EDDIES", toHaveProperty("eddies").
-  { label: 'enum string "eddies"', re: /["'`]eddies["'`]/i },
+  { label: 'enum string "eddies"', re: /["'`]eddies["'`]/i, on: 'eddies' },
   // Valor ALLCAPS do enum vendor_type (interno). Entrada por TOKEN (match+on):
   // o regex roda sobre o trecho casado na linha ORIGINAL (caixa preservada) —
   // "RIPPERDOC" passa; "Ripperdoc"/"ripperdoc" user-facing continuam falhando.
   { label: 'enum vendor_type RIPPERDOC (ALLCAPS)', match: /^RIPPERDOC$/, on: 'ripperdoc' },
+  // ── Extensão #180: tokens internos dos termos novos ─────────────────────
+  // Token ancorado dos DOIS lados por aspas/backtick/slash/hífen/dois-pontos:
+  // rota "/api/gigs" (em comentário, escrever `GET /api/gigs` entre
+  // backticks), enum "gig", import game/gigs, arquivo gig-service, itemId
+  // "combat-stim", chave Redis nil:stim:. Prosa user-facing ("aceitou a gig",
+  // 'implante de chrome', 'stim barato') tem espaço em pelo menos um dos
+  // lados e nunca casa.
+  { label: 'token gig(s) em rota/enum/import/tabela', re: /["'`/]gigs?(["'`/]|-)/i, on: 'gig' },
+  // Declaração de campo/propriedade do API shape: gigs: [], gig: GigListItem.
+  { label: 'campo gig(s) (declaração)', re: /\bgigs?\??\s*:/i, on: 'gig' },
+  // Nome de tabela em SQL de teste (schema legado #145): TRUNCATE TABLE gigs.
+  { label: 'tabela gigs em SQL (TRUNCATE/FROM/JOIN)', re: /\b(?:TABLE|FROM|JOIN|INTO|UPDATE)\s+gigs?\b/i, on: 'gig' },
+  // Rotas/imports de implantes: "/api/chrome", "./chrome-service", "CHROME".
+  // `?` cobre query string de URL em teste (`/api/chrome?tier=1`).
+  { label: 'token chrome em rota/enum/import', re: /["'`/]chromes?(["'`/?]|-)/i, on: 'chrome (implantes)' },
+  // Declaração de campo: chrome: 5, chrome: ChromeRepository.
+  { label: 'campo chrome (declaração)', re: /\bchromes?\??\s*:/i, on: 'chrome (implantes)' },
+  // itemId/slug interno do implante ocular (user-facing: Óptica Vidraça).
+  // Ancorado nos DOIS lados (aspas/backtick/slash): o token é sempre citado
+  // ("kiroshi-optics"); prosa como "kiroshi optics na promoção" não exime.
+  { label: 'itemId kiroshi-optics (token interno)', re: /["'`/]kiroshi[- ]?optics["'`/]/i, on: 'kiroshi' },
+  // Rotas/itemId/chaves de ampolas: "combat-stim", Redis nil:stim:.
+  { label: 'token stim em rota/itemId/chave Redis', re: /["'`/:-]stims?["'`/:-]/i, on: 'stim' },
+  // itemId interno do consumível de NIL (user-facing: Pingado).
+  { label: 'itemId syn-cafe (token interno)', re: /["'`/]syn[- ]?caf[eé]["'`]/i, on: 'syn-café' },
 ]
 
 /** Caracteres considerados parte de identificador/token interno. */
@@ -339,21 +384,29 @@ function checkCode() {
         if (/#145/.test(line)) return
         for (const e of CODE_BANNED) {
           const src = e.caseSensitive ? line : line.toLowerCase()
-          const m = e.re.exec(src)
-          if (!m) continue
-          if (isEmbeddedToken(src, m.index, m[0].length)) continue
-          // Allowlist: regra de linha (re) ou de token casado (match+on).
-          // O token é lido na linha ORIGINAL — o src case-insensitive é
-          // lowercaseado e esconderia a caixa alta (ex: enum RIPPERDOC).
-          const allowed = CODE_ALLOWED.some((a) =>
-            a.match
-              ? a.on === e.label && a.match.test(line.slice(m.index, m.index + m[0].length))
-              : a.re.test(line)
-          )
-          if (allowed) continue
-          console.log(`${file}:${i + 1}:${e.label}`)
-          violations++
-          break
+          // Multi-match (#180): uma ocorrência embutida no início da linha
+          // não pode mascarar uma ocorrência solta mais adiante (ex:
+          // calculateChromePower + "chrome" em prosa na mesma linha). Regex
+          // fresh com /g por linha — os do CODE_BANNED não têm /g para não
+          // vazar lastIndex entre execuções.
+          const re = new RegExp(e.re.source, e.re.flags.includes('g') ? e.re.flags : `${e.re.flags}g`)
+          for (const m of src.matchAll(re)) {
+            if (isEmbeddedToken(src, m.index, m[0].length)) continue
+            // Allowlist: label-scoped (`on`) — regra de linha (re) ou de token
+            // casado (match). O token é lido na linha ORIGINAL — o src
+            // case-insensitive é lowercaseado e esconderia a caixa alta
+            // (ex: enum RIPPERDOC).
+            const allowed = CODE_ALLOWED.some((a) => {
+              if (a.on && a.on !== e.label) return false
+              return a.match
+                ? a.match.test(line.slice(m.index, m.index + m[0].length))
+                : a.re.test(line)
+            })
+            if (allowed) continue
+            console.log(`${file}:${i + 1}:${e.label}`)
+            violations++
+            break
+          }
         }
       })
     }

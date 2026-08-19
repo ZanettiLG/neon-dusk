@@ -210,7 +210,7 @@ describe("ND-017 — Round service (integration)", () => {
     });
 
     it("should reset all state, capture stats and induct SC-100 legends in one transaction", async () => {
-      // Character A: legend candidate (SC 100) with crew, chrome, wallet,
+      // Character A: legend candidate (SC 100) with crew, cromo, wallet,
       // heat and a PvP fight. Character B: SC 99 — must NOT be inducted.
       const a = await insertTestCharacter({ name: "Razorback-ND017" });
       const b = await insertTestCharacter({ name: "Ghostwire-ND017" });
@@ -241,7 +241,7 @@ describe("ND-017 — Round service (integration)", () => {
         .where("character_id", a.characterId)
         .update({ balance: 5000, escrow: 500, lifetime_earned: 10000, lifetime_spent: 3000 });
 
-      // Chrome (definition comes from the migration 0004 seed), heat, PvP.
+      // Cromo (definition comes from the migration 0004 seed), heat, PvP.
       const [def] = await db("chrome_definitions").select("*").limit(1);
       await db("installed_chrome")
         .insert({ character_id: a.characterId, chrome_definition_id: def!.id });

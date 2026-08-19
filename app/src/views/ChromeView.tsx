@@ -7,8 +7,8 @@ import Tab from "@/components/ui/Tab";
 type TabKey = "catalog" | "installed";
 
 /**
- * Chrome implant management — two tabs: catalog browser and installed implants.
- * Get chipped, mano. Chrome eats your humanity; spend it wisely.
+ * Cromo implant management — two tabs: catalog browser and installed implants.
+ * Get chipped, mano. Cromo eats your humanity; spend it wisely.
  */
 export default function ChromeView() {
   const mountedRef = useRef(true);

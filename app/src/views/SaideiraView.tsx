@@ -9,7 +9,7 @@ import Leaderboard from "@/components/Leaderboard";
 
 type TabKey = "chat" | "ranking" | "legends";
 
-/** Reusable tab button (same styling as the gig board filters). */
+/** Reusable tab button (same styling as the trampo board filters). */
 function Tab({
   active,
   onClick,

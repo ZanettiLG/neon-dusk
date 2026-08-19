@@ -1,7 +1,7 @@
 import type { Attributes, ChromeBonuses, ChromeDefinition, ChromeSlot } from "@neon-dusk/shared";
 import { SLOT_CAPACITY } from "@neon-dusk/shared";
 
-// Neon Dusk — Chrome game logic (pure functions, no DB access)
+// Neon Dusk — Cromo game logic (pure functions, no DB access)
 // ============================================================================
 // NOTE: this file is owned by the game-logic-dev agent; if a richer version
 // exists in their handoff, prefer it. Types come from @neon-dusk/shared so the
@@ -50,7 +50,7 @@ export function calculateHpBonus(defs: ChromeDefinition[]): number {
   return sumBonus(defs, "max_hp");
 }
 
-/** Total gig success rate bonus (percentage points) granted by the implants. */
+/** Total trampo success rate bonus (percentage points) granted by the implants. */
 export function calculateGigSuccessBonus(defs: ChromeDefinition[]): number {
   return sumBonus(defs, "gig_success_rate");
 }

@@ -25,7 +25,7 @@ export interface VendorInventoryRow {
   stock: number;
 }
 
-/** Inventory row joined with chrome definitions (vendor detail view). */
+/** Inventory row joined with cromo definitions (vendor detail view). */
 export interface VendorInventoryJoinedRow {
   id: string;
   vendorId: string;
@@ -44,7 +44,7 @@ export interface VendorRepository {
   list(q?: Queryable): Promise<Array<{ id: string; name: string; type: string; district: string }>>;
   /** Full vendor row by id. */
   getById(id: string, q?: Queryable): Promise<VendorRow | null>;
-  /** Vendor's inventory joined with chrome definitions (humanity cost). */
+  /** Vendor's inventory joined with cromo definitions (humanity cost). */
   listInventory(vendorId: string, q?: Queryable): Promise<VendorInventoryJoinedRow[]>;
   /** One stock row (vendor + item type + item id). */
   findStockItem(

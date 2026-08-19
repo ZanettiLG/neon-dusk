@@ -15,7 +15,7 @@ export interface LootTableRow {
 }
 
 export interface LootRepository {
-  /** All loot rows for a gig tier (or every tier when omitted). */
+  /** All loot rows for a trampo tier (or every tier when omitted). */
   listByTier(tier: string | undefined, q?: Queryable): Promise<LootTableRow[]>;
 }
 

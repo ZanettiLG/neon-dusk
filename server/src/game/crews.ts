@@ -2,13 +2,13 @@ import type { CrewBonus } from "@neon-dusk/shared";
 
 // Neon Dusk — Crew game logic (pure functions, no DB access)
 // ============================================================================
-// Size-based crew bonuses (ND-016). The multipliers are consumed by gig
+// Size-based crew bonuses (ND-016). The multipliers are consumed by trampo
 // resolution (success rate, payout, Moral) in a future feature; the
 // math lives here so it is unit-testable and shared with the API surface.
 
 /**
  * Crew bonuses unlocked by crew size. Every tier is cumulative: a crew of 4
- * unlocks all three bonuses. See 03-mecanicas-core.md §2 for the gig hooks.
+ * unlocks all three bonuses. See 03-mecanicas-core.md §2 for the trampo hooks.
  */
 export function calculateCrewBonuses(memberCount: number): CrewBonus[] {
   const bonuses: CrewBonus[] = [];

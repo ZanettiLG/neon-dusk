@@ -1,6 +1,6 @@
 // Neon Dusk — Loot Table Seeds (ND-054 Data Seeding)
 // ============================================================================
-// Weighted loot tables for gig completion rewards (rollLoot() in economy.ts).
+// Weighted loot tables for trampo completion rewards (rollLoot() in economy.ts).
 // Weights are relative probabilities — drop rate is implied by total weight
 // composition, not by explicit percentage configuration.
 //

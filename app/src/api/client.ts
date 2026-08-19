@@ -128,14 +128,14 @@ const PT_BR_ERRORS: Record<string, string> = {
   NIL_FULL: "NIL já está cheio.",
   NIL_CONCURRENT_MODIFICATION: "NIL foi modificado por outra ação. Tente novamente.",
 
-  // Chrome
+  // Cromo
   CHROME_NOT_FOUND: "Implante não encontrado.",
   ALREADY_INSTALLED: "Este implante já está instalado.",
   SLOT_FULL: "Slot de cromo ocupado.",
   HUMANITY_TOO_LOW: "Humanidade insuficiente para este implante.",
   INSTALLED_CHROME_NOT_FOUND: "Implante instalado não encontrado.",
 
-  // Gigs
+  // Trampos
   GIG_NOT_FOUND: "Trampo não encontrado.",
   NO_ACTIVE_GIG: "Você não tem trampo ativo.",
   ALREADY_ACTIVE_GIG: "Você já tem um trampo ativo.",

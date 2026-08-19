@@ -34,9 +34,9 @@ function OutcomeChip({
 }
 
 /**
- * The Despachante Cupim active-gig panel: 5-step phase indicator, phase-specific
+ * The Despachante Cupim active-trampo panel: 5-step phase indicator, phase-specific
  * actions (legwork timer, execute/escape rolls, wrap-up payout) and the
- * post-wrap-up summary. Rendered by GigBoardView whenever an active gig
+ * post-wrap-up summary. Rendered by GigBoardView whenever an active trampo
  * exists OR a wrap-up summary is still on screen.
  */
 export default function ActiveGigPanel() {
@@ -50,7 +50,7 @@ export default function ActiveGigPanel() {
   const wrapUpGig = useGigStore((s) => s.wrapUpGig);
   const abandonGig = useGigStore((s) => s.abandonGig);
 
-  // Roll details live only in the action responses (the gig row keeps outcomes).
+  // Roll details live only in the action responses (the trampo row keeps outcomes).
   const [lastExecute, setLastExecute] = useState<GigExecuteResponse | null>(null);
   const [lastEscape, setLastEscape] = useState<GigEscapeResponse | null>(null);
 
@@ -61,7 +61,7 @@ export default function ActiveGigPanel() {
     return () => clearInterval(timer);
   }, []);
 
-  // Reset transient outcome state whenever the active gig changes identity.
+  // Reset transient outcome state whenever the active trampo changes identity.
   const lastGigId = useRef<string | null>(null);
   const actionInFlight = useRef(false);
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function ActiveGigPanel() {
     }
   }, [activeGig?.id]);
 
-  // --- Wrap-up summary (no active gig left) ----------------------------------
+  // --- Wrap-up summary (no active trampo left) ----------------------------------
   if (!activeGig && lastWrapup) {
     return (
       <div className="card border-nd-gold/40 shadow-neon-gold space-y-3">
@@ -101,15 +101,15 @@ export default function ActiveGigPanel() {
 
   if (!activeGig) return null;
 
-  const gig = activeGig;
-  const phaseIndex = GIG_PHASES.indexOf(gig.phase as (typeof GIG_PHASES)[number]);
+  const trampo = activeGig;
+  const phaseIndex = GIG_PHASES.indexOf(trampo.phase as (typeof GIG_PHASES)[number]);
   const currentPhase = phaseIndex >= 0 ? phaseIndex : 0;
 
   // Legwork countdown (legworkStartedAt + legworkMinutes, now in seconds).
-  const legworkStarted = gig.legworkStartedAt ? new Date(gig.legworkStartedAt).getTime() : null;
-  const legworkEndsAt = legworkStarted ? legworkStarted + gig.legworkMinutes * 1_000 : null;
+  const legworkStarted = trampo.legworkStartedAt ? new Date(trampo.legworkStartedAt).getTime() : null;
+  const legworkEndsAt = legworkStarted ? legworkStarted + trampo.legworkMinutes * 1_000 : null;
   const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
-  const legworkDone = gig.legworkCompleted || (legworkEndsAt !== null && legworkRemaining === 0);
+  const legworkDone = trampo.legworkCompleted || (legworkEndsAt !== null && legworkRemaining === 0);
 
   async function onAction(action: () => Promise<unknown>): Promise<void> {
     if (actionInFlight.current) return; // guard against double-click
@@ -133,10 +133,10 @@ export default function ActiveGigPanel() {
           <p className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary">
             TRAMPO ATIVO // CUPIM · O PORTEIRO
           </p>
-          <h3 className="font-heading text-xl text-nd-text">{gig.gigName}</h3>
+          <h3 className="font-heading text-xl text-nd-text">{trampo.gigName}</h3>
         </div>
         <span className="font-data text-[10px] uppercase tracking-widest border border-nd-purple/40 text-nd-purple rounded-terminal px-2 py-1">
-          {gig.gigTier.toUpperCase()} · {gig.gigType.toUpperCase()}
+          {trampo.gigTier.toUpperCase()} · {trampo.gigType.toUpperCase()}
         </span>
       </div>
 
@@ -161,24 +161,24 @@ export default function ActiveGigPanel() {
       </div>
 
       {/* Phase content */}
-      {gig.phase === "meet" && (
+      {trampo.phase === "meet" && (
         <div className="space-y-3">
           <p className="text-nd-text-secondary text-sm">
             Cupim aperta tua mão e fala baixo: "{"Boa escolha, moleque. Não vacila, não morre, me traz o resultado."}"
           </p>
-          <OutcomeChip label="Execução" outcome={gig.executeOutcome} />
+          <OutcomeChip label="Execução" outcome={trampo.executeOutcome} />
           <div className="flex flex-wrap gap-2">
             <button
               className="btn-neon text-xs"
               disabled={actionLoading}
-              onClick={() => void onAction(() => doLegwork(gig.gigId))}
+              onClick={() => void onAction(() => doLegwork(trampo.gigId))}
             >
               Legwork (+20%)
             </button>
             <button
               className="btn-neon text-xs border-nd-gold text-nd-gold bg-nd-gold/10 hover:bg-nd-gold/20"
               disabled={actionLoading}
-              onClick={() => void onAction(() => executeGig(gig.gigId))}
+              onClick={() => void onAction(() => executeGig(trampo.gigId))}
             >
               Executar direto (-20%)
             </button>
@@ -186,7 +186,7 @@ export default function ActiveGigPanel() {
         </div>
       )}
 
-      {gig.phase === "legwork" && (
+      {trampo.phase === "legwork" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between font-data text-xs">
             <span className="text-nd-text-secondary">Investigando o terreno...</span>
@@ -202,7 +202,7 @@ export default function ActiveGigPanel() {
               style={{
                 width: `${
                   legworkEndsAt
-                    ? Math.max(0, 100 - (legworkRemaining / gig.legworkMinutes) * 100)
+                    ? Math.max(0, 100 - (legworkRemaining / trampo.legworkMinutes) * 100)
                     : 0
                 }%`,
               }}
@@ -212,27 +212,27 @@ export default function ActiveGigPanel() {
             className="btn-neon text-xs"
             disabled={actionLoading || !legworkDone}
             title={legworkDone ? undefined : "Aguarde o timer do legwork"}
-            onClick={() => void onAction(() => executeGig(gig.gigId))}
+            onClick={() => void onAction(() => executeGig(trampo.gigId))}
           >
             Executar
           </button>
         </div>
       )}
 
-      {gig.phase === "execute" && (
+      {trampo.phase === "execute" && (
         <div className="space-y-3">
           <OutcomeChip
             label="Execução"
-            outcome={gig.executeOutcome}
+            outcome={trampo.executeOutcome}
             roll={lastExecute?.outcome.roll}
             chance={lastExecute?.outcome.successChance}
           />
-          {gig.executeOutcome === "failure" && (
+          {trampo.executeOutcome === "failure" && (
             <p className="text-nd-magenta text-sm">
               Deu ruim no meio do caminho. Cupim vai cobrar explicação — primeiro, sai daí.
             </p>
           )}
-          {gig.executeOutcome === "success" && (
+          {trampo.executeOutcome === "success" && (
             <p className="text-nd-green text-sm">
               Serviço limpo. Agora some da cena antes que a milícia chegue.
             </p>
@@ -240,24 +240,24 @@ export default function ActiveGigPanel() {
           <button
             className="btn-neon text-xs"
             disabled={actionLoading}
-            onClick={() => void onAction(() => escapeGig(gig.gigId))}
+            onClick={() => void onAction(() => escapeGig(trampo.gigId))}
           >
             Fugir / Extração
           </button>
         </div>
       )}
 
-      {gig.phase === "escape" && (
+      {trampo.phase === "escape" && (
         <div className="space-y-3">
           <OutcomeChip
             label="Execução"
-            outcome={gig.executeOutcome}
+            outcome={trampo.executeOutcome}
             roll={lastExecute?.outcome.roll}
             chance={lastExecute?.outcome.successChance}
           />
           <OutcomeChip
             label="Fuga"
-            outcome={gig.escapeOutcome}
+            outcome={trampo.escapeOutcome}
             roll={lastEscape?.outcome.roll}
             chance={lastEscape?.outcome.successChance}
           />
@@ -269,24 +269,24 @@ export default function ActiveGigPanel() {
           <button
             className="btn-neon text-xs border-nd-gold text-nd-gold bg-nd-gold/10 hover:bg-nd-gold/20"
             disabled={actionLoading}
-            onClick={() => void wrapUpGig(gig.gigId).catch(() => undefined)}
+            onClick={() => void wrapUpGig(trampo.gigId).catch(() => undefined)}
           >
             Concluir trampo (receber)
           </button>
         </div>
       )}
 
-      {gig.phase === "wrap_up" && (
+      {trampo.phase === "wrap_up" && (
         <div className="space-y-3">
           <OutcomeChip
             label="Execução"
-            outcome={gig.executeOutcome}
+            outcome={trampo.executeOutcome}
             roll={lastExecute?.outcome.roll}
             chance={lastExecute?.outcome.successChance}
           />
           <OutcomeChip
             label="Fuga"
-            outcome={gig.escapeOutcome}
+            outcome={trampo.escapeOutcome}
             roll={lastEscape?.outcome.roll}
             chance={lastEscape?.outcome.successChance}
           />
@@ -298,7 +298,7 @@ export default function ActiveGigPanel() {
           <button
             className="btn-neon text-xs border-nd-gold text-nd-gold bg-nd-gold/10 hover:bg-nd-gold/20"
             disabled={actionLoading}
-            onClick={() => void wrapUpGig(gig.gigId).catch(() => undefined)}
+            onClick={() => void wrapUpGig(trampo.gigId).catch(() => undefined)}
           >
             Concluir trampo (receber)
           </button>
@@ -309,12 +309,12 @@ export default function ActiveGigPanel() {
       <button
         onClick={() => {
           if (
-            gig &&
+            trampo &&
             window.confirm(
               "Tem certeza que quer abandonar este trampo? O despachante não vai gostar.",
             )
           ) {
-            void abandonGig(gig.gigId);
+            void abandonGig(trampo.gigId);
           }
         }}
         disabled={actionLoading}

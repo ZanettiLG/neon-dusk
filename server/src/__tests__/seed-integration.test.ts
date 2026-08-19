@@ -12,8 +12,8 @@ import { walletRepository as wallets } from "../repositories/wallet-repository";
 // compatibility and wallet integrity.
 //
 // NOTE: the test DB must be migrated (db:migrate) before this suite — the
-// chrome-integration suite already depends on seeded chrome_definitions rows
-// for the same reason.
+// A suíte de integração de cromo já depende das linhas semeadas de
+// chrome_definitions pelo mesmo motivo.
 
 const CONTENT_COUNTS = {
   gigs: 19,
@@ -23,7 +23,7 @@ const CONTENT_COUNTS = {
   loot: 9,
 } as const;
 
-/** Run the content seed (chrome + vendors + inventory + gigs + loot). */
+/** Run the content seed (cromo + vendors + inventory + trampos + loot). */
 async function seedAll(): Promise<{
   chrome: number;
   vendors: number;
@@ -31,15 +31,15 @@ async function seedAll(): Promise<{
   gigs: number;
   loot: number;
 }> {
-  const chrome = await seedChrome(db);
+  const cromos = await seedChrome(db);
   const vendorResult = await seedVendors(db);
-  const gigs = await seedGigsFn(db);
+  const trampos = await seedGigsFn(db);
   const loot = await seedLoot(db);
   return {
-    chrome,
+    chrome: cromos,
     vendors: vendorResult.vendors,
     inventory: vendorResult.inventory,
-    gigs,
+    gigs: trampos,
     loot,
   };
 }
@@ -100,7 +100,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(def!.base_price).toBe(1500);
     });
 
-    it("should store chrome definitions with the correct stats", async () => {
+    it("should store cromo definitions with the correct stats", async () => {
       const [booster] = await db("chrome_definitions")
         .select("*")
         .where("slug", "neural-booster")
@@ -139,7 +139,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
         .select("vendor_id", "item_id", "price", "stock")
         .orderBy("vendor_id");
 
-      // 8 rows across the 4 fixed vendors: 5 ferrageiro, 0 despachante, 1 stim, 2 market.
+      // 8 rows across the 4 fixed vendors: 5 ferrageiro, 0 despachante, 1 ampola, 2 market.
       const perVendor = new Map<string, typeof rows>();
       for (const r of rows) {
         perVendor.set(r.vendor_id, [...(perVendor.get(r.vendor_id) ?? []), r]);
@@ -163,7 +163,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(kiroshi.price).toBe(1800);
     });
 
-    it("should derive the gig cooldown from tier (10/15/20/25/30 min)", async () => {
+    it("should derive the trampo cooldown from tier (10/15/20/25/30 min)", async () => {
       // seed.ts derives cooldown per tier (balance pass #114: T1=10, T2=15,
       // T3=20, T4=25, T5=30 — "cap all gameplay wait timers at 30s" scaled
       // back to the doc progression anchors).

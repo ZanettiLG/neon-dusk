@@ -20,7 +20,7 @@ export const nilSpentTotal = new Counter({
   registers: [registry],
 });
 
-/** Grana earned (gig payouts, PVP rewards, loot). */
+/** Grana earned (trampo payouts, PVP rewards, loot). */
 export const eddiesEarnedTotal = new Counter({
   name: "neondusk_eddies_earned_total",
   help: "Total Grana earned",
@@ -36,7 +36,7 @@ export const eddiesSpentTotal = new Counter({
   registers: [registry],
 });
 
-/** Gigs completed successfully. */
+/** Trampos completed successfully. */
 export const gigsCompletedTotal = new Counter({
   name: "neondusk_gigs_completed_total",
   help: "Total de trampos concluídos",

@@ -22,7 +22,7 @@ export interface TransactionInput {
   referenceId?: string;
 }
 
-/** One weighted entry in a gig loot table. */
+/** One weighted entry in a trampo loot table. */
 export interface LootTableEntry {
   itemType: string;
   itemId: string;

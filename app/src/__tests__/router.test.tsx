@@ -33,7 +33,7 @@ function Lazy({ children }: { children: ReactNode }) {
 const LoginProbe = () => <div>LOGIN PAGE</div>;
 const CreateCharacterProbe = () => <div>CREATE CHARACTER PAGE</div>;
 
-// API responses for the direct-fetch views (Chrome/Vendors/PvP/Economy).
+// API responses for the direct-fetch views (ChromeView/Vendors/PvP/Economy).
 // Crews/CrewDetail read from the crew store, mocked below.
 const mocks = vi.hoisted(() => ({
   api: {

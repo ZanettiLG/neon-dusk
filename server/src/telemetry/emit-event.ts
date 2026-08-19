@@ -4,7 +4,7 @@ import type { GameEventType } from "./event-types";
 // Neon Dusk — Telemetry event persistence (ND-007)
 // ============================================================================
 // Single insert point for game events. Everything the telemetry layer knows
-// about a player action (gig, PVP, economy movement, NIL spend) lands in the
+// about a player action (trampo, PVP, economy movement, NIL spend) lands in the
 // append-only `game_events` table. Callers are expected to fire-and-forget:
 // telemetry must never block the hot path it instruments.
 

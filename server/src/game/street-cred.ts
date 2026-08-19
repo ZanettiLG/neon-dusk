@@ -43,7 +43,7 @@ export const DECAY_GRACE_DAYS = 7;
 /** Moral lost per full day past the grace period. */
 export const DECAY_RATE_PER_DAY = 5;
 
-/** SC award ranges per gig tier (inclusive) — 04-sistemas-e-progressao.md §5. */
+/** SC award ranges per trampo tier (inclusive) — 04-sistemas-e-progressao.md §5. */
 const SC_AWARD_RANGES: Record<string, { min: number; max: number }> = {
   t1: { min: 1, max: 3 },
   t2: { min: 3, max: 8 },
@@ -126,12 +126,12 @@ export function calculateDecay(
 }
 
 /**
- * Random street-cred award for a completed gig, per tier range
+ * Random street-cred award for a completed trampo, per tier range
  * (T1 1-3 … T5 30-50): `min + floor(rng() * (max - min + 1))`.
  *
- * @param tier       - Gig tier ("t1".."t5", case-insensitive; unknown → 0).
+ * @param tier       - Trampo tier ("t1".."t5", case-insensitive; unknown → 0).
  * @param difficulty - Reserved parameter (kept for call-site compatibility).
- * @param success    - Whether the gig succeeded (failed gigs award 0).
+ * @param success    - Whether the trampo succeeded (failed trampos award 0).
  * @param rng        - Uniform [0, 1) source (injectable for tests).
  */
 export function calculateSCAward(
@@ -147,7 +147,7 @@ export function calculateSCAward(
 }
 
 /**
- * Backward-compatible alias for `calculateSCAward` (kept so existing gig
+ * Backward-compatible alias for `calculateSCAward` (kept so existing trampo
  * callers and history shape stay stable).
  */
 export function calculateStreetCredAward(

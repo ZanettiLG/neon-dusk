@@ -13,7 +13,7 @@ import { LOOT_TABLES } from "../content/loot-tables";
 // (The implementations live under src/ so tests can import them without
 // breaking the tsconfig rootDir; server/seeds/0X_*.ts re-export for the CLI.)
 
-/** Per-tier gig cooldown, in minutes (balance pass #114). */
+/** Per-tier trampo cooldown, in minutes (balance pass #114). */
 function cooldownForTier(tier: string): number {
   switch (tier) {
     case "t1":
@@ -29,7 +29,7 @@ function cooldownForTier(tier: string): number {
   }
 }
 
-/** Seed chrome definitions, upserting by slug. Returns the row count processed. */
+/** Seed cromo definitions, upserting by slug. Returns the row count processed. */
 export async function seedChrome(knex: Knex): Promise<number> {
   for (const c of CHROME_DEFINITIONS) {
     await knex("chrome_definitions")
@@ -91,7 +91,7 @@ export async function seedVendors(knex: Knex): Promise<{ vendors: number; invent
 }
 
 /**
- * Seed the gig catalog, upserting by name. Returns the row count processed.
+ * Seed the trampo catalog, upserting by name. Returns the row count processed.
  */
 export async function seedGigs(knex: Knex): Promise<number> {
   for (const t of GIG_TEMPLATES) {

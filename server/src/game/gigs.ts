@@ -1,6 +1,6 @@
 import type { Attributes } from "@neon-dusk/shared";
 
-// Neon Dusk — Gigs game logic (pure functions, no DB access)
+// Neon Dusk — Trampo game logic (pure functions, no DB access)
 // ============================================================================
 // Formulas from 03-mecanicas-core.md §2 and 04-sistemas-e-progressao.md §5.
 // All probability calculations cap at 0.95 / floor at 0.05.
@@ -8,13 +8,13 @@ import type { Attributes } from "@neon-dusk/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-/** Available gig archetypes (MVP: T1-T2 only). */
+/** Available trampo archetypes (MVP: T1-T2 only). */
 export type GigType = "extraction" | "delivery" | "sabotage";
 
-/** Gig tier (MVP: T1-T2). */
+/** Trampo tier (MVP: T1-T2). */
 export type GigTier = "t1" | "t2" | "t3" | "t4" | "t5";
 
-/** Result of a gig success roll. */
+/** Result of a trampo success roll. */
 export interface GigOutcome {
   success: boolean;
   /** The raw RNG roll [0, 1). */
@@ -23,15 +23,15 @@ export interface GigOutcome {
   successChance: number;
 }
 
-/** Multiplicative payout modifiers from gig phases. */
+/** Multiplicative payout modifiers from trampo phases. */
 export interface PayoutModifiers {
   /** Legwork completed (+20% payout). */
   legworkBonus?: boolean;
-  /** Gig succeeded (+10% payout). */
+  /** Trampo succeeded (+10% payout). */
   successBonus?: boolean;
 }
 
-/** Phases in the 5-phase gig loop (§2 of 03-mecanicas-core.md). */
+/** Phases in the 5-phase trampo loop (§2 of 03-mecanicas-core.md). */
 export const GIG_PHASES = ["meet", "legwork", "execute", "escape", "wrap_up"] as const;
 export type GigPhase = (typeof GIG_PHASES)[number];
 
@@ -65,8 +65,8 @@ export const STAT_SCALING = 5;
 // ─── Stat Mapping ───────────────────────────────────────────────────────────
 
 /**
- * Primary → secondary stat pair per gig type.
- * Conforme 03-mecanicas-core.md §2 (Tipos de Gig).
+ * Primary → secondary stat pair per trampo type.
+ * Conforme 03-mecanicas-core.md §2 (Tipos de Trampo).
  */
 const GIG_STATS: Record<GigType, readonly [keyof Attributes, keyof Attributes]> = {
   extraction: ["body", "reflexes"],
@@ -75,7 +75,7 @@ const GIG_STATS: Record<GigType, readonly [keyof Attributes, keyof Attributes]> 
 };
 
 /**
- * Stat used for the escape phase per gig type.
+ * Stat used for the escape phase per trampo type.
  * Extraction/delivery rely on quick reflexes; sabotage on staying cool.
  */
 const ESCAPE_STATS: Record<GigType, keyof Attributes> = {
@@ -87,9 +87,9 @@ const ESCAPE_STATS: Record<GigType, keyof Attributes> = {
 // ─── Functions ──────────────────────────────────────────────────────────────
 
 /**
- * Map gig type to the two stats used for success calculation.
+ * Map trampo type to the two stats used for success calculation.
  *
- * @param gigType  - The gig archetype.
+ * @param gigType  - The trampo archetype.
  * @param attrs    - The character's current attribute set.
  * @returns `{primary, secondary}` — primary is used for the roll;
  *          secondary is reserved for future tie-breaking and legwork bonuses.
@@ -106,7 +106,7 @@ export function getRelevantStats(
 }
 
 /**
- * Check if character attributes satisfy the gig's requiredStats.
+ * Check if character attributes satisfy the trampo's requiredStats.
  *
  * `requiredStats` is a sparse object like `{ body: 5, reflexes: 3 }`.
  * Missing keys are treated as a 0 requirement (always met).
@@ -132,17 +132,17 @@ export function meetsStatRequirements(
 }
 
 /**
- * Calculate gig execution success probability.
+ * Calculate trampo execution success probability.
  *
  * Formula: `((stat + chromeStatBonus) × STAT_SCALING + chromeBonus + skillBonus) / difficulty`,
  * clamped to [0.05, 0.95].
  * Conforme 03-mecanicas-core.md §3 (Fórmula de sucesso) and ND-011 balance fix.
  *
  * @param stat            - The relevant primary attribute value (1-20 range).
- * @param chromeBonus     - Flat success bonus from installed chrome (percentage points).
- * @param difficulty      - The gig's difficulty rating (1-100 range).
+ * @param chromeBonus     - Flat success bonus from installed cromo (percentage points).
+ * @param difficulty      - The trampo's difficulty rating (1-100 range).
  * @param skillBonus      - Optional flat bonus from player skill perks (defaults to 0).
- * @param chromeStatBonus - Attribute bonus from installed chrome for the relevant stat (defaults to 0).
+ * @param chromeStatBonus - Attribute bonus from installed cromo for the relevant stat (defaults to 0).
  * @returns Probability in range [0.05, 0.95].
  *
  * @edgecases `difficulty ≤ 0` would cause division by zero → capped at 0.95.
@@ -192,7 +192,7 @@ export function applyLegworkModifier(
 }
 
 /**
- * Roll for gig execute/escape outcome.
+ * Roll for trampo execute/escape outcome.
  *
  * Compares the RNG roll against the success chance.
  *
@@ -236,7 +236,7 @@ export function calculatePayout(
 }
 
 /**
- * Calculate heat generated from a gig outcome.
+ * Calculate heat generated from a trampo outcome.
  *
  * Success: `baseHeat`. Failure: `baseHeat × 2` (getting caught generates more heat).
  *
@@ -260,7 +260,7 @@ export function calculateHeat(baseHeat: number, outcome: "success" | "failure"):
  * `heatMultiplier = 1 + (heatAmount / 100)`, so every 100 heat doubles the difficulty.
  *
  * @param stat             - The relevant escape attribute value.
- * @param escapeDifficulty - The gig's escape difficulty.
+ * @param escapeDifficulty - The trampo's escape difficulty.
  * @param heatAmount       - Current heat in the district.
  * @returns Probability in range [0.05, 0.95].
  *
@@ -293,7 +293,7 @@ const SC_RANGES: Record<GigTier, [number, number]> = {
  *
  * Conforme 04-sistemas-e-progressao.md §5 (Como Ganhar).
  *
- * @param tier - Gig tier (t1–t5).
+ * @param tier - Trampo tier (t1–t5).
  * @param rng  - Injectable RNG. Defaults to `Math.random`.
  * @returns Moral points gained.
  *
@@ -308,14 +308,14 @@ export function calculateStreetCred(
 }
 
 /**
- * Check if enough time has passed since the last gig of the same type.
+ * Check if enough time has passed since the last trampo of the same type.
  *
- * @param lastCompletedAt  - Timestamp of the last same-type gig, or null if never done.
+ * @param lastCompletedAt  - Timestamp of the last same-type trampo, or null if never done.
  * @param cooldownMinutes  - Cooldown period in minutes.
  * @param now              - Current time. Defaults to `new Date()`.
- * @returns `true` if the cooldown has expired (including when there's no prior gig).
+ * @returns `true` if the cooldown has expired (including when there's no prior trampo).
  *
- * @edgecases `lastCompletedAt` is null → returns true (no prior gig).
+ * @edgecases `lastCompletedAt` is null → returns true (no prior trampo).
  *            `cooldownMinutes ≤ 0` → always returns true.
  *            `lastCompletedAt` in the future → returns false.
  */
@@ -352,9 +352,9 @@ export function canTransition(currentPhase: string, action: string): string | nu
 }
 
 /**
- * Determine the relevant stat value for escape based on gig type.
+ * Determine the relevant stat value for escape based on trampo type.
  *
- * @param gigType - The gig archetype.
+ * @param gigType - The trampo archetype.
  * @param attrs   - The character's current attributes.
  * @returns The attribute value used for escape rolls.
  *
@@ -366,11 +366,11 @@ export function getEscapeStat(gigType: GigType, attrs: Attributes): number {
 }
 
 /**
- * Return the primary attribute key used for success rolls per gig type.
+ * Return the primary attribute key used for success rolls per trampo type.
  *
  * Extraction → body, Delivery → reflexes, Sabotage → technical.
  *
- * @param gigType - The gig archetype.
+ * @param gigType - The trampo archetype.
  * @returns The attribute key (never null for valid GigType).
  */
 export function getPrimaryStatKey(gigType: GigType): keyof Attributes {

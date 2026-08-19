@@ -98,7 +98,7 @@ describe("VendorDetailView", () => {
 
     expect(await screen.findByText("Braço de Ferro")).toBeInTheDocument();
     expect(screen.getByText("Pingado")).toBeInTheDocument();
-    // Item type labels follow the terminology (chrome → cromo, stim → ampola)
+    // Item type labels follow the terminology (implante → cromo, estimulante → ampola)
     expect(screen.getByText("Cromo")).toBeInTheDocument();
     expect(screen.getByText("Ampola")).toBeInTheDocument();
     // Raw slugs never leak to the UI

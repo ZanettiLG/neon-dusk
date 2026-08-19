@@ -93,10 +93,10 @@ const DAY_MS = 86_400_000;
 // ─── Functions ──────────────────────────────────────────────────────────────
 
 /**
- * Sum of `body` and `reflexes` bonuses from all installed chrome.
+ * Sum of `body` and `reflexes` bonuses from all installed cromo.
  *
- * @param installedBonuses - Array of installed chrome with their bonus objects.
- * @returns Total chrome combat power (integer).
+ * @param installedBonuses - Array of installed cromo with their bonus objects.
+ * @returns Total cromo combat power (integer).
  *
  * @edgecases Empty array → 0. Missing body/reflexes fields → treated as 0.
  */
@@ -104,9 +104,9 @@ export function calculateChromePower(
   installedBonuses: { bonuses: ChromeBonuses }[],
 ): number {
   let total = 0;
-  for (const chrome of installedBonuses) {
-    total += chrome.bonuses.body ?? 0;
-    total += chrome.bonuses.reflexes ?? 0;
+  for (const implant of installedBonuses) {
+    total += implant.bonuses.body ?? 0;
+    total += implant.bonuses.reflexes ?? 0;
   }
   return total;
 }

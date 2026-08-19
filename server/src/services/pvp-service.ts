@@ -62,7 +62,7 @@ function startOfDayUTC(now: Date = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-/** Sum of the character's installed-chrome combat bonuses (body + reflexes). */
+/** Sum of the character's installed-cromo combat bonuses (body + reflexes). */
 async function loadChromePower(characterId: string, q?: Queryable): Promise<number> {
   const rows = await chrome.listInstalledBonuses(characterId, q);
   return calculateChromePower(rows);
@@ -80,7 +80,7 @@ async function countWeeklyAttacks(
 /**
  * GET /api/pvp/attackable — candidates within ±10 effective power of the
  * caller, newest accounts excluded (7-day immunity). Rough base-power filter
- * in SQL, chrome-aware filter in JS. Returns an empty list while the caller
+ * in SQL, cromo-aware filter in JS. Returns an empty list while the caller
  * is on cooldown so the client can show "no targets" instead of an error.
  */
 export async function getAttackableTargets(
@@ -112,7 +112,7 @@ export async function getAttackableTargets(
     limit,
   });
 
-  // Re-filter with chrome power (the SQL filter is base-power only) and
+  // Re-filter with cromo power (the SQL filter is base-power only) and
   // annotate each candidate with the attacker's weekly hit count on them.
   const targets: PvpTarget[] = [];
   for (const row of rows) {

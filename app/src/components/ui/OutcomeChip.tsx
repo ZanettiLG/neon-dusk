@@ -16,7 +16,7 @@ const OUTCOME_CLASSES = {
 const OUTCOME_GLYPH = { success: "✓", failure: "✗", critical: "!" } as const;
 
 /**
- * Roll/outcome chip for combat and gig resolution. Renders nothing while the
+ * Roll/outcome chip for combat and trampo resolution. Renders nothing while the
  * outcome is unknown (null). Critical always shows "CRÍTICO" regardless of
  * the caller-provided label. Color is never the only channel: glyph + text.
  */

@@ -30,7 +30,7 @@ import type {
   InstalledChromeRow,
 } from "../repositories/chrome-repository";
 
-// Neon Dusk — Chrome service (install / uninstall / loadout / catalog)
+// Neon Dusk — Cromo service (install / uninstall / loadout / catalog)
 // ============================================================================
 // Install is a single PostgreSQL transaction: vendor stock check → wallet
 // debit (optimistic lock, same pattern as buyFromVendor) → audit entry →
@@ -55,7 +55,7 @@ function toPublicDefinition(row: ChromeDefinitionRow): ChromeDefinition {
 }
 
 /**
- * Install chrome bought from a ferrageiro. Validates the implant, the vendor
+ * Install cromo bought from a ferrageiro. Validates the implant, the vendor
  * stock, the slot capacity and the humanity cost, then atomically debits the
  * wallet and records the implant + audit entry. Returns the new loadout entry,
  * the effective humanity and the post-purchase wallet balance.
@@ -65,7 +65,7 @@ export async function installChrome(
   chromeDefinitionId: string,
   vendorId: string,
 ): Promise<ChromeInstallResponse> {
-  // 1. Chrome definition must exist and be active
+  // 1. Cromo definition must exist and be active
   const definition = await chrome.findDefinition(chromeDefinitionId);
   if (!definition) throw new AppError(404, "CHROME_NOT_FOUND", "Cromo não encontrado");
 
@@ -112,7 +112,7 @@ export async function installChrome(
 
     // 7. Wallet debit with optimistic locking (pattern of buyFromVendor)
     const wallet = await wallets.ensure(characterId, trx);
-    // overclock: 50% discount on chrome price
+    // overclock: 50% discount on cromo price
     const price = overclockActive ? Math.ceil(stockItem.price * 0.5) : stockItem.price;
     const availableFunds = wallet.balance - wallet.escrow;
     if (availableFunds < price) {
@@ -179,7 +179,7 @@ export async function installChrome(
       );
     }
 
-    // Recompute effective NIL max from all installed chrome (base 100 + nil_max bonuses).
+    // Recompute effective NIL max from all installed cromo (base 100 + nil_max bonuses).
     const installedDefs = await chrome.listInstalledBonuses(characterId, trx);
     const nilMaxBonus = calculateNilMaxBonus(
       installedDefs.map((d) => ({ bonuses: d.bonuses }) as unknown as ChromeDefinition),
@@ -245,8 +245,8 @@ export async function uninstallChrome(
 }
 
 /**
- * List a character's installed chrome with the effective bonuses computed by
- * the game logic (stat deltas, HP, gig success) and the total humanity spent.
+ * List a character's installed cromo with the effective bonuses computed by
+ * the game logic (stat deltas, HP, trampo success) and the total humanity spent.
  */
 export async function listInstalledChrome(characterId: string): Promise<InstalledChromeResponse> {
   const character = await characters.findById(characterId);
@@ -294,7 +294,7 @@ export async function listInstalledChrome(characterId: string): Promise<Installe
 }
 
 /**
- * List the active chrome catalog, optionally filtered by tier and/or slot.
+ * List the active cromo catalog, optionally filtered by tier and/or slot.
  */
 export async function listChromeCatalog(filters?: {
   tier?: number;

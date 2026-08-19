@@ -158,7 +158,7 @@ describe("DashboardView", () => {
     );
   });
 
-  it("should apply the stim and update the NIL bar", async () => {
+  it("should apply the ampola and update the NIL bar", async () => {
     mockApiGet();
     mocks.api.post.mockResolvedValue({
       added: 20,
@@ -167,8 +167,8 @@ describe("DashboardView", () => {
     useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
     renderDashboard();
 
-    const stim = await screen.findByRole("button", { name: "PINGADO" });
-    await userEvent.setup().click(stim);
+    const pingado = await screen.findByRole("button", { name: "PINGADO" });
+    await userEvent.setup().click(pingado);
 
     expect(await screen.findByText("100 / 100")).toBeInTheDocument();
     expect(await screen.findByText("NIL CHEIO")).toBeInTheDocument();

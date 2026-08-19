@@ -2,7 +2,7 @@ import { db, type Queryable } from "../db";
 import { AppError } from "../middleware/error-handler";
 import { isUniqueViolation } from "../db/pg-errors";
 
-// Neon Dusk — Chrome repository (#158 DB repository layer)
+// Neon Dusk — Cromo repository (#158 DB repository layer)
 // ============================================================================
 // chrome_definitions + installed_chrome access, plus the vendor_inventory
 // stock lookup used by the install flow (item_type = 'CHROME').
@@ -48,7 +48,7 @@ export interface InstalledChromeJoinedRow {
 }
 
 export interface ChromeRepository {
-  /** Active chrome definition by id (404-level null when absent/inactive). */
+  /** Active cromo definition by id (404-level null when absent/inactive). */
   findDefinition(id: string, q?: Queryable): Promise<ChromeDefinitionRow | null>;
   /** Active catalog, optionally filtered by tier/slot, ordered tier+name. */
   listCatalog(
@@ -66,9 +66,9 @@ export interface ChromeRepository {
   listInstalledFull(characterId: string, q?: Queryable): Promise<InstalledChromeJoinedRow[]>;
   /** Installed definition ids only (bonus aggregation fast path). */
   listInstalledDefinitionIds(characterId: string, q?: Queryable): Promise<Array<{ chrome_definition_id: string }>>;
-  /** Definitions by ids (chrome bonus computation). */
+  /** Definitions by ids (cromo bonus computation). */
   listDefinitionsByIds(ids: string[], q?: Queryable): Promise<ChromeDefinitionRow[]>;
-  /** Bonuses of every installed implant (PvP chrome power). */
+  /** Bonuses of every installed implant (PvP cromo power). */
   listInstalledBonuses(
     characterId: string,
     q?: Queryable,

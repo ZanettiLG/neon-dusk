@@ -4,7 +4,7 @@ import type { GigEscapeResponse } from "@neon-dusk/shared";
 import ActiveGigPanel from "@/components/ActiveGigPanel";
 import { useGigStore } from "@/stores/gig";
 
-/** Escape-phase active gig (post-POST /escape). */
+/** Escape-phase active trampo (post-POST /escape). */
 function escapePhaseGig(overrides: Record<string, unknown> = {}) {
   return {
           id: "ag-1",
@@ -59,7 +59,7 @@ describe("ActiveGigPanel", () => {
   it("renders without error when activeGig is null", () => {
     useGigStore.setState({ board: { gigs: [], activeGig: null } });
     render(<ActiveGigPanel />);
-    // Component returns null when there is no active gig and no wrap-up
+    // Component returns null when there is no active trampo and no wrap-up
     expect(document.body).toBeTruthy(); // no crash
   });
 
@@ -185,7 +185,7 @@ describe("ActiveGigPanel", () => {
     expect(screen.getByText(/✗/)).toBeInTheDocument();
   });
 
-  it("renders Concluir gig button calling wrapUpGig (not escapeGig) when phase is escape", () => {
+  it("renders Concluir trampo button calling wrapUpGig (not escapeGig) when phase is escape", () => {
     const wrapUpGig = vi.fn().mockResolvedValue({});
     const escapeGig = vi.fn();
     useGigStore.setState({

@@ -144,13 +144,13 @@ export interface CreateCharacterRequest {
 // Energy system: regens +1 every 5 minutes, capped at max. Pingado consumable
 // restores 20 instantly with a 1h cooldown (see 03-mecanicas-core.md §1).
 
-/** Base NIL cap for a new character (chrome raises it later). */
+/** Base NIL cap for a new character (cromo raises it later). */
 export const NIL_MAX_BASE = 100;
 /** Passive regen cadence: 1 point per 5 minutes. */
 export const NIL_REGEN_INTERVAL_MS = 5 * 60 * 1000;
 /** NIL points restored per regen tick. */
 export const NIL_REGEN_RATE = 1;
-/** NIL restored by one Pingado (syn-cafe itemId token kept internal). */
+/** NIL restored by one Pingado (itemId interno; ver 06-terminologia-e-ip.md). */
 export const NIL_SYN_CAFE_AMOUNT = 20;
 /** Pingado cooldown, in seconds. */
 export const NIL_SYN_CAFE_COOLDOWN_S = 3600;
@@ -297,7 +297,7 @@ export interface BuyResponse {
 }
 
 // --- Telemetry (ND-007) ------------------------------------------------------
-// Game events are the single audit stream behind the ops dashboards: gigs,
+// Game events are the single audit stream behind the ops dashboards: trampos,
 // PVP, economy movements and NIL spends. The enum lives here so server,
 // app and the DB enum (game_event_type) share one source of truth.
 
@@ -363,7 +363,7 @@ export interface CharacterEventsResponse {
   nextCursor: string | null;
 }
 
-// --- Chrome (cyberware) -------------------------------------------------------
+// --- Cromo (implantes) -------------------------------------------------------
 // Implants fill body slots, grant stat bonuses and drain humanity (100 base).
 // Slot capacities and humanity pricing follow 04-sistemas-e-progressao.md §3-4.
 
@@ -401,7 +401,7 @@ export interface ChromeBonuses {
   nil_max?: number;
 }
 
-/** Static chrome catalog entry (sold by ferrageiros). */
+/** Static cromo catalog entry (sold by ferrageiros). */
 export interface ChromeDefinition {
   id: string;
   slug: string;
@@ -431,7 +431,7 @@ export interface InstalledChromeResponse {
   statBonus: Attributes;
   hpBonus: number;
   gigSuccessBonus: number;
-  /** Extra NIL cap granted by installed chrome (purely from nil_max bonuses). */
+  /** Extra NIL cap granted by installed cromo (purely from nil_max bonuses). */
   nilMaxBonus: number;
 }
 
@@ -450,7 +450,7 @@ export interface ChromeUninstallResponse {
   effectiveHumanity: number;
 }
 
-// ─── Gigs (Feature #4 / ND-011) ───────────────────────────────────────────
+// ─── Trampos (Feature #4 / ND-011) ───────────────────────────────────────────
 // The 5-phase loop of 03-mecanicas-core.md §2. NOTE: the terminal phase is
 // `wrap_up` (not `wrapup`) — it matches the phase machine in
 // server/src/game/gigs.ts (`canTransition`), which the service stores verbatim
@@ -502,7 +502,7 @@ export interface GigListItem {
   cooldownRemaining: number;
 }
 
-/** Active gig state (one per character — `active_gigs.character_id` unique). */
+/** Active trampo state (one per character — `active_gigs.character_id` unique). */
 export interface ActiveGig {
   id: string;
   gigId: string;
@@ -656,7 +656,7 @@ export interface PvpTarget {
   characterId: string;
   name: string;
   streetCred: number;
-  /** Full effective combat power (body + reflexes + chrome). */
+  /** Full effective combat power (body + reflexes + cromo). */
   power: number;
   noobShield: boolean;
   weeklyAttacksReceived: number;
