@@ -2,8 +2,8 @@ import type { TransactionType } from "@neon-dusk/shared";
 
 // Neon Dusk — Economy game logic (pure functions, no DB access)
 // ============================================================================
-// All eddie math lives here so it is unit-testable and shared by services.
-// Money is integers only (Grana); never floats.
+// Toda a matemática de grana vive aqui: testável por unidade e compartilhada
+// pelos services. Dinheiro é inteiro (Grana); nunca float.
 
 /** Wallet state as of a persisted version. `escrow` is committed-but-unspendable. */
 export interface WalletState {
@@ -88,8 +88,9 @@ export function transferEddies(
 }
 
 /**
- * Calculate final price with market modifiers, rounded to the nearest eddie.
- * Each modifier multiplies the price: 0.9 = 10% off, 1.2 = 20% markup.
+ * Calcula o preço final com modificadores de mercado, arredondado à grana
+ * mais próxima. Cada modificador multiplica o preço: 0.9 = 10% de desconto,
+ * 1.2 = 20% de acréscimo.
  */
 export function calculatePrice(
   basePrice: number,

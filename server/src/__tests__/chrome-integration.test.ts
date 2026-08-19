@@ -29,9 +29,9 @@ const REDIS_TEST_DB = "redis://localhost:56379/6";
 const DOC_FIOS_ID = "00000000-0000-4000-8000-000000000001";
 const ZERO_ID = "00000000-0000-0000-0000-000000000000";
 
-// Vendor prices are test fixtures sized so the 500-eddie seed wallet can
-// afford the starter implants (real market prices live in content/*). stock
-// -1 = unlimited.
+// Preços de vendedor são fixtures de teste calibrados para a carteira-semente
+// de 500 grana pagar os implantes iniciais (preços reais de mercado vivem em
+// content/*). stock -1 = ilimitado.
 const INVENTORY: { itemId: string; price: number }[] = [
   { itemId: "neural-booster", price: 300 },
   { itemId: "reflex-tuner", price: 300 },
@@ -488,7 +488,7 @@ describe("Feature #4 — chrome API", () => {
         .limit(1);
       expect(char!.max_nil).toBe(100);
 
-      // No refund — wallet stays at 200 (the balance after the 300-eddie purchase).
+      // Sem reembolso — carteira fica em 200 (o saldo após a compra de 300 grana).
       const balance = await fetch(`${base()}/api/economy/balance`, {
         headers: authHeader(accessToken),
       });

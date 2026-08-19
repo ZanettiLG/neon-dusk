@@ -24,8 +24,8 @@ export interface DecayResult {
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 /**
- * The street-cred ladder (ascending). Thresholds gate gig tiers and fixers;
- * reaching 100 (Legend) is permanent and survives resets.
+ * A escada de Moral (ascendente). Os degraus liberam tiers de trampo e
+ * despachantes; chegar a 100 (Legend) é permanente e sobrevive aos resets.
  */
 export const STREET_CRED_THRESHOLDS: readonly StreetCredThreshold[] = [
   { score: 0, title: "Unknown" },

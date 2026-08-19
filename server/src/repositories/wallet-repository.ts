@@ -4,9 +4,10 @@ import type { WalletState } from "../game/economy";
 
 // Neon Dusk — Wallet repository (#158 DB repository layer)
 // ============================================================================
-// Eddie wallets with optimistic locking (version CAS). `ensure` seeds the
-// 500-eddie starting capital + ADMIN_ADJUSTMENT audit entry exactly once,
-// surviving the SELECT-then-INSERT race via ON CONFLICT DO NOTHING.
+// Carteiras de grana com optimistic locking (version CAS). O `ensure` semeia
+// o capital inicial de 500 grana + a entrada de auditoria ADMIN_ADJUSTMENT
+// exatamente uma vez, sobrevivendo à corrida SELECT-depois-INSERT via
+// ON CONFLICT DO NOTHING.
 
 /** Seed capital granted when a character's wallet is first created. */
 const INITIAL_BALANCE = 500;

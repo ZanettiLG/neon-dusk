@@ -281,18 +281,19 @@ export function getCombatTranceBonus(
 }
 
 /**
- * Returns Overclock bonuses when the tech's ability is currently active.
+ * Retorna os bônus de Overclock quando a habilidade do Gambiarrista está
+ * ativa.
  *
- * Overclock halves the eddie cost and zeroes the humanity cost of the
- * next chrome purchase (consumed on use).
+ * Overclock corta pela metade o custo em grana e zera o custo de humanidade
+ * da próxima compra de cromo (consumido no uso).
  *
- * @param role          - Character's role.
- * @param activeUntil   - Current active effect timestamp.
- * @param cooldownUntil - Current cooldown timestamp.
- * @param now           - Reference time (injectable).
- * @returns Cost modifiers, or null if not active.
+ * @param role          - Banca do personagem.
+ * @param activeUntil   - Timestamp atual do efeito ativo.
+ * @param cooldownUntil - Timestamp atual do cooldown.
+ * @param now           - Tempo de referência (injetável).
+ * @returns Modificadores de custo, ou null se não estiver ativo.
  *
- * @edgecases Non-tech role → null. Already consumed (not active) → null.
+ * @edgecases Banca não-Gambiarrista → null. Já consumido (não ativo) → null.
  */
 export function getOverclockBonus(
   role: Role,
@@ -309,18 +310,19 @@ export function getOverclockBonus(
 }
 
 /**
- * Returns Silver Tongue bonuses when the fixer's ability is currently active.
+ * Retorna os bônus do Silver Tongue quando a habilidade do despachante está
+ * ativa.
  *
- * Silver Tongue boosts the next gig's eddie payout by +50% and Moral
- * by +25% (consumed on gig completion).
+ * Silver Tongue aumenta o pagamento de grana do próximo trampo em +50% e a
+ * Moral em +25% (consumido ao concluir o trampo).
  *
- * @param role          - Character's role.
- * @param activeUntil   - Current active effect timestamp.
- * @param cooldownUntil - Current cooldown timestamp.
- * @param now           - Reference time (injectable).
- * @returns Eddie and SC multipliers, or null if not active.
+ * @param role          - Banca do personagem.
+ * @param activeUntil   - Timestamp atual do efeito ativo.
+ * @param cooldownUntil - Timestamp atual do cooldown.
+ * @param now           - Tempo de referência (injetável).
+ * @returns Multiplicadores de grana e Moral, ou null se não ativo.
  *
- * @edgecases Non-fixer role → null. Already consumed (not active) → null.
+ * @edgecases Banca não-despachante → null. Já consumido (não ativo) → null.
  */
 export function getSilverTongueBonus(
   role: Role,

@@ -47,7 +47,7 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
     district: "babilonia",
     description:
       "Despachante veterano, conhece cada beco da Babilônia. Intermedeia gigs e informações.",
-    inventory: [], // fixer doesn't sell items — gig board is separate
+    inventory: [], // o despachante não vende itens — o quadro de trampos é separado
   },
 
   // ── Zé do Pó (Stim Dealer, O Fervo) ─────────────────────────────────────

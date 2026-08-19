@@ -212,16 +212,17 @@ export function rollGigOutcome(
 }
 
 /**
- * Calculate final eddie payout with modifiers applied multiplicatively.
+ * Calcula o pagamento final em grana com modificadores aplicados
+ * multiplicativamente.
  *
- * Formula: `baseReward × legwork(1.2) × success(1.1)`, rounded down.
+ * Fórmula: `baseReward × legwork(1.2) × success(1.1)`, arredondado para baixo.
  *
- * @param baseReward - Base eddie reward for the gig.
- * @param modifiers  - Optional phase modifiers (legwork completed, gig succeeded).
- * @returns Integer Grana (via `Math.floor`).
+ * @param baseReward - Recompensa base em grana do trampo.
+ * @param modifiers  - Modificadores de fase opcionais (legwork concluído, trampo bem-sucedido).
+ * @returns Grana inteiro (via `Math.floor`).
  *
- * @edgecases `baseReward < 0` returns 0 (no negative payouts).
- *            Missing modifier properties default to no multiplier (1.0).
+ * @edgecases `baseReward < 0` retorna 0 (sem pagamento negativo).
+ *            Modificadores ausentes viram multiplicador neutro (1.0).
  */
 export function calculatePayout(
   baseReward: number,

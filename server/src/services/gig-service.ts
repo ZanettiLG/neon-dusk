@@ -571,7 +571,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
-    // Feature #65: Silver Tongue — fixer ability boosts payout +50% and SC +25%.
+    // Feature #65: Silver Tongue — habilidade do despachante: +50% de pagamento e +25% de Moral.
     const silverTongue = getSilverTongueBonus(
       character.role as Role,
       character.ability_active_until ? new Date(character.ability_active_until) : null,
@@ -699,8 +699,9 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
 }
 
 /**
- * POST /api/gigs/:id/abandon — drop the active gig and record as abandoned.
- * No payout, no Moral, no heat. The fixer won't be happy, but you live.
+ * POST /api/gigs/:id/abandon — abandona o trampo ativo e o registra como
+ * abandonado. Sem pagamento, sem Moral, sem heat. O despachante não vai
+ * gostar, mas você sobrevive.
  */
 export async function abandonGig(
   characterId: string,

@@ -85,7 +85,7 @@ const IMMUNITY_DAYS = 7;
 /** Max attacks on same target per week before grief penalty. */
 const GRIEF_ATTACK_LIMIT = 3;
 
-/** Max defeats per day before SC/eddie loss is capped. */
+/** Máximo de derrotas por dia antes de limitar a perda de Moral/grana. */
 const DEFEAT_CAP_LIMIT = 3;
 
 const DAY_MS = 86_400_000;
@@ -164,14 +164,14 @@ export function resolveCombat(input: CombatInput): CombatResult {
 }
 
 /**
- * Loot from a defeated player: 10% of their balance, or 1% with griefer
- * penalty. Never negative.
+ * Espólio de um jogador derrotado: 10% do saldo, ou 1% com penalidade de
+ * griefer. Nunca negativo.
  *
- * @param loserBalance  - Eddie balance of the defeated player.
- * @param grieferPenalty - Whether the grief penalty applies (≥3 attacks/week).
- * @returns Loot amount in Grana (integer, ≥ 0).
+ * @param loserBalance   - Saldo em grana do jogador derrotado.
+ * @param grieferPenalty - Se a penalidade de grief se aplica (≥3 ataques/semana).
+ * @returns Valor do espólio em grana (inteiro, ≥ 0).
  *
- * @edgecases Negative balance → 0. Zero balance → 0.
+ * @edgecases Saldo negativo → 0. Saldo zero → 0.
  */
 export function calculateLoot(
   loserBalance: number,
@@ -279,10 +279,10 @@ export function isGriefLimited(weeklyAttacksOnTarget: number): boolean {
 }
 
 /**
- * Suffered ≥3 PvP defeats today → no further SC or eddie loss from defeats.
+ * Sofreu ≥3 derrotas de PvP hoje → sem mais perda de Moral ou grana.
  *
- * @param lossesToday - Number of PvP defeats suffered today.
- * @returns true if the defeat cap is active.
+ * @param lossesToday - Número de derrotas de PvP sofridas hoje.
+ * @returns true se o teto de derrotas está ativo.
  */
 export function isDefeatCapped(lossesToday: number): boolean {
   return lossesToday >= DEFEAT_CAP_LIMIT;

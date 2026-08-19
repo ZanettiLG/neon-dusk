@@ -199,9 +199,10 @@ export async function installChrome(
 }
 
 /**
- * Remove an installed implant. No eddie refund and no humanity recovery —
- * only an audit entry (amount 0, so the balance CHECK still holds). Returns
- * the freed slot and the unchanged effective humanity.
+ * Remove um implante instalado. Sem reembolso de grana e sem recuperação de
+ * humanidade — apenas um registro de auditoria (valor 0, então o CHECK de
+ * saldo continua valendo). Retorna o slot liberado e a humanidade efetiva
+ * inalterada.
  */
 export async function uninstallChrome(
   characterId: string,
