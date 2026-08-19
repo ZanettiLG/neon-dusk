@@ -3,7 +3,7 @@ import type { Knex } from "knex";
 /**
  * Neon Dusk — Migration 0013: gigs
  * ============================================================================
- * Gig templates (the Fixer Cupim board). Split out of the consolidated
+ * Gig templates (the Despachante Cupim board). Split out of the consolidated
  * 0001_initial_schema migration (#158 DB repository layer).
  */
 

@@ -8,7 +8,7 @@ describe("formatEventMessage", () => {
   it("should render GIG_COMPLETED with gigName and payout", () => {
     expect(
       formatEventMessage("GIG_COMPLETED", { gigName: "Corre da Farmácia", payout: 550 }),
-    ).toBe('Gig "Corre da Farmácia" concluído — +550 eds');
+    ).toBe('Gig "Corre da Farmácia" concluído — +G$ 550');
   });
 
   it("should render GIG_FAILED with gigName", () => {
@@ -18,8 +18,8 @@ describe("formatEventMessage", () => {
   });
 
   it("should render EDDIES_EARNED / EDDIES_SPENT with amount", () => {
-    expect(formatEventMessage("EDDIES_EARNED", { amount: 120 })).toBe("+120 eds ganhos");
-    expect(formatEventMessage("EDDIES_SPENT", { amount: 30 })).toBe("-30 eds gastos");
+    expect(formatEventMessage("EDDIES_EARNED", { amount: 120 })).toBe("+G$ 120 ganhos");
+    expect(formatEventMessage("EDDIES_SPENT", { amount: 30 })).toBe("-G$ 30 gastos");
   });
 
   it("should render NIL_SPENT with amount", () => {

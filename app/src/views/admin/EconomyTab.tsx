@@ -29,9 +29,9 @@ export default function EconomyTab() {
       {/* Big-number cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card
-          label="Eddies em Circulação"
+          label="Grana em Circulação"
           value={economy.eddiesInCirculation.toLocaleString()}
-          unit="€$"
+          unit="G$"
         />
         <Card label="Ativos (24h)" value={String(economy.dailyActiveCharacters)} />
         <Card label="Transações (24h)" value={String(economy.transactions24h)} />
@@ -39,7 +39,7 @@ export default function EconomyTab() {
           label="Top Faucet"
           value={
             economy.topFaucets24h.length > 0
-              ? `${economy.topFaucets24h[0].amount.toLocaleString()} €$`
+              ? `G$ ${economy.topFaucets24h[0].amount.toLocaleString()}`
               : "—"
           }
           sub={economy.topFaucets24h[0]?.source}
@@ -87,7 +87,7 @@ export default function EconomyTab() {
               className="flex justify-between py-1 border-b border-nd-cyan/5 text-sm"
             >
               <span className="text-nd-text font-mono">{f.source}</span>
-              <span className="text-nd-green font-mono">+{f.amount.toLocaleString()} €$</span>
+              <span className="text-nd-green font-mono">+G$ {f.amount.toLocaleString()}</span>
             </div>
           ))}
         </div>
@@ -102,7 +102,7 @@ export default function EconomyTab() {
               className="flex justify-between py-1 border-b border-nd-cyan/5 text-sm"
             >
               <span className="text-nd-text font-mono">{s.source}</span>
-              <span className="text-nd-magenta font-mono">-{s.amount.toLocaleString()} €$</span>
+              <span className="text-nd-magenta font-mono">-G$ {s.amount.toLocaleString()}</span>
             </div>
           ))}
         </div>

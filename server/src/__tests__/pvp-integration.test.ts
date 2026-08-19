@@ -287,7 +287,7 @@ describe("ND-014 — PvP combat API", () => {
   // ─── POST /api/pvp/attack ──────────────────────────────────────────────────
 
   describe("POST /api/pvp/attack", () => {
-    it("should resolve a combat, transfer loot and street cred, and bill NIL", async () => {
+    it("should resolve a combat, transfer loot and Moral, and bill NIL", async () => {
       const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
       const defender = await createPvpPlayer({
         attributes: WEAK_ATTRS,
@@ -525,7 +525,7 @@ describe("ND-014 — PvP combat API", () => {
       expect(combats.map((c) => c.griefer_penalty)).toEqual([false, false, false, true]);
     });
 
-    it("should stop street cred loss after 3 defeats in a day (defeat cap)", async () => {
+    it("should stop Moral loss after 3 defeats in a day (defeat cap)", async () => {
       const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
       const defender = await createPvpPlayer({
         attributes: WEAK_ATTRS,
@@ -559,7 +559,7 @@ describe("ND-014 — PvP combat API", () => {
         .where("id", defender.characterId);
       expect(afterCap!.street_cred).toBe(44); // defeat-capped — no SC loss on the 4th defeat
 
-      // Eddies are still looted on the 4th attack (grief-reduced 1% of the
+      // Grana is still looted on the 4th attack (grief-reduced 1% of the
       // current balance: 365 → floor(floor(365 × 0.1) × 0.1) = 3).
       const [walletBefore4] = await db("character_wallets")
         .select("balance")

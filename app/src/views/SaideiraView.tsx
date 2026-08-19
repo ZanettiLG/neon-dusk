@@ -41,10 +41,10 @@ function SaideiraGate() {
         <p className="font-heading text-2xl text-nd-magenta tracking-widest">⚡ ACESSO RESTRITO</p>
         <p className="text-nd-text text-sm">
           Você ainda não é conhecido o suficiente para entrar na Saideira. Volte quando tiver
-          Street Cred 10.
+          Moral 10.
         </p>
         <Link to="/dashboard" className="btn-neon inline-block font-data text-xs">
-          VER MEU STREET CRED →
+          VER MINHA MORAL →
         </Link>
       </div>
     </div>

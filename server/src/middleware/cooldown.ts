@@ -7,7 +7,7 @@ import { AppError } from "./error-handler";
 // ============================================================================
 // Cooldowns prevent spamming the same action. The cooldown is CHECKED in the
 // preHandler but SET in the route handler AFTER success (ADR-2). This means a
-// failed action (e.g., insufficient eddies) does NOT trigger a cooldown.
+// failed action (e.g., insufficient Grana) does NOT trigger a cooldown.
 
 export type CooldownActionType =
   | "pvp_attack"       // 1h

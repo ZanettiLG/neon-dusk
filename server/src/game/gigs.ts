@@ -218,7 +218,7 @@ export function rollGigOutcome(
  *
  * @param baseReward - Base eddie reward for the gig.
  * @param modifiers  - Optional phase modifiers (legwork completed, gig succeeded).
- * @returns Integer eddies (via `Math.floor`).
+ * @returns Integer Grana (via `Math.floor`).
  *
  * @edgecases `baseReward < 0` returns 0 (no negative payouts).
  *            Missing modifier properties default to no multiplier (1.0).
@@ -278,7 +278,7 @@ export function calculateEscapeChance(
   return Math.min(SUCCESS_CAP, Math.max(SUCCESS_FLOOR, raw));
 }
 
-/** Street cred range per tier: [min, max] inclusive. */
+/** Moral range per tier: [min, max] inclusive. */
 const SC_RANGES: Record<GigTier, [number, number]> = {
   t1: [1, 3],
   t2: [3, 8],
@@ -288,13 +288,13 @@ const SC_RANGES: Record<GigTier, [number, number]> = {
 };
 
 /**
- * Roll street cred gain within tier range.
+ * Roll Moral gain within tier range.
  *
  * Conforme 04-sistemas-e-progressao.md §5 (Como Ganhar).
  *
  * @param tier - Gig tier (t1–t5).
  * @param rng  - Injectable RNG. Defaults to `Math.random`.
- * @returns Street cred points gained.
+ * @returns Moral points gained.
  *
  * @edgecases Uses uniform distribution within the tier range (inclusive).
  */

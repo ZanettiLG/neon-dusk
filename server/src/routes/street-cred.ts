@@ -14,7 +14,7 @@ import { withTransaction } from "../db";
 import { characterRepository as characters } from "../repositories/character-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 
-// Neon Dusk — Street Cred routes (ND-011.2)
+// Neon Dusk — Moral routes (ND-011.2)
 // ============================================================================
 // GET /api/street-cred applies decay lazily on read (grace 7d, -5 SC/day,
 // floor = max threshold achieved) and writes the decayed score back. The

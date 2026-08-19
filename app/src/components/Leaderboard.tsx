@@ -28,7 +28,7 @@ export default function Leaderboard() {
   return (
     <section className="card">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <h3 className="font-heading text-nd-cyan text-lg tracking-widest">RANKING // STREET CRED</h3>
+        <h3 className="font-heading text-nd-cyan text-lg tracking-widest">RANKING // MORAL</h3>
         <span className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary border border-nd-cyan/20 rounded-terminal px-2 py-0.5">
           TOP 20
         </span>
@@ -57,7 +57,7 @@ export default function Leaderboard() {
                 <th className="py-1 pr-2 font-normal">#</th>
                 <th className="py-1 pr-2 font-normal">Runner</th>
                 <th className="py-1 pr-2 font-normal">Título</th>
-                <th className="py-1 font-normal text-right">SC</th>
+                <th className="py-1 font-normal text-right">M</th>
               </tr>
             </thead>
             <tbody>

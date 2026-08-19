@@ -48,35 +48,35 @@ describe("GIG_TEMPLATES", () => {
     }
   });
 
-  it("should keep T1 rewards within 500-2000 eddies", () => {
+  it("should keep T1 rewards within 500-2000 de Grana", () => {
     for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t1")) {
       expect(t.baseReward).toBeGreaterThanOrEqual(500);
       expect(t.baseReward).toBeLessThanOrEqual(2000);
     }
   });
 
-  it("should keep T2 rewards within 2000-8000 eddies", () => {
+  it("should keep T2 rewards within 2000-8000 de Grana", () => {
     for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t2")) {
       expect(t.baseReward).toBeGreaterThanOrEqual(2000);
       expect(t.baseReward).toBeLessThanOrEqual(8000);
     }
   });
 
-  it("should keep T3 rewards within 8000-20000 eddies", () => {
+  it("should keep T3 rewards within 8000-20000 de Grana", () => {
     for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t3")) {
       expect(t.baseReward).toBeGreaterThanOrEqual(8000);
       expect(t.baseReward).toBeLessThanOrEqual(20000);
     }
   });
 
-  it("should keep T4 rewards within 20000-60000 eddies", () => {
+  it("should keep T4 rewards within 20000-60000 de Grana", () => {
     for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t4")) {
       expect(t.baseReward).toBeGreaterThanOrEqual(20000);
       expect(t.baseReward).toBeLessThanOrEqual(60000);
     }
   });
 
-  it("should keep T5 rewards within 60000-200000 eddies", () => {
+  it("should keep T5 rewards within 60000-200000 de Grana", () => {
     for (const t of GIG_TEMPLATES.filter((t) => t.tier === "t5")) {
       expect(t.baseReward).toBeGreaterThanOrEqual(60000);
       expect(t.baseReward).toBeLessThanOrEqual(200000);

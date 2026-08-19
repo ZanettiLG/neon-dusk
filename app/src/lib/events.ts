@@ -11,8 +11,8 @@ export const EVENT_TYPE_LABELS: Record<GameEventType, string> = {
   GIG_FAILED: "Gig falhou",
   PVP_ATTACK: "Ataque PvP",
   PVP_DEFEAT: "Derrota em PvP",
-  EDDIES_EARNED: "Eds ganhos",
-  EDDIES_SPENT: "Eds gastos",
+  EDDIES_EARNED: "G$ ganhos",
+  EDDIES_SPENT: "G$ gastos",
   NIL_SPENT: "NIL gasto",
   NIL_RESTORED: "NIL restaurado",
   VENDOR_PURCHASE: "Compra em vendedor",
@@ -44,7 +44,7 @@ export function formatEventMessage(
     case "GIG_COMPLETED": {
       const name = str(payload, "gigName");
       const payout = num(payload, "payout");
-      if (name && payout !== null) return `Gig "${name}" concluído — +${payout} eds`;
+      if (name && payout !== null) return `Gig "${name}" concluído — +G$ ${payout}`;
       return EVENT_TYPE_LABELS.GIG_COMPLETED;
     }
     case "GIG_FAILED": {
@@ -61,7 +61,7 @@ export function formatEventMessage(
     case "EDDIES_SPENT": {
       const amount = num(payload, "amount");
       if (amount !== null) {
-        return eventType === "EDDIES_EARNED" ? `+${amount} eds ganhos` : `-${amount} eds gastos`;
+        return eventType === "EDDIES_EARNED" ? `+G$ ${amount} ganhos` : `-G$ ${amount} gastos`;
       }
       return eventType === "EDDIES_EARNED"
         ? EVENT_TYPE_LABELS.EDDIES_EARNED

@@ -118,7 +118,7 @@ describe("ND-016 — Crews Básicas API", () => {
     await db("character_wallets").where("character_id", characterId).update({ balance });
   }
 
-  /** Set a character's Street Cred (direct DB — the API awards cap at 100/request). */
+  /** Set a character's Moral (direct DB — the API awards cap at 100/request). */
   async function setStreetCred(characterId: string, sc: number): Promise<void> {
     await db("characters").where("id", characterId).update({ street_cred: sc, max_street_cred_achieved: sc });
   }
@@ -223,7 +223,7 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(res.member.characterName).toBe(leader.characterName);
     });
 
-    it("should debit exactly 5000 eddies from the founder wallet", async () => {
+    it("should debit exactly 5000 de Grana from the founder wallet", async () => {
       const leader = await registerApiUser();
       await makeFounder(leader, { balance: 6000 });
 
@@ -280,7 +280,7 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(err.message).toContain("5000");
     });
 
-    it("should allow creation with exactly 5000 eddies (balance ends at 0)", async () => {
+    it("should allow creation with exactly 5000 de Grana (balance ends at 0)", async () => {
       const leader = await registerApiUser();
       await makeFounder(leader, { balance: 5000 });
 

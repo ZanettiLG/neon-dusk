@@ -59,7 +59,7 @@ function renderRegister() {
 
 async function fillAndSubmit(email: string, password: string, confirm: string) {
   const user = userEvent.setup();
-  await user.type(screen.getByPlaceholderText("fixer@neondusk.gg"), email);
+  await user.type(screen.getByPlaceholderText("voce@neondusk.gg"), email);
   await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), password);
   await user.type(screen.getByPlaceholderText("Repita a senha"), confirm);
   await user.click(screen.getByRole("button", { name: "CADASTRAR" }));
@@ -75,7 +75,7 @@ describe("RegisterView", () => {
     renderRegister();
 
     expect(screen.getByText("CRIAR PERFIL")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("fixer@neondusk.gg")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("voce@neondusk.gg")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Mínimo 8 caracteres")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Repita a senha")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "CADASTRAR" })).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe("RegisterView", () => {
     expect(submit).toBeDisabled();
 
     const user = userEvent.setup();
-    await user.type(screen.getByPlaceholderText("fixer@neondusk.gg"), "new@neondusk.gg");
+    await user.type(screen.getByPlaceholderText("voce@neondusk.gg"), "new@neondusk.gg");
     await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "secret123");
     await user.type(screen.getByPlaceholderText("Repita a senha"), "secret123");
 
@@ -109,7 +109,7 @@ describe("RegisterView", () => {
 
       await userEvent
         .setup()
-        .type(screen.getByPlaceholderText("fixer@neondusk.gg"), invalidEmail);
+        .type(screen.getByPlaceholderText("voce@neondusk.gg"), invalidEmail);
 
       expect(screen.getByRole("alert")).toHaveTextContent("E-mail inválido.");
       expect(screen.getByRole("button", { name: "CADASTRAR" })).toBeDisabled();

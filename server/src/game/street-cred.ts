@@ -1,4 +1,4 @@
-// Neon Dusk — Street Cred game logic (pure functions, no DB access)
+// Neon Dusk — Moral game logic (pure functions, no DB access)
 // ============================================================================
 // Conforme 04-sistemas-e-progressao.md §5: SC 0-100, thresholds gate content,
 // decay -5/day after a 7-day inactivity grace, never below the highest
@@ -31,7 +31,7 @@ export const STREET_CRED_THRESHOLDS: readonly StreetCredThreshold[] = [
   { score: 0, title: "Unknown" },
   { score: 10, title: "Runner" },
   { score: 25, title: "Pro" },
-  { score: 50, title: "Edgerunner" },
+  { score: 50, title: "Corredor" },
   { score: 75, title: "Elite" },
   { score: 100, title: "Legend" },
 ];
@@ -39,7 +39,7 @@ export const STREET_CRED_THRESHOLDS: readonly StreetCredThreshold[] = [
 /** Days of inactivity before decay starts. */
 export const DECAY_GRACE_DAYS = 7;
 
-/** Street cred lost per full day past the grace period. */
+/** Moral lost per full day past the grace period. */
 export const DECAY_RATE_PER_DAY = 5;
 
 /** SC award ranges per gig tier (inclusive) — 04-sistemas-e-progressao.md §5. */
@@ -98,7 +98,7 @@ export function getThresholdFloor(maxAchieved: number): number {
  * below the highest threshold reached.
  *
  * @param lastActivityAt - Last persisted activity timestamp (decay clock).
- * @param currentScore   - Persisted street cred.
+ * @param currentScore   - Persisted Moral.
  * @param maxAchieved    - Lifetime max (decay floor source).
  * @param now            - Current time (injectable for tests).
  * @returns The score delta and the effective score after decay.

@@ -58,7 +58,7 @@ export async function seedTestUser(): Promise<void> {
     humanity: 100,
   });
 
-  // ponytail: eddies lives on character_wallets, not characters. Seed a
+  // ponytail: Grana lives on character_wallets, not characters. Seed a
   // zero-balance wallet so balance reads don't 404/undefined.
   await wallets.insert(newChar.id, {
     balance: 0,

@@ -160,7 +160,7 @@ function trackGigEvent(
 }
 
 /**
- * GET /api/gigs — the Fixer Cupim board: every gig with computed flags
+ * GET /api/gigs — the Despachante Cupim board: every gig with computed flags
  * (requirements met, cooldown), the character's active gig and today's count.
  */
 export async function listAvailableGigs(characterId: string): Promise<GigBoardResponse> {
@@ -253,7 +253,7 @@ export async function getGigDetail(
 }
 
 /**
- * POST /api/gigs/:id/accept — phase 1 (meet). Validates street cred, stats,
+ * POST /api/gigs/:id/accept — phase 1 (meet). Validates Moral, stats,
  * cooldown and NIL, then atomically opens an active gig.
  */
 export async function acceptGig(characterId: string, gigId: string): Promise<GigAcceptResponse> {
@@ -302,7 +302,7 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
         throw new AppError(
           403,
           "INSUFFICIENT_STREET_CRED",
-          `Need ${gig.required_street_cred} street cred, have ${character.street_cred}`,
+          `Precisa de ${gig.required_street_cred} de Moral, tem ${character.street_cred}.`,
         );
       }
       if (!meetsStatRequirements({
@@ -549,7 +549,7 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
 
 /**
  * POST /api/gigs/:id/wrapup — phase 5. Resolves the gig: payout (execute
- * success only), street cred, district heat, history row — then closes the
+ * success only), Moral, district heat, history row — then closes the
  * active gig. All wallet/character/heat writes are one atomic transaction.
  */
 export async function wrapUpGig(characterId: string, gigId: string): Promise<GigWrapupResponse> {
@@ -628,7 +628,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
       newBalance = updatedWallet.balance;
     }
 
-    // 2. Street cred — clamp at 100 so the DB CHECK never fires; report the
+    // 2. Moral — clamp at 100 so the DB CHECK never fires; report the
     // amount actually granted. Every wrap-up (success or failure) refreshes
     // `lastActivityAt` — playing resets the 7-day decay grace. The lifetime
     // max (decay floor) only ever grows.
@@ -700,7 +700,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
 
 /**
  * POST /api/gigs/:id/abandon — drop the active gig and record as abandoned.
- * No payout, no street cred, no heat. The fixer won't be happy, but you live.
+ * No payout, no Moral, no heat. The fixer won't be happy, but you live.
  */
 export async function abandonGig(
   characterId: string,
@@ -735,7 +735,7 @@ export async function abandonGig(
     return {
       outcome: "abandoned" as const,
       message:
-        "Gig abandonada. O fixer não vai gostar, mas você vive para correr outro dia.",
+        "Gig abandonada. O despachante não vai gostar, mas você vive para correr outro dia.",
     };
   });
 }

@@ -147,7 +147,7 @@ export function resolveAbilityState(
  * @returns Activation check result.
  *
  * @edgecases Unknown role → { canActivate: false, reason: "phase2" } (defensive).
- *           Netrunner always returns "phase2" regardless of timestamps.
+ *           netrunner always returns "phase2" regardless of timestamps.
  */
 export function canActivateAbility(
   role: Role,
@@ -311,7 +311,7 @@ export function getOverclockBonus(
 /**
  * Returns Silver Tongue bonuses when the fixer's ability is currently active.
  *
- * Silver Tongue boosts the next gig's eddie payout by +50% and street cred
+ * Silver Tongue boosts the next gig's eddie payout by +50% and Moral
  * by +25% (consumed on gig completion).
  *
  * @param role          - Character's role.

@@ -62,7 +62,7 @@ describe("StreetCredDisplay", () => {
 
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("RUNNER")).toBeInTheDocument();
-    expect(screen.getByText("⭐")).toBeInTheDocument();
+    expect(screen.getByText("★")).toBeInTheDocument();
 
     // Progress bar: score 12 sits between the 10 and 25 thresholds.
     const bar = container.querySelector('[style*="width"]');
@@ -107,7 +107,7 @@ describe("StreetCredDisplay", () => {
 
   it("should hide entirely when the fetch errored", () => {
     useAuthStore.setState({ character: {} as never });
-    useStreetCredStore.setState({ info: null, loading: false, error: "Falha ao carregar Street Cred" });
+    useStreetCredStore.setState({ info: null, loading: false, error: "Falha ao carregar Moral" });
 
     const { container } = renderDisplay();
 

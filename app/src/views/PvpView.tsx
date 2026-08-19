@@ -72,7 +72,7 @@ export default function PvpView() {
     try {
       const res = await api.post<{ won: boolean; lootAmount: number }>("/api/pvp/attack", { targetId });
       if (!mountedRef.current) return;
-      setActionMsg(res.won ? `Vitória! +${res.lootAmount} eds` : `Derrota! -${res.lootAmount} eds`);
+      setActionMsg(res.won ? `Vitória! +G$ ${res.lootAmount}` : `Derrota! -G$ ${res.lootAmount}`);
       fetchTargets();
     } catch (e) {
       if (!mountedRef.current) return;
@@ -113,7 +113,7 @@ export default function PvpView() {
                   <h3 className="font-heading text-nd-cyan">{t.name}</h3>
                   <div className="text-xs font-data mt-1 space-y-0.5">
                     <p className="text-nd-text-secondary">
-                      SC: <span className="text-nd-gold">{t.streetCred}</span>
+                      M: <span className="text-nd-gold">{t.streetCred}</span>
                     </p>
                     <p className="text-nd-text-secondary">
                       Poder: <span className="text-nd-text">{t.power}</span>
@@ -163,7 +163,7 @@ export default function PvpView() {
                     <span className={c.won ? "text-nd-green" : "text-nd-magenta"}>
                       {c.won ? "VITÓRIA" : "DERROTA"}
                     </span>
-                    <span className="text-nd-gold">{c.lootAmount} eds</span>
+                    <span className="text-nd-gold">G$ {c.lootAmount}</span>
                   </div>
                 </div>
               ))}

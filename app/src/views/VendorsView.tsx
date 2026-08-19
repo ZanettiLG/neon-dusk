@@ -5,7 +5,7 @@ import { api } from "@/api/client";
 import { VENDOR_TYPE_LABELS } from "@/lib/labels";
 
 /**
- * Vendor directory — browse ripperdocs, stim dealers, fixers, and the black market.
+ * Vendor directory — browse ferrageiros, stim dealers, despachantes, and the black market.
  */
 export default function VendorsView() {
   const navigate = useNavigate();

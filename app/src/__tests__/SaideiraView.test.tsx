@@ -100,13 +100,13 @@ describe("SaideiraView", () => {
     vi.clearAllMocks();
   });
 
-  it("should render the gate screen when street cred is below 10", () => {
+  it("should render the gate screen when Moral is below 10", () => {
     useAuthStore.setState({ character: character(5) });
 
     renderView();
 
     expect(screen.getByText("⚡ ACESSO RESTRITO")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /VER MEU STREET CRED/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /VER MINHA MORAL/ })).toBeInTheDocument();
     // The tabs must NOT be reachable while gated.
     expect(screen.queryByRole("button", { name: /chat/i })).not.toBeInTheDocument();
     expect(
@@ -122,10 +122,10 @@ describe("SaideiraView", () => {
     expect(
       screen.getByText(/Você ainda não é conhecido o suficiente para entrar na Saideira\./),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Street Cred 10/)).toBeInTheDocument();
+    expect(screen.getByText(/Moral 10/)).toBeInTheDocument();
   });
 
-  it("should render the hub tabs when street cred is 10 or above", () => {
+  it("should render the hub tabs when Moral is 10 or above", () => {
     useAuthStore.setState({ character: character(10) });
 
     renderView();

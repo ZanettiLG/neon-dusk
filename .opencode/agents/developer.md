@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (38 checks)
+7. Self-review (40 checks)
 8. Handoff do código implementado
 
-## Self-Review (38 checks)
+## Self-Review (40 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -70,6 +70,8 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Nova migration = um arquivo por entidade (uma tabela por migration, com `up` + `down`); schema novo SEMPRE entra em migration nova — nunca editar migration já aplicada
 - [ ] Seeds idempotentes (upsert/`onConflict` — nunca `del()` + insert) e sem duplicar lógica de seed existente (mesma entidade semeada em 2+ lugares)
 - [ ] Rotas não importam `db` diretamente — queries do banco vivem em services; rotas chamam services
+- [ ] Mensagens user-facing que toquei estão 100% em PT (sem resíduos em inglês)
+- [ ] Ao alterar uma mensagem de erro, grep pelo error code e padronize todas as variantes de uma vez
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino

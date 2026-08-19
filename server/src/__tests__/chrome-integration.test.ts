@@ -19,7 +19,7 @@ import type {
 // (6) so rate-limit counters never leak across files.
 //
 // resetDb() truncates `vendors CASCADE`, which wipes the migration-seeded
-// ripperdoc "Doc Fios", so beforeAll re-seeds it (same fixed id) plus its
+// ferrageiro "Doc Fios", so beforeAll re-seeds it (same fixed id) plus its
 // inventory of the 5 starter implants. The chrome_definitions seed rows
 // survive (not truncated).
 
@@ -47,7 +47,7 @@ function uniqueEmail(): string {
   return `chrome-${Date.now()}-${seq++}@neondusk.test`;
 }
 function uniqueName(): string {
-  return `Solo-${Date.now()}-${seq++}`;
+  return `Bicho-${Date.now()}-${seq++}`;
 }
 
 function validAttributes(): CreateCharacterRequest["attributes"] {
@@ -82,7 +82,7 @@ describe("Feature #4 — chrome API", () => {
       name: "Doc Fios",
       type: "RIPPERDOC",
       district: "babilonia",
-      description: "Ripperdoc veterano da Babilônia.",
+      description: "Ferrageiro veterano da Babilônia.",
       is_active: true,
     });
     await db("vendor_inventory").insert(
@@ -151,7 +151,7 @@ describe("Feature #4 — chrome API", () => {
     return row!.id;
   }
 
-  /** A ripperdoc that stocks no chrome at all. */
+  /** A ferrageiro that stocks no chrome at all. */
   async function seedEmptyRipperdoc(): Promise<string> {
     const [vendor] = await db("vendors")
       .insert({
@@ -298,7 +298,7 @@ describe("Feature #4 — chrome API", () => {
   });
 
   describe("POST /api/chrome/install", () => {
-    it("should install chrome, deduct eddies and reduce humanity", async () => {
+    it("should install chrome, deduct Grana and reduce humanity", async () => {
       const { accessToken } = await registerAndCreateCharacter();
       const neural = await defId("neural-booster");
 
@@ -357,17 +357,19 @@ describe("Feature #4 — chrome API", () => {
 
     it("should return 400 INSUFFICIENT_FUNDS when the wallet cannot cover the price", async () => {
       const { accessToken } = await registerAndCreateCharacter();
-      // Gorilla Arms = 2500 eddies > 500 seed balance.
+      // Gorilla Arms = 2500 de Grana > 500 seed balance.
       const res = await installChrome(accessToken, await defId("gorilla-arms"));
 
       expect(res.status).toBe(400);
       const body = await json<ErrorBody>(res);
       expect(body.error).toBe("INSUFFICIENT_FUNDS");
+      // Message format aligned with economy-service (#145 review): "disponível" + final period.
+      expect(body.message).toBe("Precisa de G$ 2500 disponível, tem G$ 500.");
     });
 
     it("should return 400 HUMANITY_TOO_LOW when humanity would drop below 0", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
-      // Reflex Tuner costs 3 humanity and 300 eddies. At 2 humanity it would go to -1.
+      // Reflex Tuner costs 3 humanity and 300 de Grana. At 2 humanity it would go to -1.
       await db("characters")
         .where("id", characterId)
         .update({ humanity: 2 });
@@ -438,7 +440,7 @@ describe("Feature #4 — chrome API", () => {
     it("should NOT increase NIL max when installing Gorilla Arms (non-neural)", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
 
-      // Fetch balance to trigger wallet creation, then top up for Gorilla Arms (2500 eddies).
+      // Fetch balance to trigger wallet creation, then top up for Gorilla Arms (2500 de Grana).
       await fetch(`${base()}/api/economy/balance`, { headers: authHeader(accessToken) });
       await db("character_wallets")
         .where("character_id", characterId)

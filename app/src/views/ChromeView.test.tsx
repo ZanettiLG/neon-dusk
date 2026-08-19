@@ -85,7 +85,7 @@ describe("ChromeView", () => {
 
     expect(await screen.findByText("Smart Link")).toBeInTheDocument();
     expect(screen.getByText(/Sistema Nervoso/)).toBeInTheDocument();
-    expect(screen.getByText("500 eds")).toBeInTheDocument();
+    expect(screen.getByText("G$ 500")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Instalar" })).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByRole("tab", { name: "Meu Chrome" }));
@@ -111,14 +111,14 @@ describe("ChromeView", () => {
       if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
       return Promise.resolve([]);
     });
-    mocks.api.post.mockRejectedValue(new Error("Eds insuficientes."));
+    mocks.api.post.mockRejectedValue(new Error("Grana insuficiente."));
     const user = userEvent.setup();
 
     render(<ChromeView />);
 
     await user.click(await screen.findByRole("button", { name: "Instalar" }));
 
-    expect(await screen.findByText("Eds insuficientes.")).toBeInTheDocument();
+    expect(await screen.findByText("Grana insuficiente.")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/install", {
       chromeDefinitionId: "ch1",
       vendorId: "v1",

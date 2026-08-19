@@ -101,9 +101,9 @@ export interface Character extends Attributes {
   name: string;
   origin: Origin;
   role: Role;
-  /** Current street cred (0-100, may have decayed since the max). */
+  /** Current Moral (0-100, may have decayed since the max). */
   streetCred: number;
-  /** Highest street cred ever reached — the decay floor (§5). */
+  /** Highest Moral ever reached — the decay floor (§5). */
   maxStreetCredAchieved: number;
   /** Active role ability state (null when no ability timeline exists). */
   ability: AbilityState | null;
@@ -195,7 +195,7 @@ export interface AuthResponse {
 }
 
 // --- Economy (Feature #3 / ND-010) -------------------------------------------
-// Wallet balances are expressed in eddies (integers). Transaction types record
+// Wallet balances are expressed in Grana (integers). Transaction types record
 // every wallet movement; vendor types classify the NPC vendors.
 
 export const TRANSACTION_TYPES = [
@@ -399,7 +399,7 @@ export interface ChromeBonuses {
   nil_max?: number;
 }
 
-/** Static chrome catalog entry (sold by ripperdocs). */
+/** Static chrome catalog entry (sold by ferrageiros). */
 export interface ChromeDefinition {
   id: string;
   slug: string;
@@ -580,7 +580,7 @@ export interface GigAbandonResponse {
   message: string;
 }
 
-// ─── Street Cred (ND-011.2) ─────────────────────────────────────────────────
+// ─── Moral (ND-011.2) ────────────────────────────────────────────────────────
 // Reputation score 0-100: decays -5/day after a 7-day inactivity grace, never
 // below the highest threshold reached (04-sistemas-e-progressao.md §5).
 
@@ -641,9 +641,9 @@ export interface PvpCombatResult {
   attackerPower: number;
   defenderPower: number;
   lootAmount: number;
-  /** Attacker's street cred change (positive on win, negative on loss). */
+  /** Attacker's Moral change (positive on win, negative on loss). */
   streetCredChange: number;
-  /** Attacker's street cred after the fight. */
+  /** Attacker's Moral after the fight. */
   newStreetCred: number;
   /** Attacker's wallet balance after the fight. */
   newBalance: number;
@@ -751,18 +751,18 @@ export interface CrewLeaderboardResponse {
 }
 
 // ─── Crews (ND-016: Crews Básicas) ──────────────────────────────────────────
-// Gang social system: a leader founds a crew (5,000 eddies, SC >= 25) and
+// Gang social system: a leader founds a crew (5.000 de Grana, SC >= 25) and
 // recruits up to 3 members (invite → join). Size unlocks cumulative bonuses
 // (see server/src/game/crews.ts). The saideira chat (ND-015) and the street
 // cred leaderboard (ND-011.2) both surface the crew affiliation.
 
 /** Maximum crew size (leader + 3 recruits). */
 export const CREW_MAX_SIZE = 4;
-/** Street Cred required to found a crew. */
+/** Moral required to found a crew. */
 export const CREW_CREATE_SC = 25;
 /** Eddy cost to found a crew (transaction type CREW_CREATION). */
 export const CREW_CREATE_COST = 5000;
-/** Street Cred a recruit must have to be invited. */
+/** Moral a recruit must have to be invited. */
 export const CREW_RECRUIT_SC = 10;
 
 /** A crew (gang). */
@@ -854,7 +854,7 @@ export interface RoundStatsSnapshot {
   totalActiveCharacters: number;
   topCrewName: string | null;
   topScCharacterName: string | null;
-  /** Street cred of the top-scoring character (null when no characters). */
+  /** Moral of the top-scoring character (null when no characters). */
   topScValue: number | null;
 }
 

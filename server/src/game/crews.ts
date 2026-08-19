@@ -3,7 +3,7 @@ import type { CrewBonus } from "@neon-dusk/shared";
 // Neon Dusk — Crew game logic (pure functions, no DB access)
 // ============================================================================
 // Size-based crew bonuses (ND-016). The multipliers are consumed by gig
-// resolution (success rate, payout, Street Cred) in a future feature; the
+// resolution (success rate, payout, Moral) in a future feature; the
 // math lives here so it is unit-testable and shared with the API surface.
 
 /**
@@ -16,10 +16,10 @@ export function calculateCrewBonuses(memberCount: number): CrewBonus[] {
     bonuses.push({ type: "gig_success", description: "+5% gig success rate", value: 5 });
   }
   if (memberCount >= 3) {
-    bonuses.push({ type: "eddies", description: "+10% eddies from gigs", value: 10 });
+    bonuses.push({ type: "eddies", description: "+10% de Grana de trampos", value: 10 });
   }
   if (memberCount >= 4) {
-    bonuses.push({ type: "street_cred", description: "+10% Street Cred gained", value: 10 });
+    bonuses.push({ type: "street_cred", description: "+10% de Moral ganha", value: 10 });
   }
   return bonuses;
 }

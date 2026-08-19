@@ -125,7 +125,7 @@ export default function VendorDetailView() {
                 <tr key={item.id} className="border-b border-nd-cyan/10">
                   <td className="py-2 pr-4 text-nd-cyan">{item.itemType}</td>
                   <td className="py-2 pr-4 text-nd-text">{item.itemId}</td>
-                  <td className="py-2 pr-4 text-nd-gold">{item.price} eds</td>
+                  <td className="py-2 pr-4 text-nd-gold">G$ {item.price}</td>
                   <td className="py-2 pr-4 text-nd-magenta">
                     {item.itemType === "CHROME" && item.humanityCost != null
                       ? `-${item.humanityCost}`

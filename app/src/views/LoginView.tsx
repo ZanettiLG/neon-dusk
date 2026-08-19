@@ -43,7 +43,7 @@ export default function LoginView() {
               type="email"
               required
               autoComplete="email"
-              placeholder="fixer@neondusk.gg"
+              placeholder="voce@neondusk.gg"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"

@@ -235,7 +235,7 @@ describe("economy service", () => {
         });
       }
 
-      // No eddies lost: balance reflects exactly the successful transfers.
+      // No Grana lost: balance reflects exactly the successful transfers.
       const wallet = await getWallet(characterId);
       expect(wallet.balance).toBe(500 + 10 * ok.length);
       expect(wallet.version).toBe(ok.length);

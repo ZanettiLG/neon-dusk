@@ -9,7 +9,7 @@ import {
   calculateStreetCredAward,
 } from "../game/street-cred";
 
-// ND-011.2 — unit tests for street cred game logic (pure functions, no DB).
+// ND-011.2 — unit tests for Moral game logic (pure functions, no DB).
 // Conforme 04-sistemas-e-progressao.md §5: thresholds, decay, and SC awards.
 
 // ─── Thresholds ─────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ describe("STREET_CRED_THRESHOLDS", () => {
     expect(STREET_CRED_THRESHOLDS[0]).toEqual({ score: 0, title: "Unknown" });
     expect(STREET_CRED_THRESHOLDS[1]).toEqual({ score: 10, title: "Runner" });
     expect(STREET_CRED_THRESHOLDS[2]).toEqual({ score: 25, title: "Pro" });
-    expect(STREET_CRED_THRESHOLDS[3]).toEqual({ score: 50, title: "Edgerunner" });
+    expect(STREET_CRED_THRESHOLDS[3]).toEqual({ score: 50, title: "Corredor" });
     expect(STREET_CRED_THRESHOLDS[4]).toEqual({ score: 75, title: "Elite" });
     expect(STREET_CRED_THRESHOLDS[5]).toEqual({ score: 100, title: "Legend" });
   });
@@ -56,10 +56,10 @@ describe("getTitle", () => {
     expect(getTitle(49)).toBe("Pro");
   });
 
-  it("should return 'Edgerunner' for scores between 50 and 74", () => {
-    expect(getTitle(50)).toBe("Edgerunner");
-    expect(getTitle(62)).toBe("Edgerunner");
-    expect(getTitle(74)).toBe("Edgerunner");
+  it("should return 'Corredor' for scores between 50 and 74", () => {
+    expect(getTitle(50)).toBe("Corredor");
+    expect(getTitle(62)).toBe("Corredor");
+    expect(getTitle(74)).toBe("Corredor");
   });
 
   it("should return 'Elite' for scores between 75 and 99", () => {
@@ -97,8 +97,8 @@ describe("getNextThreshold", () => {
     expect(getNextThreshold(24)).toEqual({ score: 25, title: "Pro" });
   });
 
-  it("should return Edgerunner for score 25", () => {
-    expect(getNextThreshold(25)).toEqual({ score: 50, title: "Edgerunner" });
+  it("should return Corredor for score 25", () => {
+    expect(getNextThreshold(25)).toEqual({ score: 50, title: "Corredor" });
   });
 
   it("should return Elite for score 50", () => {
@@ -151,11 +151,11 @@ describe("getThresholdFloor", () => {
     expect(getThresholdFloor(25)).toBe(25);
   });
 
-  it("should return 50 for maxAchieved 52 (Edgerunner)", () => {
+  it("should return 50 for maxAchieved 52 (Corredor)", () => {
     expect(getThresholdFloor(52)).toBe(50);
   });
 
-  it("should return 50 for maxAchieved 74 (Edgerunner)", () => {
+  it("should return 50 for maxAchieved 74 (Corredor)", () => {
     expect(getThresholdFloor(74)).toBe(50);
   });
 
@@ -300,7 +300,7 @@ describe("calculateDecay", () => {
     expect(result.effectiveScore).toBe(100);
   });
 
-  it("should decay from 80 to Edgerunner floor (50) with enough time", () => {
+  it("should decay from 80 to Corredor floor (50) with enough time", () => {
     // maxAchieved=80 → floor=75 (Elite), maxDecay=80-75=5
     const last = new Date(NOW.getTime() - 100 * DAY);
     const result = calculateDecay(last, 80, 80, NOW);
@@ -539,11 +539,11 @@ describe("Title + Decay integration", () => {
     expect(getTitle(effectiveScore)).toBe("Legend");
   });
 
-  it("should maintain Edgerunner title after decaying from 60 to floor 50", () => {
+  it("should maintain Corredor title after decaying from 60 to floor 50", () => {
     const last = new Date(NOW.getTime() - 30 * DAY);
     const { effectiveScore } = calculateDecay(last, 60, 50, NOW);
     expect(effectiveScore).toBe(50);
-    expect(getTitle(effectiveScore)).toBe("Edgerunner");
+    expect(getTitle(effectiveScore)).toBe("Corredor");
   });
 
   it("should maintain Pro title after decaying from 35 to floor 25", () => {

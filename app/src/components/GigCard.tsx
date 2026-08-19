@@ -20,7 +20,7 @@ const TYPE_STYLES: Record<GigType, { badge: string; bar: string }> = {
 };
 
 /**
- * One gig on the Fixer Cupim board: type/tier badges, difficulty bar, reward
+ * One gig on the Despachante Cupim board: type/tier badges, difficulty bar, reward
  * and NIL cost, per-attribute requirements (checked against the character)
  * and a live cooldown countdown.
  */
@@ -79,7 +79,7 @@ export default function GigCard({ gig, disabled, onAccept }: GigCardProps) {
       {/* Reward + NIL cost */}
       <div className="flex items-center justify-between gap-3">
         <span className="font-data text-sm text-nd-gold">
-          €$ {gig.baseReward.toLocaleString("pt-BR")}
+          G$ {gig.baseReward.toLocaleString("pt-BR")}
         </span>
         <span className="font-data text-xs text-nd-text-secondary">
           NIL <span className="text-nd-cyan">{gig.nilCost}</span>

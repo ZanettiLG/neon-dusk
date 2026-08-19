@@ -22,14 +22,14 @@ export interface VendorSeedEntry {
 }
 
 export const VENDOR_SEED: VendorSeedEntry[] = [
-  // ── Doc Fios (Ripperdoc, Babilônia) ─────────────────────────────────────
+  // ── Doc Fios (Ferrageiro, Babilônia) ────────────────────────────────────
   {
     id: "00000000-0000-4000-8000-000000000001",
     name: "Doc Fios",
     type: "RIPPERDOC",
     district: "babilonia",
     description:
-      "Ripperdoc de confiança da Babilônia. Especialista em chrome de combate e reparos de emergência.",
+      "Ferrageiro de confiança da Babilônia. Especialista em cromo de combate e reparos de emergência.",
     inventory: [
       { itemType: "CHROME", itemId: "neural-booster", price: 1500, stock: -1 },
       { itemType: "CHROME", itemId: "reflex-tuner", price: 1500, stock: -1 },
@@ -39,14 +39,14 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
     ],
   },
 
-  // ── Cupim (Fixer, Babilônia) ────────────────────────────────────────────
+  // ── Cupim (Despachante, Babilônia) ──────────────────────────────────────
   {
     id: "00000000-0000-4000-8000-000000000002",
     name: "Cupim",
     type: "FIXER",
     district: "babilonia",
     description:
-      "Fixer veterano, conhece cada beco da Babilônia. Intermedeia gigs e informações.",
+      "Despachante veterano, conhece cada beco da Babilônia. Intermedeia gigs e informações.",
     inventory: [], // fixer doesn't sell items — gig board is separate
   },
 

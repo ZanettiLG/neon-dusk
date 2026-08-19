@@ -32,7 +32,7 @@ interface GigState {
 }
 
 /**
- * Gigs store (Zustand singleton) — Fixer Cupim board, the 5-phase loop of the
+ * Gigs store (Zustand singleton) — Despachante Cupim board, the 5-phase loop of the
  * active gig and cursor-paginated history. Phase actions patch `board.activeGig`
  * straight from the server response; wrap up clears it and refreshes the board.
  */

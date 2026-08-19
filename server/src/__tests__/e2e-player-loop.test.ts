@@ -81,7 +81,7 @@ describe("ND-018 — e2e player loop", () => {
       expect(charRes.status, "create character").toBe(201);
       const character = await json<Character>(charRes);
 
-      // ---- STEP 3: Verify NIL=100, eddies=500 via the dedicated readouts ----
+      // ---- STEP 3: Verify NIL=100, Grana=500 via the dedicated readouts ----
       // GET /api/auth/me returns the public Character contract (shared
       // `Character` type), which has no `nil`/`eddies` fields — NIL and the
       // wallet live in their own endpoints.
@@ -159,13 +159,13 @@ describe("ND-018 — e2e player loop", () => {
         }
       }
 
-      // ---- STEP 6: Verify NIL spent, eddies earned, SC increased ----
+      // ---- STEP 6: Verify NIL spent, Grana earned, Moral increased ----
       const afterGigs = await server.get("/api/economy/balance", headers);
       const afterBody = await json<{ balance: number }>(afterGigs);
-      expect(afterBody.balance, "eddies after gigs").toBeGreaterThan(500);
+      expect(afterBody.balance, "Grana after gigs").toBeGreaterThan(500);
 
       const scRes = await server.get("/api/street-cred", headers);
-      expect(scRes.status, "street cred").toBe(200);
+      expect(scRes.status, "Moral").toBe(200);
 
       // ---- STEP 7: Buy chrome (Kiroshi Optics) ----
       const chromeRes = await server.get("/api/chrome", headers);
@@ -187,16 +187,16 @@ describe("ND-018 — e2e player loop", () => {
         expect(vendorRes.status, "vendors").toBe(200);
         const vendors = await json<Array<{ id: string }>>(vendorRes);
 
-        const ripperdoc = vendors[0];
-        if (ripperdoc && kiroshi) {
+        const ferrageiro = vendors[0];
+        if (ferrageiro && kiroshi) {
           const installRes = await server.post(
             "/api/chrome/install",
-            { chromeDefinitionId: kiroshi.id, vendorId: ripperdoc.id },
+            { chromeDefinitionId: kiroshi.id, vendorId: ferrageiro.id },
             headers,
           );
           // May fail if insufficient funds or slot already filled — that's fine
           if (installRes.status === 200 || installRes.status === 201) {
-            // ---- STEP 8: Verify eddies debited, Humanity reduced ----
+            // ---- STEP 8: Verify Grana debited, Humanity reduced ----
             const installedRes = await server.get("/api/chrome/installed", headers);
             expect(installedRes.status, "installed chrome").toBe(200);
           }
@@ -258,7 +258,7 @@ describe("ND-018 — e2e player loop", () => {
       });
       expect(resetRes.status, "trigger reset").toBe(200);
 
-      // ---- STEP 13: Verify eddies/SC reset, character & legends preserved ----
+      // ---- STEP 13: Verify Grana/Moral reset, character & legends preserved ----
       // Character still exists
       const meAfter = await server.get("/api/auth/me", headers);
       expect(meAfter.status, "me after reset").toBe(200);

@@ -103,7 +103,7 @@ describe("GIG_TEMPLATES (content/gig-templates.ts)", () => {
     }
   });
 
-  it("should require the canonical street cred gate per tier (0/5/15/30/50)", () => {
+  it("should require the canonical Moral gate per tier (0/5/15/30/50)", () => {
     const GATES: Record<(typeof VALID_GIG_TIERS)[number], number> = {
       t1: 0,
       t2: 5,
@@ -219,7 +219,7 @@ describe("VENDOR_SEED (content/vendor-inventories.ts)", () => {
     }
   });
 
-  it("should carry 8 inventory rows total (5 ripperdoc, 0 fixer, 1 stim, 2 black market)", () => {
+  it("should carry 8 inventory rows total (5 ferrageiro, 0 despachante, 1 stim, 2 black market)", () => {
     const counts = VENDOR_SEED.map((v) => v.inventory.length);
     expect(counts).toEqual([5, 0, 1, 2]);
   });

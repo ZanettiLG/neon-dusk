@@ -34,7 +34,7 @@ function resolveStatus(
   return "active";
 }
 
-/** Derive a character level from their street cred (every 10 SC = 1 level, min 1). */
+/** Derive a character level from their Moral (every 10 SC = 1 level, min 1). */
 function levelFromSC(sc: number): number {
   return Math.max(1, Math.floor(sc / 10) + 1);
 }

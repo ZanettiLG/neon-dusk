@@ -9,7 +9,7 @@
 // attributes → base 3, street_cred → 0 (max_street_cred_achieved persists,
 // ADR-7), NIL → 100, humanity → 100, chrome wiped, crews dissolved, gigs/pvp/
 // heat/transaction history wiped, wallets zeroed. SC 100 characters are
-// inducted into the Legends table BEFORE street cred is zeroed.
+// inducted into the Legends table BEFORE Moral is zeroed.
 
 import type { RoundStatsSnapshot } from "@neon-dusk/shared";
 

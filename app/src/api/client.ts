@@ -115,7 +115,7 @@ const PT_BR_ERRORS: Record<string, string> = {
   INVALID_ATTRIBUTES: "Distribuição de atributos inválida.",
 
   // Economy
-  INSUFFICIENT_FUNDS: "Eds insuficientes.",
+  INSUFFICIENT_FUNDS: "Grana insuficiente.",
   OUT_OF_STOCK: "Item fora de estoque.",
   VENDOR_NOT_FOUND: "Vendedor não encontrado.",
   ITEM_NOT_FOUND: "Item não encontrado.",

@@ -5,7 +5,7 @@ import { isUniqueViolation } from "../db/pg-errors";
 // Neon Dusk — Character repository (#158 DB repository layer)
 // ============================================================================
 // All `characters` table access. Write methods that can race (NIL, humanity,
-// street cred) keep their optimistic WHERE guards here so callers preserve
+// Moral) keep their optimistic WHERE guards here so callers preserve
 // the existing concurrency contracts.
 
 /** Database row shape for the `characters` table (snake_case columns). */
@@ -87,11 +87,11 @@ export interface CharacterRepository {
     newScore: number,
     q?: Queryable,
   ): Promise<{ streetCred: number; maxStreetCredAchieved: number } | undefined>;
-  /** Wrap-up write — street cred + lifetime max + activity refresh. */
+  /** Wrap-up write — Moral + lifetime max + activity refresh. */
   updateStreetCredAndActivity(id: string, newScore: number, q?: Queryable): Promise<void>;
   /** PvP winner write — tracks the lifetime max only. */
   updateStreetCredMax(id: string, newScore: number, q?: Queryable): Promise<void>;
-  /** PvP loser write — plain street cred delta. */
+  /** PvP loser write — plain Moral delta. */
   updateStreetCredDelta(id: string, newScore: number, q?: Queryable): Promise<void>;
   /** PvP NIL cost — plain write. */
   updateNil(id: string, nil: number, q?: Queryable): Promise<void>;
@@ -147,9 +147,9 @@ export interface CharacterRepository {
   ): Promise<AdminPlayerRow[]>;
   /** Admin dashboard player count (same search filter). */
   countWithNameSearch(search: string | undefined, q?: Queryable): Promise<number>;
-  /** Characters at street cred 100 (legend induction candidates). */
+  /** Characters at Moral 100 (legend induction candidates). */
   listLegendCandidates(q?: Queryable): Promise<LegendCandidateRow[]>;
-  /** Leaderboard rows: decay inputs + crew name, ordered by street cred DESC. */
+  /** Leaderboard rows: decay inputs + crew name, ordered by Moral DESC. */
   listLeaderboardRows(limit: number, q?: Queryable): Promise<
     Array<{
       name: string;

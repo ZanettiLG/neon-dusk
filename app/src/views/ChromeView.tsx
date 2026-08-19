@@ -8,7 +8,7 @@ type TabKey = "catalog" | "installed";
 
 /**
  * Chrome implant management — two tabs: catalog browser and installed implants.
- * Get chipped, choom. Chrome eats your humanity; spend it wisely.
+ * Get chipped, mano. Chrome eats your humanity; spend it wisely.
  */
 export default function ChromeView() {
   const mountedRef = useRef(true);
@@ -24,7 +24,7 @@ export default function ChromeView() {
   const [installedLoading, setInstalledLoading] = useState(true);
   const [installedError, setInstalledError] = useState<string | null>(null);
 
-  // Vendors — needed so install can pick a ripperdoc
+  // Vendors — needed so install can pick a ferrageiro
   const [vendorId, setVendorId] = useState<string | null>(null);
 
   // Action state
@@ -81,7 +81,7 @@ export default function ChromeView() {
     setActionSuccess(null);
     try {
       if (!vendorId) {
-        setActionError("Nenhum ripperdoc disponível. Visite a aba Vendedores.");
+        setActionError("Nenhum ferrageiro disponível. Visite a aba Vendedores.");
         return;
       }
       await api.post(`/api/chrome/install`, { chromeDefinitionId, vendorId });
@@ -153,7 +153,7 @@ export default function ChromeView() {
                   )}
                   <div className="flex items-center justify-between mt-3">
                     <div className="text-xs font-data space-y-0.5">
-                      <p className="text-nd-gold">{c.basePrice} eds</p>
+                      <p className="text-nd-gold">G$ {c.basePrice}</p>
                       <p className="text-nd-magenta">-{c.humanityCost} humanidade</p>
                     </div>
                     <button
@@ -179,7 +179,7 @@ export default function ChromeView() {
             <p className="text-nd-magenta text-sm font-data">{installedError}</p>
           ) : !installed || installed.installed.length === 0 ? (
             <div className="card text-center py-10">
-              <p className="text-nd-text-secondary font-data text-sm">Nenhum implante instalado. Visite um ripperdoc.</p>
+              <p className="text-nd-text-secondary font-data text-sm">Nenhum implante instalado. Visite um ferrageiro.</p>
             </div>
           ) : (
             <div className="space-y-4">

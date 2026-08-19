@@ -62,7 +62,7 @@ export async function getWallet(characterId: string): Promise<WalletState> {
 }
 
 /**
- * Transfer eddies with optimistic locking (version compare-and-swap).
+ * Transfer Grana with optimistic locking (version compare-and-swap).
  * Retries up to MAX_RETRIES times with exponential backoff on conflicts.
  * Throws AppError(400) on insufficient funds, AppError(409) on persistent
  * concurrency conflicts.
@@ -100,7 +100,7 @@ export async function transfer(
             throw new AppError(
               400,
               "INSUFFICIENT_FUNDS",
-              `Need ${Math.abs(amount)} available eddies, have ${availableFunds}`,
+              `Precisa de G$ ${Math.abs(amount)} disponível, tem G$ ${availableFunds}.`,
             );
           }
         }
@@ -157,7 +157,7 @@ export async function transfer(
         );
       }
       if (err instanceof Error && err.message === "Insufficient funds") {
-        throw new AppError(400, "INSUFFICIENT_FUNDS", "Eddies insuficientes");
+        throw new AppError(400, "INSUFFICIENT_FUNDS", "Grana insuficiente");
       }
       throw err;
     }
@@ -283,7 +283,7 @@ export async function buyFromVendor(
       throw new AppError(
         400,
         "INSUFFICIENT_FUNDS",
-        `Need ${totalPrice} eddies, have ${availableFunds}`,
+        `Precisa de G$ ${totalPrice} disponível, tem G$ ${availableFunds}.`,
       );
     }
 

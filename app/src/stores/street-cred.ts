@@ -16,7 +16,7 @@ interface StreetCredState {
 }
 
 /**
- * Street Cred store (Zustand singleton) — live SC readout for the header
+ * Moral store (Zustand singleton) — live SC readout for the header
  * badge and the public top-50 leaderboard. fetchSC is a no-op without a
  * character (the endpoint 404s otherwise).
  */
@@ -33,7 +33,7 @@ export const useStreetCredStore = create<StreetCredState>((set) => ({
     try {
       set({ info: await api.get<StreetCredInfo>("/api/street-cred") });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Falha ao carregar Street Cred" });
+      set({ error: err instanceof Error ? err.message : "Falha ao carregar Moral" });
     } finally {
       set({ loading: false });
     }

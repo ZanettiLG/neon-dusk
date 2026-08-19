@@ -2,6 +2,23 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-19 — N1: Mensagens user-facing em PT + padronização de error codes (feature #145)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE da feature #145 (run_id nd-20260818-143000-terminologia-app). 2 padrões de falha detectados nos ciclos de review:
+1. Mensagens user-facing traduzidas parcialmente ficaram em inglês ("Need 5 Moral, have 3", "Need G$ X available…") — 3 findings desse tipo em 6. Cada dev corrigiu só o arquivo que tocou.
+2. O mesmo error code (`INSUFFICIENT_FUNDS`) tinha 3 variantes de frase no repo, porque cada correção era local ao arquivo tocado.
+
+### Change
+- `developer` (agent): self-review 38 → 40 checks. Adicionados:
+  - Mensagens user-facing que toquei estão 100% em PT (sem resíduos em inglês)
+  - Ao alterar uma mensagem de erro, grep pelo error code e padronize todas as variantes de uma vez
+
+### Impact
+Esperado: strings de UI saem 100% em português e um error code passa a ter uma única variante de frase no repo — eliminando a correção fragmentada por arquivo e o resíduo de inglês nas mensagens user-facing.
+
+---
+
 ## 2026-08-18 — N2: Higiene da camada de banco (developer + code-reviewer)
 
 ### Trigger

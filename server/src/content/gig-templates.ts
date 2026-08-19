@@ -197,7 +197,7 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
   {
     name: "Olho por Olho",
     description:
-      "O fixer Carcará quer um protótipo de retina sintética que está num " +
+      "O despachante Carcará quer um protótipo de retina sintética que está num " +
       "cofre biométrico no 47° andar da Torre Falcão. O cofre só abre com um olho vivo. Adivinha de quem?",
     tier: "t2",
     type: "extraction",
@@ -251,7 +251,7 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
   {
     name: "Rota do Deserto",
     description:
-      "Transporte um carregamento de chrome ilegal pelas rotas do deserto. " +
+      "Transporte um carregamento de cromo ilegal pelas rotas do deserto. " +
       "As milícias de fronteira estão com scanners novos.",
     tier: "t3",
     type: "delivery",

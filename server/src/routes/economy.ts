@@ -8,7 +8,7 @@ import { characterRepository as characters } from "../repositories/character-rep
 // Neon Dusk — Economy routes (wallet balance + transaction history)
 // ============================================================================
 // Both endpoints resolve the caller's character from their JWT sub claim.
-// The wallet auto-seeds (500 eddies) on first read, so a fresh character
+// The wallet auto-seeds (500 de Grana) on first read, so a fresh character
 // never hits a missing-wallet edge case.
 
 export async function economyRoutes(app: FastifyInstance) {

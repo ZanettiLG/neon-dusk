@@ -32,7 +32,7 @@ export interface CrewInviteRow {
   expires_at: Date;
 }
 
-/** Member row joined with the character (name + street cred). */
+/** Member row joined with the character (name + Moral). */
 export interface CrewMemberJoinedRow {
   id: string;
   characterId: string;
@@ -53,7 +53,7 @@ export interface CrewRepository {
   listAllWithMemberCount(q?: Queryable): Promise<
     Array<{ id: string; name: string; tag: string; leaderId: string; memberCount: number }>
   >;
-  /** Crew ranking by total member street cred (detail view). */
+  /** Crew ranking by total member Moral (detail view). */
   listRanking(q?: Queryable): Promise<Array<{ id: string; totalSC: number }>>;
   /** Top crews by total member SC (Saideira leaderboard). */
   listLeaderboard(limit: number, q?: Queryable): Promise<

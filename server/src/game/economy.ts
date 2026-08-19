@@ -3,7 +3,7 @@ import type { TransactionType } from "@neon-dusk/shared";
 // Neon Dusk — Economy game logic (pure functions, no DB access)
 // ============================================================================
 // All eddie math lives here so it is unit-testable and shared by services.
-// Money is integers only (eddies); never floats.
+// Money is integers only (Grana); never floats.
 
 /** Wallet state as of a persisted version. `escrow` is committed-but-unspendable. */
 export interface WalletState {

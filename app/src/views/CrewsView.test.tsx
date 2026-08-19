@@ -105,7 +105,7 @@ describe("CrewsView", () => {
 
     renderView();
 
-    expect(screen.getByText("SC 25 necessário para fundar")).toBeInTheDocument();
+    expect(screen.getByText("M 25 necessária para fundar")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Fundar Crew" })).not.toBeInTheDocument();
   });
 

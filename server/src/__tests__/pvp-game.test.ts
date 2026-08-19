@@ -15,7 +15,7 @@ import {
 import { transferEddies } from "../game/economy";
 
 // ND-014 — unit tests for the pure PvP game logic (no DB, no mocks).
-// Conforme 04-sistemas-e-progressao.md §6: combat power, loot, street cred,
+// Conforme 04-sistemas-e-progressao.md §6: combat power, loot, Moral,
 // grief/defeat protections. RNG is injected so every formula is deterministic.
 
 const DAY_MS = 86_400_000;

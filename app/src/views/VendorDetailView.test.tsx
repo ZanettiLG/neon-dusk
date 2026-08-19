@@ -33,7 +33,7 @@ vi.mock("@/api/client", () => ({
 const detail: VendorWithInventory = {
   vendor: {
     id: "v1",
-    name: "Ripperdoc Zé",
+    name: "Ferrageiro Zé",
     type: "RIPPERDOC",
     district: "A Paraíso",
   },
@@ -73,9 +73,9 @@ describe("VendorDetailView", () => {
 
     renderView();
 
-    expect(await screen.findByText("Ripperdoc Zé")).toBeInTheDocument();
-    expect(screen.getByText("Ripperdoc")).toBeInTheDocument();
-    expect(screen.getByText("500 eds")).toBeInTheDocument();
+    expect(await screen.findByText("Ferrageiro Zé")).toBeInTheDocument();
+    expect(screen.getByText("Ferrageiro")).toBeInTheDocument();
+    expect(screen.getByText("G$ 500")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Comprar" })).toBeInTheDocument();
   });
 
@@ -107,14 +107,14 @@ describe("VendorDetailView", () => {
 
   it("should surface buy error from the API", async () => {
     mocks.api.get.mockResolvedValue(detail);
-    mocks.api.post.mockRejectedValue(new Error("Eds insuficientes."));
+    mocks.api.post.mockRejectedValue(new Error("Grana insuficiente."));
     const user = userEvent.setup();
 
     renderView();
 
     await user.click(await screen.findByRole("button", { name: "Comprar" }));
 
-    expect(await screen.findByText("Eds insuficientes.")).toBeInTheDocument();
+    expect(await screen.findByText("Grana insuficiente.")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/vendors/v1/buy", {
       itemType: "chrome",
       itemId: "ch1",

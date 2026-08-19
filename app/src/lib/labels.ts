@@ -73,8 +73,8 @@ export const CHROME_SLOT_LABELS: Record<string, string> = {
 
 // Vendor types (ND-010)
 export const VENDOR_TYPE_LABELS: Record<string, string> = {
-  RIPPERDOC: "Ripperdoc",
+  RIPPERDOC: "Ferrageiro",
   STIM_DEALER: "Stim Dealer",
-  FIXER: "Fixer",
+  FIXER: "Despachante",
   BLACK_MARKET: "Mercado Negro",
 };

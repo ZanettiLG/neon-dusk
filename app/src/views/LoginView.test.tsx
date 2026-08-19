@@ -60,7 +60,7 @@ function renderLogin(entry = "/login") {
 
 async function fillAndSubmit(email: string, password: string) {
   const user = userEvent.setup();
-  await user.type(screen.getByPlaceholderText("fixer@neondusk.gg"), email);
+  await user.type(screen.getByPlaceholderText("voce@neondusk.gg"), email);
   await user.type(screen.getByPlaceholderText("••••••••"), password);
   await user.click(screen.getByRole("button", { name: "ENTRAR" }));
 }
@@ -76,7 +76,7 @@ describe("LoginView", () => {
     renderLogin();
 
     expect(screen.getByText("ACESSO RESTRITO")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("fixer@neondusk.gg")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("voce@neondusk.gg")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("••••••••")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ENTRAR" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Cadastre-se" })).toHaveAttribute(

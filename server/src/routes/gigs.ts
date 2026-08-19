@@ -30,7 +30,7 @@ import {
 } from "../services/gig-service";
 import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
 
-// Neon Dusk — Gig routes (Fixer Cupim board, 5-phase loop)
+// Neon Dusk — Gig routes (Despachante Cupim board, 5-phase loop)
 // ============================================================================
 // Every endpoint resolves the caller's character from their JWT sub claim.
 // Phase transitions (legwork/execute/escape/wrapup) take the gig id in the

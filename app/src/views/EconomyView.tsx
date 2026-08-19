@@ -53,7 +53,7 @@ export default function EconomyView() {
   }, []);
 
   function formatEds(amount: number): string {
-    return `${amount.toLocaleString("pt-BR")} eds`;
+    return `G$ ${amount.toLocaleString("pt-BR")}`;
   }
 
   return (
@@ -119,7 +119,7 @@ export default function EconomyView() {
               </div>
               <div className="text-xs font-data">
                 <span className={tx.amount >= 0 ? "text-nd-green" : "text-nd-magenta"}>
-                  {tx.amount >= 0 ? "+" : ""}{tx.amount} eds
+                  {tx.amount >= 0 ? "+" : "-"}G$ {Math.abs(tx.amount)}
                 </span>
               </div>
             </div>

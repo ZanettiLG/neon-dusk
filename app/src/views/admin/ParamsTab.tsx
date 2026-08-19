@@ -6,7 +6,7 @@ const PARAM_LABELS: Record<string, string> = {
   NIL_REGEN_MINUTES: "Regen de NIL (minutos)",
   GIG_COOLDOWN_MINUTES: "Cooldown de Gigs (minutos)",
   PVP_NIL_COST: "Custo de NIL no PvP",
-  INITIAL_BALANCE: "Saldo Inicial (eddies)",
+  INITIAL_BALANCE: "Saldo Inicial (Grana)",
   MAX_CREW_SIZE: "Tamanho Máx. da Crew",
 };
 
@@ -96,7 +96,7 @@ export default function ParamsTab() {
           ⚠ Zona de Perigo
         </h4>
         <p className="text-nd-text-secondary text-xs">
-          Resetar a rodada zera eddies, SC e progresso de todos os jogadores.
+          Resetar a rodada zera Grana, Moral e progresso de todos os jogadores.
           Legends são preservadas. Execute via API com x-api-key:
         </p>
         <code className="block bg-nd-bg border border-nd-cyan/10 rounded px-3 py-2 text-xs font-mono text-nd-text-secondary break-all">

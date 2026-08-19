@@ -1,12 +1,23 @@
 #!/usr/bin/env node
 /* global console, process */
+/* eslint-disable no-console -- CLI de varredura: violações são a saída */
 // Guard de consistência terminológica (issue #136, extensão de contexto PR #147).
-// Falha (exit 1) se termos banidos de IP de terceiros reaparecerem nos docs.
+// Falha (exit 1) se termos banidos de IP de terceiros reaparecerem nos docs
+// OU nas strings de código (extensão #145 — user-facing only: chaves internas
+// de schema/API e enum lowercase continuam permitidas).
 // Zero dependências: node scripts/check-terminologia.mjs
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROOTS = [
+// Override para testes (TERMINOLOGIA_ROOTS): paths separados por vírgula que
+// substituem ROOTS e CODE_ROOTS (e dispensam FILES), permitindo rodar o guard
+// contra fixtures controladas fora do repo. Default: varredura completa.
+const envRoots = process.env.TERMINOLOGIA_ROOTS
+  ?.split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+const ROOTS = envRoots ?? [
   'docs/definicoes-de-produto',
   'docs/design',
   'docs/prompts',
@@ -18,7 +29,7 @@ const ROOTS = [
 
 // Arquivos de produto soltos (fora dos diretórios ROOTS). Varridos junto:
 // prosa de produto também vive na raiz e em docs/ solto (#148).
-const FILES = ['README.md', 'docs/BETA_CHECKLIST.md']
+const FILES = envRoots ? [] : ['README.md', 'docs/BETA_CHECKLIST.md']
 
 // Entradas: { label, re, caseSensitive? } — label para output limpo, regex
 // para matching. Por padrão o teste é case-insensitive (a linha é lowercased
@@ -178,6 +189,165 @@ function selfCheck() {
   console.warn(`✓ ${BANNED.length} probes ok`)
 }
 
+// ─── Varredura de código (#145) ─────────────────────────────────────────────
+// Política (06-terminologia-e-ip.md): chaves internas de schema/API ficam
+// (street_cred, eddies, enum lowercase solo/netrunner/etc.); só strings
+// user-facing mudam. O guard cobre os termos em escopo do #145 como palavras
+// isoladas; token embutido em identificador (adjacente a [A-Za-z0-9_.]) é
+// interno e passa.
+
+const CODE_ROOTS = envRoots ?? ['app/src', 'server/src', 'server/seeds', 'server/migrations', 'packages/shared/src']
+
+// Extensões varridas no código (.mts/.cts incluídos caso venham a existir).
+const CODE_EXTS = ['.ts', '.tsx', '.mts', '.cts', '.mjs', '.js', '.sql']
+
+// Termos em escopo do #145. Mesmo contrato do BANNED: caseSensitive testa a
+// linha original (nomes de classe que colidem com palavras comuns do PT);
+// padrão case-insensitive testa a linha lowercased.
+const CODE_BANNED = [
+  { label: 'street cred', re: /street\s+cred/i },
+  // Exceção aplicada na varredura: campo/declaração `eddies: …` e enum string
+  // "eddies" são tokens de API (ver CODE_ALLOWED).
+  { label: 'eddies', re: /eddies/i },
+  // Exceção aplicada na varredura: `RIPPERDOC` ALLCAPS é o enum value interno.
+  { label: 'ripperdoc', re: /ripperdoc/i },
+  { label: 'edgerunner', re: /edgerunner/i },
+  // Nomes de classe (RED): maiúsculo é user-facing; minúsculo é enum interno.
+  { label: 'Netrunner (classe)', re: /\bNetrunner\b/, caseSensitive: true },
+  { label: 'Fixer (classe)', re: /\bFixer\b/, caseSensitive: true },
+  { label: 'Solo (classe)', re: /\bSolo\b/, caseSensitive: true },
+  { label: 'Tech (classe)', re: /\bTech\b(?!\s+Mono)/, caseSensitive: true },
+  { label: 'Nomad (classe)', re: /\bNomad\b/, caseSensitive: true },
+  { label: 'Medtech (classe)', re: /\bmedtech\b/i },
+  { label: 'choom', re: /choom/i },
+]
+
+// Self-check do CODE_BANNED (mesmo padrão do PROBES): cada probe deve disparar
+// o regex da entrada. Probe morto = guard cego = aborta na largada.
+const CODE_PROBES = {
+  'street cred': 'Ganhou street cred na rua.',
+  'eddies': 'Pagou 50 eddies na hora.',
+  'ripperdoc': 'O ripperdoc do bairro.',
+  'edgerunner': 'Um edgerunner de elite.',
+  'Netrunner (classe)': 'A Netrunner invadiu o sistema.',
+  'Fixer (classe)': 'O Fixer agendou o trampo.',
+  'Solo (classe)': 'O Solo articulou a emboscada.',
+  'Tech (classe)': 'A Tech subiu de nível.',
+  'Nomad (classe)': 'A Nomad cruzou a fronteira.',
+  'Medtech (classe)': 'A medtech aplicou a ampola.',
+  'choom': 'Ei, choom, se liga.',
+}
+
+// Allowlist pontual de tokens internos legítimos como palavras isoladas.
+// Regex aplicado à LINHA: se casar, a linha passa (as regras são ancoradas a
+// formas precisas — chave de propriedade seguida de `:` ou palavra exata entre
+// aspas — para nunca cobrir prosa user-facing como "pagou 50 eddies").
+const CODE_ALLOWED = [
+  // Chave/declaração de campo `eddies` (API field): `eddies: number` em
+  // packages/shared, `eddies: Number(...)` em admin-service.
+  { label: 'campo eddies (declaração)', re: /\beddies\s*:/i },
+  // Enum string e item id internos entre aspas: type: "eddies",
+  // itemId: "eddies", itemType: "EDDIES", toHaveProperty("eddies").
+  { label: 'enum string "eddies"', re: /["'`]eddies["'`]/i },
+  // Valor ALLCAPS do enum vendor_type (interno). Entrada por TOKEN (match+on):
+  // o regex roda sobre o trecho casado na linha ORIGINAL (caixa preservada) —
+  // "RIPPERDOC" passa; "Ripperdoc"/"ripperdoc" user-facing continuam falhando.
+  { label: 'enum vendor_type RIPPERDOC (ALLCAPS)', match: /^RIPPERDOC$/, on: 'ripperdoc' },
+]
+
+/** Caracteres considerados parte de identificador/token interno. */
+const IDENT_CHAR = /[A-Za-z0-9_.]/
+
+/**
+ * Regra word-boundary (#145): o match só é violação quando é palavra isolada
+ * (delimitada por não-identificadores). Adjacente a letra/dígito/underscore/
+ * ponto = embutido em identificador maior = token interno = permitido.
+ */
+function isEmbeddedToken(line, index, length) {
+  const before = index > 0 ? line[index - 1] : ''
+  const after = index + length < line.length ? line[index + length] : ''
+  return (before !== '' && IDENT_CHAR.test(before)) || (after !== '' && IDENT_CHAR.test(after))
+}
+
+function selfCheckCode() {
+  const dead = []
+  for (const e of CODE_BANNED) {
+    const probe = CODE_PROBES[e.label]
+    if (probe === undefined) {
+      dead.push(`${e.label} (sem probe)`)
+      continue
+    }
+    const hit = e.re.test(e.caseSensitive ? probe : probe.toLowerCase())
+    if (!hit) dead.push(e.label)
+  }
+  if (dead.length) {
+    console.error(`✗ ${dead.length} probe(s) de código sem disparo: ${dead.join(', ')}`)
+    process.exit(1)
+  }
+  console.warn(`✓ ${CODE_BANNED.length} code probes ok`)
+}
+
+function walkCode(dir) {
+  const files = []
+  let entries
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return files
+  }
+  for (const entry of entries) {
+    const p = join(dir, entry)
+    let st
+    try {
+      st = statSync(p)
+    } catch {
+      continue
+    }
+    if (st.isDirectory()) {
+      const base = entry.toLowerCase()
+      if (base === 'node_modules' || base === 'dist' || base === 'build') continue
+      files.push(...walkCode(p))
+    } else if (CODE_EXTS.some((ext) => p.endsWith(ext))) {
+      files.push(p)
+    }
+  }
+  return files
+}
+
+/** Varredura de código: imprime `file:line:label` e devolve a contagem. */
+function checkCode() {
+  let violations = 0
+  for (const root of CODE_ROOTS) {
+    for (const file of walkCode(root)) {
+      const lines = readFileSync(file, 'utf8').split('\n')
+      lines.forEach((line, i) => {
+        // Escape de última instância: linha marcada #145 com comentário
+        // auditável na própria linha (não usar sem justificativa).
+        if (/#145/.test(line)) return
+        for (const e of CODE_BANNED) {
+          const src = e.caseSensitive ? line : line.toLowerCase()
+          const m = e.re.exec(src)
+          if (!m) continue
+          if (isEmbeddedToken(src, m.index, m[0].length)) continue
+          // Allowlist: regra de linha (re) ou de token casado (match+on).
+          // O token é lido na linha ORIGINAL — o src case-insensitive é
+          // lowercaseado e esconderia a caixa alta (ex: enum RIPPERDOC).
+          const allowed = CODE_ALLOWED.some((a) =>
+            a.match
+              ? a.on === e.label && a.match.test(line.slice(m.index, m.index + m[0].length))
+              : a.re.test(line)
+          )
+          if (allowed) continue
+          console.log(`${file}:${i + 1}:${e.label}`)
+          violations++
+          break
+        }
+      })
+    }
+  }
+  return violations
+}
+
 const CANONICAL = 'docs/definicoes-de-produto/06-terminologia-e-ip.md'
 const PIPELINE_DOC = 'docs/design/04-pipeline-ia-e-prompts.md'
 // Negação nominativa: "SP não é Night City" (ou "não Night City nem Neo
@@ -199,6 +369,7 @@ function walk(dir) {
 // a exceção nunca o cobre (só o termo "night city" puro é eximido).
 
 selfCheck()
+selfCheckCode()
 
 let violations = 0
 const files = [...ROOTS.flatMap(walk), ...FILES]
@@ -238,5 +409,8 @@ for (const file of files) {
   // cabe a quem editar o doc fechar o bloco (o conteúdo interno é #145).
   if (inCodeFence) console.log(`⚠ fence não fechada em ${file}`)
 }
+
+// Varredura de código (#145) — roda por último; as violações somam no total.
+violations += checkCode()
 
 process.exit(violations ? 1 : 0)

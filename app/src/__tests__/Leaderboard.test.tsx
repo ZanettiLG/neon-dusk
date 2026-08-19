@@ -35,7 +35,7 @@ const { useAuthStore } = await import("@/stores/auth");
 
 const entries: LeaderboardEntry[] = [
   { position: 1, characterName: "Ghost", crewName: null, score: 80, title: "Elite" },
-  { position: 2, characterName: "Rex", crewName: null, score: 50, title: "Edgerunner" },
+  { position: 2, characterName: "Rex", crewName: null, score: 50, title: "Corredor" },
   { position: 3, characterName: "Kiro", crewName: null, score: 10, title: "Pro" },
 ];
 
@@ -51,21 +51,21 @@ describe("Leaderboard", () => {
 
     render(<Leaderboard />);
 
-    expect(screen.getByText("RANKING // STREET CRED")).toBeInTheDocument();
+    expect(screen.getByText("RANKING // MORAL")).toBeInTheDocument();
     expect(screen.getByText("TOP 20")).toBeInTheDocument();
 
     // Table headers.
     expect(screen.getByText("#")).toBeInTheDocument();
     expect(screen.getByText("Runner")).toBeInTheDocument();
     expect(screen.getByText("Título")).toBeInTheDocument();
-    expect(screen.getByText("SC")).toBeInTheDocument();
+    expect(screen.getByText("M")).toBeInTheDocument();
 
     // Entries: position, name, title badge and score.
     expect(screen.getByText("Ghost")).toBeInTheDocument();
     expect(screen.getByText("Rex")).toBeInTheDocument();
     expect(screen.getByText("Kiro")).toBeInTheDocument();
     expect(screen.getByText("Elite")).toBeInTheDocument();
-    expect(screen.getByText("Edgerunner")).toBeInTheDocument();
+    expect(screen.getByText("Corredor")).toBeInTheDocument();
     expect(screen.getByText("Pro")).toBeInTheDocument();
     expect(screen.getByText("80")).toBeInTheDocument();
     expect(screen.getByText("50")).toBeInTheDocument();

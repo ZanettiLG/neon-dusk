@@ -34,7 +34,7 @@ function Tab({
 }
 
 /**
- * Fixer Cupim's gig board — the first contact with the underworld. Lists the
+ * Despachante Cupim's gig board — the first contact with the underworld. Lists the
  * T1-T2 catalog filtered by tier/type and hosts the active-gig panel.
  */
 export default function GigBoardView() {
@@ -73,7 +73,7 @@ export default function GigBoardView() {
 
   return (
     <div className="py-8 space-y-6">
-      {/* Fixer header */}
+      {/* Despachante header */}
       <div className="card border-nd-purple/40 shadow-neon-purple">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -81,7 +81,7 @@ export default function GigBoardView() {
               CUPIM <span className="text-nd-text-secondary">//</span> O PORTEIRO
             </h2>
             <p className="text-nd-text-secondary text-sm mt-1">
-              Babilônia — tudo tem preço. Inclusive você. Primeiro fixer do corre, gig de rua,
+              Babilônia — tudo tem preço. Inclusive você. Primeiro despachante do corre, gig de rua,
               entrega quente e dinheiro na mão.
             </p>
           </div>

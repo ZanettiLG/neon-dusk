@@ -51,7 +51,7 @@ type SnapshotRow = {
 /**
  * Execute a full round reset in a single transaction:
  * 1. Capture + persist round stats (before any wipe)
- * 2. Induct SC 100 characters into Legends (before street cred is zeroed)
+ * 2. Induct SC 100 characters into Legends (before Moral is zeroed)
  * 3. Run the reset wipe sequence
  * 4. Close the current round and open the next after the intermission
  *
@@ -77,7 +77,7 @@ export async function performRoundReset(): Promise<RoundResetResult> {
     let legendsInducted = 0;
 
     for (const step of steps) {
-      // Legends must be preserved BEFORE crews are destroyed and street cred
+      // Legends must be preserved BEFORE crews are destroyed and Moral
       // is zeroed — the induction signals (street_cred = 100 and the crew
       // affiliation) are both gone after wipe_crew_members/detach/wipe_crews
       // and the reset_characters step. Hook right before the crew wipe.

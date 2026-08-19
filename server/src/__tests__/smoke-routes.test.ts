@@ -197,7 +197,7 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect([200, 404]).toContain(res.status);
   });
 
-  // ─── Street Cred (JWT + public) ──────────────────────────────────────────
+  // ─── Moral (JWT + public) ────────────────────────────────────────────────
   it("GET /api/street-cred → 200 (JWT)", async () => {
     const res = await server.get("/api/street-cred", headers);
     expect(res.status).toBe(200);

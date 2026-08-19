@@ -504,7 +504,7 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(body.crews).toEqual([]);
     });
 
-    it("should rank crews by total member Street Cred (ND-016)", async () => {
+    it("should rank crews by total member Moral (ND-016)", async () => {
       const a = await registerApiUser();
       const b = await registerApiUser();
       const c = await registerApiUser();

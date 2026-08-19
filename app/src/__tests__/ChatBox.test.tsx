@@ -72,7 +72,7 @@ describe("ChatBox", () => {
           id: "m1",
           characterName: "Raven",
           crewTag: "Crows",
-          message: "Hey choom.",
+          message: "Hey mano.",
           createdAt: "2085-01-01T00:00:00.000Z",
         },
       ],
@@ -80,6 +80,6 @@ describe("ChatBox", () => {
     render(<ChatBox />);
     expect(screen.getByText("Raven")).toBeInTheDocument();
     expect(screen.getByText((c) => c.includes("Crows"))).toBeInTheDocument();
-    expect(screen.getByText("Hey choom.")).toBeInTheDocument();
+    expect(screen.getByText("Hey mano.")).toBeInTheDocument();
   });
 });

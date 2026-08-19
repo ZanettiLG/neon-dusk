@@ -1,7 +1,7 @@
 // Neon Dusk — PvP game logic (pure functions, no DB access)
 // ============================================================================
 // Conforme 04-sistemas-e-progressao.md §6: PvP sistema de combate, loot,
-// street cred, proteções anti-grief. Todas as funções são puras, RNG
+// Moral, proteções anti-grief. Todas as funções são puras, RNG
 // injetável como último parâmetro para testabilidade.
 
 import type { ChromeBonuses, Role } from "@neon-dusk/shared";
@@ -40,7 +40,7 @@ export interface SCChange {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-/** Max street cred. */
+/** Max Moral. */
 const SC_CAP = 100;
 
 /** SC gained by winner per victory. */
@@ -64,13 +64,13 @@ const LOOT_RATE = 0.1;
 /** Griefer loot multiplier (10% of base = 1% of loser balance). */
 const GRIEFER_LOOT_MULTIPLIER = 0.1;
 
-/** Solo combat power multiplier. */
+/** Bicho combat power multiplier. */
 const SOLO_MULTIPLIER = 1.1;
 
-/** Solo crit chance (0..1). */
+/** Bicho crit chance (0..1). */
 const SOLO_CRIT_CHANCE = 0.05;
 
-/** Solo crit multiplier. */
+/** Bicho crit multiplier. */
 const SOLO_CRIT_MULTIPLIER = 1.5;
 
 /** Minimum random bonus in combat formula. */
@@ -113,12 +113,12 @@ export function calculateChromePower(
 
 /**
  * Calculate combat power: base = body + reflexes + chromePower + random(1..10).
- * Solo role gets +10% and a 5% crit chance (+50% extra on top).
+ * Bicho role gets +10% and a 5% crit chance (+50% extra on top).
  *
  * @param input - Combat power parameters; rng is injectable for tests.
  * @returns Final combat power (integer).
  *
- * @edgecases All attributes zero → power = random(1..10) only. Solo crit
+ * @edgecases All attributes zero → power = random(1..10) only. Bicho crit
  *            can trigger even at very low base values.
  */
 export function calculateCombatPower(input: CombatPowerInput): number {
@@ -169,7 +169,7 @@ export function resolveCombat(input: CombatInput): CombatResult {
  *
  * @param loserBalance  - Eddie balance of the defeated player.
  * @param grieferPenalty - Whether the grief penalty applies (≥3 attacks/week).
- * @returns Loot amount in eddies (integer, ≥ 0).
+ * @returns Loot amount in Grana (integer, ≥ 0).
  *
  * @edgecases Negative balance → 0. Zero balance → 0.
  */
@@ -186,9 +186,9 @@ export function calculateLoot(
 }
 
 /**
- * Street cred gain for winner: +5, capped at 100.
+ * Moral gain for winner: +5, capped at 100.
  *
- * @param winnerSC - Winner's current street cred.
+ * @param winnerSC - Winner's current Moral.
  * @returns New SC and the actual change applied.
  *
  * @edgecases SC at 95 → newSC=100, change=+5. SC at 97 → newSC=100, change=+3.
@@ -201,11 +201,11 @@ export function calculateWinnerSC(winnerSC: number): SCChange {
 }
 
 /**
- * Street cred loss for loser. If defeat-capped (≥3 losses today), no loss.
+ * Moral loss for loser. If defeat-capped (≥3 losses today), no loss.
  * If under noob shield (<10 SC): 1% loss, minimum 1.
  * Otherwise: 5% loss, minimum 1. SC never goes below 0.
  *
- * @param currentSC   - Loser's current street cred.
+ * @param currentSC   - Loser's current Moral.
  * @param lossesToday - Number of defeats already suffered today.
  * @returns New SC and the actual change (negative or zero).
  *
@@ -261,7 +261,7 @@ export function isImmune(
 /**
  * SC below 10 → noob shield active (reduced SC loss on defeat).
  *
- * @param streetCred - Current street cred score.
+ * @param streetCred - Current Moral score.
  * @returns true if the player qualifies for noob shield.
  */
 export function hasNoobShield(streetCred: number): boolean {

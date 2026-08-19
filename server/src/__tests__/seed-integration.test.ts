@@ -139,7 +139,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
         .select("vendor_id", "item_id", "price", "stock")
         .orderBy("vendor_id");
 
-      // 8 rows across the 4 fixed vendors: 5 ripperdoc, 0 fixer, 1 stim, 2 market.
+      // 8 rows across the 4 fixed vendors: 5 ferrageiro, 0 despachante, 1 stim, 2 market.
       const perVendor = new Map<string, typeof rows>();
       for (const r of rows) {
         perVendor.set(r.vendor_id, [...(perVendor.get(r.vendor_id) ?? []), r]);
@@ -186,10 +186,10 @@ describe("ND-054 — seed executor (db/seed)", () => {
       const t2 = await db("loot_tables").select("*").where("gig_tier", "t2");
       expect(t1).toHaveLength(4);
       expect(t2).toHaveLength(5);
-      const [eddies] = t1.filter((l) => l.item_type === "EDDIES");
-      expect(eddies.weight).toBe(40);
-      expect(eddies.min_quantity).toBe(50);
-      expect(eddies.max_quantity).toBe(200);
+      const [eddiesLoot] = t1.filter((l) => l.item_type === "EDDIES");
+      expect(eddiesLoot.weight).toBe(40);
+      expect(eddiesLoot.min_quantity).toBe(50);
+      expect(eddiesLoot.max_quantity).toBe(200);
     });
 
     it("should not touch existing character data when the seed runs", async () => {

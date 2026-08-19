@@ -56,7 +56,7 @@ export async function chromeRoutes(app: FastifyInstance) {
     return listInstalledChrome(characterId) as Promise<InstalledChromeResponse>;
   });
 
-  // POST /api/chrome/install — buy + implant a chrome from a ripperdoc
+  // POST /api/chrome/install — buy + implant a chrome from a ferrageiro
   app.post(
     "/chrome/install",
     {

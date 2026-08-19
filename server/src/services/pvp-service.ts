@@ -214,7 +214,7 @@ export async function executeAttack(
     const winnerId = attackerWon ? attackerId : targetId;
     const loserId = attackerWon ? targetId : attackerId;
 
-    // Street cred deltas. The defeat cap (≥3 losses today) protects the
+    // Moral deltas. The defeat cap (≥3 losses today) protects the
     // actual loser — regardless of whether they were attacker or defender.
     const loserDefeatsToday = await pvp.countDefeatsSince(loserId, startOfDayUTC(), trx);
     const winnerSC = calculateWinnerSC(attackerWon ? attacker.street_cred : defender.street_cred);

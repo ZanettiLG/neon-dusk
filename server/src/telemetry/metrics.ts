@@ -20,18 +20,18 @@ export const nilSpentTotal = new Counter({
   registers: [registry],
 });
 
-/** Eddies earned (gig payouts, PVP rewards, loot). */
+/** Grana earned (gig payouts, PVP rewards, loot). */
 export const eddiesEarnedTotal = new Counter({
   name: "neondusk_eddies_earned_total",
-  help: "Total eddies earned",
+  help: "Total Grana earned",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });
 
-/** Eddies spent (vendor purchases, fees). */
+/** Grana spent (vendor purchases, fees). */
 export const eddiesSpentTotal = new Counter({
   name: "neondusk_eddies_spent_total",
-  help: "Total eddies spent",
+  help: "Total Grana spent",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });

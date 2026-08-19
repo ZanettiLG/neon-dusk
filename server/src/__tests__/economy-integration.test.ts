@@ -68,7 +68,7 @@ describe("Feature #3 — economy & vendors API", () => {
         name: "Ripper " + Date.now(),
         type: "RIPPERDOC",
         district: "a_paraiso",
-        description: "Test ripperdoc",
+        description: "Test ferrageiro",
         is_active: true,
       })
       .returning("*");

@@ -182,7 +182,7 @@ describe("router: new views", () => {
         return Promise.resolve({
           vendor: {
             id: "v1",
-            name: "Ripperdoc Zé",
+            name: "Ferrageiro Zé",
             type: "RIPPERDOC",
             district: "A Paraíso",
           },
@@ -240,7 +240,7 @@ describe("router: new views", () => {
 
     renderAt("/vendors/v1");
 
-    expect(await screen.findByText("Ripperdoc Zé")).toBeInTheDocument();
+    expect(await screen.findByText("Ferrageiro Zé")).toBeInTheDocument();
     expect(await screen.findByText("Estoque vazio.")).toBeInTheDocument();
   });
 

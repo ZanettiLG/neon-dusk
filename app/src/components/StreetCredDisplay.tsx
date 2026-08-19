@@ -19,7 +19,7 @@ function thresholdFloor(score: number): number {
 }
 
 /**
- * Header badge: ⭐ score · title + a progress bar toward the next threshold.
+ * Header badge: ★ score · title + a progress bar toward the next threshold.
  * Gold "LEGEND" styling at 100 (no bar — the ladder is topped). Hidden on
  * error; skeleton shimmer while loading. Only renders for authenticated
  * characters (the endpoint 404s without one).
@@ -51,9 +51,9 @@ export default function StreetCredDisplay() {
     return (
       <div
         className="flex items-center gap-2 border border-nd-gold/60 rounded-terminal px-3 py-1.5 text-xs font-data shadow-neon-gold"
-        title={`Street Cred ${info.score} — máximo atingido ${info.maxAchieved}`}
+        title={`Moral ${info.score} — máximo atingido ${info.maxAchieved}`}
       >
-        <span className="text-nd-gold">⭐</span>
+        <span className="text-nd-gold">★</span>
         <span className="text-nd-gold">{info.score}</span>
         <span className="text-nd-gold/60">·</span>
         <span className="text-nd-gold tracking-widest">LEGEND</span>
@@ -68,10 +68,10 @@ export default function StreetCredDisplay() {
   return (
     <div
       className="flex flex-col gap-1 border border-nd-cyan/30 rounded-terminal px-3 py-1.5 text-xs font-data"
-      title={`Street Cred ${info.score} — máximo atingido ${info.maxAchieved} · faltam ${info.scToNext} para ${info.nextThreshold.title}`}
+      title={`Moral ${info.score} — máximo atingido ${info.maxAchieved} · faltam ${info.scToNext} para ${info.nextThreshold.title}`}
     >
       <div className="flex items-center gap-2">
-        <span className="text-nd-cyan">⭐</span>
+        <span className="text-nd-cyan">★</span>
         <span className="text-nd-text">{info.score}</span>
         <span className="text-nd-text-secondary/60">·</span>
         <span className="text-nd-cyan tracking-widest">{info.title.toUpperCase()}</span>

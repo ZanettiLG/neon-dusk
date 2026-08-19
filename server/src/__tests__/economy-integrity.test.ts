@@ -49,7 +49,7 @@ describe("economy integrity", () => {
       expect(Number(running.running)).toBe(wallet.balance);
     });
 
-    it("should conserve total eddies across multiple wallets (Σ balance = Σ credits - Σ debits)", async () => {
+    it("should conserve total Grana across multiple wallets (Σ balance = Σ credits - Σ debits)", async () => {
       const a = await insertTestCharacter();
       const b = await insertTestCharacter();
 
@@ -86,7 +86,7 @@ describe("economy integrity", () => {
       );
       const succeeded = results.filter((r) => r.status === "fulfilled").length;
 
-      // Whatever the retry outcome, no eddies are created or destroyed:
+      // Whatever the retry outcome, no Grana is created or destroyed:
       // balance reflects exactly the successful transfers.
       const wallet = await getWallet(characterId);
       expect(wallet.balance).toBe(500 + 20 * succeeded);

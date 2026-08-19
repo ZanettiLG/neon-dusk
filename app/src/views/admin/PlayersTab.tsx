@@ -114,7 +114,7 @@ export default function PlayersTab() {
           onChange={(e) => handleSort(e.target.value)}
           className="bg-nd-surface border border-nd-cyan/20 rounded px-3 py-2 text-nd-text text-sm font-mono focus:border-nd-cyan outline-none"
         >
-          <option value="sc">Street Cred</option>
+          <option value="sc">Moral</option>
           <option value="name">Nome</option>
           <option value="level">Level</option>
           <option value="last_activity">Última atividade</option>
@@ -138,8 +138,8 @@ export default function PlayersTab() {
             <tr className="border-b border-nd-cyan/20 text-nd-text-secondary font-mono text-xs uppercase">
               <th className="py-2 px-3">Nome</th>
               <th className="py-2 px-3">LV</th>
-              <th className="py-2 px-3">SC</th>
-              <th className="py-2 px-3">Eddies</th>
+              <th className="py-2 px-3">M</th>
+              <th className="py-2 px-3">Grana</th>
               <th className="py-2 px-3 hidden sm:table-cell">Crew</th>
               <th className="py-2 px-3 hidden sm:table-cell">Último login</th>
               <th className="py-2 px-3">Status</th>

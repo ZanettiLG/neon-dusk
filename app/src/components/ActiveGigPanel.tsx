@@ -34,7 +34,7 @@ function OutcomeChip({
 }
 
 /**
- * The Fixer Cupim active-gig panel: 5-step phase indicator, phase-specific
+ * The Despachante Cupim active-gig panel: 5-step phase indicator, phase-specific
  * actions (legwork timer, execute/escape rolls, wrap-up payout) and the
  * post-wrap-up summary. Rendered by GigBoardView whenever an active gig
  * exists OR a wrap-up summary is still on screen.
@@ -78,19 +78,19 @@ export default function ActiveGigPanel() {
       <div className="card border-nd-gold/40 shadow-neon-gold space-y-3">
         <p className="font-heading text-nd-gold tracking-widest">GIG RESOLVIDA</p>
         <p className="font-data text-3xl text-nd-gold animate-pulse-neon">
-          €$ {lastWrapup.payout.toLocaleString("pt-BR")}
+          G$ {lastWrapup.payout.toLocaleString("pt-BR")}
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-data text-xs">
           <span className="text-nd-text-secondary">Outcome</span>
           <span className={lastWrapup.outcome === "success" ? "text-nd-green" : "text-nd-magenta"}>
             {lastWrapup.outcome.toUpperCase()}
           </span>
-          <span className="text-nd-text-secondary">Street Cred</span>
+          <span className="text-nd-text-secondary">Moral</span>
           <span className="text-nd-purple">+{lastWrapup.streetCredGained}</span>
           <span className="text-nd-text-secondary">Calor</span>
           <span className="text-nd-magenta">+{lastWrapup.heatAccumulated}</span>
           <span className="text-nd-text-secondary">Saldo</span>
-          <span className="text-nd-cyan">€$ {lastWrapup.newBalance.toLocaleString("pt-BR")}</span>
+          <span className="text-nd-cyan">G$ {lastWrapup.newBalance.toLocaleString("pt-BR")}</span>
         </div>
         <p className="text-nd-text-secondary text-xs font-data">
           Cupim conta a grana, ri alto e te dá um tapa nas costas. "Boa. Volta amanhã que tem mais."
@@ -311,7 +311,7 @@ export default function ActiveGigPanel() {
           if (
             gig &&
             window.confirm(
-              "Tem certeza que quer abandonar este gig? O fixer não vai gostar.",
+              "Tem certeza que quer abandonar este gig? O despachante não vai gostar.",
             )
           ) {
             void abandonGig(gig.gigId);

@@ -57,7 +57,7 @@ export interface TransactionRepository {
     opts: { type?: string; limit: number; offset: number },
     q?: Queryable,
   ): Promise<{ transactions: AdminTransactionRow[]; total: number }>;
-  /** Economy dashboard: eddies in circulation (sum of wallet balances). */
+  /** Economy dashboard: Grana em circulação (sum of wallet balances). */
   sumBalances(q?: Queryable): Promise<number>;
   /** Economy dashboard: top 5 positive transaction sources (24h). */
   topFaucets24h(q?: Queryable): Promise<Array<{ source: string; amount: number }>>;

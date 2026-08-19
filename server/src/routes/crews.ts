@@ -35,7 +35,7 @@ import type { CrewRow } from "../repositories/crew-repository";
 
 // Neon Dusk — Crew routes (ND-016: Crews Básicas, ND-053)
 // ============================================================================
-// Gang social system: found a crew (5,000 eddies, SC >= 25), invite recruits
+// Gang social system: found a crew (5.000 de Grana, SC >= 25), invite recruits
 // (SC >= 10), join/leave/kick, dissolve, and a members-only real-time chat
 // (Redis pub/sub + list, ADR-2 — same shape as the saideira chat, scoped per
 // crew). Membership rules are mirrored in the DB (unique character_id, the
@@ -120,7 +120,7 @@ function requireLeader(crew: { leader_id?: string }, characterId: string): void 
 export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) {
   const { redis } = opts;
 
-  // POST /api/crews — found a crew (5,000 eddies + SC >= 25).
+  // POST /api/crews — found a crew (5.000 de Grana + SC >= 25).
   app.post(
     "/crews",
     {
@@ -146,7 +146,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         throw new AppError(
           400,
           "SC_TOO_LOW",
-          `Fundar uma crew requer ${CREW_CREATE_SC} de Street Cred (você tem ${leader.street_cred})`,
+          `Fundar uma crew requer ${CREW_CREATE_SC} de Moral (você tem ${leader.street_cred})`,
         );
       }
       // One transaction: debit wallet (optimistic lock, audit entry), reject
@@ -160,7 +160,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
           throw new AppError(
             400,
             "INSUFFICIENT_FUNDS",
-            `Fundar uma crew custa ${CREW_CREATE_COST} eddies (você tem ${availableFunds})`,
+            `Fundar uma crew custa G$ ${CREW_CREATE_COST} (você tem G$ ${availableFunds})`,
           );
         }
         const dupName = await crews.findByName(name, trx);
@@ -307,7 +307,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         throw new AppError(
           400,
           "SC_TOO_LOW",
-          `Recrutas precisam de pelo menos ${CREW_RECRUIT_SC} de Street Cred`,
+          `Recrutas precisam de pelo menos ${CREW_RECRUIT_SC} de Moral`,
         );
       }
 

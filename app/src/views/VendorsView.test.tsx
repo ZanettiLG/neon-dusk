@@ -32,7 +32,7 @@ vi.mock("@/api/client", () => ({
 
 const vendor: VendorRecord = {
   id: "v1",
-  name: "Ripperdoc Zé",
+  name: "Ferrageiro Zé",
   type: "RIPPERDOC",
   district: "A Paraíso",
   description: "Chips e mais chips.",
@@ -67,7 +67,7 @@ describe("VendorsView", () => {
 
     renderView();
 
-    expect(await screen.findByText("Ripperdoc Zé")).toBeInTheDocument();
+    expect(await screen.findByText("Ferrageiro Zé")).toBeInTheDocument();
     expect(screen.getByText("A Paraíso")).toBeInTheDocument();
     expect(mocks.api.get).toHaveBeenCalledWith("/api/vendors");
   });
@@ -78,7 +78,7 @@ describe("VendorsView", () => {
 
     renderView();
 
-    await user.click(await screen.findByRole("button", { name: /Ripperdoc Zé/ }));
+    await user.click(await screen.findByRole("button", { name: /Ferrageiro Zé/ }));
 
     expect(screen.getByText("VENDOR DETAIL PAGE")).toBeInTheDocument();
   });

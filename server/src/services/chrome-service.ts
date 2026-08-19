@@ -55,7 +55,7 @@ function toPublicDefinition(row: ChromeDefinitionRow): ChromeDefinition {
 }
 
 /**
- * Install chrome bought from a ripperdoc. Validates the implant, the vendor
+ * Install chrome bought from a ferrageiro. Validates the implant, the vendor
  * stock, the slot capacity and the humanity cost, then atomically debits the
  * wallet and records the implant + audit entry. Returns the new loadout entry,
  * the effective humanity and the post-purchase wallet balance.
@@ -72,7 +72,7 @@ export async function installChrome(
   // 2. Vendor must stock this chrome (item_type='CHROME', item_id=slug)
   const stockItem = await chrome.findStockItem(vendorId, definition.slug);
   if (!stockItem) {
-    throw new AppError(404, "ITEM_NOT_FOUND", "Este ripperdoc não tem esse chrome em estoque");
+    throw new AppError(404, "ITEM_NOT_FOUND", "Este ferrageiro não tem esse cromo em estoque");
   }
 
   return withTransaction(async (trx) => {
@@ -116,7 +116,7 @@ export async function installChrome(
     const price = overclockActive ? Math.ceil(stockItem.price * 0.5) : stockItem.price;
     const availableFunds = wallet.balance - wallet.escrow;
     if (availableFunds < price) {
-      throw new AppError(400, "INSUFFICIENT_FUNDS", `Precisa de ${price} eddies, tem ${availableFunds}`);
+      throw new AppError(400, "INSUFFICIENT_FUNDS", `Precisa de G$ ${price} disponível, tem G$ ${availableFunds}.`);
     }
 
     const result = transferEddies(wallet, -price, {

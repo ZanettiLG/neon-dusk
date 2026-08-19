@@ -53,7 +53,7 @@ export async function abilitiesRoutes(app: FastifyInstance) {
 
       const role = character.role as "solo" | "netrunner" | "tech" | "fixer" | "nomad";
 
-      // Netrunner deep_dive is phase-2 — not implemented in MVP.
+      // netrunner deep_dive is phase-2 — not implemented in MVP.
       if (role === "netrunner") {
         throw new AppError(503, "ABILITY_PHASE_2", "Deep Dive será implementado na Fase 2 (hacking)");
       }

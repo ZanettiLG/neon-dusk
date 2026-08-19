@@ -3,7 +3,7 @@ import StatusBar from "./StatusBar";
 import StreetCredDisplay from "./StreetCredDisplay";
 import { useAuthStore } from "@/stores/auth";
 
-/** Top app bar: brand, connection status, street cred badge, version. */
+/** Top app bar: brand, connection status, Moral badge, version. */
 export default function AppHeader() {
   const character = useAuthStore((s) => s.character);
   const user = useAuthStore((s) => s.user);

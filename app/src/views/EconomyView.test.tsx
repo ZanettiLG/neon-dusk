@@ -75,12 +75,12 @@ describe("EconomyView", () => {
 
     render(<EconomyView />);
 
-    expect(await screen.findByText("1.250 eds")).toBeInTheDocument();
-    expect(screen.getByText("250 eds")).toBeInTheDocument();
-    expect(screen.getByText("1.000 eds")).toBeInTheDocument(); // balance - escrow
-    expect(screen.getByText(/5.000 eds ganhos/)).toBeInTheDocument();
+    expect(await screen.findByText("G$ 1.250")).toBeInTheDocument();
+    expect(screen.getByText("G$ 250")).toBeInTheDocument();
+    expect(screen.getByText("G$ 1.000")).toBeInTheDocument(); // balance - escrow
+    expect(screen.getByText(/G\$ 5.000 ganhos/)).toBeInTheDocument();
     expect(screen.getByText("GIG_REWARD")).toBeInTheDocument();
-    expect(screen.getByText("+150 eds")).toBeInTheDocument();
+    expect(screen.getByText("+G$ 150")).toBeInTheDocument();
     expect(mocks.api.get).toHaveBeenCalledWith("/api/economy/balance");
     expect(mocks.api.get).toHaveBeenCalledWith("/api/economy/transactions");
   });

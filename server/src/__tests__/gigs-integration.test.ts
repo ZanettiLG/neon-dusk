@@ -48,7 +48,7 @@ function uniqueEmail(): string {
   return `gig-${Date.now()}-${seq++}@neondusk.test`;
 }
 function uniqueName(): string {
-  return `Fixer-${Date.now()}-${seq++}`;
+  return `Desp-${Date.now()}-${seq++}`;
 }
 
 interface ErrorBody {
@@ -159,7 +159,7 @@ describe("ND-011 — gigs service & API", () => {
       }
     });
 
-    it("should flag meetsRequirements true when stats and street cred allow the gig", async () => {
+    it("should flag meetsRequirements true when stats and Moral allow the gig", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
 
@@ -177,7 +177,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(entry.meetsRequirements).toBe(false); // reflexes 4 < 5
     });
 
-    it("should flag meetsRequirements false for T2 gigs when street cred is below 5", async () => {
+    it("should flag meetsRequirements false for T2 gigs when Moral is below 5", async () => {
       const { characterId } = await insertTestCharacter();
       const bagre = await gigByName("Bagre Ensaboado"); // T2, SC 5
 
@@ -361,7 +361,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(await getActiveGig(characterId)).toBeNull();
     });
 
-    it("should accept a T2 gig once the character has 5 street cred and the stats", async () => {
+    it("should accept a T2 gig once the character has 5 Moral and the stats", async () => {
       const { characterId } = await insertTestCharacter();
       const bagre = await gigByName("Bagre Ensaboado"); // requires {body: 6, technical: 5}
       await db("characters")
@@ -597,7 +597,7 @@ describe("ND-011 — gigs service & API", () => {
   });
 
   describe("wrapUpGig", () => {
-    it("should pay out, grant street cred, accumulate heat and record history on success", async () => {
+    it("should pay out, grant Moral, accumulate heat and record history on success", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig(); // reward 500, heat 5
       await acceptGig(characterId, farma.id);
@@ -675,7 +675,7 @@ describe("ND-011 — gigs service & API", () => {
       expect(history.payout).toBe(0);
     });
 
-    it("should clamp street cred at 100 and report only the granted amount", async () => {
+    it("should clamp Moral at 100 and report only the granted amount", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
       await acceptGig(characterId, farma.id);

@@ -116,7 +116,7 @@ describe("ND-013 — street-cred API", () => {
         score: 30,
         title: "Pro",
         maxAchieved: 30,
-        nextThreshold: { score: 50, title: "Edgerunner" },
+        nextThreshold: { score: 50, title: "Corredor" },
         scToNext: 20,
       });
     });
@@ -183,7 +183,7 @@ describe("ND-013 — street-cred API", () => {
       expect(body.leaderboard.map((e) => e.score)).toEqual([80, 50, 30]);
       expect(body.leaderboard.map((e) => e.position)).toEqual([1, 2, 3]);
       expect(body.leaderboard[0].title).toBe("Elite");
-      expect(body.leaderboard[1].title).toBe("Edgerunner");
+      expect(body.leaderboard[1].title).toBe("Corredor");
       expect(body.leaderboard[2].title).toBe("Pro");
       for (const entry of body.leaderboard) {
         expect(entry.characterName).toEqual(expect.any(String));
@@ -465,7 +465,7 @@ describe("ND-013 — street-cred API", () => {
       expect(res.statusCode).toBe(200);
       const body = res.json() as StreetCredInfo;
       expect(body.score).toBe(50); // 60 - 15 clamped to the floor of 50
-      expect(body.title).toBe("Edgerunner");
+      expect(body.title).toBe("Corredor");
       expect(body.maxAchieved).toBe(60);
       expect(body.scToNext).toBe(25); // next threshold 75
 

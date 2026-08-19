@@ -52,7 +52,7 @@ export default function CrewsView() {
           </button>
         ) : (
           <span className="text-nd-text-secondary font-data text-xs">
-            SC {CREW_CREATE_SC} necessário para fundar
+            M {CREW_CREATE_SC} necessária para fundar
           </span>
         )}
       </div>

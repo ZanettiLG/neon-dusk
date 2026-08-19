@@ -91,7 +91,7 @@ describe("PvpView", () => {
     await user.click(screen.getByRole("tab", { name: "Histórico" }));
 
     expect(await screen.findByText("VITÓRIA")).toBeInTheDocument();
-    expect(screen.getByText("120 eds")).toBeInTheDocument();
+    expect(screen.getByText("G$ 120")).toBeInTheDocument();
     expect(mocks.api.get).toHaveBeenCalledWith("/api/pvp/attackable");
     expect(mocks.api.get).toHaveBeenCalledWith("/api/pvp/history");
   });
@@ -113,7 +113,7 @@ describe("PvpView", () => {
 
     await user.click(await screen.findByRole("button", { name: "Atacar" }));
 
-    expect(await screen.findByText("Vitória! +120 eds")).toBeInTheDocument();
+    expect(await screen.findByText("Vitória! +G$ 120")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/pvp/attack", {
       targetId: "c2",
     });

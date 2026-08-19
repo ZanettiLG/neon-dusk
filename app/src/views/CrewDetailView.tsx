@@ -207,7 +207,7 @@ export default function CrewDetailView() {
                 {m.characterId === crew.leaderId && (
                   <span className="text-nd-gold ml-2">[LÍDER]</span>
                 )}
-                <span className="text-nd-text-secondary ml-2">SC: {m.streetCred}</span>
+                <span className="text-nd-text-secondary ml-2">M: {m.streetCred}</span>
               </div>
               {isLeader && m.characterId !== crew.leaderId && (
                 <button
