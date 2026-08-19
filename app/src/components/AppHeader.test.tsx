@@ -127,7 +127,7 @@ describe("AppHeader nav (landing-nav)", () => {
     expect(screen.getByRole("link", { name: "Vendedores" })).toHaveAttribute("href", "/vendors");
     expect(screen.getByRole("link", { name: "PvP" })).toHaveAttribute("href", "/pvp");
     expect(screen.getByRole("link", { name: "Economia" })).toHaveAttribute("href", "/economy");
-    expect(screen.getByRole("link", { name: "Crews" })).toHaveAttribute("href", "/crews");
+    expect(screen.getByRole("link", { name: "Bondes" })).toHaveAttribute("href", "/crews");
     // The Admin link is reserved for admin users — not shown for players.
     expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
   });
@@ -197,6 +197,6 @@ describe("AppHeader nav (landing-nav)", () => {
 
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
     expect(screen.queryByRole("link", { name: "Trampos" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Crews" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Bondes" })).not.toBeInTheDocument();
   });
 });

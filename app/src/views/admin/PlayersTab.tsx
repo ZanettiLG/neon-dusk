@@ -140,7 +140,7 @@ export default function PlayersTab() {
               <th className="py-2 px-3">LV</th>
               <th className="py-2 px-3">M</th>
               <th className="py-2 px-3">Grana</th>
-              <th className="py-2 px-3 hidden sm:table-cell">Crew</th>
+              <th className="py-2 px-3 hidden sm:table-cell">Bonde</th>
               <th className="py-2 px-3 hidden sm:table-cell">Último login</th>
               <th className="py-2 px-3">Status</th>
               <th className="py-2 px-3">Ações</th>

@@ -95,21 +95,21 @@ const chatHistoryKey = (crewId: string) => `crew:${crewId}:chat:history`;
 /** Fetch a crew or throw AppError(404). */
 async function getCrew(crewId: string): Promise<CrewRow> {
   const crew = await crews.findById(crewId);
-  if (!crew) throw new AppError(404, "CREW_NOT_FOUND", "Crew não encontrada");
+  if (!crew) throw new AppError(404, "CREW_NOT_FOUND", "Bonde não encontrado");
   return crew;
 }
 
 /** Throw AppError(403) unless the character is a crew member. */
 async function requireMember(crewId: string, characterId: string): Promise<void> {
   const member = await crews.hasMember(crewId, characterId);
-  if (!member) throw new AppError(403, "NOT_CREW_MEMBER", "Você não é membro desta crew");
+  if (!member) throw new AppError(403, "NOT_CREW_MEMBER", "Você não é membro deste bonde");
 }
 
 /** Throw AppError(403) unless the character is the crew leader. */
 function requireLeader(crew: { leader_id?: string }, characterId: string): void {
   const leaderId = crew.leader_id;
   if (leaderId !== characterId) {
-    throw new AppError(403, "NOT_CREW_LEADER", "Apenas o líder da crew pode fazer isso");
+    throw new AppError(403, "NOT_CREW_LEADER", "Apenas o líder do bonde pode fazer isso");
   }
 }
 
@@ -141,12 +141,12 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       // Eligibility: SC gate + already-affiliated guard (one crew per char).
       const leader = await characters.findById(characterId);
       if (!leader) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
-      if (leader.crew_id) throw new AppError(409, "ALREADY_IN_CREW", "Você já está em uma crew");
+      if (leader.crew_id) throw new AppError(409, "ALREADY_IN_CREW", "Você já está em um bonde");
       if (leader.street_cred < CREW_CREATE_SC) {
         throw new AppError(
           400,
           "SC_TOO_LOW",
-          `Fundar uma crew requer ${CREW_CREATE_SC} de Moral (você tem ${leader.street_cred})`,
+          `Fundar um bonde requer ${CREW_CREATE_SC} de Moral (você tem ${leader.street_cred})`,
         );
       }
       // One transaction: debit wallet (optimistic lock, audit entry), reject
@@ -160,16 +160,16 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
           throw new AppError(
             400,
             "INSUFFICIENT_FUNDS",
-            `Fundar uma crew custa G$ ${CREW_CREATE_COST} (você tem G$ ${availableFunds})`,
+            `Fundar um bonde custa G$ ${CREW_CREATE_COST} (você tem G$ ${availableFunds})`,
           );
         }
         const dupName = await crews.findByName(name, trx);
-        if (dupName) throw new AppError(409, "DUPLICATE_NAME", "Já existe uma crew com este nome");
+        if (dupName) throw new AppError(409, "DUPLICATE_NAME", "Já existe um bonde com este nome");
         const dupTag = await crews.findByTag(tag, trx);
-        if (dupTag) throw new AppError(409, "DUPLICATE_TAG", "Já existe uma crew com esta tag");
+        if (dupTag) throw new AppError(409, "DUPLICATE_TAG", "Já existe um bonde com esta tag");
         const debit = transferEddies(wallet, -CREW_CREATE_COST, {
           type: "CREW_CREATION",
-          source: `Crew creation (${name} [${tag}])`,
+          source: `Fundação do bonde (${name} [${tag}])`,
         });
         const updatedWallet = await wallets.updateOptimistic(
           characterId,
@@ -297,12 +297,12 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       const crew = await getCrew(crewId);
       requireLeader(crew, characterId);
       if ((await crews.memberCount(crewId)) >= CREW_MAX_SIZE) {
-        throw new AppError(409, "CREW_FULL", `Crew cheia (máx. ${CREW_MAX_SIZE} membros)`);
+        throw new AppError(409, "CREW_FULL", `Bonde cheio (máx. ${CREW_MAX_SIZE} membros)`);
       }
 
       const target = await characters.findById(targetId);
       if (!target) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
-      if (target.crew_id) throw new AppError(409, "ALREADY_IN_CREW", "Este personagem já está em uma crew");
+      if (target.crew_id) throw new AppError(409, "ALREADY_IN_CREW", "Este personagem já está em um bonde");
       if (target.street_cred < CREW_RECRUIT_SC) {
         throw new AppError(
           400,
@@ -362,12 +362,12 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
 
       const { member, target } = await withTransaction(async (trx) => {
         const invite = await crews.findInvite(crewId, characterId, trx);
-        if (!invite) throw new AppError(404, "NO_INVITE", "Você não tem um convite para esta crew");
+        if (!invite) throw new AppError(404, "NO_INVITE", "Você não tem um convite para este bonde");
         if (new Date(invite.expires_at) <= new Date()) {
           throw new AppError(410, "INVITE_EXPIRED", "Convite expirado — peça um novo");
         }
         if ((await crews.memberCount(crewId, trx)) >= CREW_MAX_SIZE) {
-          throw new AppError(409, "CREW_FULL", `Crew cheia (máx. ${CREW_MAX_SIZE} membros)`);
+          throw new AppError(409, "CREW_FULL", `Bonde cheio (máx. ${CREW_MAX_SIZE} membros)`);
         }
         // Guard against joining a second crew (unique character_id backstops).
         const target = await characters.findById(characterId, trx);
@@ -411,7 +411,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       request.audit_context!.payload = { crewId };
 
       if (crew.leader_id === characterId) {
-        throw new AppError(400, "LEADER_CANNOT_LEAVE", "O líder deve dissolver a crew para sair");
+        throw new AppError(400, "LEADER_CANNOT_LEAVE", "O líder deve dissolver o bonde para sair");
       }
       await requireMember(crewId, characterId);
 

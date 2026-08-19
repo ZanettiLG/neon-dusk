@@ -75,7 +75,7 @@ export default function EconomyView() {
               <p className="font-heading text-3xl text-nd-gold">{formatEds(balance.balance)}</p>
             </div>
             <div>
-              <p className="text-nd-text-secondary text-xs font-data uppercase tracking-widest">Escrow</p>
+              <p className="text-nd-text-secondary text-xs font-data uppercase tracking-widest">Garantia</p>
               <p className="font-heading text-3xl text-nd-text">{formatEds(balance.escrow)}</p>
             </div>
             <div>

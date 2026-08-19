@@ -211,7 +211,7 @@ export const useSaideiraStore = create<SaideiraState>((set, get) => ({
     try {
       set({ crewLeaderboard: await api.get<CrewLeaderboardResponse>("/api/saideira/leaderboard/crews") });
     } catch (err) {
-      set({ crewError: err instanceof Error ? err.message : "Falha ao carregar o ranking de crews" });
+      set({ crewError: err instanceof Error ? err.message : "Falha ao carregar o ranking de bondes" });
     } finally {
       set({ crewLoading: false });
     }

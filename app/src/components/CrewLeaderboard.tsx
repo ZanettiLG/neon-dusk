@@ -20,7 +20,7 @@ export default function CrewLeaderboard() {
   return (
     <section className="card">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <h3 className="font-heading text-nd-cyan text-lg tracking-widest">TOP 5 CREWS</h3>
+        <h3 className="font-heading text-nd-cyan text-lg tracking-widest">TOP 5 BONDES</h3>
         <span className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary border border-nd-cyan/20 rounded-terminal px-2 py-0.5">
           EM BREVE
         </span>
@@ -41,7 +41,7 @@ export default function CrewLeaderboard() {
         </div>
       ) : (
         <p className="text-nd-text-secondary text-sm font-data">
-          Em breve — crews chegam na Fase 2. Enquanto isso, os rumores correm no balcão.
+          Em breve — os bondes chegam na Fase 2. Enquanto isso, os rumores correm no balcão.
         </p>
       )}
     </section>

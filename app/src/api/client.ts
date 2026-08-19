@@ -163,16 +163,16 @@ const PT_BR_ERRORS: Record<string, string> = {
   NO_ACTIVE_ROUND: "Não há rodada ativa.",
 
   // Crew
-  CREW_NOT_FOUND: "Crew não encontrada.",
-  ALREADY_IN_CREW: "Você já está em uma crew.",
+  CREW_NOT_FOUND: "Bonde não encontrado.",
+  ALREADY_IN_CREW: "Você já está em um bonde.",
 
   // Infra
   INTERNAL_ERROR: "Erro interno. Tente novamente.",
   SERVICE_UNAVAILABLE: "Serviço temporariamente indisponível.",
   USER_NOT_FOUND: "Usuário não encontrado.",
   NOT_FOUND: "Não encontrado.",
-  INVALID_CREW_STATE: "Estado inválido da crew.",
-  LEADER_CANNOT_LEAVE: "Líder não pode sair da crew. Dissolva-a primeiro.",
+  INVALID_CREW_STATE: "Estado inválido do bonde.",
+  LEADER_CANNOT_LEAVE: "Líder não pode sair do bonde. Dissolva-o primeiro.",
   ADMIN_RATE_LIMITED: "Muitas requisições. Aguarde.",
 };
 

@@ -193,7 +193,7 @@ export default function ChromeView() {
                   <span className="text-nd-text">{installed.humanitySpent}</span>
                 </div>
                 <div>
-                  <span className="text-nd-text-secondary">HP Bonus:</span>{" "}
+                  <span className="text-nd-text-secondary">Bônus de HP:</span>{" "}
                   <span className="text-nd-green">+{installed.hpBonus}</span>
                 </div>
                 <div>

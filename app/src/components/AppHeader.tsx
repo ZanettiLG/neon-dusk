@@ -26,7 +26,7 @@ export default function AppHeader() {
                   <Link to="/vendors" className="nav-link">Vendedores</Link>
                   <Link to="/pvp" className="nav-link">PvP</Link>
                   <Link to="/economy" className="nav-link">Economia</Link>
-                  <Link to="/crews" className="nav-link">Crews</Link>
+                  <Link to="/crews" className="nav-link">Bondes</Link>
                 </>
               )}
               {user?.role === "admin" && (

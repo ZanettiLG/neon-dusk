@@ -267,8 +267,8 @@ describe("router: new views", () => {
 
     renderAt("/crews");
 
-    expect(await screen.findByText("CREWS")).toBeInTheDocument();
-    expect(await screen.findByText("Nenhuma crew fundada ainda.")).toBeInTheDocument();
+    expect(await screen.findByText("BONDES")).toBeInTheDocument();
+    expect(await screen.findByText("Nenhum bonde fundado ainda.")).toBeInTheDocument();
   });
 
   it("should render CrewDetailView at /crews/:id", async () => {

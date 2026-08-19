@@ -97,7 +97,7 @@ export const useCrewStore = create<CrewState>((set, get) => ({
       const data = await api.get<Crew[]>("/api/crews");
       set({ crews: data });
     } catch (err) {
-      set({ crewsError: err instanceof Error ? err.message : "Falha ao carregar crews" });
+      set({ crewsError: err instanceof Error ? err.message : "Falha ao carregar bondes" });
     } finally {
       set({ crewsLoading: false });
     }
@@ -111,7 +111,7 @@ export const useCrewStore = create<CrewState>((set, get) => ({
       const data = await api.get<CrewDetailResponse>(`/api/crews/${id}`);
       set({ crewDetail: data });
     } catch (err) {
-      set({ detailError: err instanceof Error ? err.message : "Falha ao carregar detalhes da crew" });
+      set({ detailError: err instanceof Error ? err.message : "Falha ao carregar detalhes do bonde" });
     } finally {
       set({ detailLoading: false });
     }

@@ -60,7 +60,7 @@ describe("HomeView", () => {
       screen.getByText("Build your cromo. Burn your name. Leave a legend."),
     ).toBeInTheDocument();
 
-    expect(screen.getByText("System Status")).toBeInTheDocument();
+    expect(screen.getByText("Status do Sistema")).toBeInTheDocument();
     expect(await screen.findByText("● ONLINE")).toBeInTheDocument();
     expect(screen.getAllByText("connected")).toHaveLength(2);
     expect(screen.getByText("42s")).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe("HomeView", () => {
 
     expect(await screen.findByText("API down")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
 
     expect(await screen.findByText("● ONLINE")).toBeInTheDocument();
   });

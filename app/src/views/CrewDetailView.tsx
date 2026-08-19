@@ -60,7 +60,7 @@ export default function CrewDetailView() {
   if (detailError || !crewDetail) {
     return (
       <div className="py-8 space-y-4">
-        <p className="text-nd-magenta text-sm font-data">{detailError ?? "Crew não encontrada."}</p>
+        <p className="text-nd-magenta text-sm font-data">{detailError ?? "Bonde não encontrado."}</p>
         <Link to="/crews" className="text-nd-cyan font-data text-xs hover:underline">← Voltar</Link>
       </div>
     );
@@ -141,7 +141,7 @@ export default function CrewDetailView() {
 
   return (
     <div className="py-8 space-y-6">
-      <Link to="/crews" className="text-nd-cyan font-data text-xs hover:underline">← Crews</Link>
+      <Link to="/crews" className="text-nd-cyan font-data text-xs hover:underline">← Bondes</Link>
 
       {/* Crew header */}
       <div className="card border-nd-cyan/30 shadow-neon-cyan">
@@ -159,17 +159,17 @@ export default function CrewDetailView() {
           <div className="flex flex-col gap-2">
             {!isMember && (
               <button className="btn-neon text-xs" onClick={() => void onJoin()}>
-                Entrar na Crew
+                Entrar no Bonde
               </button>
             )}
             {isMember && !isLeader && (
               <button className="btn-danger text-xs" onClick={() => void onLeave()}>
-                Sair da Crew
+                Sair do Bonde
               </button>
             )}
             {isLeader && (
               <button className="btn-danger text-xs" onClick={() => void onDissolve()}>
-                Dissolver Crew
+                Dissolver Bonde
               </button>
             )}
           </div>
@@ -182,7 +182,7 @@ export default function CrewDetailView() {
       {/* Bonuses */}
       {bonuses.length > 0 && (
         <div className="card border-nd-gold/20">
-          <h3 className="font-heading text-sm text-nd-gold tracking-widest mb-2">Bônus da Crew</h3>
+          <h3 className="font-heading text-sm text-nd-gold tracking-widest mb-2">Bônus do Bonde</h3>
           <div className="flex flex-wrap gap-2">
             {bonuses.map((b: CrewBonus) => (
               <span
@@ -244,7 +244,7 @@ export default function CrewDetailView() {
       {/* Chat panel */}
       {isMember && (
         <div className="card border-nd-cyan/20">
-          <h3 className="font-heading text-sm text-nd-cyan tracking-widest mb-3">Chat da Crew</h3>
+          <h3 className="font-heading text-sm text-nd-cyan tracking-widest mb-3">Chat do Bonde</h3>
           <div className="bg-nd-bg border border-nd-cyan/20 rounded-terminal p-3 h-64 overflow-y-auto space-y-2 mb-3">
             {messages.length === 0 ? (
               <p className="text-nd-text-secondary text-xs font-data text-center py-8">

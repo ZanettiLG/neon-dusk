@@ -66,7 +66,7 @@ export default function LegendsMenu() {
                   Desde {yearOf(entry.achievedAt)}
                 </span>
                 <span className="font-data text-[10px] uppercase tracking-wider text-nd-text-secondary border border-nd-text-secondary/30 rounded-terminal px-1.5 py-0.5">
-                  {entry.crewName ?? "Sem crew"}
+                  {entry.crewName ?? "Sem bonde"}
                 </span>
               </div>
             </div>

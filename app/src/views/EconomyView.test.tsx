@@ -78,6 +78,7 @@ describe("EconomyView", () => {
     expect(await screen.findByText("G$ 1.250")).toBeInTheDocument();
     expect(screen.getByText("G$ 250")).toBeInTheDocument();
     expect(screen.getByText("G$ 1.000")).toBeInTheDocument(); // balance - escrow
+    expect(screen.getByText("Garantia")).toBeInTheDocument();
     expect(screen.getByText(/G\$ 5.000 ganhos/)).toBeInTheDocument();
     expect(screen.getByText("GIG_REWARD")).toBeInTheDocument();
     expect(screen.getByText("+G$ 150")).toBeInTheDocument();

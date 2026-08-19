@@ -34,7 +34,7 @@ export default function CrewsView() {
       setTag("");
       navigate(`/crews/${crew.id}`);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Falha ao criar crew");
+      setCreateError(err instanceof Error ? err.message : "Falha ao criar bonde");
     } finally {
       setCreateLoading(false);
     }
@@ -45,10 +45,10 @@ export default function CrewsView() {
   return (
     <div className="py-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">CREWS</h2>
+        <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">BONDES</h2>
         {canCreate ? (
           <button className="btn-neon text-xs" onClick={() => setShowCreate(true)}>
-            Fundar Crew
+            Fundar Bonde
           </button>
         ) : (
           <span className="text-nd-text-secondary font-data text-xs">
@@ -61,7 +61,7 @@ export default function CrewsView() {
         <div className="card border-nd-cyan/30">
           <form onSubmit={(e) => void onSubmitCreate(e)} className="space-y-3">
             <div>
-              <label className="block text-xs font-data text-nd-text-secondary mb-1">Nome da Crew</label>
+              <label className="block text-xs font-data text-nd-text-secondary mb-1">Nome do Bonde</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -104,7 +104,7 @@ export default function CrewsView() {
         <p className="text-nd-magenta text-sm font-data">{crewsError}</p>
       ) : crews.length === 0 ? (
         <div className="card text-center py-10">
-          <p className="text-nd-text-secondary font-data text-sm">Nenhuma crew fundada ainda.</p>
+          <p className="text-nd-text-secondary font-data text-sm">Nenhum bonde fundado ainda.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

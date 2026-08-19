@@ -93,11 +93,11 @@ describe("CrewsView", () => {
   });
 
   it("should show an error state when the fetch fails", () => {
-    useCrewStore.setState({ crewsError: "Falha ao carregar crews" });
+    useCrewStore.setState({ crewsError: "Falha ao carregar bondes" });
 
     renderView();
 
-    expect(screen.getByText("Falha ao carregar crews")).toBeInTheDocument();
+    expect(screen.getByText("Falha ao carregar bondes")).toBeInTheDocument();
   });
 
   it("should gate crew creation behind SC 25", () => {
@@ -106,7 +106,7 @@ describe("CrewsView", () => {
     renderView();
 
     expect(screen.getByText("M 25 necessária para fundar")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Fundar Crew" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Fundar Bonde" })).not.toBeInTheDocument();
   });
 
   it("should allow crew creation at SC 25 and navigate to the new crew", async () => {
@@ -116,7 +116,7 @@ describe("CrewsView", () => {
 
     renderView();
 
-    await user.click(screen.getByRole("button", { name: "Fundar Crew" }));
+    await user.click(screen.getByRole("button", { name: "Fundar Bonde" }));
     // Labels are siblings of the inputs (no htmlFor) — address them by order.
     const [nameInput, tagInput] = screen.getAllByRole("textbox");
     await user.type(nameInput, "As Gralhas");

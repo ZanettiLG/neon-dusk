@@ -160,11 +160,11 @@ describe("useCrewStore", () => {
     });
 
     it("should set detailError without throwing when the request fails", async () => {
-      mocks.api.get.mockRejectedValue(new Error("Crew não encontrada."));
+      mocks.api.get.mockRejectedValue(new Error("Bonde não encontrado."));
 
       await expect(useCrewStore.getState().fetchCrewDetail("c1")).resolves.toBeUndefined();
 
-      expect(useCrewStore.getState().detailError).toBe("Crew não encontrada.");
+      expect(useCrewStore.getState().detailError).toBe("Bonde não encontrado.");
       expect(useCrewStore.getState().detailLoading).toBe(false);
     });
   });
@@ -233,14 +233,14 @@ describe("useCrewStore", () => {
     });
 
     it("should set chatSendError and rethrow when sending fails", async () => {
-      mocks.api.post.mockRejectedValue(new Error("Não é membro da crew"));
+      mocks.api.post.mockRejectedValue(new Error("Não é membro do bonde"));
 
       await expect(
         useCrewStore.getState().sendMessage("c1", "oi"),
-      ).rejects.toThrow("Não é membro da crew");
+      ).rejects.toThrow("Não é membro do bonde");
 
       const s = useCrewStore.getState();
-      expect(s.chatSendError).toBe("Não é membro da crew");
+      expect(s.chatSendError).toBe("Não é membro do bonde");
       expect(s.chatSendLoading).toBe(false);
     });
 

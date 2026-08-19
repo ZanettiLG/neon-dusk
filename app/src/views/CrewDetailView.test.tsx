@@ -127,12 +127,12 @@ describe("CrewDetailView", () => {
     expect(screen.getByText("[LÍDER]")).toBeInTheDocument();
 
     // Leader-only actions.
-    expect(screen.getByRole("button", { name: "Dissolver Crew" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dissolver Bonde" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expulsar" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Convidar" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Sair da Crew" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sair do Bonde" })).not.toBeInTheDocument();
     // Member → chat panel is visible.
-    expect(screen.getByText("Chat da Crew")).toBeInTheDocument();
+    expect(screen.getByText("Chat do Bonde")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Mensagem...")).toBeInTheDocument();
   });
 
@@ -142,8 +142,8 @@ describe("CrewDetailView", () => {
 
     renderView();
 
-    expect(screen.getByRole("button", { name: "Entrar na Crew" })).toBeInTheDocument();
-    expect(screen.queryByText("Chat da Crew")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Entrar no Bonde" })).toBeInTheDocument();
+    expect(screen.queryByText("Chat do Bonde")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Expulsar" })).not.toBeInTheDocument();
   });
 
@@ -153,17 +153,17 @@ describe("CrewDetailView", () => {
 
     renderView();
 
-    expect(screen.getByRole("button", { name: "Sair da Crew" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Dissolver Crew" })).not.toBeInTheDocument();
-    expect(screen.getByText("Chat da Crew")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sair do Bonde" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Dissolver Bonde" })).not.toBeInTheDocument();
+    expect(screen.getByText("Chat do Bonde")).toBeInTheDocument();
   });
 
   it("should show an error state when the fetch fails", () => {
-    useCrewStore.setState({ detailError: "Crew não encontrada." });
+    useCrewStore.setState({ detailError: "Bonde não encontrado." });
 
     renderView();
 
-    expect(screen.getByText("Crew não encontrada.")).toBeInTheDocument();
+    expect(screen.getByText("Bonde não encontrado.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "← Voltar" })).toHaveAttribute("href", "/crews");
   });
 });

@@ -47,17 +47,17 @@ export default function HomeView() {
 
       {/* System Status Card */}
       <div className="card w-full max-w-md space-y-3">
-        <h3 className="font-heading text-nd-cyan">System Status</h3>
+        <h3 className="font-heading text-nd-cyan">Status do Sistema</h3>
 
         {healthLoading ? (
           <div className="text-nd-text-secondary font-data text-sm">
-            <span className="animate-pulse-neon">▌ Checking connection...</span>
+            <span className="animate-pulse-neon">▌ Verificando conexão...</span>
           </div>
         ) : healthError ? (
           <div className="space-y-2">
             <p className="text-nd-magenta font-data text-sm">{healthError}</p>
             <button onClick={() => void checkHealth()} className="btn-neon text-xs">
-              Retry
+              Tentar de novo
             </button>
           </div>
         ) : health ? (
