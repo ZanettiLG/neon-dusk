@@ -87,6 +87,9 @@ jobs:
       - name: Run tests
         run: npm run test
 
+      - name: Run script guard tests
+        run: node --test scripts/__tests__/check-terminologia.test.mjs
+
       - name: Teardown test infrastructure
         if: always()
         run: docker compose -f docker-compose.test.yml down -v
