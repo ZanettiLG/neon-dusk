@@ -20,7 +20,7 @@ export default function AppHeader() {
               {character && (
                 <>
                   <Link to="/dashboard" className="nav-link">Painel</Link>
-                  <Link to="/gigs" className="nav-link">Gigs</Link>
+                  <Link to="/gigs" className="nav-link">Trampos</Link>
                   <Link to="/saideira" className="nav-link">Saideira</Link>
                   <Link to="/chrome" className="nav-link">Chrome</Link>
                   <Link to="/vendors" className="nav-link">Vendedores</Link>

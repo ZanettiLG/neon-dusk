@@ -6,8 +6,8 @@ import Tab from "./Tab";
 describe("Tab", () => {
   it("should render with role=tab and be clickable when active", async () => {
     const onClick = vi.fn();
-    render(<Tab state="active" onClick={onClick}>Gigs</Tab>);
-    const tab = screen.getByRole("tab", { name: "Gigs" });
+    render(<Tab state="active" onClick={onClick}>Trampos</Tab>);
+    const tab = screen.getByRole("tab", { name: "Trampos" });
     expect(tab).toHaveAttribute("aria-selected", "true");
     expect(tab).toBeEnabled();
     await userEvent.setup().click(tab);
@@ -15,16 +15,16 @@ describe("Tab", () => {
   });
 
   it("should render inactive tab with aria-selected false", () => {
-    render(<Tab state="inactive">Gigs</Tab>);
-    const tab = screen.getByRole("tab", { name: "Gigs" });
+    render(<Tab state="inactive">Trampos</Tab>);
+    const tab = screen.getByRole("tab", { name: "Trampos" });
     expect(tab).toHaveAttribute("aria-selected", "false");
     expect(tab).toBeEnabled();
   });
 
   it("should disable and block onClick when disabled", async () => {
     const onClick = vi.fn();
-    render(<Tab state="disabled" onClick={onClick}>Gigs</Tab>);
-    const tab = screen.getByRole("tab", { name: "Gigs" });
+    render(<Tab state="disabled" onClick={onClick}>Trampos</Tab>);
+    const tab = screen.getByRole("tab", { name: "Trampos" });
     expect(tab).toBeDisabled();
     expect(tab).toHaveAttribute("aria-disabled", "true");
     await userEvent.setup().click(tab);
@@ -32,7 +32,7 @@ describe("Tab", () => {
   });
 
   it("should expose disabledReason via title and sr-only description", () => {
-    render(<Tab state="disabled" disabledReason="Requer nível 5">Gigs</Tab>);
+    render(<Tab state="disabled" disabledReason="Requer nível 5">Trampos</Tab>);
     const tab = screen.getByRole("tab");
     // pointer tooltip
     expect(tab).toHaveAttribute("title", "Requer nível 5");
@@ -45,14 +45,14 @@ describe("Tab", () => {
   });
 
   it("should not render a description when disabled without disabledReason", () => {
-    render(<Tab state="disabled">Gigs</Tab>);
+    render(<Tab state="disabled">Trampos</Tab>);
     const tab = screen.getByRole("tab");
     expect(tab).not.toHaveAttribute("aria-describedby");
     expect(tab).not.toHaveAttribute("title");
   });
 
   it("should apply active class", () => {
-    render(<Tab state="active">Gigs</Tab>);
+    render(<Tab state="active">Trampos</Tab>);
     expect(screen.getByRole("tab")).toHaveClass("border-nd-cyan");
   });
 });

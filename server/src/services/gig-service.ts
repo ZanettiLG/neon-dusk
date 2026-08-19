@@ -216,7 +216,7 @@ export async function getGigDetail(
   gigId: string,
 ): Promise<GigDetailResponse> {
   const gig = await gigs.findById(gigId);
-  if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
+  if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
   const character = await characters.findById(characterId);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
@@ -262,7 +262,7 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
     const gig = await gigs.findById(gigId, trx);
-    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
+    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
     // Lock the row: INSERT first (unique character_id) — a concurrent accept
     // loses the race here and fails BEFORE any NIL is spent.
@@ -291,10 +291,10 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
         throw new AppError(
           503,
           "LONG_HAUL_REQUIRES_MIGRATION",
-          "Long Haul detectado, mas o schema ainda não suporta 2 gigs ativas. Aguarde a próxima migração.",
+          "Long Haul detectado, mas o schema ainda não suporta 2 trampos ativos. Aguarde a próxima migração.",
         );
       }
-      throw new AppError(400, "ALREADY_ACTIVE_GIG", "Você já tem uma gig ativa");
+      throw new AppError(400, "ALREADY_ACTIVE_GIG", "Você já tem um trampo ativo");
     }
 
     try {
@@ -312,12 +312,12 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
         technical: Number(character.technical),
         cool: Number(character.cool),
       }, gig.required_stats as Record<string, number>)) {
-        throw new AppError(403, "INSUFFICIENT_STATS", "Atributos não atendem aos requisitos da gig");
+        throw new AppError(403, "INSUFFICIENT_STATS", "Atributos não atendem aos requisitos do trampo");
       }
 
       const last = await gigs.findLastCompletion(characterId, gigId, trx);
       if (last && !isCooldownExpired(new Date(last.lastAt), Number(gig.cooldown_minutes))) {
-        throw new AppError(400, "GIG_COOLDOWN", "Esta gig ainda está em cooldown");
+        throw new AppError(400, "GIG_COOLDOWN", "Este trampo ainda está em cooldown");
       }
 
       // NIL spend (in-transaction, mirrors nil-service.consumeNil): persist the
@@ -370,8 +370,8 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
 export async function doLegwork(characterId: string, gigId: string): Promise<ActiveGig> {
   return withTransaction(async (trx) => {
     const active = await queryActiveGig(characterId, trx);
-    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
+    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
+    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
 
     const next = canTransition(active.phase, "start_legwork");
     if (!next) {
@@ -396,11 +396,11 @@ export async function doLegwork(characterId: string, gigId: string): Promise<Act
 export async function executeGig(characterId: string, gigId: string): Promise<GigExecuteResponse> {
   return withTransaction(async (trx) => {
     const active = await queryActiveGig(characterId, trx);
-    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
+    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
+    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
 
     const gig = await gigs.findById(active.gigId, trx);
-    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
+    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
     const skippedLegwork = active.phase === "meet";
     const next =
@@ -487,10 +487,10 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
 export async function escapeGig(characterId: string, gigId: string): Promise<GigEscapeResponse> {
   return withTransaction(async (trx) => {
     const active = await queryActiveGig(characterId, trx);
-    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
+    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
+    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
     const gig = await gigs.findById(active.gigId, trx);
-    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
+    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
     // ponytail: idempotent escape — server already committed, client retrying
     if (active.phase === "escape") {
@@ -555,8 +555,8 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
 export async function wrapUpGig(characterId: string, gigId: string): Promise<GigWrapupResponse> {
   return withTransaction(async (trx) => {
     const active = await queryActiveGig(characterId, trx);
-    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Gig ativa não corresponde");
+    if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
+    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
     // The wrap_up action is taken while in the escape phase (see the phase
     // machine in game/gigs.ts: escape → wrap_up); wrap_up is terminal and the
     // row is deleted right after, so it is never observed by the client.
@@ -566,7 +566,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const terminalPhase = canTransition("escape", "wrap_up");
 
     const gig = await gigs.findById(active.gigId, trx);
-    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Gig não encontrada");
+    if (!gig) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
@@ -599,7 +599,7 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     if (payout > 0) {
       const result = transferEddies(wallet, payout, {
         type: "GIG_PAYOUT",
-        source: `Gig concluído: ${gig.name}`,
+        source: `Trampo concluído: ${gig.name}`,
         referenceType: "gig",
         referenceId: gig.id,
       });
@@ -711,7 +711,7 @@ export async function abandonGig(
     // 1. Find active gig for this character.
     const active = await gigs.findActiveGigByGig(characterId, gigId, trx);
     if (!active) {
-      throw new AppError(404, "NO_ACTIVE_GIG", "Nenhuma gig ativa para abandonar");
+      throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo para abandonar");
     }
 
     // 2. Get the gig district for the history entry.
@@ -736,7 +736,7 @@ export async function abandonGig(
     return {
       outcome: "abandoned" as const,
       message:
-        "Gig abandonada. O despachante não vai gostar, mas você vive para correr outro dia.",
+        "Trampo abandonado. O despachante não vai gostar, mas você vive para correr outro dia.",
     };
   });
 }

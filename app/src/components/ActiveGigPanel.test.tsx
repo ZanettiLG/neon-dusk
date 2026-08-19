@@ -197,7 +197,7 @@ describe("ActiveGigPanel", () => {
       },
     });
     render(<ActiveGigPanel />);
-    fireEvent.click(screen.getByRole("button", { name: /concluir gig \(receber\)/i }));
+    fireEvent.click(screen.getByRole("button", { name: /concluir trampo \(receber\)/i }));
     expect(wrapUpGig).toHaveBeenCalledWith("g-1");
     expect(escapeGig).not.toHaveBeenCalled();
   });
@@ -277,7 +277,7 @@ describe("ActiveGigPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /fugir/i }));
 
     // Phase came from the escape response — wrap-up action shown, stale fugir button gone.
-    expect(await screen.findByRole("button", { name: /concluir gig \(receber\)/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /concluir trampo \(receber\)/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /fugir/i })).not.toBeInTheDocument();
     // Sentinel roll (-1) must not render "(rolou -1 vs 0%)".
     expect(screen.queryByText(/rolou/i)).not.toBeInTheDocument();
@@ -295,6 +295,6 @@ describe("ActiveGigPanel", () => {
     render(<ActiveGigPanel />);
     // The escape phase shows the wrap-up action instead of a second escape roll
     expect(screen.queryByRole("button", { name: /fugir/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /concluir gig \(receber\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /concluir trampo \(receber\)/i })).toBeInTheDocument();
   });
 });

@@ -6,9 +6,9 @@ import type { GameEventType } from "@neon-dusk/shared";
 /** Short PT-BR label for every game event type. */
 export const EVENT_TYPE_LABELS: Record<GameEventType, string> = {
   CHARACTER_CREATED: "Personagem criado",
-  GIG_STARTED: "Gig iniciado",
-  GIG_COMPLETED: "Gig concluído",
-  GIG_FAILED: "Gig falhou",
+  GIG_STARTED: "Trampo iniciado",
+  GIG_COMPLETED: "Trampo concluído",
+  GIG_FAILED: "Trampo falhou",
   PVP_ATTACK: "Ataque PvP",
   PVP_DEFEAT: "Derrota em PvP",
   EDDIES_EARNED: "G$ ganhos",
@@ -44,12 +44,12 @@ export function formatEventMessage(
     case "GIG_COMPLETED": {
       const name = str(payload, "gigName");
       const payout = num(payload, "payout");
-      if (name && payout !== null) return `Gig "${name}" concluído — +G$ ${payout}`;
+      if (name && payout !== null) return `Trampo "${name}" concluído — +G$ ${payout}`;
       return EVENT_TYPE_LABELS.GIG_COMPLETED;
     }
     case "GIG_FAILED": {
       const name = str(payload, "gigName");
-      return name ? `Gig "${name}" falhou` : EVENT_TYPE_LABELS.GIG_FAILED;
+      return name ? `Trampo "${name}" falhou` : EVENT_TYPE_LABELS.GIG_FAILED;
     }
     // Server emits PVP_ATTACK with { targetId, won, lootAmount } (attacker
     // perspective). PVP_DEFEAT is not yet emitted server-side — forward-looking.

@@ -467,7 +467,7 @@ describe("ND-016 — Crews Básicas API", () => {
 
       expect(body.members).toHaveLength(2);
       expect(body.bonuses).toEqual([
-        { type: "gig_success", description: "+5% gig success rate", value: 5 },
+        { type: "gig_success", description: "+5% de chance de sucesso em trampos", value: 5 },
       ]);
     });
 

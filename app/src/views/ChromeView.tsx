@@ -197,7 +197,7 @@ export default function ChromeView() {
                   <span className="text-nd-green">+{installed.hpBonus}</span>
                 </div>
                 <div>
-                  <span className="text-nd-text-secondary">Gig Bonus:</span>{" "}
+                  <span className="text-nd-text-secondary">Bônus de trampo:</span>{" "}
                   <span className="text-nd-gold">+{installed.gigSuccessBonus}%</span>
                 </div>
               </div>

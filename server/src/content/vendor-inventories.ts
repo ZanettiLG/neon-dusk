@@ -46,7 +46,7 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
     type: "FIXER",
     district: "babilonia",
     description:
-      "Despachante veterano, conhece cada beco da Babilônia. Intermedeia gigs e informações.",
+      "Despachante veterano, conhece cada beco da Babilônia. Intermedeia trampos e informações.",
     inventory: [], // o despachante não vende itens — o quadro de trampos é separado
   },
 

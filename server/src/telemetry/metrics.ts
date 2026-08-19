@@ -39,7 +39,7 @@ export const eddiesSpentTotal = new Counter({
 /** Gigs completed successfully. */
 export const gigsCompletedTotal = new Counter({
   name: "neondusk_gigs_completed_total",
-  help: "Total gigs completed",
+  help: "Total de trampos concluídos",
   labelNames: ["characterId"] as const,
   registers: [registry],
 });

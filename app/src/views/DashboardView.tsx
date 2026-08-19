@@ -320,7 +320,7 @@ export default function DashboardView() {
 
           <p className="text-nd-text-secondary text-xs font-data">
             <Link to="/gigs" className="text-nd-purple hover:text-nd-cyan transition-colors">
-              ▸ Quadro de gigs — Cupim, o Porteiro
+              ▸ Quadro de trampos — Cupim, o Porteiro
             </Link>
           </p>
 

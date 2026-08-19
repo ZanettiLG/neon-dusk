@@ -44,7 +44,7 @@ const transactions: TransactionListResponse = {
       amount: 150,
       balanceBefore: 1100,
       balanceAfter: 1250,
-      source: "Gig: Extração",
+      source: "Trampo: Extração",
       referenceType: "gig",
       referenceId: "g1",
       createdAt: "2026-01-01T00:00:00.000Z",

@@ -13,7 +13,7 @@ describe("QuickActions", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: "Gigs" })).toHaveAttribute("href", "/gigs");
+    expect(screen.getByRole("link", { name: "Trampos" })).toHaveAttribute("href", "/gigs");
     expect(screen.getByRole("link", { name: "Saideira" })).toHaveAttribute("href", "/saideira");
     expect(screen.getByRole("link", { name: "Chrome" })).toHaveAttribute("href", "/chrome");
     expect(screen.getByRole("link", { name: "PvP" })).toHaveAttribute("href", "/pvp");

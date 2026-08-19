@@ -49,7 +49,7 @@ export const CHROME_DEFINITIONS: ChromeSeedEntry[] = [
     humanityCost: 4,
     basePrice: 1800,
     description:
-      "Óptica Kiroshi de entrada. +2 REF, +5% sucesso em gigs. Scanner térmico integrado.",
+      "Óptica Kiroshi de entrada. +2 REF, +5% sucesso em trampos. Scanner térmico integrado.",
   },
   {
     slug: "gorilla-arms",

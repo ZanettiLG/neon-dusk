@@ -121,7 +121,7 @@ describe("AppHeader nav (landing-nav)", () => {
     const nav = screen.getByRole("navigation");
     expect(nav).toHaveClass("hidden sm:flex");
     expect(screen.getByRole("link", { name: "Painel" })).toHaveAttribute("href", "/dashboard");
-    expect(screen.getByRole("link", { name: "Gigs" })).toHaveAttribute("href", "/gigs");
+    expect(screen.getByRole("link", { name: "Trampos" })).toHaveAttribute("href", "/gigs");
     expect(screen.getByRole("link", { name: "Saideira" })).toHaveAttribute("href", "/saideira");
     expect(screen.getByRole("link", { name: "Chrome" })).toHaveAttribute("href", "/chrome");
     expect(screen.getByRole("link", { name: "Vendedores" })).toHaveAttribute("href", "/vendors");
@@ -196,7 +196,7 @@ describe("AppHeader nav (landing-nav)", () => {
     );
 
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
-    expect(screen.queryByRole("link", { name: "Gigs" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Trampos" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Crews" })).not.toBeInTheDocument();
   });
 });

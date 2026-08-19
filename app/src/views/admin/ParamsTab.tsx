@@ -4,7 +4,7 @@ import { useAdminStore } from "@/stores/admin";
 const PARAM_LABELS: Record<string, string> = {
   ROUND_DURATION_DAYS: "Duração da Rodada (dias)",
   NIL_REGEN_MINUTES: "Regen de NIL (minutos)",
-  GIG_COOLDOWN_MINUTES: "Cooldown de Gigs (minutos)",
+  GIG_COOLDOWN_MINUTES: "Cooldown de trampos (minutos)",
   PVP_NIL_COST: "Custo de NIL no PvP",
   INITIAL_BALANCE: "Saldo Inicial (Grana)",
   MAX_CREW_SIZE: "Tamanho Máx. da Crew",

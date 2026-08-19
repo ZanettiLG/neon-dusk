@@ -84,7 +84,7 @@ const crewDetail: CrewDetailResponse = {
       joinedAt: "2026-01-01T00:00:00.000Z",
     },
   ],
-  bonuses: [{ type: "gig_success", description: "Chance de sucesso em gigs", value: 5 }],
+  bonuses: [{ type: "gig_success", description: "Chance de sucesso em trampos", value: 5 }],
   leaderboardPosition: 1,
 };
 
@@ -122,7 +122,7 @@ describe("CrewDetailView", () => {
 
     expect(screen.getByText("As Gralhas")).toBeInTheDocument();
     expect(screen.getByText("[GRL]")).toBeInTheDocument();
-    expect(screen.getByText("Chance de sucesso em gigs: +5")).toBeInTheDocument();
+    expect(screen.getByText("Chance de sucesso em trampos: +5")).toBeInTheDocument();
     expect(screen.getByText("Raven")).toBeInTheDocument();
     expect(screen.getByText("[LÍDER]")).toBeInTheDocument();
 

@@ -40,7 +40,7 @@ import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
 // limits, and audit logging.
 
 const uuidParam = z.object({
-  id: z.string().uuid("Gig id must be a UUID"),
+  id: z.string().uuid("ID do trampo deve ser um UUID"),
 });
 
 const historyQuery = z.object({

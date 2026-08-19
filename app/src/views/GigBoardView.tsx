@@ -81,7 +81,7 @@ export default function GigBoardView() {
               CUPIM <span className="text-nd-text-secondary">//</span> O PORTEIRO
             </h2>
             <p className="text-nd-text-secondary text-sm mt-1">
-              Babilônia — tudo tem preço. Inclusive você. Primeiro despachante do corre, gig de rua,
+              Babilônia — tudo tem preço. Inclusive você. Primeiro despachante do corre, trampo de rua,
               entrega quente e dinheiro na mão.
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function GigBoardView() {
       ) : filtered.length === 0 ? (
         <div className="card text-center py-10">
           <p className="text-nd-text-secondary font-data text-sm">
-            Nenhum gig com esse filtro. O Cupim coça a cabeça: "{"Cê quer o quê, exatamente?"}"
+            Nenhum trampo com esse filtro. O Cupim coça a cabeça: "{"Cê quer o quê, exatamente?"}"
           </p>
         </div>
       ) : (

@@ -8,12 +8,12 @@ describe("formatEventMessage", () => {
   it("should render GIG_COMPLETED with gigName and payout", () => {
     expect(
       formatEventMessage("GIG_COMPLETED", { gigName: "Corre da Farmácia", payout: 550 }),
-    ).toBe('Gig "Corre da Farmácia" concluído — +G$ 550');
+    ).toBe('Trampo "Corre da Farmácia" concluído — +G$ 550');
   });
 
   it("should render GIG_FAILED with gigName", () => {
     expect(formatEventMessage("GIG_FAILED", { gigName: "Encomenda Extraviada" })).toBe(
-      'Gig "Encomenda Extraviada" falhou',
+      'Trampo "Encomenda Extraviada" falhou',
     );
   });
 

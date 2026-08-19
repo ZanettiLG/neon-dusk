@@ -76,7 +76,7 @@ export default function ActiveGigPanel() {
   if (!activeGig && lastWrapup) {
     return (
       <div className="card border-nd-gold/40 shadow-neon-gold space-y-3">
-        <p className="font-heading text-nd-gold tracking-widest">GIG RESOLVIDA</p>
+        <p className="font-heading text-nd-gold tracking-widest">TRAMPO RESOLVIDO</p>
         <p className="font-data text-3xl text-nd-gold animate-pulse-neon">
           G$ {lastWrapup.payout.toLocaleString("pt-BR")}
         </p>
@@ -131,7 +131,7 @@ export default function ActiveGigPanel() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary">
-            GIG ATIVA // CUPIM · O PORTEIRO
+            TRAMPO ATIVO // CUPIM · O PORTEIRO
           </p>
           <h3 className="font-heading text-xl text-nd-text">{gig.gigName}</h3>
         </div>
@@ -271,7 +271,7 @@ export default function ActiveGigPanel() {
             disabled={actionLoading}
             onClick={() => void wrapUpGig(gig.gigId).catch(() => undefined)}
           >
-            Concluir gig (receber)
+            Concluir trampo (receber)
           </button>
         </div>
       )}
@@ -300,7 +300,7 @@ export default function ActiveGigPanel() {
             disabled={actionLoading}
             onClick={() => void wrapUpGig(gig.gigId).catch(() => undefined)}
           >
-            Concluir gig (receber)
+            Concluir trampo (receber)
           </button>
         </div>
       )}
@@ -311,7 +311,7 @@ export default function ActiveGigPanel() {
           if (
             gig &&
             window.confirm(
-              "Tem certeza que quer abandonar este gig? O despachante não vai gostar.",
+              "Tem certeza que quer abandonar este trampo? O despachante não vai gostar.",
             )
           ) {
             void abandonGig(gig.gigId);
@@ -320,7 +320,7 @@ export default function ActiveGigPanel() {
         disabled={actionLoading}
         className="px-3 py-1.5 text-sm border border-red-500/50 text-red-400 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
       >
-        Abandonar Gig
+        Abandonar trampo
       </button>
 
       {actionError && <p className="font-data text-xs text-nd-magenta">✗ {actionError}</p>}

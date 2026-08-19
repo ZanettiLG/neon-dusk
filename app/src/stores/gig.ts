@@ -67,7 +67,7 @@ export const useGigStore = create<GigState>((set, get) => ({
       void useAuthStore.getState().fetchNil();
       return res.activeGig;
     } catch (err) {
-      set({ actionError: err instanceof Error ? err.message : "Falha ao aceitar gig" });
+      set({ actionError: err instanceof Error ? err.message : "Falha ao aceitar trampo" });
       throw err;
     } finally {
       set({ actionLoading: false });
@@ -127,7 +127,7 @@ export const useGigStore = create<GigState>((set, get) => ({
       void useAuthStore.getState().fetchNil();
       return res;
     } catch (err) {
-      set({ actionError: err instanceof Error ? err.message : "Falha ao concluir gig" });
+      set({ actionError: err instanceof Error ? err.message : "Falha ao concluir trampo" });
       throw err;
     } finally {
       set({ actionLoading: false });
@@ -143,7 +143,7 @@ export const useGigStore = create<GigState>((set, get) => ({
       // NIL is refunded — keep the dashboard bar honest.
       void useAuthStore.getState().fetchNil();
     } catch (err) {
-      set({ actionError: err instanceof Error ? err.message : "Falha ao abandonar gig" });
+      set({ actionError: err instanceof Error ? err.message : "Falha ao abandonar trampo" });
     } finally {
       set({ actionLoading: false });
     }

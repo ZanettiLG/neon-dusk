@@ -136,13 +136,13 @@ const PT_BR_ERRORS: Record<string, string> = {
   INSTALLED_CHROME_NOT_FOUND: "Implante instalado não encontrado.",
 
   // Gigs
-  GIG_NOT_FOUND: "Gig não encontrado.",
-  NO_ACTIVE_GIG: "Você não tem gig ativo.",
-  ALREADY_ACTIVE_GIG: "Você já tem um gig ativo.",
-  INSUFFICIENT_STATS: "Atributos insuficientes para este gig.",
-  GIG_COOLDOWN: "Este gig está em cooldown.",
+  GIG_NOT_FOUND: "Trampo não encontrado.",
+  NO_ACTIVE_GIG: "Você não tem trampo ativo.",
+  ALREADY_ACTIVE_GIG: "Você já tem um trampo ativo.",
+  INSUFFICIENT_STATS: "Atributos insuficientes para este trampo.",
+  GIG_COOLDOWN: "Este trampo está em cooldown.",
   INVALID_PHASE_TRANSITION: "Transição de fase inválida.",
-  GIG_MISMATCH: "Este gig não pertence a você.",
+  GIG_MISMATCH: "Este trampo não pertence a você.",
 
   // PvP
   CANNOT_ATTACK_SELF: "Você não pode atacar a si mesmo.",

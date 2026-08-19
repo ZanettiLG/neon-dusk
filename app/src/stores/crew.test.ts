@@ -58,7 +58,7 @@ const member = {
 const crewDetail: CrewDetailResponse = {
   crew,
   members: [member],
-  bonuses: [{ type: "gig_success", description: "Chance de sucesso em gigs", value: 5 }],
+  bonuses: [{ type: "gig_success", description: "Chance de sucesso em trampos", value: 5 }],
   leaderboardPosition: 1,
 };
 

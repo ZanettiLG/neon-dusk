@@ -19,14 +19,14 @@ const mockRequest = {
 describe("errorHandler", () => {
   it("should respond with AppError status, code and message", () => {
     const reply = mockReply();
-    const err = new AppError(404, "NOT_FOUND", "Gig not found");
+    const err = new AppError(404, "NOT_FOUND", "Trampo não encontrado");
 
     errorHandler(err, mockRequest, reply);
 
     expect(reply.status).toHaveBeenCalledWith(404);
     expect(reply.send).toHaveBeenCalledWith({
       error: "NOT_FOUND",
-      message: "Gig not found",
+      message: "Trampo não encontrado",
     });
   });
 

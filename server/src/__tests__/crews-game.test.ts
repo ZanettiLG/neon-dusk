@@ -9,7 +9,7 @@ import type { CrewBonus } from "@neon-dusk/shared";
 
 const GIG_SUCCESS: CrewBonus = {
   type: "gig_success",
-  description: "+5% gig success rate",
+  description: "+5% de chance de sucesso em trampos",
   value: 5,
 };
 const EDDIES_BONUS: CrewBonus = {

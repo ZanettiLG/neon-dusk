@@ -13,7 +13,7 @@ import type { CrewBonus } from "@neon-dusk/shared";
 export function calculateCrewBonuses(memberCount: number): CrewBonus[] {
   const bonuses: CrewBonus[] = [];
   if (memberCount >= 2) {
-    bonuses.push({ type: "gig_success", description: "+5% gig success rate", value: 5 });
+    bonuses.push({ type: "gig_success", description: "+5% de chance de sucesso em trampos", value: 5 });
   }
   if (memberCount >= 3) {
     bonuses.push({ type: "eddies", description: "+10% de Grana de trampos", value: 10 });
