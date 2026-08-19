@@ -2,6 +2,23 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-19 — N1: Fixtures canônicas + grep global de strings user-facing (cards #165/#167)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE dos cards de terminologia #165 (run_id nd-20260819-063300-runner-corredor) e #167 (run_id nd-20260819-063400-gig-trampo). 2 padrões de falha detectados nos ciclos de review:
+1. **#165**: developer mutou a fixture de teste ("Corredor"→"Legend") para evitar colisão de `getByText`, em vez de escopar a query — reviewer pegou (score 4.2 → fix).
+2. **#167**: string user-facing escapou ("Cooldown de Gigs" em `admin/ParamsTab`) porque o grep foi focado nos arquivos tocados — reviewer pegou (W-1).
+
+### Change
+- `developer` (agent): self-review 40 → 42 checks. Adicionados:
+  - Fixtures de teste permanecem consistentes com dados canônicos (ladder, enums); colisão de texto no DOM se resolve escopando a QUERY (getByRole/within), nunca mutando o dado da fixture
+  - Ao trocar uma string user-facing, grepei o termo em TODO o código (inclusive admin views e testes) — nenhuma ocorrência escapou
+
+### Impact
+Esperado: fixtures de teste param de divergir dos dados canônicos (a colisão de DOM se resolve na query, não no dado) e strings user-facing deixam de escapar em views/tests fora do diff — eliminando correção fragmentada e resíduo de terminologia antiga.
+
+---
+
 ## 2026-08-19 — N1: Mensagens user-facing em PT + padronização de error codes (feature #145)
 
 ### Trigger

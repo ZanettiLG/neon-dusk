@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (40 checks)
+7. Self-review (42 checks)
 8. Handoff do código implementado
 
-## Self-Review (40 checks)
+## Self-Review (42 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -72,6 +72,8 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Rotas não importam `db` diretamente — queries do banco vivem em services; rotas chamam services
 - [ ] Mensagens user-facing que toquei estão 100% em PT (sem resíduos em inglês)
 - [ ] Ao alterar uma mensagem de erro, grep pelo error code e padronize todas as variantes de uma vez
+- [ ] Fixtures de teste permanecem consistentes com dados canônicos (ladder, enums); colisão de texto no DOM se resolve escopando a QUERY (getByRole/within), nunca mutando o dado da fixture
+- [ ] Ao trocar uma string user-facing, grepei o termo em TODO o código (inclusive admin views e testes) — nenhuma ocorrência escapou
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino
