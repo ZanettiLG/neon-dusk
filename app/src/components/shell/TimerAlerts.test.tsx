@@ -142,4 +142,46 @@ describe("TimerAlerts", () => {
     expect(screen.queryByText(/ROUND termina/)).not.toBeInTheDocument();
     expect(screen.queryByText(/pronta/)).not.toBeInTheDocument();
   });
+
+  it("does not show the ability as ready while its cooldown is active", async () => {
+    useAuthStore.setState({
+      character: {
+        ...character,
+        ability: {
+          abilityType: "combat_trance",
+          isActive: false,
+          activeUntil: null,
+          cooldownUntil: new Date(Date.now() + 60_000).toISOString(),
+          cooldownRemainingMs: 60_000,
+        },
+      },
+    });
+
+    render(<TimerAlerts />);
+
+    await waitFor(() => {
+      expect(mocks.api.get).toHaveBeenCalled();
+    });
+    expect(screen.queryByText(/pronta/)).not.toBeInTheDocument();
+  });
+
+  it("skips the legwork alert once the trampo legwork is completed", () => {
+    useGigStore.setState({
+      board: { gigs: [], activeGig: { ...legworkGig(), legworkCompleted: true } },
+    });
+    useSaideiraStore.setState({
+      hub: {
+        onlineCount: 3,
+        lastReset: null,
+        currentRound: 2,
+        roundEndsAt: new Date(Date.now() + 90_000_000).toISOString(),
+      },
+    });
+
+    render(<TimerAlerts />);
+
+    // Falls through to the round alert instead of the legwork countdown.
+    expect(screen.queryByText(/TRAMPO ATIVO/)).not.toBeInTheDocument();
+    expect(screen.getByText(/ROUND termina em 1d 1h/)).toBeInTheDocument();
+  });
 });

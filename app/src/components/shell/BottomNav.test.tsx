@@ -49,4 +49,20 @@ describe("BottomNav", () => {
       "true",
     );
   });
+
+  it("marks the active destination with aria-current=page", () => {
+    render(
+      <MemoryRouter initialEntries={["/gigs"]}>
+        <BottomNav drawerOpen={false} onOpenDrawer={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Trampos" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    // Inactive destinations carry no aria-current.
+    expect(screen.getByRole("link", { name: "Painel" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "Saideira" })).not.toHaveAttribute("aria-current");
+  });
 });

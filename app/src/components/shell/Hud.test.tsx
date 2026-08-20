@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import Hud from "@/components/shell/Hud";
 import { useAuthStore } from "@/stores/auth";
 import { useStreetCredStore } from "@/stores/street-cred";
+import { useHudStore } from "@/stores/hud";
 import type { Character } from "@neon-dusk/shared";
 
 const character: Character = {
@@ -126,5 +127,46 @@ describe("Hud", () => {
 
     expect(screen.queryByRole("region", { name: "Status do personagem" })).not.toBeInTheDocument();
     expect(mocks.api.get).not.toHaveBeenCalled();
+  });
+
+  it("shows the grana error marker when the balance fetch fails", async () => {
+    useHudStore.setState({ balance: null, balanceError: "wallet down" });
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/economy/balance") return Promise.reject(new Error("wallet down"));
+      if (url === "/api/chrome/installed") {
+        return Promise.resolve({
+          installed: [],
+          effectiveHumanity: 70,
+          humanitySpent: 0,
+          statBonus: { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 },
+          hpBonus: 0,
+          gigSuccessBonus: 0,
+          nilMaxBonus: 0,
+        });
+      }
+      return Promise.resolve(undefined);
+    });
+
+    render(<Hud />);
+
+    // Grana cell shows the ✗ alert instead of a value.
+    expect(await screen.findByRole("alert")).toHaveTextContent("✗");
+    expect(screen.queryByText(/G\$ /)).not.toBeInTheDocument();
+  });
+
+  it("shows the humanity error state when the cromo fetch fails", async () => {
+    useHudStore.setState({ humanity: null, humanityError: "cromo down" });
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/economy/balance") {
+        return Promise.resolve({ balance: 1234, escrow: 200, lifetimeEarned: 5000, lifetimeSpent: 3766 });
+      }
+      if (url === "/api/chrome/installed") return Promise.reject(new Error("cromo down"));
+      return Promise.resolve(undefined);
+    });
+
+    render(<Hud />);
+
+    // Humanity cell renders the MetricBar error alert.
+    expect(await screen.findByRole("alert")).toHaveTextContent(/erro ao carregar/i);
   });
 });
