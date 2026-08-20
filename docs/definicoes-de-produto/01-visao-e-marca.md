@@ -23,7 +23,7 @@
 
 ## Tagline
 
-> **"Build your cromo. Burn your name. Leave a legend."**
+> **"Monta teu cromo. Queima teu nome. Vira lenda."**
 
 Variações:
 - Curta (UI): *"Build cromo. Burn bright."*
@@ -68,7 +68,7 @@ O feedback de resultado segue o **Catálogo de Elogios de Rua** — strings can�
 | **Surface** | `#161616` | Cards, painéis, superfícies elevadas |
 | **Ação / Ciano** | `#f2f2f2` | Ações primárias, links, dados críticos (branco-luz) |
 | **Perigo / Magenta** | `#ff2020` | Alertas, dano, perigo, inimigos (vermelho sangue) |
-| **Grana / Gold** | `#d4a017` | Grana, recompensas, loot, sucesso (âmbar muted) |
+| **Grana / Gold** | `#d4a017` | Grana, recompensas, Saque, sucesso (âmbar muted) |
 | **Hacking / Purple** | `#8aa4b8` | Hacking, Rede, Netrun (aço azulado) |
 | **Text Primary** | `#e8e8e8` | Texto principal |
 | **Text Secondary** | `#9a9a9a` | Texto secundário, descrições |

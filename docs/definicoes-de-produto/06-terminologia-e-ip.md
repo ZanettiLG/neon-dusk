@@ -16,6 +16,9 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | Gorilla Arms | **Braço de Ferro** | Ogum é o orixá do ferro — o cromo de força leva o nome do santo |
 | Mantis Blades | **Navalha** | A navalha de rua: corta rápido, some mais rápido |
 | Monowire | **Arame** | O arame da gambiarra — fino, invisível e mortal |
+| Neural Booster | **Cuca Acesa** | Implante neural que acende a mente: a cuca fica acesa e o pensamento anda mais rápido que a rua |
+| Reflex Tuner | **Estalo** | O estalo do reflexo: a reação que dispara antes do pensamento |
+| Subdermal Armor | **Casca Grossa** | Blindagem sob a pele: casca grossa é quem aguenta a porrada e devolve |
 | MaxTac | **A Garra** | Unidade de elite do Grupo Falcão; o falcão tem garras |
 | Trauma Team | **Resgate** | Serviço de seguro contra a morte; planos Prata, Ouro e Platina |
 | Blackwall | **A Porteira** | Exu é o guardião das porteiras — a fronteira do Fundo |
@@ -23,12 +26,17 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | choom | **mano** | Gíria de rua paulistana que sobreviveu até 2087 |
 | edgerunner(s) | **corredor(es)** | Quem vive o corre. Minúscula como termo comum; "Corredor" como tier (maiúscula) |
 | Night City Legend | **Lenda de SP** | A lenda é da cidade — e a cidade é São Paulo |
+| Unknown (Moral 0) | **Zé Ninguém** | Sem nome na rua, sem moral na quebrada — o anônimo que ninguém lembra |
+| Runner (Moral 10) | **Perna** | O Perna já é alguém: tem nome, tem porta que abre e história pra contar |
+| Legend (Moral 100) | **Lenda** | Lenda é quem tem drink no menu da Saideira — distinto de Lenda de SP (Moral 90) |
 | Johnny Silverhand | *(removido)* | Referência de tom removida; manter Neuromancer e Blade Runner |
 | Afterlife (bar) | **drinks da Saideira** | A Saideira é o bar das lendas de SP 2087 |
 | Animals / Tyger Claws | gangues próprias do setting | Usar as gangues documentadas em `02-mundo-e-universo.md` (ex: Anjos de Cromo, O Comando) |
 | Street Cred | **Moral** (★ Moral) | Reputação de rua como moeda social: ter moral na quebrada é ter nome que abre porta — "sem moral, sem entrada, sem choro". Abreviação oficial: ★ Moral (em contexto de código curto: M) |
 | ripperdoc | **Ferrageiro** | Ogum rege o ferro: quem instala cromo trabalha ferro no corpo. Ferrageiro é o ferreiro de gente — o ofício é abençoado pelo santo |
 | Eddies / eddies / €$ | **Grana** (G$) | O dinheiro de rua se chama pelo nome da rua. Gíria paulistana que sobreviveu até 2087; símbolo oficial: G$ |
+| loot / LOOT | **Saque** | O que sobra do trampo: espólio de rua que vira grana |
+| access-chip | **Chip Frio** | A chave descartável que abre porta sem deixar calor — frio no uso, frio no rastro |
 | cyberdeck | **Gazuá** | Gazuá é a chave-mestra do ladrão. Exu guarda as porteiras — o gazuá abre a porteira. Como slot de SO: **SO Gazuá** |
 | Berserker (stim) | **Pancadão** | Fúria em ampola: o grave do funk no sangue. Pancadão é a ocupação sonora da quebrada — o grave que faz o container tremer |
 | Roles | **Banca** | No jogo do bicho, a banca é a casa — no submundo 2087, a banca é teu papel na rua. Cada um joga na sua banca |
@@ -39,6 +47,11 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | Nomad (classe) | **Estradeiro** | Ogum rege as estradas — quem vive na estrada é estradeiro |
 | Medtech (classe) | **Socorrista** | O socorro que a rua tem: chega quando o Resgate não chega. Cobra barato e não faz pergunta |
 | gig | **trampo** | Trampo é o nome paulistano do trabalho — o corre que paga. Gíria de rua que sobreviveu até 2087 |
+| Street Level (trampo T1) | **Bico** | O bico é o trampo avulso: corre pequeno, pagamento na hora |
+| Runner (trampo T2) | **Corre** | O corre é o ganha-pão: quem corre atrás da grana e aparece no mapa |
+| Pro (trampo T3) | **Esquema** | O esquema tem plano: organização, risco maior e pagamento gordo |
+| Elite (trampo T4) | **Golpe** | O golpe é o trampo grande: assalto que muda o jogo — e o placar |
+| Legend (trampo T5) | **Golpe Mestre** | O golpe mestre é o trampo de uma vida: planejado até o fim, executado uma vez só |
 | crew | **bonde** | O bonde do funk: a galera que anda junto. Equipe é família, e família anda em bonde |
 | Fight Pit | **Rinha** | Rinha de galo é tradição de aposta na quebrada. A arena dos Anjos de Cromo: **Rinha dos Anjos de Cromo** |
 | Drone Races | **Racha de Drones** | Racha é a corrida clandestina paulistana — drone no lugar de moto |
@@ -66,6 +79,10 @@ A regra de terminologia se aplica ao **produto inteiro** — documentação de p
 | Black Lace | **Renda Preta** | O último recurso: renda preta é tecido de funeral |
 
 **Nota de sigla**: OS (sistema operacional) usa a sigla PT **SO** nos nomes de marca — SO Surto, SO Fúria, SO Gazuá.
+
+## Tagline Canônica
+
+> **"Monta teu cromo. Queima teu nome. Vira lenda."**
 
 ## Regras de Naming
 

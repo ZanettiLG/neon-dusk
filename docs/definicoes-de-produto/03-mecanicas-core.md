@@ -87,11 +87,11 @@ Trampos são missões oferecidas por despachantes. Cada trampo tem: tier, tipo, 
 
 | Tier | Nome | Moral necessária | Exemplos | Recompensa (G$) |
 |---|---|---|---|---|
-| T1 | Street Level | 0+ | Entregas, coleta de dívidas, roubo de carro | 500-2.000 |
-| T2 | Runner | 5+ | Infiltração simples, hacking básico, proteção | 2.000-8.000 |
-| T3 | Pro | 15+ | Espionagem corporativa, sabotagem, wetwork seletivo | 8.000-30.000 |
-| T4 | Elite | 30+ | Assalto a instalação, extração de alto valor | 30.000-100.000 |
-| T5 | Legend | 50+ | Heists multi-fase, operações contra megacorps | 100.000+ |
+| T1 | Bico | 0+ | Entregas, coleta de dívidas, roubo de carro | 500-2.000 |
+| T2 | Corre | 5+ | Infiltração simples, hacking básico, proteção | 2.000-8.000 |
+| T3 | Esquema | 15+ | Espionagem corporativa, sabotagem, wetwork seletivo | 8.000-30.000 |
+| T4 | Golpe | 30+ | Assalto a instalação, extração de alto valor | 30.000-100.000 |
+| T5 | Golpe Mestre | 50+ | Heists multi-fase, operações contra megacorps | 100.000+ |
 
 ---
 
@@ -139,7 +139,7 @@ A Rede de São Paulo é fragmentada desde o Apagão de 2075. Ao invés de uma in
 |---|---|---|---|
 | **Node Público** | Qualquer lugar | Informação básica, boatos, arquivos públicos | Mínimo |
 | **Subnet Corporativa** | A Paraíso, O Fervo | Dados de pesquisa, segredos comerciais, blueprints | Alto (trava corporativa) |
-| **Subnet de Gangue** | Territórios de gangue | Localização de loot, planos de ataque, comunicações | Médio |
+| **Subnet de Gangue** | Territórios de gangue | Localização de Saque, planos de ataque, comunicações | Médio |
 | **Subnet Fantasma** | As Mortas | Dados pré-Apagão, IA abandonada, segredos perdidos | Muito Alto |
 | **O Fundo** | O Ponto | Conteúdo de endgame. Atrás da Porteira. AIs hostis | Extremo |
 
@@ -149,7 +149,7 @@ A Rede de São Paulo é fragmentada desde o Apagão de 2075. Ao invés de uma in
 |---|---|
 | **RAM** | Recurso do Vulto. Determinado pelo Gazuá. Ações de hack consomem RAM. Recarrega 1 RAM/60s |
 | **Camadas de trava** | Cada subnet tem camadas de defesa (1-5). Cada camada = 1 encontro de trava |
-| **Programas** | Ferramentas de hack ocupam slots (5/7/9 por gazuá). Ex: Pé-de-Cabra (dano), Stealth (bypass), Datamine (loot extra), Trace (rastrear origem) |
+| **Programas** | Ferramentas de hack ocupam slots (5/7/9 por gazuá). Ex: Pé-de-Cabra (dano), Stealth (bypass), Datamine (Saque extra), Trace (rastrear origem) |
 | **Trace** | Cada ação de hack tem traceability. Acumula progresso de trace. Ao estourar → alerta, segurança, contra-ataque |
 | **Trava Letal** | Trava letal que causa dano neural. Ocupa 2 slots. Drop raro. Pode ser plantada na SUA rede como defesa |
 | **Vírus** | Planta vírus persistente em subnet inimiga. Efeito passivo: -5% eficiência de trampos naquele distrito por 24h |
@@ -168,7 +168,7 @@ Hackear rede de jogador → roubar dados → chantagear ou vender
 - **Ataque**: jogador invade rede de outro jogador. Se chegar ao vault, rouba dados/info
 - **Risco**: invasor deixa rastro. Defensor pode trace-back e contra-atacar
 - **Cooldown**: 48h entre invasões ao mesmo alvo
-- **Recompensa**: dados valiosos, localização de loot, informação para trampos
+- **Recompensa**: dados valiosos, localização de Saque, informação para trampos
 
 ---
 
@@ -225,7 +225,7 @@ Análogo às 14 drogas do The Crims, adaptado para o universo cyberpunk.
 - Declarar guerra a bonde rival (±5 posições no ranking)
 - Duração: 24h
 - Membros podem atacar membros do bonde rival sem restrição de nível
-- Vencedor (mais ataques bem-sucedidos): ganha território temporário (+10% loot no distrito)
+- Vencedor (mais ataques bem-sucedidos): ganha território temporário (+10% Saque no distrito)
 - Perdedor: perde 5% de Moral por membro
 
 ### Territórios

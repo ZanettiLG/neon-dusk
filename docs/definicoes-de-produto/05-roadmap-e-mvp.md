@@ -16,7 +16,7 @@ O MVP segue a recomendação da pesquisa: features BARATAS de implementar e ALTA
 | 4 | **1 Despachante (Cupim)** | Quadro de trampos, aceitar/entregar, payout | 1-2 dias |
 | 5 | **Cromo Básico (T1-T2)** | 4-5 implantes, slots simples, custo de Humanidade | 2-3 dias |
 | 6 | **Moral** | Score, thresholds 10 e 25, leaderboard semanal | 1 dia |
-| 7 | **Economia Básica** | Grana, loot de trampo, vendors com preço fixo | 2-3 dias |
+| 7 | **Economia Básica** | Grana, Saque de trampo, vendors com preço fixo | 2-3 dias |
 | 8 | **Saideira (Hub)** | Acesso com Moral 10, leaderboard, chat da cidade | 2-3 dias |
 | 9 | **Bondes Básicos** | Criar bonde, convidar até 3 membros, bônus de 5-10% | 2-3 dias |
 | 10 | **PvP Simples** | Ataque 1v1 (comparação de stats), proteção de noob, anti-griefing | 2-3 dias |

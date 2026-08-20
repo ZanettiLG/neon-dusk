@@ -135,9 +135,9 @@ O sistema de progressão mais profundo do jogo. Inspirado em Cyberpunk 2077 e CP
 | **Operating System** | 1 | **SO Gazuá** (hacking), **SO Fúria** (combate), **SO Surto** (reflexos) |
 | **Arms** | 2 | Braço de Ferro (+Body), Navalha (+Reflexes), Arame (+Cool) |
 | **Skeleton** | 2 | Dense marrow (+HP), titanium bones (-dano recebido) |
-| **Nervous System** | 3 | Reflex tuner, pain editor, adrenal booster |
+| **Nervous System** | 3 | Estalo, pain editor, adrenal booster |
 | **Circulatory** | 3 | Second heart, biomonitor, auto-injector |
-| **Integumentary** | 3 | Subdermal armor, thermal camouflage, shock coating |
+| **Integumentary** | 3 | Casca Grossa, thermal camouflage, shock coating |
 | **Legs** | 1 | Fortified ankles (+dodge), lynx paws (+stealth), jump boosters |
 
 ### OS (Operating System) — A Decisão de Build
@@ -219,13 +219,13 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 
 | Moral | Título | Desbloqueia |
 |---|---|---|
-| 0 | **Unknown** | Trampos T1, Babilônia |
-| 10 | **Runner** | Acesso ao Saideira, trampos T2, recrutamento para bondes |
+| 0 | **Zé Ninguém** | Trampos T1, Babilônia |
+| 10 | **Perna** | Acesso ao Saideira, trampos T2, recrutamento para bondes |
 | 25 | **Pro** | Trampos T3, despachante Carcará, criação de bonde |
 | 50 | **Corredor** | Trampos T4, despachante Cobra, desconto de 10% em vendors |
 | 75 | **Elite** | Trampos T5, acesso a As Mortas, desconto de 15% |
-| 90 | **Lenda de SP** (provisório) | Trampos lendários, despachante Coveiro |
-| **100** | **Legend** | **Drink no menu do Saideira — PERMANENTE. Sobrevive a resets.** |
+| 90 | **Lenda de SP** | Trampos lendários, despachante Coveiro |
+| **100** | **Lenda** | **Drink no menu do Saideira — PERMANENTE. Sobrevive a resets.** |
 
 ### Decay
 
@@ -250,7 +250,7 @@ Inspirado em Cyberpunk 2077 e no "Respeito" do The Crims.
 |---|---|---|
 | Trampos | Diário (2-10x) | 500 - 100.000+ |
 | Hustle (renda passiva por banca) | Semanal | 500 - 5.000 |
-| Venda de loot | Conforme obtido | Variável |
+| Venda de Saque | Conforme obtido | Variável |
 | Data brokering | Conforme obtido | 1.000 - 50.000 |
 | Crafting e venda | Conforme produzido | Variável |
 
@@ -310,7 +310,7 @@ Inspirado diretamente no modelo de **Ascensão do Kingdom of Loathing** — o mo
 
 | Conquista | Condição | Recompensa Permanente |
 |---|---|---|
-| **Legend** | Atingir Moral 100 em qualquer rodada | **Drink nomeado no menu do Saideira** (permanente) + badge "Legend" |
+| **Lenda** | Atingir Moral 100 em qualquer rodada | **Drink nomeado no menu do Saideira** (permanente) + badge "Lenda" |
 | **Speed Demon** | Completar 50 trampos em uma rodada | +5 NIL máximo permanente |
 | **Net God** | Hackear 20 subnets corporativas em uma rodada | +10% RAM permanente |
 | **Warlord** | Vencer 3 guerras de bondes em uma rodada | +5% dano PvP permanente |
@@ -320,12 +320,12 @@ Inspirado diretamente no modelo de **Ascensão do Kingdom of Loathing** — o mo
 
 ### O Drink — A Imortalidade Social
 
-Quando um jogador atinge Moral 100 (Legend):
+Quando um jogador atinge Moral 100 (Lenda):
 
 1. Seu nome é adicionado ao menu do **Saideira**
 2. Um drink é criado em sua homenagem (nome escolhido pelo jogador, dentro de diretrizes)
 3. Este drink é **PERMANENTE** — visível para todos os jogadores em todas as rodadas futuras
-4. O menu exibe: nome do jogador, nome do drink, data em que atingiu Legend, bonde a que pertencia
+4. O menu exibe: nome do jogador, nome do drink, data em que atingiu Lenda, bonde a que pertencia
 
 > *"Você pode perder tudo no reset. Sua Grana, seu cromo, seu nível. Mas ninguém tira seu nome do menu."*
 
