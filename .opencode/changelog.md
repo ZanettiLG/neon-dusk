@@ -16,6 +16,22 @@ Harness passa a gerar/formatar URLs de issue/PR apontando para o fork ativo, evi
 
 ---
 
+## 2026-08-20 — N2 (PROPOSTAS — requerem aprovação humana): feature #137 Ícones P0
+
+### Trigger
+Re-review da feature #137 (run_id nd-20260820-035258-icones-p0-svg, score 4.5, approve_with_fixes). 4 fragilidades identificadas NÃO foram corrigidas automaticamente — N2 só é automático com score < 4.0 (regra continual-harness-dev). Documentadas como proposta para decisão humana.
+
+### Proposals
+1. **Fonte única da lista banned** — a lista de termos banidos de IP de terceiros está triplicada (`docs/definicoes-de-produto/06-terminologia-e-ip.md`, `scripts/check-terminologia.mjs` (BANNED + CODE_BANNED) e o teste de curadoria). Derivar guard e teste de uma fonte única (doc 06) para eliminar drift de sincronização.
+2. **Guard varrendo JSON/SVG** — o guard hoje varre `.md`, `.ts/.tsx/.mts/.cts/.mjs/.js` e `.sql`, mas não `.json` nem `.svg`; o copy de manifest escapa. Estender a varredura para campos copy dos manifests.
+3. **Padrão único concat-vs-allowlist** — a concatenação de strings no guard funciona mas é frágil; decidir entre manter concat ou adotar `CODE_ALLOWED` ancorada como padrão único de exceção.
+4. **Step de confirmação visual pós-watch do QA** — o watch do QA (ícones minimalistas) pede confirmação visual humana; transformar em step do pipeline quando o QA emitir watch.
+
+### Impact
+Nenhum dos 4 foi aplicado (requer aprovação humana). Aplicados apenas os itens N1 correspondentes — ver `agents-changelog.md` de 2026-08-20.
+
+---
+
 ## 2026-08-18 — N2: sql-design corrigida — exemplos modelavam anti-padrões de banco
 
 ### Trigger

@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (43 checks)
+7. Self-review (44 checks)
 8. Handoff do código implementado
 
-## Self-Review (43 checks)
+## Self-Review (44 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -75,6 +75,7 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Ao alterar uma mensagem de erro, grep pelo error code e padronize todas as variantes de uma vez
 - [ ] Fixtures de teste permanecem consistentes com dados canônicos (ladder, enums); colisão de texto no DOM se resolve escopando a QUERY (getByRole/within), nunca mutando o dado da fixture
 - [ ] Ao trocar uma string user-facing, grepei o termo em TODO o código (inclusive admin views e testes) — nenhuma ocorrência escapou
+- [ ] `node scripts/check-terminologia.mjs` roda com exit 0 antes do handoff — o guard de terminologia (termos de IP de terceiros banidos em docs e strings user-facing) não pode ficar vermelho quando a feature shipar
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino

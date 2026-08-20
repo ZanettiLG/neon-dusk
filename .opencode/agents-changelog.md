@@ -16,6 +16,22 @@ Esperado: o developer passa a consultar o catálogo de componentes compartilhado
 
 ---
 
+## 2026-08-20 — N1: Guard de terminologia no pre-handoff + curadoria contra docs canônicos (feature #137)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE da feature #137 (Ícones P0, run_id nd-20260820-035258-icones-p0-svg). 2 padrões de falha detectados nos reviews:
+1. `scripts/check-terminologia.mjs` era passo só de CI, não do checklist da feature — a branch shipou com o guard vermelho (review 1: verdict revise, min 2.5).
+2. Teste de curadoria validava contra cópia local (CANONICAL) e não contra docs canônicos — oráculo autorreferencial deixou passar naming drift e termos banidos (re-review: approve_with_fixes, min 4.5).
+
+### Change
+- `developer` (agent): self-review 42 → 43 checks. Adicionado: `node scripts/check-terminologia.mjs` roda com exit 0 antes do handoff (o guard não pode ficar vermelho quando a feature shipar).
+- `test-writer` (agent): self-check 10 → 11 itens. Adicionado: testes de curadoria validam contra docs canônicos (`docs/definicoes-de-produto/`), não só contra um mapa local (oráculo autorreferencial).
+
+### Impact
+Esperado: o guard de terminologia deixa de ser surpresa pós-handoff (vermelho só no CI) e passa a rodar dentro do ciclo do developer; testes de curadoria deixam de ter oráculo autorreferencial e passam a cross-check com a fonte canônica — eliminando naming drift e termos banidos que escapavam da validação local.
+
+---
+
 ## 2026-08-19 — N1: Fixtures canônicas + grep global de strings user-facing (cards #165/#167)
 
 ### Trigger
