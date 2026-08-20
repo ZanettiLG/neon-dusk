@@ -85,7 +85,7 @@ const BANNED_TERMS = [
   "gorilla" + " arms",
   "mantis blades",
   "kir" + "oshi",
-  "maxtac",
+  "max" + "tac",
   "trauma team",
   "blackwall",
   "braindance",
