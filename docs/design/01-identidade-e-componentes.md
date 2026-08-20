@@ -63,7 +63,7 @@ Evoluir de catálogo para tela de build:
 - Dois cards espelhados (atacante vs. defensor).
 - Poder, Moral, custo de NIL e risco.
 - Resultado com log de combate.
-- Loot e variação de cred.
+- Saque e variação de cred.
 - Indicadores de noob shield e anti-griefing.
 
 ## Trampos

@@ -227,7 +227,7 @@ VitePWA({
   manifest: {
     name: 'Neon Dusk',
     short_name: 'NeonDusk',
-    description: 'Build your cromo. Burn your name. Leave a legend.',
+    description: 'Monta teu cromo. Queima teu nome. Vira lenda.',
     theme_color: '#0a0a0a',
     background_color: '#0a0a0a',
     display: 'standalone',

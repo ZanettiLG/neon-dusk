@@ -84,7 +84,7 @@ export const VENDOR_TYPE_LABELS: Record<string, string> = {
 export const ITEM_TYPE_LABELS: Record<string, string> = {
   CHROME: "Cromo",
   CONSUMABLE: "Ampola",
-  LOOT: "Loot",
+  LOOT: "Saque",
 };
 
 // Display names for non-cromo vendor items. Internal itemId → PT label
@@ -92,6 +92,6 @@ export const ITEM_TYPE_LABELS: Record<string, string> = {
 // name from the joined chrome_definitions row instead (see VendorDetailView).
 export const ITEM_ID_LABELS: Record<string, string> = {
   "syn-cafe": "Pingado",
-  "combat-stim": "Ampola de Combate",
-  "access-chip": "Chip de Acesso",
+  "combat-stim": "Porrada",
+  "access-chip": "Chip Frio",
 };

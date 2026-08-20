@@ -25,16 +25,16 @@ export interface DecayResult {
 
 /**
  * A escada de Moral (ascendente). Os degraus liberam tiers de trampo e
- * despachantes; chegar a 100 (Legend) é permanente e sobrevive aos resets.
+ * despachantes; chegar a 100 (Lenda) é permanente e sobrevive aos resets.
  */
 export const STREET_CRED_THRESHOLDS: readonly StreetCredThreshold[] = [
-  { score: 0, title: "Unknown" },
-  { score: 10, title: "Runner" },
+  { score: 0, title: "Zé Ninguém" },
+  { score: 10, title: "Perna" },
   { score: 25, title: "Pro" },
   { score: 50, title: "Corredor" },
   { score: 75, title: "Elite" },
   { score: 90, title: "Lenda de SP" }, // provisório — 04-sistemas-e-progressao.md §5
-  { score: 100, title: "Legend" },
+  { score: 100, title: "Lenda" },
 ];
 
 /** Days of inactivity before decay starts. */
@@ -58,7 +58,7 @@ const DAY_MS = 86_400_000;
 
 /**
  * Title for a street-cred score: the highest threshold at or below it.
- * Scores above 100 (defensive) resolve to Legend; negative scores to Unknown.
+ * Scores above 100 (defensive) resolve to Lenda; negative scores to Zé Ninguém.
  */
 export function getTitle(score: number): string {
   let title = STREET_CRED_THRESHOLDS[0].title;
@@ -72,7 +72,7 @@ export function getTitle(score: number): string {
 /**
  * The next threshold strictly above a score, or null when the score already
  * tops the ladder (>= 100). For negative scores the first threshold (0,
- * Unknown) is returned.
+ * Zé Ninguém) is returned.
  */
 export function getNextThreshold(score: number): StreetCredThreshold | null {
   for (const t of STREET_CRED_THRESHOLDS) {

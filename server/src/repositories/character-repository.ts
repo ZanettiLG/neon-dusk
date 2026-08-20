@@ -51,7 +51,7 @@ export interface CharacterInsert {
   humanity?: number;
 }
 
-/** Row shape for the legend-induction candidates query (round reset). */
+/** Row shape for the Legends-induction candidates query (round reset). */
 export interface LegendCandidateRow {
   character_name: string;
   crew_name: string | null;
@@ -147,7 +147,7 @@ export interface CharacterRepository {
   ): Promise<AdminPlayerRow[]>;
   /** Admin dashboard player count (same search filter). */
   countWithNameSearch(search: string | undefined, q?: Queryable): Promise<number>;
-  /** Characters at Moral 100 (legend induction candidates). */
+  /** Characters at Moral 100 (Legends induction candidates). */
   listLegendCandidates(q?: Queryable): Promise<LegendCandidateRow[]>;
   /** Leaderboard rows: decay inputs + crew name, ordered by Moral DESC. */
   listLeaderboardRows(limit: number, q?: Queryable): Promise<

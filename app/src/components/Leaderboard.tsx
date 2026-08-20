@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { useStreetCredStore } from "@/stores/street-cred";
 import { useAuthStore } from "@/stores/auth";
 
-/** Title badge color per rank — gold for Legend, cyan for Elite+, default text. */
+/** Title badge color per rank — gold for Lenda, cyan for Elite+, default text. */
 function titleBadgeClass(title: string): string {
-  if (title === "Legend") return "border-nd-gold/60 text-nd-gold";
+  if (title === "Lenda") return "border-nd-gold/60 text-nd-gold";
   if (title === "Elite") return "border-nd-cyan/50 text-nd-cyan";
   return "border-nd-text-secondary/30 text-nd-text-secondary";
 }

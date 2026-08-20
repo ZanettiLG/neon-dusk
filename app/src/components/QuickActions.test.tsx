@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import QuickActions from "@/components/QuickActions";
 
-// ND-139 — QuickActions: one-tap shortcuts to the main runner loops.
+// ND-139 — QuickActions: one-tap shortcuts to the main game loops.
 
 describe("QuickActions", () => {
   it("should render the 4 shortcuts with their routes", () => {

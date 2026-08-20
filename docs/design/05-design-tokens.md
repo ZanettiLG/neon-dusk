@@ -305,11 +305,11 @@ Desvios intencionais entre spec original, produto e implementação:
    em vez de nenhuma cor — mantém a classe como literal (exigência do JIT,
    §13.2) e sinaliza o estado morto sem competir com as cores vivas; o label
    "FLATLINE" continua sendo o canal principal de informação (label de código — pendente #145).
-4. **D4 — Moral em 2 bandas** (spec do pipeline: "ciano; Legend (100)
+4. **D4 — Moral em 2 bandas** (spec do pipeline: "ciano; Lenda (100)
    dourado"): implementado como 0–99 "na rua" (ciano) / 100 "lenda"
-   (dourado). Consistente com a lógica LEGEND existente em
+   (dourado). Consistente com a lógica LENDA existente em
    `StreetCredDisplay` (`nextThreshold === null` só no 100) e com
-   `04-sistemas-e-progressao.md` §5 (Legend = 100).
+   `04-sistemas-e-progressao.md` §5 (Lenda = 100).
 5. **D5 — `--nd-focus-color` duplica `tokens.colors["nd-cyan"]` (agora canal
    funcional `#f2f2f2`)**: CSS não importa TypeScript, então a única fonte
    programática não cobre CSS vars. Mitigação: comentário `ponytail` no

@@ -27,7 +27,7 @@ export interface ResetStep {
 export interface LegendCandidate {
   characterName: string;
   crewName: string | null;
-  /** Round the legend was inducted in — carried for the caller (no column). */
+  /** Round the Legends row was inducted in — carried for the caller (no column). */
   roundNumber: number;
 }
 
@@ -57,7 +57,7 @@ export const RESET_CHARACTERS_STEP = "reset_characters";
  * The steps are self-contained (single statements) and order-sensitive:
  * stats are captured and persisted BEFORE any wipe, the round is closed, the
  * data is wiped, characters/wallets return to base, and the next round opens.
- * The caller MUST run the legend INSERT (buildLegendInserts) before crews are
+ * The caller MUST run the Legends INSERT (buildLegendInserts) before crews are
  * wiped (wipe_crew_members/detach/wipe_crews) and before the `reset_characters`
  * step — both the crew affiliation and street_cred = 100 (the induction
  * signals) are gone after those steps.

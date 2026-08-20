@@ -107,7 +107,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
         .limit(1);
       expect(booster).toMatchObject({
         slug: "neural-booster",
-        name: "Neural Booster",
+        name: "Cuca Acesa",
         slot: "frontal_cortex",
         tier: 1,
         humanity_cost: 3,

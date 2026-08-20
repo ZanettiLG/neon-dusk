@@ -24,7 +24,7 @@ const MINUTE_MS = 60_000;
 
 describe("ND-017 — Round service (integration)", () => {
   afterAll(async () => {
-    // Leave the shared DB clean: remove any unnamed legend rows this suite
+    // Leave the shared DB clean: remove any unnamed Lenda rows this suite
     // created (saideira's ordering assertions depend on the untouched seed).
     await db("legends").where("drink_name", UNNAMED_DRINK).del();
   });
@@ -32,7 +32,7 @@ describe("ND-017 — Round service (integration)", () => {
   beforeEach(async () => {
     await resetDb();
     await resetRounds();
-    // Only this suite creates unnamed legend rows (resetDb/TRUNCATE never touch
+    // Only this suite creates unnamed Lenda rows (resetDb/TRUNCATE never touch
     // legends) — remove leftovers so re-runs stay deterministic.
     await db("legends").where("drink_name", UNNAMED_DRINK).del();
   });
@@ -162,7 +162,7 @@ describe("ND-017 — Round service (integration)", () => {
           total_eddies_earned: n * 1000,
           total_pvp_fights: n,
           total_active_characters: n * 5,
-          top_sc_character_name: `Runner-${n}`,
+          top_sc_character_name: `Corredor-${n}`,
           top_sc_value: n,
         });
       }
@@ -181,7 +181,7 @@ describe("ND-017 — Round service (integration)", () => {
           totalEddiesEarned: 3000,
           totalPvpFights: 3,
           totalActiveCharacters: 15,
-          topScCharacterName: "Runner-3",
+          topScCharacterName: "Corredor-3",
           topScValue: 3,
           topCrewName: null,
         },
@@ -210,7 +210,7 @@ describe("ND-017 — Round service (integration)", () => {
     });
 
     it("should reset all state, capture stats and induct SC-100 legends in one transaction", async () => {
-      // Character A: legend candidate (SC 100) with crew, cromo, wallet,
+      // Character A: Lenda candidate (SC 100) with crew, cromo, wallet,
       // heat and a PvP fight. Character B: SC 99 — must NOT be inducted.
       const a = await insertTestCharacter({ name: "Razorback-ND017" });
       const b = await insertTestCharacter({ name: "Ghostwire-ND017" });

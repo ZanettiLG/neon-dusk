@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 
 /**
- * Compact row of 1-tap shortcuts to the main runner loops.
+ * Compact row of 1-tap shortcuts to the main corredor loops.
  */
 export default function QuickActions() {
   return (

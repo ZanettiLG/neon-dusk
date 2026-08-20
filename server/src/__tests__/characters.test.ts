@@ -17,7 +17,7 @@ const PASSWORD = "StrongPass123!";
 
 let seq = 0;
 function uniqueEmail(): string {
-  return `runner-${Date.now()}-${seq++}@neondusk.test`;
+  return `corredor-${Date.now()}-${seq++}@neondusk.test`;
 }
 function uniqueName(): string {
   return `Ghost-${Date.now()}-${seq++}`;

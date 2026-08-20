@@ -20,7 +20,7 @@ export interface ChromeSeedEntry {
 export const CHROME_DEFINITIONS: ChromeSeedEntry[] = [
   {
     slug: "neural-booster",
-    name: "Neural Booster",
+    name: "Cuca Acesa",
     slot: "frontal_cortex",
     tier: 1,
     bonuses: { intelligence: 2, nil_max: 10 },
@@ -31,7 +31,7 @@ export const CHROME_DEFINITIONS: ChromeSeedEntry[] = [
   },
   {
     slug: "reflex-tuner",
-    name: "Reflex Tuner",
+    name: "Estalo",
     slot: "nervous_system",
     tier: 1,
     bonuses: { reflexes: 2 },
@@ -64,7 +64,7 @@ export const CHROME_DEFINITIONS: ChromeSeedEntry[] = [
   },
   {
     slug: "subdermal-armor",
-    name: "Subdermal Armor",
+    name: "Casca Grossa",
     slot: "integumentary",
     tier: 2,
     bonuses: { max_hp: 10 },

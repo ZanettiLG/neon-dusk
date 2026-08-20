@@ -83,7 +83,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
       {
         preHandler: [
           authenticate,
-          // NOTE: must be async — Fastify 5's preHandler runner deadlocks on
+          // NOTE: must be async — Fastify 5's preHandler execution deadlocks on
           // sync hooks (only advances when the hook returns a promise).
           setAuditContext("saideira_chat"),
           checkCircuitBreaker(redis),

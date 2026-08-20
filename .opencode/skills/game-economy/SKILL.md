@@ -13,7 +13,7 @@ metadata:
 Skill de design de economia para jogos. Padrões de faucets/sinks, inflação, balanceamento e monetização.
 
 ## Quando Carregar
-- Implementando mecânicas de economia (Grana, loot, vendors)
+- Implementando mecânicas de economia (Grana, saque, vendors)
 - Balanceando progressão (ganho de Moral, custo de cromo)
 - Desenhando sinks de moeda (terapia, Resgate, housing)
 - Carregada por: `game-logic-dev`, `db-designer`, `architect`
@@ -27,7 +27,7 @@ Toda moeda que entra na economia do jogo:
 |---|---|---|
 | Trampos | Diário (2-10x) | Principal fonte. Escala com tier |
 | Hustle (renda passiva) | Semanal | Por banca. Pequeno mas consistente |
-| Venda de loot | Variável | Componentes, dados, itens |
+| Venda de saque | Variável | Componentes, dados, itens |
 | Data brokering | Variável | Vultos vendem info hackeada |
 | Recompensas de evento | Eventual | Corp War, Apagão |
 

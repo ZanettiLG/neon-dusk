@@ -69,7 +69,7 @@ describe("ND-017 — Round & Legends API", () => {
   });
 
   afterAll(async () => {
-    // Leave the shared DB clean: remove any unnamed legend rows this suite
+    // Leave the shared DB clean: remove any unnamed Lenda rows this suite
     // created (saideira's ordering assertions depend on the untouched seed).
     await db("legends").where("drink_name", UNNAMED_DRINK).del();
   });
@@ -77,7 +77,7 @@ describe("ND-017 — Round & Legends API", () => {
   beforeEach(async () => {
     await resetDb();
     await resetRounds();
-    // Remove any unnamed legend rows left by this suite across runs (legends
+    // Remove any unnamed Lenda rows left by this suite across runs (Lendas
     // are never truncated by resetDb — the saideira seed must survive).
     await db("legends").where("drink_name", UNNAMED_DRINK).del();
     await redis.flushdb();
@@ -124,14 +124,14 @@ describe("ND-017 — Round & Legends API", () => {
         total_eddies_earned: n * 100,
         total_pvp_fights: n,
         total_active_characters: n,
-        top_sc_character_name: `Legend-${n}`,
+        top_sc_character_name: `Lenda-${n}`,
         top_sc_value: n,
       });
     }
     await db("rounds").insert({ round_number: count + 1, started_at: new Date() });
   }
 
-  /** Insert an unnamed legend row for the given character name. */
+  /** Insert an unnamed Lenda row for the given character name. */
   async function seedUnnamedLegend(characterName: string, crewName: string | null = null): Promise<void> {
     await db("legends").insert({ character_name: characterName, drink_name: UNNAMED_DRINK, crew_name: crewName });
   }
@@ -182,7 +182,7 @@ describe("ND-017 — Round & Legends API", () => {
       expect(body1.rounds[0]).toMatchObject({
         startedAt: expect.any(String),
         endedAt: expect.any(String),
-        stats: { totalGigsCompleted: 3, topScCharacterName: "Legend-3" },
+        stats: { totalGigsCompleted: 3, topScCharacterName: "Lenda-3" },
       });
 
       const page2 = await fetch(`${base()}/api/round/history?limit=2&cursor=${body1.nextCursor}`, {
@@ -242,7 +242,7 @@ describe("ND-017 — Round & Legends API", () => {
   // ─── POST /api/legends/name-drink ──────────────────────────────────────────
 
   describe("POST /api/legends/name-drink", () => {
-    it("should name the drink of the caller's unnamed legend", async () => {
+    it("should name the drink of the caller's unnamed Lenda", async () => {
       const user = await registerApiUser();
       await seedUnnamedLegend(user.characterName);
 
@@ -264,7 +264,7 @@ describe("ND-017 — Round & Legends API", () => {
       await db("legends").where("character_name", user.characterName).del();
     });
 
-    it("should return 404 LEGEND_NOT_FOUND when the character has no unnamed legend", async () => {
+    it("should return 404 LEGEND_NOT_FOUND when the character has no unnamed Lenda", async () => {
       const user = await registerApiUser();
 
       const res = await server.post(

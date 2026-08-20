@@ -74,7 +74,7 @@ describe("GET /api/characters/me/events (player event feed)", () => {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader(accessToken) },
       body: JSON.stringify({
-        name: `Runner-${Date.now()}-${seq++}`,
+        name: `Corredor-${Date.now().toString(36)}-${seq++}`,
         origin: "a_paraiso",
         role: "bicho",
         attributes: validAttributes(),

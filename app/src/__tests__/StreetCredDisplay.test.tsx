@@ -49,7 +49,7 @@ describe("StreetCredDisplay", () => {
     useStreetCredStore.setState({
       info: {
         score: 12,
-        title: "Runner",
+        title: "Perna",
         maxAchieved: 12,
         nextThreshold: { score: 25, title: "Pro" },
         scToNext: 13,
@@ -61,7 +61,7 @@ describe("StreetCredDisplay", () => {
     const { container } = renderDisplay();
 
     expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("RUNNER")).toBeInTheDocument();
+    expect(screen.getByText("PERNA")).toBeInTheDocument();
     expect(screen.getByText("★")).toBeInTheDocument();
 
     // Progress bar: score 12 sits between the 10 and 25 thresholds.
@@ -80,15 +80,15 @@ describe("StreetCredDisplay", () => {
     const { container } = renderDisplay();
 
     expect(container.querySelector('[class*="animate-pulse"]')).not.toBeNull();
-    expect(screen.queryByText("LEGEND")).not.toBeInTheDocument();
+    expect(screen.queryByText("LENDA")).not.toBeInTheDocument();
   });
 
-  it("should render the Legend state in gold without a progress bar at score 100", () => {
+  it("should render the Lenda state in gold without a progress bar at score 100", () => {
     useAuthStore.setState({ character: {} as never });
     useStreetCredStore.setState({
       info: {
         score: 100,
-        title: "Legend",
+        title: "Lenda",
         maxAchieved: 100,
         nextThreshold: null,
         scToNext: null,
@@ -100,19 +100,19 @@ describe("StreetCredDisplay", () => {
     const { container } = renderDisplay();
 
     expect(screen.getByText("100")).toBeInTheDocument();
-    expect(screen.getByText("LEGEND")).toBeInTheDocument();
-    // No progress bar in the legend badge.
+    expect(screen.getByText("LENDA")).toBeInTheDocument();
+    // No progress bar in the lenda badge.
     expect(container.querySelector('[style*="width"]')).toBeNull();
   });
 
-  it("should render the Lenda de SP tier with a progress bar toward Legend", () => {
+  it("should render the Lenda de SP tier with a progress bar toward Lenda", () => {
     useAuthStore.setState({ character: {} as never });
     useStreetCredStore.setState({
       info: {
         score: 95,
         title: "Lenda de SP",
         maxAchieved: 95,
-        nextThreshold: { score: 100, title: "Legend" },
+        nextThreshold: { score: 100, title: "Lenda" },
         scToNext: 5,
       },
       loading: false,
@@ -137,8 +137,8 @@ describe("StreetCredDisplay", () => {
 
     const { container } = renderDisplay();
 
-    expect(screen.queryByText("LEGEND")).not.toBeInTheDocument();
-    expect(screen.queryByText("RUNNER")).not.toBeInTheDocument();
+    expect(screen.queryByText("LENDA")).not.toBeInTheDocument();
+    expect(screen.queryByText("PERNA")).not.toBeInTheDocument();
     expect(screen.queryByText("12")).not.toBeInTheDocument();
     // Renders the hidden placeholder div only — no skeleton.
     expect(container.querySelector('[class*="animate-pulse"]')).toBeNull();

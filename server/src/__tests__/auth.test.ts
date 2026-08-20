@@ -23,7 +23,7 @@ const PASSWORD = "StrongPass123!";
 
 let emailSeq = 0;
 function uniqueEmail(): string {
-  return `runner-${Date.now()}-${emailSeq++}@neondusk.test`;
+  return `corredor-${Date.now()}-${emailSeq++}@neondusk.test`;
 }
 
 interface ErrorBody {

@@ -24,7 +24,7 @@ export default function HomeView() {
           NEON<span className="text-nd-magenta">//</span>DUSK
         </h2>
         <p className="text-nd-text-secondary text-lg font-body max-w-md mx-auto">
-          Build your cromo. Burn your name. Leave a legend.
+          Monta teu cromo. Queima teu nome. Vira lenda.
         </p>
       </div>
 

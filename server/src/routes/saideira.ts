@@ -54,7 +54,7 @@ const chatSendSchema = z.object({
     .max(500, "Mensagem muito longa (máx. 500 caracteres)"),
 });
 
-// ND-017: name a Legend's drink (3-30 chars after trim).
+// ND-017: name a Lenda's drink (3-30 chars after trim).
 const nameDrinkSchema = z.object({
   drinkName: z
     .string()
@@ -260,7 +260,7 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     },
   );
 
-  // POST /api/legends/name-drink — name the drink of a Legend inducted this
+  // POST /api/legends/name-drink — name the drink of a Lenda inducted this
   // round (ND-017). Matches the caller's character name against the
   // `__UNNAMED__` placeholder row; character names are unique per lower() so
   // at most one unnamed row can match (ADR-5 — no schema change).
@@ -283,8 +283,8 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
       const char = await characters.findById(characterId);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
-      const legend = await legends.updateDrinkName(char.name, drinkName);
-      if (!legend) {
+      const legendRow = await legends.updateDrinkName(char.name, drinkName);
+      if (!legendRow) {
         throw new AppError(
           404,
           "LEGEND_NOT_FOUND",
@@ -294,11 +294,11 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
 
       return reply.status(200).send({
         legend: {
-          id: legend.id,
-          characterName: legend.character_name,
-          drinkName: legend.drink_name,
-          achievedAt: new Date(legend.achieved_at).toISOString(),
-          crewName: legend.crew_name,
+          id: legendRow.id,
+          characterName: legendRow.character_name,
+          drinkName: legendRow.drink_name,
+          achievedAt: new Date(legendRow.achieved_at).toISOString(),
+          crewName: legendRow.crew_name,
         },
       });
     },

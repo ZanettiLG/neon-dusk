@@ -125,7 +125,7 @@ const gigDifficultyBands: Band[] = [
 
 /**
  * Moral: "lenda" (gold) is exclusive to score 100 — matches the
- * Legend logic in StreetCredDisplay (nextThreshold === null only at 100).
+ * Lenda logic in StreetCredDisplay (nextThreshold === null only at 100).
  */
 const streetCredBands: Band[] = [
   { min: 0, max: 99, color: "bg-nd-cyan", label: "na rua" },

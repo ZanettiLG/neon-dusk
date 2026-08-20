@@ -1,7 +1,7 @@
 import { db, type Queryable } from "../db";
 import { UNNAMED_DRINK } from "../game/round-reset";
 
-// Neon Dusk — Legend repository (#158 DB repository layer)
+// Neon Dusk — Legends repository (#158 DB repository layer)
 // ============================================================================
 
 /** Raw row shape for `legends`. */
@@ -14,7 +14,7 @@ export interface LegendRow {
   created_at: Date;
 }
 
-/** Insert input for a legend. */
+/** Insert input for a Legends row. */
 export interface LegendInsert {
   character_name: string;
   drink_name: string;
@@ -25,10 +25,10 @@ export interface LegendInsert {
 export interface LegendRepository {
   /** The hall of fame, newest achievement first. */
   listTop(q?: Queryable): Promise<LegendRow[]>;
-  /** Insert one legend row. */
+  /** Insert one Legends row. */
   insert(entry: LegendInsert, q?: Queryable): Promise<LegendRow>;
   /**
-   * Name the drink of a legend inducted this round (matches the
+   * Name the drink of a Lenda inducted this round (matches the
    * `__UNNAMED__` placeholder for the caller's character name).
    */
   updateDrinkName(characterName: string, drinkName: string, q?: Queryable): Promise<LegendRow | undefined>;

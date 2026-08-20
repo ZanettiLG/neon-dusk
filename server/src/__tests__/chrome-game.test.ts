@@ -77,7 +77,7 @@ describe("calculateHpBonus", () => {
     expect(calculateHpBonus([])).toBe(0);
   });
 
-  it("should return the max_hp bonus of a single implant (Subdermal Armor)", () => {
+  it("should return the max_hp bonus of a single implant (Casca Grossa)", () => {
     expect(calculateHpBonus([def({ bonuses: { max_hp: 10 } })])).toBe(10);
   });
 
@@ -117,7 +117,7 @@ describe("calculateNilMaxBonus", () => {
     expect(calculateNilMaxBonus([])).toBe(0);
   });
 
-  it("should return the nil_max bonus of a Neural Booster (T1: +10)", () => {
+  it("should return the nil_max bonus of a Cuca Acesa (T1: +10)", () => {
     expect(calculateNilMaxBonus([def({ bonuses: { nil_max: 10 } })])).toBe(10);
   });
 

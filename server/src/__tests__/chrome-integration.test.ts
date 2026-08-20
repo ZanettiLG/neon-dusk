@@ -369,7 +369,7 @@ describe("Feature #4 — cromo API", () => {
 
     it("should return 400 HUMANITY_TOO_LOW when humanity would drop below 0", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
-      // Reflex Tuner costs 3 humanity and 300 de Grana. At 2 humanity it would go to -1.
+      // Estalo costs 3 humanity and 300 de Grana. At 2 humanity it would go to -1.
       await db("characters")
         .where("id", characterId)
         .update({ humanity: 2 });
@@ -383,7 +383,7 @@ describe("Feature #4 — cromo API", () => {
 
     it("should allow an install that brings humanity to exactly 0 (flatline boundary)", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
-      // Reflex Tuner costs 3 humanity; at 3 humanity the result is exactly 0,
+      // Estalo costs 3 humanity; at 3 humanity the result is exactly 0,
       // which the game contract allows (cyberpsychosis handles flatline).
       await db("characters")
         .where("id", characterId)
@@ -424,7 +424,7 @@ describe("Feature #4 — cromo API", () => {
       expect(res.status).toBe(401);
     });
 
-    it("should increase NIL max by 10 when installing Neural Booster (frontal_cortex)", async () => {
+    it("should increase NIL max by 10 when installing Cuca Acesa (frontal_cortex)", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
 
       const res = await installChrome(accessToken, await defId("neural-booster"));
@@ -434,7 +434,7 @@ describe("Feature #4 — cromo API", () => {
         .select("max_nil")
         .where("id", characterId)
         .limit(1);
-      expect(char!.max_nil).toBe(110); // 100 base + 10 from Neural Booster
+      expect(char!.max_nil).toBe(110); // 100 base + 10 from Cuca Acesa
     });
 
     it("should NOT increase NIL max when installing Braço de Ferro (non-neural)", async () => {
@@ -557,7 +557,7 @@ describe("Feature #4 — cromo API", () => {
       expect(res.status).toBe(401);
     });
 
-    it("should restore NIL max to 100 after uninstalling the only Neural Booster", async () => {
+    it("should restore NIL max to 100 after uninstalling the only Cuca Acesa", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       const install = await json<ChromeInstallResponse>(
         await installChrome(accessToken, await defId("neural-booster")),

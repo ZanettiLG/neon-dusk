@@ -21,7 +21,7 @@ Skill de padrões de teste para Neon Dusk. Vitest, Supertest, Playwright, pg-mem
 
 | Tipo | Ferramenta |
 |---|---|
-| Test Runner | Vitest |
+| Test runner | Vitest |
 | API Testing | Supertest |
 | E2E | Playwright |
 | DB Testing | pg-mem (unit), testcontainers (integration) |

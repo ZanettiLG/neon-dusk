@@ -4,7 +4,7 @@ import type { AuthResponse, Role, Origin } from "@neon-dusk/shared";
 import { db } from "../db";
 
 // supertest is incompatible with Fastify 5 + @fastify/rate-limit (crashes in
-// Fastify's internal preParsing hook runner — see test-report). Tests use a
+// Fastify's internal preParsing hook execution — see test-report). Tests use a
 // real HTTP server + native fetch instead.
 export async function startTestServer(app: FastifyInstance) {
   await app.listen({ port: 0, host: "127.0.0.1" });
@@ -101,7 +101,7 @@ export async function insertTestCharacter(opts?: {
   origin?: Origin;
 }): Promise<{ userId: string; characterId: string }> {
   const email = opts?.email ?? `svc-${Date.now()}-${Math.random().toString(36).slice(2)}@neondusk.test`;
-  const name = opts?.name ?? `Runner-${Math.random().toString(36).slice(2, 10)}`;
+  const name = opts?.name ?? `Corredor-${Math.random().toString(36).slice(2, 10)}`;
 
   const [user] = await db("users")
     .insert({ email, password_hash: "test-hash" })

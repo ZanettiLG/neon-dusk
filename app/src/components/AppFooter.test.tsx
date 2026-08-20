@@ -7,7 +7,7 @@ describe("AppFooter", () => {
     render(<AppFooter />);
 
     expect(
-      screen.getByText("Build your cromo. Burn your name. Leave a legend."),
+      screen.getByText("Monta teu cromo. Queima teu nome. Vira lenda."),
     ).toBeInTheDocument();
   });
 });

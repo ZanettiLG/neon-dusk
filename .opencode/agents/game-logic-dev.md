@@ -21,7 +21,7 @@ Implementar mecânicas de jogo: fórmulas matemáticas, sistemas de progressão,
 ## Features Típicas
 - Fórmula de sucesso de trampos: `(BOD + REF + Cromo) / Dificuldade`
 - Cálculo de Humanidade e thresholds de cyberpsychosis
-- Distribuição de loot por tier
+- Distribuição de saque por tier
 - Sistema de Moral (ganho, decay, thresholds)
 - Balanceamento de economia (faucets/sinks)
 - Eventos de temporada (Corp War, Apagão)

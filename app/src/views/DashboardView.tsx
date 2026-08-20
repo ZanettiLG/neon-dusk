@@ -30,7 +30,7 @@ const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
 };
 
 /**
- * Runner dashboard: character card (avatar, attributes), NIL bar with live
+ * Corredor dashboard: character card (avatar, attributes), NIL bar with live
  * regen countdown, Pingado (ampola), humanity + cromo body map, recent event
  * feed, quick actions, leaderboard and logout (port of DashboardView.vue).
  */

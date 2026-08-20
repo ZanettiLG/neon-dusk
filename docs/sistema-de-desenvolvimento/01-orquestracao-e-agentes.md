@@ -240,7 +240,7 @@ Human Dev: /dev-feature "sistema de autenticação JWT"
 **Exemplos de features deste agente**:
 - Fórmula de sucesso de trampos: `(BOD + REF + Cromo) / Dificuldade`
 - Cálculo de Humanidade e thresholds de cyberpsychosis
-- Distribuição de loot por tier
+- Distribuição de saque por tier
 - Sistema de Moral e decay
 - Balanceamento de economia (faucets/sinks)
 - Eventos de temporada (Corp War, Apagão)

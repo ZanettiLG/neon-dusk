@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { ROLE_LABELS, VENDOR_TYPE_LABELS } from "@/lib/labels";
+import {
+  ITEM_ID_LABELS,
+  ITEM_TYPE_LABELS,
+  ROLE_LABELS,
+  VENDOR_TYPE_LABELS,
+} from "@/lib/labels";
 
 // Labels user-facing da marca (#145): nomes de IP de terceiros (Cyberpunk RED)
 // substituídos por marca própria PT-BR. Tokens internos (enum lowercase) não
@@ -31,5 +36,21 @@ describe("ROLE_LABELS", () => {
       despachante: "Despachante",
       estradeiro: "Estradeiro",
     });
+  });
+});
+
+describe("ITEM_TYPE_LABELS", () => {
+  it('should map LOOT to "Saque"', () => {
+    expect(ITEM_TYPE_LABELS.LOOT).toBe("Saque");
+  });
+});
+
+describe("ITEM_ID_LABELS", () => {
+  it('should map the combat ampola item id to "Porrada"', () => {
+    expect(ITEM_ID_LABELS["combat-stim"]).toBe("Porrada");
+  });
+
+  it('should map access-chip to "Chip Frio"', () => {
+    expect(ITEM_ID_LABELS["access-chip"]).toBe("Chip Frio");
   });
 });

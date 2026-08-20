@@ -1,6 +1,6 @@
 import type { GameEventType } from "@neon-dusk/shared";
 
-// Event feed helpers for the runner dashboard (ND-139): PT-BR labels and
+// Event feed helpers for the corredor dashboard (ND-139): PT-BR labels and
 // per-type message sentences. Severity styling lives in ui/EventLog (#134).
 
 /** Short PT-BR label for every game event type. */

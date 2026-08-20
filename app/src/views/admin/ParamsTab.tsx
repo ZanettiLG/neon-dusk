@@ -97,7 +97,7 @@ export default function ParamsTab() {
         </h4>
         <p className="text-nd-text-secondary text-xs">
           Resetar a rodada zera Grana, Moral e progresso de todos os jogadores.
-          Legends são preservadas. Execute via API com x-api-key:
+          Lendas são preservadas. Execute via API com x-api-key:
         </p>
         <code className="block bg-nd-bg border border-nd-cyan/10 rounded px-3 py-2 text-xs font-mono text-nd-text-secondary break-all">
           curl -X POST http://localhost:3000/api/round/trigger-reset \

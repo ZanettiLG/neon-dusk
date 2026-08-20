@@ -15,40 +15,40 @@ import {
 // ─── Thresholds ─────────────────────────────────────────────────────────────
 
 describe("STREET_CRED_THRESHOLDS", () => {
-  it("should define seven thresholds from Unknown to Legend", () => {
+  it("should define seven thresholds from Zé Ninguém to Lenda", () => {
     expect(STREET_CRED_THRESHOLDS).toHaveLength(7);
-    expect(STREET_CRED_THRESHOLDS[0]).toEqual({ score: 0, title: "Unknown" });
-    expect(STREET_CRED_THRESHOLDS[1]).toEqual({ score: 10, title: "Runner" });
+    expect(STREET_CRED_THRESHOLDS[0]).toEqual({ score: 0, title: "Zé Ninguém" });
+    expect(STREET_CRED_THRESHOLDS[1]).toEqual({ score: 10, title: "Perna" });
     expect(STREET_CRED_THRESHOLDS[2]).toEqual({ score: 25, title: "Pro" });
     expect(STREET_CRED_THRESHOLDS[3]).toEqual({ score: 50, title: "Corredor" });
     expect(STREET_CRED_THRESHOLDS[4]).toEqual({ score: 75, title: "Elite" });
     expect(STREET_CRED_THRESHOLDS[5]).toEqual({ score: 90, title: "Lenda de SP" });
-    expect(STREET_CRED_THRESHOLDS[6]).toEqual({ score: 100, title: "Legend" });
+    expect(STREET_CRED_THRESHOLDS[6]).toEqual({ score: 100, title: "Lenda" });
   });
 });
 
 // ─── getTitle ───────────────────────────────────────────────────────────────
 
 describe("getTitle", () => {
-  it("should return 'Unknown' for score 0", () => {
-    expect(getTitle(0)).toBe("Unknown");
+  it("should return 'Zé Ninguém' for score 0", () => {
+    expect(getTitle(0)).toBe("Zé Ninguém");
   });
 
-  it("should return 'Unknown' for negative scores", () => {
-    expect(getTitle(-1)).toBe("Unknown");
-    expect(getTitle(-999)).toBe("Unknown");
+  it("should return 'Zé Ninguém' for negative scores", () => {
+    expect(getTitle(-1)).toBe("Zé Ninguém");
+    expect(getTitle(-999)).toBe("Zé Ninguém");
   });
 
-  it("should return 'Unknown' for scores between 0 and 9", () => {
-    expect(getTitle(1)).toBe("Unknown");
-    expect(getTitle(5)).toBe("Unknown");
-    expect(getTitle(9)).toBe("Unknown");
+  it("should return 'Zé Ninguém' for scores between 0 and 9", () => {
+    expect(getTitle(1)).toBe("Zé Ninguém");
+    expect(getTitle(5)).toBe("Zé Ninguém");
+    expect(getTitle(9)).toBe("Zé Ninguém");
   });
 
-  it("should return 'Runner' for scores between 10 and 24", () => {
-    expect(getTitle(10)).toBe("Runner");
-    expect(getTitle(12)).toBe("Runner");
-    expect(getTitle(24)).toBe("Runner");
+  it("should return 'Perna' for scores between 10 and 24", () => {
+    expect(getTitle(10)).toBe("Perna");
+    expect(getTitle(12)).toBe("Perna");
+    expect(getTitle(24)).toBe("Perna");
   });
 
   it("should return 'Pro' for scores between 25 and 49", () => {
@@ -75,25 +75,25 @@ describe("getTitle", () => {
     expect(getTitle(99)).toBe("Lenda de SP");
   });
 
-  it("should return 'Legend' for score 100", () => {
-    expect(getTitle(100)).toBe("Legend");
+  it("should return 'Lenda' for score 100", () => {
+    expect(getTitle(100)).toBe("Lenda");
   });
 
-  it("should return 'Legend' for scores above 100 (capped)", () => {
-    expect(getTitle(150)).toBe("Legend");
-    expect(getTitle(9999)).toBe("Legend");
+  it("should return 'Lenda' for scores above 100 (capped)", () => {
+    expect(getTitle(150)).toBe("Lenda");
+    expect(getTitle(9999)).toBe("Lenda");
   });
 });
 
 // ─── getNextThreshold ───────────────────────────────────────────────────────
 
 describe("getNextThreshold", () => {
-  it("should return Runner for score 0", () => {
-    expect(getNextThreshold(0)).toEqual({ score: 10, title: "Runner" });
+  it("should return Perna for score 0", () => {
+    expect(getNextThreshold(0)).toEqual({ score: 10, title: "Perna" });
   });
 
-  it("should return Runner for score 9", () => {
-    expect(getNextThreshold(9)).toEqual({ score: 10, title: "Runner" });
+  it("should return Perna for score 9", () => {
+    expect(getNextThreshold(9)).toEqual({ score: 10, title: "Perna" });
   });
 
   it("should return Pro for score 10", () => {
@@ -120,15 +120,15 @@ describe("getNextThreshold", () => {
     expect(getNextThreshold(89)).toEqual({ score: 90, title: "Lenda de SP" });
   });
 
-  it("should return Legend for score 90", () => {
-    expect(getNextThreshold(90)).toEqual({ score: 100, title: "Legend" });
+  it("should return Lenda for score 90", () => {
+    expect(getNextThreshold(90)).toEqual({ score: 100, title: "Lenda" });
   });
 
-  it("should return Legend for score 99", () => {
-    expect(getNextThreshold(99)).toEqual({ score: 100, title: "Legend" });
+  it("should return Lenda for score 99", () => {
+    expect(getNextThreshold(99)).toEqual({ score: 100, title: "Lenda" });
   });
 
-  it("should return null for score 100 (Legend)", () => {
+  it("should return null for score 100 (Lenda)", () => {
     expect(getNextThreshold(100)).toBeNull();
   });
 
@@ -137,9 +137,9 @@ describe("getNextThreshold", () => {
     expect(getNextThreshold(999)).toBeNull();
   });
 
-  it("should return Unknown (0) for negative scores (first threshold > score)", () => {
-    // The first threshold with score > -5 is 0 (Unknown), not 10
-    expect(getNextThreshold(-5)).toEqual({ score: 0, title: "Unknown" });
+  it("should return Zé Ninguém (0) for negative scores (first threshold > score)", () => {
+    // The first threshold with score > -5 is 0 (Zé Ninguém), not 10
+    expect(getNextThreshold(-5)).toEqual({ score: 0, title: "Zé Ninguém" });
   });
 });
 
@@ -150,15 +150,15 @@ describe("getThresholdFloor", () => {
     expect(getThresholdFloor(0)).toBe(0);
   });
 
-  it("should return 0 for maxAchieved 5 (still Unknown)", () => {
+  it("should return 0 for maxAchieved 5 (still Zé Ninguém)", () => {
     expect(getThresholdFloor(5)).toBe(0);
   });
 
-  it("should return 10 for maxAchieved 10 (Runner)", () => {
+  it("should return 10 for maxAchieved 10 (Perna)", () => {
     expect(getThresholdFloor(10)).toBe(10);
   });
 
-  it("should return 10 for maxAchieved 12 (still Runner)", () => {
+  it("should return 10 for maxAchieved 12 (still Perna)", () => {
     expect(getThresholdFloor(12)).toBe(10);
   });
 
@@ -190,7 +190,7 @@ describe("getThresholdFloor", () => {
     expect(getThresholdFloor(99)).toBe(90);
   });
 
-  it("should return 100 for maxAchieved 100 (Legend)", () => {
+  it("should return 100 for maxAchieved 100 (Lenda)", () => {
     expect(getThresholdFloor(100)).toBe(100);
   });
 
@@ -285,7 +285,7 @@ describe("calculateDecay", () => {
     expect(result).toEqual({ decayAmount: 5, effectiveScore: 50 });
   });
 
-  it("should stop decay at Runner floor (10) for maxAchieved 12", () => {
+  it("should stop decay at Perna floor (10) for maxAchieved 12", () => {
     // currentScore=18, maxAchieved=12 → floor=10, maxDecay=8
     // At 12 days: raw = (12-7)*5 = 25, clamped to 8
     const last = new Date(NOW.getTime() - 12 * DAY);
@@ -317,7 +317,7 @@ describe("calculateDecay", () => {
 
   it("should decay all the way to Elite floor (75) with enough time", () => {
     // currentScore=100, maxAchieved=100, floor=100
-    // maxDecay = 100 - 100 = 0 → no decay possible (Legend floor = 100)
+    // maxDecay = 100 - 100 = 0 → no decay possible (Lenda floor = 100)
     const last = new Date(NOW.getTime() - 100 * DAY);
     const result = calculateDecay(last, 100, 100, NOW);
     expect(result.effectiveScore).toBe(100);
@@ -558,8 +558,8 @@ describe("Title + Decay integration", () => {
   it("should maintain Elite title after decaying from 100 to floor 75", () => {
     const last = new Date(NOW.getTime() - 100 * DAY);
     const { effectiveScore } = calculateDecay(last, 100, 100, NOW);
-    expect(effectiveScore).toBe(100); // Legend floor = 100, can't fall
-    expect(getTitle(effectiveScore)).toBe("Legend");
+    expect(effectiveScore).toBe(100); // Lenda floor = 100, can't fall
+    expect(getTitle(effectiveScore)).toBe("Lenda");
   });
 
   it("should maintain Corredor title after decaying from 60 to floor 50", () => {

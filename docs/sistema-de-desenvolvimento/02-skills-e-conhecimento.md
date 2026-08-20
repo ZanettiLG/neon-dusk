@@ -49,7 +49,7 @@ Skills são **conhecimento injetável sob demanda**. Ao contrário de instruçõ
 | **Conteúdo** | Padrões de economia para jogos multiplayer, faucets/sinks, inflação, balanceamento |
 
 **Tópicos**:
-- Faucets (fontes de moeda): trampos, hustles, vendas, loot
+- Faucets (fontes de moeda): trampos, hustles, vendas, saque
 - Sinks (sumidouros): cromo, terapia, Resgate, housing, ampolas
 - Inflação: instrumentação (log de todas as transações), métricas de alerta
 - Preços fixos vs dinâmicos: modelo RED (8 categorias de preço fixo)

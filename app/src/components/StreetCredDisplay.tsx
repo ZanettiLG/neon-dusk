@@ -20,7 +20,7 @@ function thresholdFloor(score: number): number {
 
 /**
  * Header badge: ★ score · title + a progress bar toward the next threshold.
- * Gold "LEGEND" styling at 100 (no bar — the ladder is topped). Hidden on
+ * Gold "LENDA" styling at 100 (no bar — the ladder is topped). Hidden on
  * error; skeleton shimmer while loading. Only renders for authenticated
  * characters (the endpoint 404s without one).
  */
@@ -47,7 +47,7 @@ export default function StreetCredDisplay() {
     );
   }
 
-  if (info.title === "Legend" || info.nextThreshold === null) {
+  if (info.title === "Lenda" || info.nextThreshold === null) {
     return (
       <div
         className="flex items-center gap-2 border border-nd-gold/60 rounded-terminal px-3 py-1.5 text-xs font-data shadow-neon-gold"
@@ -56,7 +56,7 @@ export default function StreetCredDisplay() {
         <span className="text-nd-gold">★</span>
         <span className="text-nd-gold">{info.score}</span>
         <span className="text-nd-gold/60">·</span>
-        <span className="text-nd-gold tracking-widest">LEGEND</span>
+        <span className="text-nd-gold tracking-widest">LENDA</span>
       </div>
     );
   }

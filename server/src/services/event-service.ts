@@ -9,7 +9,7 @@ import { gameEventRepository as gameEvents } from "../repositories/game-event-re
 // Neon Dusk — Player event feed (ND-139)
 // ============================================================================
 // Maps the append-only `game_events` telemetry stream into a character-scoped,
-// cursor-paginated feed for the runner dashboard. Read-only; no writes here.
+// cursor-paginated feed for the corredor dashboard. Read-only; no writes here.
 
 /** Coarse severity per event type (drives glyph + text color in the UI). */
 export function severityFor(eventType: GameEventType): CharacterEventSeverity {

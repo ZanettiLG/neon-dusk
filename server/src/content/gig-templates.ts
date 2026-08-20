@@ -36,7 +36,7 @@ export interface GigTemplateSeed {
 }
 
 export const GIG_TEMPLATES: GigTemplateSeed[] = [
-  // ═══ T1 — Street Level (SC 0+) ═══════════════════════════════════════════
+  // ═══ T1 — Bico (SC 0+) ═══════════════════════════════════════════
 
   {
     name: "Encomenda Extraviada",
@@ -141,7 +141,7 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     legworkMinutes: 10,
   },
 
-  // ═══ T2 — Runner (SC 5+) ═════════════════════════════════════════════════
+  // ═══ T2 — Corre (SC 5+) ═════════════════════════════════════════════════
 
   {
     name: "Bagre Ensaboado",
@@ -212,7 +212,7 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     legworkMinutes: 30,
   },
 
-  // ═══ T3 — Pro (SC 15+) ═══════════════════════════════════════════════════
+  // ═══ T3 — Esquema (SC 15+) ═══════════════════════════════════════════════
 
   {
     name: "Fantasma no Sistema",
@@ -266,7 +266,7 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     legworkMinutes: 15,
   },
 
-  // ═══ T4 — Elite (SC 30+) ══════════════════════════════════════════════════
+  // ═══ T4 — Golpe (SC 30+) ══════════════════════════════════════════════════
 
   {
     name: "Cofre Blindado",
@@ -320,7 +320,7 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     legworkMinutes: 20,
   },
 
-  // ═══ T5 — Legend (SC 50+) ═════════════════════════════════════════════════
+  // ═══ T5 — Golpe Mestre (SC 50+) ═════════════════════════════════════════════
 
   {
     name: "Inimigo do Estado",

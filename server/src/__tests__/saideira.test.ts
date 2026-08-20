@@ -29,7 +29,8 @@ function uniqueEmail(): string {
   return `saideira-${Date.now()}-${seq++}@neondusk.test`;
 }
 function uniqueName(): string {
-  return `Runner-${Date.now()}-${seq++}`;
+  // Corredor- (9) + base36 timestamp (7) + - + seq: fits the 24-char name cap.
+  return `Corredor-${Date.now().toString(36)}-${seq++}`;
 }
 
 interface ErrorBody {
@@ -431,12 +432,12 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(names).toContain("Zé do Gatilho");
       expect(names).toContain("Mão Fria");
 
-      for (const legend of body.legends) {
-        expect(legend.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
-        expect(legend.drinkName).toBeTypeOf("string");
-        expect(new Date(legend.achievedAt).toISOString()).toBe(legend.achievedAt);
+      for (const lenda of body.legends) {
+        expect(lenda.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+        expect(lenda.drinkName).toBeTypeOf("string");
+        expect(new Date(lenda.achievedAt).toISOString()).toBe(lenda.achievedAt);
         // crew_name is nullable — Mão Fria and Dama de Paus have crews.
-        expect(legend.crewName === null || typeof legend.crewName === "string").toBe(true);
+        expect(lenda.crewName === null || typeof lenda.crewName === "string").toBe(true);
       }
     });
 

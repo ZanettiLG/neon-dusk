@@ -29,7 +29,8 @@ function uniqueEmail(): string {
   return `sc-${Date.now()}-${seq++}@neondusk.test`;
 }
 function uniqueName(): string {
-  return `Runner-${Date.now()}-${seq++}`;
+  // Corredor- (9) + base36 timestamp (7) + - + seq: fits the 24-char name cap.
+  return `Corredor-${Date.now().toString(36)}-${seq++}`;
 }
 
 interface ErrorBody {
@@ -127,7 +128,7 @@ describe("ND-013 — street-cred API", () => {
       expect((res.json() as ErrorBody).error).toBe("UNAUTHORIZED");
     });
 
-    it("should return score 0 with title Unknown for a character with no SC", async () => {
+    it("should return score 0 with title Zé Ninguém for a character with no SC", async () => {
       const { accessToken } = await registerApiUser();
 
       const res = await app.inject({
@@ -139,9 +140,9 @@ describe("ND-013 — street-cred API", () => {
       expect(res.statusCode).toBe(200);
       const body = res.json() as StreetCredInfo;
       expect(body.score).toBe(0);
-      expect(body.title).toBe("Unknown");
+      expect(body.title).toBe("Zé Ninguém");
       expect(body.maxAchieved).toBe(0);
-      expect(body.nextThreshold).toEqual({ score: 10, title: "Runner" });
+      expect(body.nextThreshold).toEqual({ score: 10, title: "Perna" });
       expect(body.scToNext).toBe(10);
     });
 
@@ -278,7 +279,7 @@ describe("ND-013 — street-cred API", () => {
       const body = res.json() as AwardSCResponse;
       expect(body).toEqual({
         score: 12,
-        title: "Runner",
+        title: "Perna",
         gained: 12,
         maxAchieved: 12,
       });
@@ -317,7 +318,7 @@ describe("ND-013 — street-cred API", () => {
       const body = res.json() as AwardSCResponse;
       expect(body.score).toBe(100);
       expect(body.gained).toBe(1);
-      expect(body.title).toBe("Legend");
+      expect(body.title).toBe("Lenda");
       expect(body.maxAchieved).toBe(100);
 
       const [char] = await db("characters")
@@ -343,7 +344,7 @@ describe("ND-013 — street-cred API", () => {
       const body = res.json() as AwardSCResponse;
       expect(body.score).toBe(100);
       expect(body.gained).toBe(0);
-      expect(body.title).toBe("Legend");
+      expect(body.title).toBe("Lenda");
     });
 
     it("should return 400 VALIDATION_ERROR for an invalid body (negative amount)", async () => {
@@ -422,7 +423,7 @@ describe("ND-013 — street-cred API", () => {
       // Seed a cache snapshot with the old score.
       await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
 
-      // Award +10 SC so the player hits Legend at 100.
+      // Award +10 SC so the player hits Lenda at 100.
       const award = await app.inject({
         method: "POST",
         url: "/api/street-cred/award",
@@ -439,7 +440,7 @@ describe("ND-013 — street-cred API", () => {
       expect(lb.statusCode).toBe(200);
       const body = lb.json() as LeaderboardResponse;
       expect(body.leaderboard[0].score).toBe(100);
-      expect(body.leaderboard[0].title).toBe("Legend");
+      expect(body.leaderboard[0].title).toBe("Lenda");
     });
   });
 

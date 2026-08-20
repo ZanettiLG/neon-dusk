@@ -107,6 +107,18 @@ const BANNED = [
   { label: 'Deep Dive', re: /\bdeep\s*dive\b/i },
   { label: 'burnout', re: /\bburnout\b/ },
   { label: 'Blackout', re: /\bblackout\b/i },
+  // Extensão terminológica #5 (issue #187): nomes canônicos — implantes,
+  // tiers de trampo e títulos de Moral. Lookbehind negativo poupa referências
+  // a IP de terceiros ("Blade Runner") e a fase nomeada "The Legend".
+  { label: 'neural booster', re: /neural\s+booster/i },
+  { label: 'reflex tuner', re: /reflex\s+tuner/i },
+  { label: 'subdermal armor', re: /subdermal\s+armor/i },
+  { label: 'street level', re: /street\s+level/i },
+  { label: 'Runner (título)', re: /(?<!Blade\s+)\bRunner\b/, caseSensitive: true },
+  { label: 'Legend (título)', re: /(?<!The\s+)\bLegend\b/, caseSensitive: true },
+  { label: 'Unknown (título)', re: /\bUnknown\b/, caseSensitive: true },
+  { label: 'loot', re: /loot/i },
+  { label: 'access chip', re: /access[- ]?chip/i },
 ]
 
 // Self-check de eficácia (#148): cada entrada do BANNED tem um probe sintético
@@ -167,6 +179,15 @@ const PROBES = {
   'Deep Dive': 'Um Deep Dive arriscado.',
   'burnout': 'Ressaca de burnout.',
   'Blackout': 'Durante o Blackout.',
+  'neural booster': 'Neural Booster na promoção do ferrageiro.',
+  'reflex tuner': 'Reflex Tuner instalado.',
+  'subdermal armor': 'Subdermal Armor de titânio.',
+  'street level': 'Trampo street level no beco.',
+  'Runner (título)': 'O Runner cruzou a rua.',
+  'Legend (título)': 'O Legend da quebrada.',
+  'Unknown (título)': 'Um Unknown apareceu no beco.',
+  'loot': 'Distribuição de loot por tier.',
+  'access chip': 'Vendeu um access-chip na esquina.',
 }
 
 // Roda o self-check antes da varredura. Em falha, lista as labels que não
@@ -243,6 +264,17 @@ const CODE_BANNED = [
   { label: 'kiroshi', re: /kiroshi/i },
   { label: 'syn-café', re: /syn[- ]?caf[eé]/i },
   { label: 'gorilla arms', re: /gorilla arms/i },
+  // Extensão #187: nomes canônicos — implantes, tiers e títulos de Moral.
+  // Sem \b no regex — a regra word-boundary (isEmbeddedToken) isola
+  // identificadores embutidos (LegendRepository, buildLegendInserts); tokens
+  // internos legítimos como palavras isoladas são resolvidos por CODE_ALLOWED.
+  { label: 'neural booster', re: /neural\s+booster/i },
+  { label: 'reflex tuner', re: /reflex\s+tuner/i },
+  { label: 'subdermal armor', re: /subdermal\s+armor/i },
+  { label: 'street level', re: /street\s+level/i },
+  { label: 'runner', re: /runner/i },
+  { label: 'legend', re: /legend/i },
+  { label: 'unknown (Moral)', re: /"Unknown"|'Unknown'/i },
 ]
 
 // Self-check do CODE_BANNED (mesmo padrão do PROBES): cada probe deve disparar
@@ -265,6 +297,13 @@ const CODE_PROBES = {
   'kiroshi': 'Óptica Kiroshi instalada.',
   'syn-café': 'syn-café na esquina.',
   'gorilla arms': 'Gorilla Arms de titânio.',
+  'neural booster': 'Implantou um neural booster.',
+  'reflex tuner': 'Implantou um reflex tuner.',
+  'subdermal armor': 'Vestiu subdermal armor.',
+  'street level': 'Trampo street level.',
+  'runner': 'Um runner qualquer.',
+  'legend': 'Um legend da quebrada.',
+  'unknown (Moral)': 'Título "Unknown" é proibido.',
 }
 
 // Allowlist pontual de tokens internos legítimos como palavras isoladas.
@@ -310,6 +349,16 @@ const CODE_ALLOWED = [
   { label: 'token stim em rota/itemId/chave Redis', re: /["'`/:-]stims?["'`/:-]/i, on: 'stim' },
   // itemId interno do consumível de NIL (user-facing: Pingado).
   { label: 'itemId syn-cafe (token interno)', re: /["'`/]syn[- ]?caf[eé]["'`]/i, on: 'syn-café' },
+  // ── Extensão #187: tokens internos dos termos novos ─────────────────────
+  // Campo de API `legend` (declaração de tipo do shape de resposta):
+  // legend: { ... } em packages/shared. Chave interna — user-facing é "Lenda".
+  { label: 'campo legend (declaração)', re: /\blegends?\??\s*:/i, on: 'legend' },
+  // Import do módulo legend-repository: token ancorado por slash antes e
+  // hífen depois ("/legend-") — prosa user-facing ("a Legend") não casa.
+  { label: 'import legend-repository (token interno)', re: /["'`/]legends?-/i, on: 'legend' },
+  // Fallback interno "unknown" (telemetria/auditoria) — lowercase apenas
+  // (regex sem /i): o título user-facing "Unknown" (capital) segue banido.
+  { label: 'fallback "unknown" (token interno)', re: /["'`]unknown["'`]/, on: 'unknown (Moral)' },
 ]
 
 /** Caracteres considerados parte de identificador/token interno. */

@@ -341,7 +341,7 @@ export interface AdminMetricsResponse {
 }
 
 // --- Player Events (ND-139) ---------------------------------------------------
-// The runner dashboard event feed: a character's own game_events, mapped to a
+// The corredor dashboard event feed: a character's own game_events, mapped to a
 // coarse severity for UI color + glyph. Cursor-paginated by createdAt.
 
 /** Visual severity buckets for the event feed (color is never the only channel). */
@@ -591,9 +591,9 @@ export interface StreetCredInfo {
   score: number;
   title: string;
   maxAchieved: number;
-  /** The next threshold above `score` (null at Legend, score 100). */
+  /** The next threshold above `score` (null at Lenda, score 100). */
   nextThreshold: { score: number; title: string } | null;
-  /** Score points needed to reach `nextThreshold` (null at Legend). */
+  /** Score points needed to reach `nextThreshold` (null at Lenda). */
   scToNext: number | null;
 }
 
@@ -890,7 +890,7 @@ export interface NameDrinkRequest {
   drinkName: string;
 }
 
-/** POST /api/legends/name-drink response — the named legend record. */
+/** POST /api/legends/name-drink response — the named Lenda record. */
 export interface NameDrinkResponse {
   legend: {
     id: string;

@@ -40,7 +40,7 @@ export async function seedTestUser(): Promise<void> {
     role: "player",
   });
 
-  // ponytail: roleEnum has no "runner" — using "bicho" (closest generalist archetype).
+  // ponytail: roleEnum has no generalist archetype — using "bicho" (closest match).
   // ponytail: CHECK constraint requires attr sum == 22, so we distribute the 7 free
   // points across the 5 base stats (3 each = 15): body=5 reflex=5 int=5 technical=4
   // cool=3 = 22. Adjust if point-buy rules change.

@@ -29,7 +29,8 @@ function uniqueEmail(): string {
   return `nil-${Date.now()}-${seq++}@neondusk.test`;
 }
 function uniqueName(): string {
-  return `Runner-${Date.now()}-${seq++}`;
+  // Corredor- (9) + base36 timestamp (7) + - + seq: fits the 24-char name cap.
+  return `Corredor-${Date.now().toString(36)}-${seq++}`;
 }
 
 /** Valid attribute spread: 3 base × 5 + 7 free points = 22. */
