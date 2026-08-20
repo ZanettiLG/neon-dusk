@@ -78,4 +78,4 @@
 6. Sem semelhança direta com IP existente.
 7. Sem watermark.
 
-> **Nota**: chaves internas de categorias ainda não produzidas (P1/P2) mantêm tokens legados (ex.: `icones-chrome`, `body-map-chrome`) e serão renomeadas quando o batch correspondente for produzido. O termo é banido em copy de produto (description/name/alt/usage), não em identificadores internos.
+> **Nota**: chaves internas de categorias ainda não produzidas (P1/P2) mantêm identificadores legados que serão renomeados quando o batch correspondente for produzido; o termo é banido em copy de produto (description/name/alt/usage), não em identificadores internos.
