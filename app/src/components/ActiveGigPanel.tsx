@@ -42,7 +42,7 @@ export default function ActiveGigPanel() {
   // visible (legwork started, not yet completed and time still remaining).
   const [now, setNow] = useState(Date.now());
   const legworkEndsAt = activeGig?.legworkStartedAt
-    ? new Date(activeGig.legworkStartedAt).getTime() + activeGig.legworkMinutes * 1_000
+    ? new Date(activeGig.legworkStartedAt).getTime() + activeGig.legworkMinutes * 60_000
     : null;
   const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
   const legworkTicking =
@@ -180,7 +180,6 @@ export default function ActiveGigPanel() {
               <p className="text-nd-text-secondary text-sm">
                 Cupim aperta tua mão e fala baixo: "{"Boa escolha, moleque. Não vacila, não morre, me traz o resultado."}"
               </p>
-              <OutcomeChip label="Execução" outcome={toOutcome(trampo.executeOutcome)} />
               <div className="flex flex-wrap gap-2">
                 <button
                   className="btn-neon text-xs"
@@ -216,7 +215,7 @@ export default function ActiveGigPanel() {
                   style={{
                     width: `${
                       legworkEndsAt
-                        ? Math.max(0, 100 - (legworkRemaining / trampo.legworkMinutes) * 100)
+                        ? Math.max(0, 100 - (legworkRemaining / (trampo.legworkMinutes * 60)) * 100)
                         : 0
                     }%`,
                   }}
