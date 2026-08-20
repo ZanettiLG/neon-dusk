@@ -60,6 +60,7 @@ export default function PvpView() {
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchTargets();
     fetchHistory();
     return () => { mountedRef.current = false; };
