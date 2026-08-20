@@ -1,12 +1,38 @@
 import { Link } from "react-router-dom";
 import StatusBar from "./StatusBar";
-import StreetCredDisplay from "./StreetCredDisplay";
 import { useAuthStore } from "@/stores/auth";
+import { PRIMARY_NAV, SECONDARY_NAV, ADMIN_NAV_TO } from "@/lib/nav-config";
+import { DRAWER_CONTROL_ID } from "@/components/shell/BottomNav";
 
-/** Top app bar: brand, connection status, Moral badge, version. */
-export default function AppHeader() {
+interface AppHeaderProps {
+  /** Whether the secondary drawer is open (drives the mobile toggle). */
+  drawerOpen?: boolean;
+  /** Opens the secondary drawer (mobile). */
+  onOpenDrawer?: () => void;
+}
+
+/**
+ * Top app bar: brand, desktop nav (primary + secondary from nav-config),
+ * mobile drawer toggle, connection status and version. Moral moved to the
+ * persistent HUD (issue #13).
+ */
+export default function AppHeader({ drawerOpen = false, onOpenDrawer }: AppHeaderProps) {
   const character = useAuthStore((s) => s.character);
   const user = useAuthStore((s) => s.user);
+  const hasCharacter = !!character;
+  const isAdmin = user?.role === "admin";
+
+  // Character-only items (primary + non-admin secondary); Admin is role-only,
+  // reachable even without a character.
+  const navItems = [
+    ...(hasCharacter ? PRIMARY_NAV : []),
+    ...(hasCharacter
+      ? SECONDARY_NAV.filter((item) => item.to !== ADMIN_NAV_TO)
+      : []),
+    ...(isAdmin
+      ? SECONDARY_NAV.filter((item) => item.to === ADMIN_NAV_TO)
+      : []),
+  ];
 
   return (
     <header className="bg-nd-surface border-b border-nd-cyan/20 px-4 py-3">
@@ -15,28 +41,33 @@ export default function AppHeader() {
           <h1 className="font-heading text-nd-cyan text-xl tracking-widest">
             NEON<span className="text-nd-magenta">//</span>DUSK
           </h1>
-          {(character || user?.role === "admin") && (
+          {(hasCharacter || isAdmin) && (
             <nav className="hidden sm:flex items-center gap-4">
-              {character && (
-                <>
-                  <Link to="/dashboard" className="nav-link">Painel</Link>
-                  <Link to="/gigs" className="nav-link">Trampos</Link>
-                  <Link to="/saideira" className="nav-link">Saideira</Link>
-                  <Link to="/chrome" className="nav-link">Cromo</Link>
-                  <Link to="/vendors" className="nav-link">Vendedores</Link>
-                  <Link to="/pvp" className="nav-link">PvP</Link>
-                  <Link to="/economy" className="nav-link">Economia</Link>
-                  <Link to="/crews" className="nav-link">Bondes</Link>
-                </>
-              )}
-              {user?.role === "admin" && (
-                <Link to="/admin" className="nav-link text-nd-gold">Admin</Link>
-              )}
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`nav-link ${item.to === ADMIN_NAV_TO ? "text-nd-gold" : ""}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </nav>
           )}
         </div>
         <div className="flex items-center gap-4">
-          <StreetCredDisplay />
+          {hasCharacter && (
+            <button
+              type="button"
+              className="sm:hidden flex min-h-[44px] items-center gap-2 border border-nd-cyan/20 rounded-terminal px-3 font-heading text-xs uppercase tracking-wider text-nd-text-secondary hover:text-nd-cyan transition-colors"
+              aria-haspopup="dialog"
+              aria-expanded={drawerOpen}
+              aria-controls={DRAWER_CONTROL_ID}
+              onClick={onOpenDrawer}
+            >
+              Menu
+            </button>
+          )}
           <StatusBar />
           <span className="text-nd-text-secondary text-xs font-data"> v0.1.0-alpha </span>
         </div>

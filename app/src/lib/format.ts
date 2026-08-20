@@ -17,3 +17,19 @@ export function formatRelativeTime(iso: string, now: number = Date.now()): strin
   if (h < 24) return `há ${h} h`;
   return `há ${Math.floor(h / 24)} d`;
 }
+
+/** Integer grana → "G$ 1.234" (pt-BR grouping). Moved out of EconomyView for
+ * the HUD and every other wallet readout. */
+export function formatEds(amount: number): string {
+  return `G$ ${amount.toLocaleString("pt-BR")}`;
+}
+
+/** Seconds → "Xd Yh" (drops days when zero, e.g. 90000 → "1d 1h", 3600 → "1h").
+ * Used by round-reset countdowns. */
+export function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const d = Math.floor(s / 86_400);
+  const h = Math.floor((s % 86_400) / 3600);
+  if (d > 0) return `${d}d ${h}h`;
+  return `${h}h`;
+}

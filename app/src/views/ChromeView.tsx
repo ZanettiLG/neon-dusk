@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChromeDefinition, InstalledChromeRecord, InstalledChromeResponse } from "@neon-dusk/shared";
 import { api } from "@/api/client";
+import { useHudStore } from "@/stores/hud";
 import { CHROME_SLOT_LABELS } from "@/lib/labels";
 import Tab from "@/components/ui/Tab";
 
@@ -88,6 +89,8 @@ export default function ChromeView() {
       if (!mountedRef.current) return;
       setActionSuccess("Implante instalado!");
       fetchInstalled();
+      // Install drains grana + humanity — refresh the HUD (issue #13).
+      void useHudStore.getState().refresh();
     } catch (e) {
       if (!mountedRef.current) return;
       setActionError(e instanceof Error ? e.message : "Falha ao instalar");
@@ -105,6 +108,8 @@ export default function ChromeView() {
       if (!mountedRef.current) return;
       setActionSuccess("Implante removido.");
       fetchInstalled();
+      // Uninstall refunds grana and frees humanity — refresh the HUD (issue #13).
+      void useHudStore.getState().refresh();
     } catch (e) {
       if (!mountedRef.current) return;
       setActionError(e instanceof Error ? e.message : "Falha ao remover");
