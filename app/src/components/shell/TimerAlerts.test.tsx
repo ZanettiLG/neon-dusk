@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import TimerAlerts from "@/components/shell/TimerAlerts";
 import { useAuthStore } from "@/stores/auth";
 import { useGigStore } from "@/stores/gig";
@@ -76,6 +76,10 @@ describe("TimerAlerts", () => {
     mocks.api.get.mockResolvedValue(undefined);
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("prioritizes the legwork countdown over the round", () => {
     useGigStore.setState({ board: { gigs: [], activeGig: legworkGig() } });
     useSaideiraStore.setState({
@@ -89,7 +93,9 @@ describe("TimerAlerts", () => {
 
     render(<TimerAlerts />);
 
-    expect(screen.getByText(/TRAMPO ATIVO · legwork 4:0\d/)).toBeInTheDocument();
+    // Stable label and ticking countdown are separate nodes.
+    expect(screen.getByText(/TRAMPO ATIVO · legwork$/)).toBeInTheDocument();
+    expect(screen.getByText(/4:0\d/)).toBeInTheDocument();
     expect(screen.queryByText(/ROUND termina/)).not.toBeInTheDocument();
   });
 
@@ -105,7 +111,8 @@ describe("TimerAlerts", () => {
 
     render(<TimerAlerts />);
 
-    expect(screen.getByText(/ROUND termina em 1d 1h/)).toBeInTheDocument();
+    expect(screen.getByText(/ROUND termina em$/)).toBeInTheDocument();
+    expect(screen.getByText(/1d 1h/)).toBeInTheDocument();
   });
 
   it("shows the ready ability when no trampo and no round data", async () => {
@@ -182,6 +189,58 @@ describe("TimerAlerts", () => {
 
     // Falls through to the round alert instead of the legwork countdown.
     expect(screen.queryByText(/TRAMPO ATIVO/)).not.toBeInTheDocument();
-    expect(screen.getByText(/ROUND termina em 1d 1h/)).toBeInTheDocument();
+    expect(screen.getByText(/ROUND termina em$/)).toBeInTheDocument();
+    expect(screen.getByText(/1d 1h/)).toBeInTheDocument();
+  });
+
+  it("keeps the aria-live region on the stable label while the countdown ticks", async () => {
+    vi.useFakeTimers();
+    useGigStore.setState({ board: { gigs: [], activeGig: legworkGig() } });
+
+    const { container } = render(<TimerAlerts />);
+
+    // The live region contains only the alert label — the ticking countdown is
+    // a sibling node, so 1s ticks never reach the screen-reader queue.
+    const liveRegion = container.querySelector('[aria-live="polite"]');
+    expect(liveRegion?.textContent).toBe("TRAMPO ATIVO · legwork");
+
+    const before = screen.getByText(/4:0\d/).textContent;
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    // Countdown moved (4:00 → 3:57) while the announced label stayed put.
+    expect(screen.getByText(/3:5\d/).textContent).not.toBe(before);
+    expect(liveRegion?.textContent).toBe("TRAMPO ATIVO · legwork");
+  });
+
+  it("shows the ready ability alert when the cooldown expires without navigation", async () => {
+    vi.useFakeTimers();
+    useAuthStore.setState({
+      character: {
+        ...character,
+        ability: {
+          abilityType: "combat_trance",
+          isActive: false,
+          activeUntil: null,
+          cooldownUntil: new Date(Date.now() + 60_000).toISOString(),
+          cooldownRemainingMs: 60_000,
+        },
+      },
+    });
+
+    render(<TimerAlerts />);
+
+    expect(screen.queryByText(/pronta/)).not.toBeInTheDocument();
+
+    // Only the cooldown timer is running (no trampo, no round) — the banner
+    // must flip by itself when it expires, with no navigation involved.
+    await act(async () => {
+      vi.advanceTimersByTime(61_000);
+    });
+
+    expect(screen.getByText(/Combat Trance pronta/)).toBeInTheDocument();
+    // The cooldown clock stopped once it hit zero.
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

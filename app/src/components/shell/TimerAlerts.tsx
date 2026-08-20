@@ -43,27 +43,43 @@ export default function TimerAlerts() {
   const roundAlert = Number.isFinite(roundEndsAtMs) && roundSeconds > 0;
 
   const ability = character?.ability ?? null;
+  const abilityCooldownEndsAt =
+    ability !== null && !ability.isActive && ability.cooldownUntil
+      ? Date.parse(ability.cooldownUntil)
+      : NaN;
+  // Run the 1s clock while the cooldown is in the future so the "ready" alert
+  // flips in place at expiry without needing navigation (review fix).
+  const abilityCooldownRemaining = useCountdownTo(
+    Number.isFinite(abilityCooldownEndsAt) ? abilityCooldownEndsAt : null
+  );
   const abilityAlert =
     ability !== null &&
     !ability.isActive &&
-    (ability.cooldownUntil === null || Date.parse(ability.cooldownUntil) <= Date.now());
+    (ability.cooldownUntil === null || abilityCooldownRemaining <= 0);
 
-  let line: string | null = null;
+  // Label is stable per alert type; countdown ticks every second. The label
+  // alone sits in the aria-live region so only alert-type changes (e.g.
+  // "TRAMPO ATIVO" → "ROUND termina") are announced, not each 1s tick.
+  let label: string | null = null;
+  let countdown: string | null = null;
   if (legworkAlert) {
-    line = `TRAMPO ATIVO · legwork ${formatCountdown(legworkRemaining)}`;
+    label = "TRAMPO ATIVO · legwork";
+    countdown = formatCountdown(legworkRemaining);
   } else if (roundAlert) {
-    line = `ROUND termina em ${formatDuration(roundSeconds)}`;
+    label = "ROUND termina em";
+    countdown = formatDuration(roundSeconds);
   } else if (abilityAlert && ability) {
-    line = `${ABILITY_LABELS[ability.abilityType]} pronta`;
+    label = `${ABILITY_LABELS[ability.abilityType]} pronta`;
   }
 
-  if (!line) return null;
+  if (label === null) return null;
 
   return (
-    <div aria-live="polite" className="bg-nd-surface/95 border-b border-nd-gold/30 px-4 py-1.5">
+    <div className="bg-nd-surface/95 border-b border-nd-gold/30 px-4 py-1.5">
       <p className="font-data text-xs text-nd-gold tracking-wider truncate">
         <span aria-hidden="true">▸ </span>
-        {line}
+        <span aria-live="polite">{label}</span>
+        {countdown !== null && <span> {countdown}</span>}
       </p>
     </div>
   );
