@@ -5,12 +5,14 @@
 | Asset | Uso |
 |---|---|
 | Ícones de atributos | BOD, REF, INT, TEC, COL |
-| Ícones de bancas | Bicho, Vulto, Gambiarrista, Despachante, Estradeiro, Socorrista |
+| Ícones de bancas | Bicho, Vulto, Gambiarrista, Despachante, Estradeiro |
 | Ícones de ação | atacar, instalar, hackear, entregar, negociar |
 | Ícones de recursos | NIL, Humanidade, Grana, Moral, RAM, Trace |
 | Molduras de cards | comum, raro, elite, lendário |
 | Badges de tier | T1-T5 |
 | Indicadores de estado | sucesso, risco, cooldown, bloqueado, degradado |
+
+> **Nota**: Socorrista é Fase 2 (não entra no P0).
 
 ## Prioridade 1 — Identidade de mundo
 
@@ -75,3 +77,5 @@
 5. Consistente com os demais assets da categoria.
 6. Sem semelhança direta com IP existente.
 7. Sem watermark.
+
+> **Nota**: chaves internas de categorias ainda não produzidas (P1/P2) mantêm identificadores legados que serão renomeados quando o batch correspondente for produzido; o termo é banido em copy de produto (description/name/alt/usage), não em identificadores internos.

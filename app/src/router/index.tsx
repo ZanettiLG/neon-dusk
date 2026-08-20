@@ -22,6 +22,7 @@ const EconomyView = lazy(() => import("@/views/EconomyView"));
 const CrewsView = lazy(() => import("@/views/CrewsView"));
 const CrewDetailView = lazy(() => import("@/views/CrewDetailView"));
 const AdminPanel = lazy(() => import("@/views/admin/AdminPanel"));
+const IconGalleryView = lazy(() => import("@/views/IconGalleryView"));
 
 function Lazy({ children }: { children: ReactNode }) {
   return (
@@ -52,6 +53,16 @@ const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
+          {
+            path: "dev/icons",
+            element: (
+              <Lazy>
+                <RequireAdmin>
+                  <IconGalleryView />
+                </RequireAdmin>
+              </Lazy>
+            ),
+          },
           {
             element: <RequireCharacterless />,
             children: [

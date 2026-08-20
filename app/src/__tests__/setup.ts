@@ -40,7 +40,10 @@ vi.stubGlobal("localStorage", localStorageMock);
 beforeEach(() => {
   storage.clear();
   // jsdom doesn't implement scrollIntoView; chat panels call it on mount.
-  Element.prototype.scrollIntoView = vi.fn();
+  // Guarded: node-environment tests (e.g. icon curation) have no Element.
+  if (typeof Element !== "undefined") {
+    Element.prototype.scrollIntoView = vi.fn();
+  }
   vi.stubGlobal(
     "fetch",
     vi.fn().mockResolvedValue(
