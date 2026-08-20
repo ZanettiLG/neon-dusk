@@ -839,6 +839,13 @@ describe("ND-011 — trampos service & API", () => {
       expect(byName.get("Corre da Farmácia")!.meetsRequirements).toBe(true);
       expect(byName.get("Mula Noturna")!.meetsRequirements).toBe(false);
       expect(byName.get("Bagre Ensaboado")!.meetsRequirements).toBe(false);
+      // Every board trampo carries a base success chance within [0.05, 0.95]
+      // (never guaranteed, never impossible) and a positive heat risk.
+      for (const g of body.gigs) {
+        expect(g.successChance).toBeGreaterThanOrEqual(0.05);
+        expect(g.successChance).toBeLessThanOrEqual(0.95);
+        expect(g.heatGenerated).toBeGreaterThan(0);
+      }
     });
 
     it("should return 401 without an access token", async () => {

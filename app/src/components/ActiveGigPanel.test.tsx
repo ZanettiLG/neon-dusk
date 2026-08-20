@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { GigEscapeResponse } from "@neon-dusk/shared";
 import ActiveGigPanel from "@/components/ActiveGigPanel";
@@ -36,6 +36,25 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
+const originalMatchMedia = window.matchMedia;
+
+/**
+ * jsdom has no matchMedia — stub it so the RollTheater stage delays collapse
+ * to ~0ms (the prefers-reduced-motion path). Restored in afterEach.
+ */
+function stubReducedMotion() {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: true,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
+
 vi.mock("@/api/client", () => ({
   api: mocks.api,
   ApiError: class extends Error {
@@ -54,6 +73,10 @@ describe("ActiveGigPanel", () => {
     useGigStore.setState(useGigStore.getInitialState());
     mocks.api.get.mockReset();
     mocks.api.post.mockReset();
+  });
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia as typeof window.matchMedia;
   });
 
   it("renders without error when activeGig is null", () => {
@@ -244,6 +267,7 @@ describe("ActiveGigPanel", () => {
   it("renders heat warning when lastEscape.heatGenerated > 0", async () => {
     // Real flow: execute phase -> POST /escape resolves with heat -> activeGig
     // flips to escape phase and the escape outcome lands in local state.
+    stubReducedMotion();
     useGigStore.setState({
       board: {
         gigs: [],
@@ -257,10 +281,14 @@ describe("ActiveGigPanel", () => {
     });
     render(<ActiveGigPanel />);
     fireEvent.click(screen.getByRole("button", { name: /fugir/i }));
+    // The RollTheater opens over the phase content; the heat warning only
+    // appears in the phase content after the theater is dismissed.
+    fireEvent.click(await screen.findByRole("button", { name: /continuar/i }));
     expect(await screen.findByText(/\+3 calor no distrito/i)).toBeInTheDocument();
   });
 
   it("keeps the escape phase from the escape response and does not refetch the board", async () => {
+    stubReducedMotion();
     useGigStore.setState({
       board: {
         gigs: [],
@@ -275,6 +303,10 @@ describe("ActiveGigPanel", () => {
     });
     render(<ActiveGigPanel />);
     fireEvent.click(screen.getByRole("button", { name: /fugir/i }));
+
+    // The sentinel roll (-1) opens the theater in its copy stage — dismiss it
+    // to reveal the escape phase content (wrap-up action, no stale fugir).
+    fireEvent.click(await screen.findByRole("button", { name: /continuar/i }));
 
     // Phase came from the escape response — wrap-up action shown, stale fugir button gone.
     expect(await screen.findByRole("button", { name: /concluir trampo \(receber\)/i })).toBeInTheDocument();
