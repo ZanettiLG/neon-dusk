@@ -60,9 +60,9 @@
     {
       "id": "icon-attr-bod",
       "category": "icones-atributos",
-      "name": "Body (BOD)",
+      "name": "Body",
       "description": "Braço flexionado com bíceps, atributo de força física.",
-      "alt": "Ícone do atributo Body (BOD)",
+      "alt": "Ícone do atributo Body",
       "usage": "Card de atributo do personagem",
       "file": "app/src/assets/icons/icon-attr-bod.svg",
       "colorToken": "nd-cyan"
@@ -70,9 +70,9 @@
     {
       "id": "icon-attr-ref",
       "category": "icones-atributos",
-      "name": "Reflexo (REF)",
+      "name": "Reflexes",
       "description": "Raio estilizado, atributo de reflexos.",
-      "alt": "Ícone do atributo Reflexo (REF)",
+      "alt": "Ícone do atributo Reflexes",
       "usage": "Card de atributo do personagem",
       "file": "app/src/assets/icons/icon-attr-ref.svg",
       "colorToken": "nd-cyan"
@@ -80,9 +80,9 @@
     {
       "id": "icon-attr-int",
       "category": "icones-atributos",
-      "name": "Inteligência (INT)",
+      "name": "Intelligence",
       "description": "Nó de circuito com três ramos, atributo de inteligência.",
-      "alt": "Ícone do atributo Inteligência (INT)",
+      "alt": "Ícone do atributo Intelligence",
       "usage": "Card de atributo do personagem",
       "file": "app/src/assets/icons/icon-attr-int.svg",
       "colorToken": "nd-cyan"
@@ -90,9 +90,9 @@
     {
       "id": "icon-attr-tec",
       "category": "icones-atributos",
-      "name": "Técnica (TEC)",
+      "name": "Technical",
       "description": "Engrenagem dentada, atributo de técnica.",
-      "alt": "Ícone do atributo Técnica (TEC)",
+      "alt": "Ícone do atributo Technical",
       "usage": "Card de atributo do personagem",
       "file": "app/src/assets/icons/icon-attr-tec.svg",
       "colorToken": "nd-cyan"
@@ -100,9 +100,9 @@
     {
       "id": "icon-attr-col",
       "category": "icones-atributos",
-      "name": "Cool (COL)",
+      "name": "Cool",
       "description": "Óculos escuros, atributo de cool.",
-      "alt": "Ícone do atributo Cool (COL)",
+      "alt": "Ícone do atributo Cool",
       "usage": "Card de atributo do personagem",
       "file": "app/src/assets/icons/icon-attr-col.svg",
       "colorToken": "nd-cyan"
@@ -171,9 +171,9 @@
       "id": "icon-action-instalar",
       "category": "icones-acoes",
       "name": "Instalar",
-      "description": "Chip encaixando em slot, ação de instalar chrome.",
+      "description": "Chip encaixando em slot, ação de instalar cromo.",
       "alt": "Ícone da ação Instalar",
-      "usage": "Ação de instalar chrome no ripperdoc",
+      "usage": "Ação de instalar cromo no Ferrageiro",
       "file": "app/src/assets/icons/icon-action-instalar.svg",
       "colorToken": "nd-cyan"
     },
@@ -403,7 +403,7 @@
       "name": "Degradado",
       "description": "Losango com fissura, indicador de degradação.",
       "alt": "Ícone de estado Degradado",
-      "usage": "Indicador de chrome degradado",
+      "usage": "Indicador de cromo degradado",
       "file": "app/src/assets/icons/icon-state-degradado.svg",
       "colorToken": "nd-gold"
     }

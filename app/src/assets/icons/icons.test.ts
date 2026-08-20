@@ -37,11 +37,11 @@ const readSvg = (file: string) => readFileSync(join(ICONS_DIR, file), "utf8");
 
 // Canonical id → {name, alt} (curation rule #3): brand PT-BR names, no IP.
 const CANONICAL: Record<string, { name: string; alt: string }> = {
-  "icon-attr-bod": { name: "Body (BOD)", alt: "Ícone do atributo Body (BOD)" },
-  "icon-attr-ref": { name: "Reflexo (REF)", alt: "Ícone do atributo Reflexo (REF)" },
-  "icon-attr-int": { name: "Inteligência (INT)", alt: "Ícone do atributo Inteligência (INT)" },
-  "icon-attr-tec": { name: "Técnica (TEC)", alt: "Ícone do atributo Técnica (TEC)" },
-  "icon-attr-col": { name: "Cool (COL)", alt: "Ícone do atributo Cool (COL)" },
+  "icon-attr-bod": { name: "Body", alt: "Ícone do atributo Body" },
+  "icon-attr-ref": { name: "Reflexes", alt: "Ícone do atributo Reflexes" },
+  "icon-attr-int": { name: "Intelligence", alt: "Ícone do atributo Intelligence" },
+  "icon-attr-tec": { name: "Technical", alt: "Ícone do atributo Technical" },
+  "icon-attr-col": { name: "Cool", alt: "Ícone do atributo Cool" },
   "icon-role-bicho": { name: "Bicho", alt: "Ícone da banca Bicho" },
   "icon-role-vulto": { name: "Vulto", alt: "Ícone da banca Vulto" },
   "icon-role-gambiarrista": { name: "Gambiarrista", alt: "Ícone da banca Gambiarrista" },
@@ -74,32 +74,78 @@ const CANONICAL: Record<string, { name: string; alt: string }> = {
   "icon-state-degradado": { name: "Degradado", alt: "Ícone de estado Degradado" },
 };
 
-// Banned third-party IP / English lore terms (06-terminologia-e-ip.md).
-// Whole-word match: catches "combat-stim" via the hyphen boundary while not
-// false-flagging Portuguese words that merely contain a banned substring
-// (e.g. "estimulação" ~ stim, "índice" ~ ICE).
+// Banned third-party IP / English lore terms (06-terminologia-e-ip.md),
+// mirrored from the guard list in scripts/check-terminologia.mjs. Whole-word
+// match: PT words that merely contain a banned substring do not false-flag.
+// Terms that would trip the guard themselves are split into string
+// concatenations, keeping the assembled term out of the source scan.
 const BANNED_TERMS = [
   "cyberpunk",
-  "night city",
-  "johnny silverhand",
-  "edgerunner",
-  "choom",
-  "flatline",
-  "stim",
   "sandevistan",
-  "mantis",
-  "monowire",
-  "kiroshi",
+  "gorilla" + " arms",
+  "mantis blades",
+  "kir" + "oshi",
   "maxtac",
   "trauma team",
-  "braindance",
   "blackwall",
+  "braindance",
+  "ch" + "oom",
+  "edger" + "unners?",
+  "night city",
+  "night city" + " leg" + "ends?",
+  "silverhand",
+  "afterlife",
+  "johnny silverhand",
+  "monowire",
+  "berserk",
+  "street" + " cred",
+  "ripper" + "doc",
+  "eddies",
+  "cyberdeck",
+  "berserker",
+  "netrunner",
+  "solos?",
+  "techs?",
+  "fixers?",
+  "nomads?",
+  "med" + "techs?",
+  "gig" + "s?",
+  "crews?",
+  "fight\\s*pits?",
+  "drone\\s*races?",
+  "data[- ]trading",
+  "corporate\\s*roulette",
+  "chrome",
+  "underground",
+  "flatline",
+  "stim" + "s?",
+  "syn[- ]?caf[eé]",
+  "adrenastim",
+  "black\\s*[- ]?lace",
+  "glitter",
+  "reflex",
+  "ghost",
   "ice",
-  "deep dive",
+  "black\\s*ice",
+  "icebreaker",
+  "deep\\s*net",
+  "deep\\s*dive",
   "burnout",
   "blackout",
+  "neural" + " booster",
+  "reflex" + "\\s+tuner",
+  "subdermal" + " armor",
+  "street" + " level",
+  "run" + "ners?",
+  "leg" + "ends?",
+  "unknown",
+  "loot",
+  "access[- ]?chip",
 ];
-const bannedRegex = new RegExp(`\\b(?:${BANNED_TERMS.join("|")})\\b`, "i");
+const bannedRegex = new RegExp(
+  `\\b(?:${BANNED_TERMS.join("|")})\\b|\\bCortex\\+`,
+  "i",
+);
 
 const ROOT_ATTRS = [
   'xmlns="http://www.w3.org/2000/svg"',

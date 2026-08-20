@@ -43,7 +43,6 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Lazy><HomeView /></Lazy> },
-      { path: "dev/icons", element: <Lazy><IconGalleryView /></Lazy> },
       {
         element: <GuestOnly />,
         children: [
@@ -54,6 +53,16 @@ const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
+          {
+            path: "dev/icons",
+            element: (
+              <Lazy>
+                <RequireAdmin>
+                  <IconGalleryView />
+                </RequireAdmin>
+              </Lazy>
+            ),
+          },
           {
             element: <RequireCharacterless />,
             children: [

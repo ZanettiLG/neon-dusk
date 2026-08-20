@@ -36,6 +36,14 @@ function resolveColor(colorToken: string): string {
 export default function IconGalleryView() {
   const sections = useMemo(() => {
     const assets = manifest.assets as ManifestAsset[];
+    const known = new Set(Object.keys(SECTION_TITLES));
+    if (import.meta.env.DEV) {
+      for (const category of new Set(assets.map((a) => a.category))) {
+        if (!known.has(category)) {
+          console.warn(`IconGallery: categoria não reconhecida no manifest: ${category}`);
+        }
+      }
+    }
     return Object.keys(SECTION_TITLES).map((category) => ({
       title: SECTION_TITLES[category],
       assets: assets.filter((a) => a.category === category),
@@ -71,10 +79,12 @@ export default function IconGalleryView() {
                   >
                     <span
                       className="block h-6 w-6 [&_svg]:block [&_svg]:h-full [&_svg]:w-full"
+                      aria-hidden="true"
                       dangerouslySetInnerHTML={{ __html: svg ?? "" }}
                     />
                     <span
                       className="block h-8 w-8 [&_svg]:block [&_svg]:h-full [&_svg]:w-full"
+                      aria-hidden="true"
                       dangerouslySetInnerHTML={{ __html: svg ?? "" }}
                     />
                   </span>
