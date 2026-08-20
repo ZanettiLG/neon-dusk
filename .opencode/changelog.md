@@ -2,6 +2,20 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-20 — Infra: Repo canônico re-apontado para `ZanettiLG/neon-dusk`
+
+### Trigger
+O repo canônico `zan-ia/neon-dusk` foi deletado durante o run da feature #140 (conta 404). O humano re-apontou o remote para o fork `ZanettiLG/neon-dusk` (issues habilitadas, issue do pipeline re-criada como #1). Os arquivos do harness ainda referenciam `zan-ia/neon-dusk` em exemplos de JSON de saída.
+
+### Change
+- Referências operacionais de repo em `dev-orchestrator.md` e `github-ops.md` atualizadas de `zan-ia/neon-dusk` para `ZanettiLG/neon-dusk` (URLs de issue/PR em exemplos de saída JSON).
+- Registros históricos no changelog (ex: issue #5 da migração frontend) permanecem inalterados — fatos passados.
+
+### Impact
+Harness passa a gerar/formatar URLs de issue/PR apontando para o fork ativo, evitando links quebrados (404) em handoffs e exemplos de saída.
+
+---
+
 ## 2026-08-18 — N2: sql-design corrigida — exemplos modelavam anti-padrões de banco
 
 ### Trigger

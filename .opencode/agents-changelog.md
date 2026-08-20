@@ -2,6 +2,20 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-20 — N1: Reuso obrigatório de componentes visuais compartilhados (feature #140)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE da feature #140 (run_id nd-20260820-120000-trampos-teatro). O developer reimplementou `OutcomeChip` localmente em `ActiveGigPanel` em vez de reusar o `ui/OutcomeChip` exportado — violação de consistência que derrubou a nota de Manutenibilidade (5.0 → 4.0, depois corrigida no commit `a517c4c`).
+
+### Change
+- `developer` (agent): self-review 42 → 43 checks. Adicionado:
+  - Componentes visuais: verifique `app/src/components/ui/` (e o index de exports) ANTES de criar qualquer componente visual local — reuso obrigatório; se o compartilhado não cobre o caso (ex: prop/semântica faltando), estenda o compartilhado, nunca duplique.
+
+### Impact
+Esperado: o developer passa a consultar o catálogo de componentes compartilhados (`ui/`) antes de criar componentes locais, eliminando duplicação e a queda de nota por consistência/manutenibilidade em features futuras.
+
+---
+
 ## 2026-08-19 — N1: Fixtures canônicas + grep global de strings user-facing (cards #165/#167)
 
 ### Trigger
