@@ -131,8 +131,8 @@ const gigChanceBands: Band[] = [
 ];
 
 /**
- * Moral: "lenda" (gold) is exclusive to score 100 — matches the
- * Lenda logic in StreetCredDisplay (nextThreshold === null only at 100).
+ * Moral: "lenda" (gold) is exclusive to score 100 — matches the server
+ * readout (nextThreshold === null only at 100, see StreetCredInfo).
  */
 const streetCredBands: Band[] = [
   { min: 0, max: 99, color: "bg-nd-cyan", label: "na rua" },

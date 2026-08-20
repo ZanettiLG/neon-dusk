@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { EconomyBalanceResponse, TransactionRecord, TransactionListResponse } from "@neon-dusk/shared";
 import { api } from "@/api/client";
+import { formatEds } from "@/lib/format";
 
 /**
  * Economy dashboard — wallet balance and transaction history.
@@ -51,10 +52,6 @@ export default function EconomyView() {
     void loadTransactions();
     return () => { cancelled = true; };
   }, []);
-
-  function formatEds(amount: number): string {
-    return `G$ ${amount.toLocaleString("pt-BR")}`;
-  }
 
   return (
     <div className="py-8 space-y-6">

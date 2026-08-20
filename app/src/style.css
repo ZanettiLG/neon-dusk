@@ -100,3 +100,11 @@
            hover:text-nd-cyan transition-colors;
   }
 }
+
+@layer utilities {
+  /* iOS safe-area bottom inset (issue #13): the fixed bottom nav must clear
+     the home-indicator. Falls back to 0 outside notched viewports. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

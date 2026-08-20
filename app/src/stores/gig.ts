@@ -9,6 +9,8 @@ import type {
   GigWrapupResponse,
 } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
+import { useHudStore } from "@/stores/hud";
+import { useStreetCredStore } from "@/stores/street-cred";
 
 interface GigState {
   board: GigBoardResponse | null;
@@ -125,6 +127,9 @@ export const useGigStore = create<GigState>((set, get) => ({
       // the completed trampo (best-effort; the wrapup already resolved).
       void get().fetchBoard();
       void useAuthStore.getState().fetchNil();
+      // HUD readouts: payout moves grana, outcome moves Moral (issue #13).
+      void useHudStore.getState().refresh();
+      void useStreetCredStore.getState().fetchSC();
       return res;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao concluir trampo" });

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { VendorWithInventory, VendorInventoryRecord } from "@neon-dusk/shared";
 import { api } from "@/api/client";
+import { useAuthStore } from "@/stores/auth";
+import { useHudStore } from "@/stores/hud";
 import { VENDOR_TYPE_LABELS, ITEM_TYPE_LABELS, ITEM_ID_LABELS } from "@/lib/labels";
 
 /**
@@ -50,6 +52,12 @@ export default function VendorDetailView() {
       } else {
         await api.post(`/api/vendors/${id}/buy`, { itemType: item.itemType, itemId: item.itemId, quantity: 1 });
         setBuyMsg("Compra realizada!");
+      }
+      // Purchases move grana, cromo moves humanity, Pingado moves NIL —
+      // refresh the shell HUD readouts (issue #13).
+      void useHudStore.getState().refresh();
+      if (item.itemType === "CONSUMABLE" && item.itemId === "syn-cafe") {
+        void useAuthStore.getState().fetchNil();
       }
       // Refresh inventory
       const fresh = await api.get<VendorWithInventory>(`/api/vendors/${id}`);

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { PvpTarget, PvpCombatRecord, PvpAttackableResponse, PvpHistoryResponse } from "@neon-dusk/shared";
 import { api } from "@/api/client";
+import { useHudStore } from "@/stores/hud";
+import { useStreetCredStore } from "@/stores/street-cred";
 import Tab from "@/components/ui/Tab";
 
 type TabKey = "targets" | "history";
@@ -75,6 +77,9 @@ export default function PvpView() {
       if (!mountedRef.current) return;
       setActionMsg(res.won ? `Vitória! +G$ ${res.lootAmount}` : `Derrota! -G$ ${res.lootAmount}`);
       fetchTargets();
+      // Attack moves grana and Moral — keep the HUD readouts honest (issue #13).
+      void useHudStore.getState().refresh();
+      void useStreetCredStore.getState().fetchSC();
     } catch (e) {
       if (!mountedRef.current) return;
       setActionError(e instanceof Error ? e.message : "Falha ao atacar");

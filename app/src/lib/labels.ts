@@ -1,4 +1,11 @@
-import type { AttributeKey, GigPhase, GigType, Origin, Role } from "@neon-dusk/shared";
+import type {
+  AbilityType,
+  AttributeKey,
+  GigPhase,
+  GigType,
+  Origin,
+  Role,
+} from "@neon-dusk/shared";
 
 // Display labels (pt-BR) for game enums used across auth/character UI.
 
@@ -94,4 +101,13 @@ export const ITEM_ID_LABELS: Record<string, string> = {
   "syn-cafe": "Pingado",
   "combat-stim": "Porrada",
   "access-chip": "Chip Frio",
+};
+
+// Banca abilities (04-sistemas-e-progressao.md §2) — canonical display names.
+export const ABILITY_LABELS: Record<AbilityType, string> = {
+  combat_trance: "Combat Trance",
+  deep_dive: "Mergulho",
+  overclock: "Overclock",
+  silver_tongue: "Silver Tongue",
+  long_haul: "Long Haul",
 };

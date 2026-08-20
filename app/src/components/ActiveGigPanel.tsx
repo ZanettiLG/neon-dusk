@@ -4,6 +4,7 @@ import { GIG_PHASES } from "@neon-dusk/shared";
 import { useGigStore } from "@/stores/gig";
 import { GIG_PHASE_LABELS } from "@/lib/labels";
 import { formatCountdown } from "@/lib/format";
+import { useCountdownTo } from "@/lib/useCountdownTo";
 import { gigCopy } from "@/lib/gig-copy";
 import RollTheater from "@/components/RollTheater";
 import { OutcomeChip, PhaseStepper } from "@/components/ui";
@@ -38,20 +39,12 @@ export default function ActiveGigPanel() {
   /** Heat from the escape response — persists in the phase content after the theater closes. */
   const [escapeHeat, setEscapeHeat] = useState<number | null>(null);
 
-  // 1s clock for the legwork countdown — only while a countdown is actually
-  // visible (legwork started, not yet completed and time still remaining).
-  const [now, setNow] = useState(Date.now());
+  // 1s clock for the legwork countdown — shared hook (useCountdownTo), only
+  // ticks while time actually remains.
   const legworkEndsAt = activeGig?.legworkStartedAt
     ? new Date(activeGig.legworkStartedAt).getTime() + activeGig.legworkMinutes * 60_000
     : null;
-  const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
-  const legworkTicking =
-    legworkEndsAt !== null && !activeGig?.legworkCompleted && legworkRemaining > 0;
-  useEffect(() => {
-    if (!legworkTicking) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [legworkTicking]);
+  const legworkRemaining = useCountdownTo(legworkEndsAt);
 
   // Reset transient outcome state whenever the active trampo changes identity.
   const lastGigId = useRef<string | null>(null);
