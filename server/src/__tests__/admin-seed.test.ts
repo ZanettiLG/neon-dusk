@@ -74,4 +74,18 @@ describe("admin seed (ND-052)", () => {
 
     expect(await findAdmin()).toBeNull();
   });
+
+  it("should NOT overwrite the hash when a non-admin user exists with the admin email", async () => {
+    const playerHash = await bcrypt.hash(OLD_PASSWORD, 12);
+    await db("users").insert({ email: ADMIN_EMAIL, password_hash: playerHash, role: "player" });
+
+    await seedAdminAccount();
+
+    // The player's account is left untouched: same role, byte-identical hash,
+    // and the old password still authenticates.
+    const row = await findAdmin();
+    expect(row!.role).toBe("player");
+    expect(row!.password_hash).toBe(playerHash);
+    expect(await bcrypt.compare(OLD_PASSWORD, row!.password_hash)).toBe(true);
+  });
 });

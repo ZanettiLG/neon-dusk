@@ -47,11 +47,27 @@ export const envSchema = z.object({
 
   // Admin Panel (ND-052): auto-seed admin account on startup.
   ADMIN_EMAIL: z.string().email().optional(),
-  ADMIN_PASSWORD: z.string().min(8).optional(),
+  // Mirrors passwordSchema from services/auth-service.ts (≥8 chars, ≤72,
+  // 1 uppercase, 1 digit) — a weaker env password would seed an account
+  // that can never log in. Keep the two contracts in sync.
+  ADMIN_PASSWORD: z
+    .string()
+    .min(8, "ADMIN_PASSWORD must be at least 8 characters")
+    .max(72)
+    .regex(/[A-Z]/, "ADMIN_PASSWORD must contain at least one uppercase letter")
+    .regex(/[0-9]/, "ADMIN_PASSWORD must contain at least one digit")
+    .optional(),
 
   // Test User: auto-seed persistent test user on startup (idempotent).
   TEST_USER_EMAIL: z.string().email().optional(),
-  TEST_USER_PASSWORD: z.string().min(8).optional(),
+  // Same contract as ADMIN_PASSWORD (see passwordSchema in auth-service.ts).
+  TEST_USER_PASSWORD: z
+    .string()
+    .min(8, "TEST_USER_PASSWORD must be at least 8 characters")
+    .max(72)
+    .regex(/[A-Z]/, "TEST_USER_PASSWORD must contain at least one uppercase letter")
+    .regex(/[0-9]/, "TEST_USER_PASSWORD must contain at least one digit")
+    .optional(),
 
   // Telemetry (ND-007): opt-in Node.js runtime metrics on the Prometheus registry.
   PROMETHEUS_COLLECT_DEFAULTS: z.enum(["true", "false"]).default("false"),
