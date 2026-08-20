@@ -190,3 +190,26 @@ test('should keep exempting the declaration allowlist for "const gig: GigListIte
   })
   assert.equal(status, 0, `stdout: ${stdout}`)
 })
+
+// ─── Extensão #189: "MaxTac" → "A Garra" ──────────────────────────────────
+
+test('should exit 1 with label "maxtac" on user-facing prose (#189)', () => {
+  const { status, stdout } = runGuard({
+    'bad-maxtac.ts': "const msg = 'A MaxTac chegou ao local.';\n",
+  })
+  assert.equal(status, 1)
+  assert.match(stdout, /bad-maxtac\.ts:1:maxtac/)
+})
+
+test('should exit 0 on #189 embedded identifiers (maxtacId, maxtacPatrol)', () => {
+  // Sem \b no regex — a regra word-boundary (isEmbeddedToken) isola
+  // identificadores embutidos; só "MaxTac" como palavra isolada viola.
+  const { status, stdout } = runGuard({
+    'maxtac-internal.ts': [
+      'export function maxtacId() { return maxtacId }',
+      'export const maxtacPatrol = { squad: 4 }',
+      '',
+    ].join('\n'),
+  })
+  assert.equal(status, 0, `stdout: ${stdout}`)
+})
