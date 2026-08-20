@@ -1,7 +1,7 @@
 {
   "$schema": "asset-manifest",
-  "version": "0.1.0",
-  "status": "planned",
+  "version": "0.2.0",
+  "status": "in-progress",
   "categories": {
     "p0_sistema_visual": [
       "icones-atributos (5)",
@@ -55,5 +55,357 @@
       "personagens-missoes"
     ],
     "next_batch": "p0_sistema_visual"
-  }
+  },
+  "assets": [
+    {
+      "id": "icon-attr-bod",
+      "category": "icones-atributos",
+      "name": "Body (BOD)",
+      "description": "Braço flexionado com bíceps, atributo de força física.",
+      "alt": "Ícone do atributo Body (BOD)",
+      "usage": "Card de atributo do personagem",
+      "file": "app/src/assets/icons/icon-attr-bod.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-attr-ref",
+      "category": "icones-atributos",
+      "name": "Reflexo (REF)",
+      "description": "Raio estilizado, atributo de reflexos.",
+      "alt": "Ícone do atributo Reflexo (REF)",
+      "usage": "Card de atributo do personagem",
+      "file": "app/src/assets/icons/icon-attr-ref.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-attr-int",
+      "category": "icones-atributos",
+      "name": "Inteligência (INT)",
+      "description": "Nó de circuito com três ramos, atributo de inteligência.",
+      "alt": "Ícone do atributo Inteligência (INT)",
+      "usage": "Card de atributo do personagem",
+      "file": "app/src/assets/icons/icon-attr-int.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-attr-tec",
+      "category": "icones-atributos",
+      "name": "Técnica (TEC)",
+      "description": "Engrenagem dentada, atributo de técnica.",
+      "alt": "Ícone do atributo Técnica (TEC)",
+      "usage": "Card de atributo do personagem",
+      "file": "app/src/assets/icons/icon-attr-tec.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-attr-col",
+      "category": "icones-atributos",
+      "name": "Cool (COL)",
+      "description": "Óculos escuros, atributo de cool.",
+      "alt": "Ícone do atributo Cool (COL)",
+      "usage": "Card de atributo do personagem",
+      "file": "app/src/assets/icons/icon-attr-col.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-role-bicho",
+      "category": "icones-roles",
+      "name": "Bicho",
+      "description": "Garra com três garras, banca focada em combate.",
+      "alt": "Ícone da banca Bicho",
+      "usage": "Card de seleção de banca",
+      "file": "app/src/assets/icons/icon-role-bicho.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-role-vulto",
+      "category": "icones-roles",
+      "name": "Vulto",
+      "description": "Silhueta sombreada com olho único, banca furtiva.",
+      "alt": "Ícone da banca Vulto",
+      "usage": "Card de seleção de banca",
+      "file": "app/src/assets/icons/icon-role-vulto.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-role-gambiarrista",
+      "category": "icones-roles",
+      "name": "Gambiarrista",
+      "description": "Chave-inglesa, banca de reparo e improviso.",
+      "alt": "Ícone da banca Gambiarrista",
+      "usage": "Card de seleção de banca",
+      "file": "app/src/assets/icons/icon-role-gambiarrista.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-role-despachante",
+      "category": "icones-roles",
+      "name": "Despachante",
+      "description": "Headset de comunicação, banca de negócios e informação.",
+      "alt": "Ícone da banca Despachante",
+      "usage": "Card de seleção de banca",
+      "file": "app/src/assets/icons/icon-role-despachante.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-role-estradeiro",
+      "category": "icones-roles",
+      "name": "Estradeiro",
+      "description": "Estrada em perspectiva com ponto de fuga, banca de transporte.",
+      "alt": "Ícone da banca Estradeiro",
+      "usage": "Card de seleção de banca",
+      "file": "app/src/assets/icons/icon-role-estradeiro.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-action-atacar",
+      "category": "icones-acoes",
+      "name": "Atacar",
+      "description": "Lâmina diagonal, ação de ataque.",
+      "alt": "Ícone da ação Atacar",
+      "usage": "Botão de ataque em combate",
+      "file": "app/src/assets/icons/icon-action-atacar.svg",
+      "colorToken": "nd-magenta"
+    },
+    {
+      "id": "icon-action-instalar",
+      "category": "icones-acoes",
+      "name": "Instalar",
+      "description": "Chip encaixando em slot, ação de instalar chrome.",
+      "alt": "Ícone da ação Instalar",
+      "usage": "Ação de instalar chrome no ripperdoc",
+      "file": "app/src/assets/icons/icon-action-instalar.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-action-hackear",
+      "category": "icones-acoes",
+      "name": "Hackear",
+      "description": "Plug entrando em nó, ação de hackear.",
+      "alt": "Ícone da ação Hackear",
+      "usage": "Ação de hackear na interface de rede",
+      "file": "app/src/assets/icons/icon-action-hackear.svg",
+      "colorToken": "nd-purple"
+    },
+    {
+      "id": "icon-action-entregar",
+      "category": "icones-acoes",
+      "name": "Entregar",
+      "description": "Caixa com fita, ação de entregar trampo.",
+      "alt": "Ícone da ação Entregar",
+      "usage": "Ação de concluir entrega de trampo",
+      "file": "app/src/assets/icons/icon-action-entregar.svg",
+      "colorToken": "nd-gold"
+    },
+    {
+      "id": "icon-action-negociar",
+      "category": "icones-acoes",
+      "name": "Negociar",
+      "description": "Aperto de mão, ação de negociar.",
+      "alt": "Ícone da ação Negociar",
+      "usage": "Ação de negociar com despachante",
+      "file": "app/src/assets/icons/icon-action-negociar.svg",
+      "colorToken": "nd-gold"
+    },
+    {
+      "id": "icon-res-nil",
+      "category": "icones-recursos",
+      "name": "NIL",
+      "description": "Bateria com raio, recurso NIL.",
+      "alt": "Ícone do recurso NIL",
+      "usage": "Barra de NIL do HUD",
+      "file": "app/src/assets/icons/icon-res-nil.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-res-humanidade",
+      "category": "icones-recursos",
+      "name": "Humanidade",
+      "description": "Coração com linha de pulso, recurso Humanidade.",
+      "alt": "Ícone do recurso Humanidade",
+      "usage": "Barra de Humanidade do HUD",
+      "file": "app/src/assets/icons/icon-res-humanidade.svg",
+      "colorToken": "nd-green"
+    },
+    {
+      "id": "icon-res-grana",
+      "category": "icones-recursos",
+      "name": "Grana",
+      "description": "Cédula, recurso Grana.",
+      "alt": "Ícone do recurso Grana",
+      "usage": "Indicador de grana no HUD",
+      "file": "app/src/assets/icons/icon-res-grana.svg",
+      "colorToken": "nd-gold"
+    },
+    {
+      "id": "icon-res-moral",
+      "category": "icones-recursos",
+      "name": "Moral",
+      "description": "Estrela de cinco pontas, recurso Moral.",
+      "alt": "Ícone do recurso Moral",
+      "usage": "Indicador de moral no HUD",
+      "file": "app/src/assets/icons/icon-res-moral.svg",
+      "colorToken": "nd-gold"
+    },
+    {
+      "id": "icon-res-ram",
+      "category": "icones-recursos",
+      "name": "RAM",
+      "description": "Pilha de módulos de memória, recurso RAM.",
+      "alt": "Ícone do recurso RAM",
+      "usage": "Painel de RAM do hacker",
+      "file": "app/src/assets/icons/icon-res-ram.svg",
+      "colorToken": "nd-purple"
+    },
+    {
+      "id": "icon-res-trace",
+      "category": "icones-recursos",
+      "name": "Trace",
+      "description": "Círculo de radar com varredura, recurso Trace.",
+      "alt": "Ícone do recurso Trace",
+      "usage": "Barra de trace durante hacking",
+      "file": "app/src/assets/icons/icon-res-trace.svg",
+      "colorToken": "nd-purple"
+    },
+    {
+      "id": "icon-frame-comum",
+      "category": "molduras-cards",
+      "name": "Moldura Comum",
+      "description": "Contorno hairline simples para cards comuns.",
+      "alt": "Moldura comum de card",
+      "usage": "Borda de card comum",
+      "file": "app/src/assets/icons/icon-frame-comum.svg",
+      "colorToken": "nd-text-secondary"
+    },
+    {
+      "id": "icon-frame-raro",
+      "category": "molduras-cards",
+      "name": "Moldura Rara",
+      "description": "Cantos com duplo traço para cards raros.",
+      "alt": "Moldura rara de card",
+      "usage": "Borda de card raro",
+      "file": "app/src/assets/icons/icon-frame-raro.svg",
+      "colorToken": "nd-purple"
+    },
+    {
+      "id": "icon-frame-elite",
+      "category": "molduras-cards",
+      "name": "Moldura Elite",
+      "description": "Cantos duplos com recorte angular para cards elite.",
+      "alt": "Moldura elite de card",
+      "usage": "Borda de card elite",
+      "file": "app/src/assets/icons/icon-frame-elite.svg",
+      "colorToken": "nd-magenta"
+    },
+    {
+      "id": "icon-frame-lendario",
+      "category": "molduras-cards",
+      "name": "Moldura Lendária",
+      "description": "Cantos ornamentados com traço âmbar para cards lendários.",
+      "alt": "Moldura lendária de card",
+      "usage": "Borda de card lendário",
+      "file": "app/src/assets/icons/icon-frame-lendario.svg",
+      "colorToken": "nd-gold"
+    },
+    {
+      "id": "icon-tier-t1",
+      "category": "badges-tier",
+      "name": "Tier 1",
+      "description": "Hexágono com um pip, tier 1.",
+      "alt": "Badge de tier 1",
+      "usage": "Badge de tier T1",
+      "file": "app/src/assets/icons/icon-tier-t1.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-tier-t2",
+      "category": "badges-tier",
+      "name": "Tier 2",
+      "description": "Hexágono com dois pips, tier 2.",
+      "alt": "Badge de tier 2",
+      "usage": "Badge de tier T2",
+      "file": "app/src/assets/icons/icon-tier-t2.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-tier-t3",
+      "category": "badges-tier",
+      "name": "Tier 3",
+      "description": "Hexágono com três pips, tier 3.",
+      "alt": "Badge de tier 3",
+      "usage": "Badge de tier T3",
+      "file": "app/src/assets/icons/icon-tier-t3.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-tier-t4",
+      "category": "badges-tier",
+      "name": "Tier 4",
+      "description": "Hexágono com quatro pips, tier 4.",
+      "alt": "Badge de tier 4",
+      "usage": "Badge de tier T4",
+      "file": "app/src/assets/icons/icon-tier-t4.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-tier-t5",
+      "category": "badges-tier",
+      "name": "Tier 5",
+      "description": "Hexágono com cinco pips, tier 5.",
+      "alt": "Badge de tier 5",
+      "usage": "Badge de tier T5",
+      "file": "app/src/assets/icons/icon-tier-t5.svg",
+      "colorToken": "nd-cyan"
+    },
+    {
+      "id": "icon-state-sucesso",
+      "category": "indicadores-estado",
+      "name": "Sucesso",
+      "description": "Check, indicador de sucesso.",
+      "alt": "Ícone de estado Sucesso",
+      "usage": "Confirmação de sucesso em ações",
+      "file": "app/src/assets/icons/icon-state-sucesso.svg",
+      "colorToken": "nd-green"
+    },
+    {
+      "id": "icon-state-risco",
+      "category": "indicadores-estado",
+      "name": "Risco",
+      "description": "Triângulo de alerta com ponto central, indicador de risco.",
+      "alt": "Ícone de estado Risco",
+      "usage": "Alerta de risco em trampos",
+      "file": "app/src/assets/icons/icon-state-risco.svg",
+      "colorToken": "nd-magenta"
+    },
+    {
+      "id": "icon-state-cooldown",
+      "category": "indicadores-estado",
+      "name": "Cooldown",
+      "description": "Relógio com arco parcial, indicador de cooldown.",
+      "alt": "Ícone de estado Cooldown",
+      "usage": "Indicador de cooldown em habilidades",
+      "file": "app/src/assets/icons/icon-state-cooldown.svg",
+      "colorToken": "nd-text-secondary"
+    },
+    {
+      "id": "icon-state-bloqueado",
+      "category": "indicadores-estado",
+      "name": "Bloqueado",
+      "description": "Cadeado, indicador de ação bloqueada.",
+      "alt": "Ícone de estado Bloqueado",
+      "usage": "Indicador de ação bloqueada",
+      "file": "app/src/assets/icons/icon-state-bloqueado.svg",
+      "colorToken": "nd-text-secondary"
+    },
+    {
+      "id": "icon-state-degradado",
+      "category": "indicadores-estado",
+      "name": "Degradado",
+      "description": "Losango com fissura, indicador de degradação.",
+      "alt": "Ícone de estado Degradado",
+      "usage": "Indicador de chrome degradado",
+      "file": "app/src/assets/icons/icon-state-degradado.svg",
+      "colorToken": "nd-gold"
+    }
+  ]
 }
