@@ -81,12 +81,6 @@ export interface CharacterRepository {
   insert(input: CharacterInsert, q?: Queryable): Promise<CharacterRow>;
   /** Plain street_cred write (decay writeback). */
   updateStreetCred(id: string, streetCred: number, q?: Queryable): Promise<void>;
-  /** Award write — tracks the lifetime max and refreshes activity. */
-  updateStreetCredAward(
-    id: string,
-    newScore: number,
-    q?: Queryable,
-  ): Promise<{ streetCred: number; maxStreetCredAchieved: number } | undefined>;
   /** Wrap-up write — Moral + lifetime max + activity refresh. */
   updateStreetCredAndActivity(id: string, newScore: number, q?: Queryable): Promise<void>;
   /** PvP winner write — tracks the lifetime max only. */
@@ -221,21 +215,6 @@ export function createCharacterRepository(q: Queryable = db): CharacterRepositor
       await tx("characters")
         .update({ street_cred: streetCred, updated_at: new Date() })
         .where("id", id);
-    },
-
-    async updateStreetCredAward(id, newScore, tx = q) {
-      const rows = await tx("characters")
-        .update({
-          street_cred: newScore,
-          max_street_cred_achieved: q.raw("GREATEST(max_street_cred_achieved, ?)", [newScore]),
-          last_activity_at: q.fn.now(),
-          updated_at: q.fn.now(),
-        })
-        .where("id", id)
-        .returning(["street_cred as streetCred", "max_street_cred_achieved as maxStreetCredAchieved"]);
-      return rows.length
-        ? (rows[0] as { streetCred: number; maxStreetCredAchieved: number })
-        : undefined;
     },
 
     async updateStreetCredAndActivity(id, newScore, tx = q) {

@@ -1,27 +1,20 @@
 import type { FastifyInstance } from "fastify";
 import type Redis from "ioredis";
 import { z } from "zod";
-import type {
-  AwardSCResponse,
-  LeaderboardResponse,
-  StreetCredInfo,
-} from "@neon-dusk/shared";
+import type { LeaderboardResponse, StreetCredInfo } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { AppError } from "../middleware/error-handler";
 import { calculateDecay, getNextThreshold, getTitle } from "../game/street-cred";
-import { invalidateLeaderboardCache, LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
-import { withTransaction } from "../db";
+import { LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
 import { characterRepository as characters } from "../repositories/character-repository";
-import { transactionRepository as transactions } from "../repositories/transaction-repository";
 
 // Neon Dusk — Moral routes (ND-011.2)
 // ============================================================================
 // GET /api/street-cred applies decay lazily on read (grace 7d, -5 SC/day,
 // floor = max threshold achieved) and writes the decayed score back. The
 // leaderboard is public and cached in Redis (5 min TTL, invalidated on every
-// SC change — see #74). POST /award is the internal/system faucet (events,
-// admin) — clamped at the 100 cap and audited in transaction_log with type
-// STREET_CRED_AWARD.
+// SC change — see #74). Moral awards happen server-side in gameplay flows
+// (trampo wrap-up, PvP) — there is no player-facing award endpoint (#36).
 
 export interface StreetCredRoutesOptions {
   redis: Redis;
@@ -29,11 +22,6 @@ export interface StreetCredRoutesOptions {
 
 const leaderboardQuery = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
-});
-
-const awardSchema = z.object({
-  amount: z.number().positive().max(100),
-  source: z.string().min(1).max(200),
 });
 
 /** TTL for the public leaderboard snapshot (kept long for passive readers). */
@@ -106,57 +94,4 @@ export async function streetCredRoutes(app: FastifyInstance, opts: StreetCredRou
     await redis.set(LEADERBOARD_CACHE_KEY, JSON.stringify(leaderboard), "EX", LEADERBOARD_CACHE_TTL_S);
     return { leaderboard: leaderboard.slice(0, limit) };
   });
-
-  // POST /api/street-cred/award — authenticated faucet, clamped at the cap.
-  app.post(
-    "/street-cred/award",
-    { preHandler: [authenticate] },
-    async (request): Promise<AwardSCResponse> => {
-      const body = awardSchema.parse(request.body);
-      const characterId = (await characters.requireByUserId(request.user.sub)).id;
-
-      return withTransaction(async (trx) => {
-        const row = await characters.findById(characterId, trx);
-        if (!row) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
-
-        // Clamp to [1, 100 - current]; already at the cap → 0 (no-op award).
-        const room = 100 - row.street_cred;
-        const gained = Math.max(0, Math.min(body.amount, room));
-        const newScore = row.street_cred + gained;
-
-        if (gained > 0) {
-          const updated = await characters.updateStreetCredAward(characterId, newScore, trx);
-
-          if (!updated) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
-
-          // Audit trail. transaction_log's CHECK requires
-          // balance_after - balance_before = amount — the SC delta satisfies it.
-          await transactions.insert(
-            {
-              character_id: characterId,
-              type: "STREET_CRED_AWARD",
-              amount: gained,
-              balance_before: row.street_cred,
-              balance_after: newScore,
-              source: body.source,
-            },
-            trx,
-          );
-
-          // #74: drop the cached leaderboard so the next read shows the fresh
-          // ranking. Best-effort, fires outside the DB transaction.
-          await invalidateLeaderboardCache(redis);
-
-          return {
-            score: newScore,
-            title: getTitle(newScore),
-            gained,
-            maxAchieved: updated.maxStreetCredAchieved,
-          };
-        }
-
-        return { score: row.street_cred, title: getTitle(row.street_cred), gained: 0, maxAchieved: row.max_street_cred_achieved };
-      });
-    },
-  );
 }
