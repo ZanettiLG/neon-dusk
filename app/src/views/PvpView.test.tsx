@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { StrictMode } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PvpView from "@/views/PvpView";
@@ -132,5 +133,49 @@ describe("PvpView", () => {
     expect(mocks.api.post).toHaveBeenCalledWith("/api/pvp/attack", {
       targetId: "c2",
     });
+  });
+
+  it("should re-fetch and render targets after unmount and remount", async () => {
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/pvp/attackable") return Promise.resolve(attackable);
+      if (url === "/api/pvp/history") return Promise.resolve(history);
+      return Promise.resolve({});
+    });
+
+    const { unmount } = render(<PvpView />);
+    expect(await screen.findByText("Raven")).toBeInTheDocument();
+
+    unmount();
+    render(<PvpView />);
+
+    // Remount re-runs the effect — targets must render again, not stay stuck
+    // in loading, and both fetches must have been re-executed.
+    expect(await screen.findByText("Raven")).toBeInTheDocument();
+    expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
+    const attackableCalls = mocks.api.get.mock.calls.filter(
+      ([url]) => url === "/api/pvp/attackable",
+    );
+    expect(attackableCalls).toHaveLength(2);
+  });
+
+  it("should not stay stuck in loading after StrictMode remount", async () => {
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/pvp/attackable") return Promise.resolve(attackable);
+      if (url === "/api/pvp/history") return Promise.resolve(history);
+      return Promise.resolve({});
+    });
+
+    // StrictMode runs the effect twice on the SAME instance (mount → cleanup →
+    // mount). Without the #191 fix (mountedRef.current = true at effect start),
+    // the second run's fetches resolve against mountedRef=false and the screen
+    // stays in loading forever.
+    render(
+      <StrictMode>
+        <PvpView />
+      </StrictMode>,
+    );
+
+    expect(await screen.findByText("Raven")).toBeInTheDocument();
+    expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
   });
 });
