@@ -7,7 +7,9 @@ import { startTestServer, json, authHeader, resetDb, registerTestUser, type Test
 import { db } from "../db";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { rateLimitConfig } from "../lib/rate-limit";
+import { LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
 import type {
+  LeaderboardResponse,
   PvpAttackableResponse,
   PvpCombatResult,
   PvpHistoryResponse,
@@ -465,6 +467,44 @@ describe("ND-014 — PvP combat API", () => {
         authHeader(attacker.accessToken),
       );
       expect(retry.status).toBe(200);
+    });
+
+    it("should invalidate the leaderboard cache after a fight that moves Moral (#74)", async () => {
+      const attacker = await createPvpPlayer({
+        attributes: STRONG_ATTRS,
+        streetCred: 30,
+        createdAtDaysAgo: 10,
+      });
+      const defender = await createPvpPlayer({
+        attributes: WEAK_ATTRS,
+        streetCred: 50,
+        createdAtDaysAgo: 10,
+      });
+
+      // Populate the server-side leaderboard snapshot (public route, 5-min TTL).
+      const preload = await fetch(`${base()}/api/street-cred/leaderboard`);
+      expect(preload.status).toBe(200);
+      expect(await redis.get(LEADERBOARD_CACHE_KEY)).toBeTruthy();
+
+      const { status } = await attack(attacker, defender.characterId);
+      expect(status).toBe(200);
+
+      // #74: any fight can move SC for winner and loser — the snapshot is
+      // dropped unconditionally after the combat commits.
+      expect(await redis.get(LEADERBOARD_CACHE_KEY)).toBeNull();
+
+      // Fresh snapshot shows the updated score for both fighters.
+      const [attackerRow, defenderRow] = await Promise.all([
+        getCharacter(attacker.characterId),
+        getCharacter(defender.characterId),
+      ]);
+      const lb = await fetch(`${base()}/api/street-cred/leaderboard`);
+      expect(lb.status).toBe(200);
+      const body = await json<LeaderboardResponse>(lb);
+      const attackerEntry = body.leaderboard.find((e) => e.characterName === attackerRow.name);
+      const defenderEntry = body.leaderboard.find((e) => e.characterName === defenderRow.name);
+      expect(attackerEntry?.score).toBe(attackerRow.street_cred); // 30 + 5 win
+      expect(defenderEntry?.score).toBe(defenderRow.street_cred); // 50 − 2 loss
     });
 
     it("should report a loss for the attacker when the defender's power is higher", async () => {

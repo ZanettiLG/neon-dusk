@@ -17,6 +17,7 @@ import {
   wrapUpGig,
 } from "../services/gig-service";
 import { seedGigs } from "../seed/content-seeds";
+import { LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
 import type {
   ActiveGig,
   AuthResponse,
@@ -26,6 +27,7 @@ import type {
   GigEscapeResponse,
   GigExecuteResponse,
   GigWrapupResponse,
+  LeaderboardResponse,
 } from "@neon-dusk/shared";
 
 // ND-011 — trampos service + API integration tests. Real Postgres/Redis on the
@@ -58,14 +60,14 @@ interface ErrorBody {
 
 describe("ND-011 — trampos service & API", () => {
   let app: FastifyInstance;
+  let redis: Redis;
 
   beforeAll(async () => {
     await resetDb();
 
-    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
     await redis.connect();
     await redis.flushdb();
-    redis.disconnect();
 
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     await seedGigs(db);
@@ -73,6 +75,7 @@ describe("ND-011 — trampos service & API", () => {
 
   afterAll(async () => {
     await app.close();
+    redis.disconnect();
   });
 
   /** DB row of a seeded template, by display name. */
@@ -1280,6 +1283,42 @@ describe("ND-011 — trampos service & API", () => {
       expect(body.payout).toBe(execOutcome.success ? 660 : 0); // 500 × 1.2 × 1.1
       expect(body.heatAccumulated).toBe(execOutcome.success ? 5 : 10);
       expect(body.newBalance).toBe(execOutcome.success ? 1160 : 500);
+    });
+
+    it("should invalidate the leaderboard cache after a wrap-up that grants Moral (#74)", async () => {
+      const { accessToken: token, characterId } = await registerApiUser();
+      const farma = await farmaGig();
+      await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/accept`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      // Deterministic success: execute + escape both resolved in the player's favor.
+      await forceEscapePhase(characterId, { outcome: "success" });
+
+      // Populate the server-side leaderboard snapshot (public route, 5-min TTL).
+      await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
+      expect(await redis.get(LEADERBOARD_CACHE_KEY)).toBeTruthy();
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/wrapup`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as GigWrapupResponse;
+      expect(body.streetCredGained).toBeGreaterThan(0); // the invalidation branch fired
+
+      // #74: the SC change drops the stale snapshot; the next read hits the DB.
+      expect(await redis.get(LEADERBOARD_CACHE_KEY)).toBeNull();
+
+      // Fresh snapshot shows the character's new score.
+      const [char] = await db("characters").select("name").where("id", characterId);
+      const lb = await app.inject({ method: "GET", url: "/api/street-cred/leaderboard" });
+      expect(lb.statusCode).toBe(200);
+      const lbBody = lb.json() as LeaderboardResponse;
+      const mine = lbBody.leaderboard.find((e) => e.characterName === char!.name);
+      expect(mine?.score).toBe(body.streetCredGained); // fresh character starts at SC 0
     });
 
     it("should return 409 INVALID_PHASE_TRANSITION before the escape phase", async () => {
