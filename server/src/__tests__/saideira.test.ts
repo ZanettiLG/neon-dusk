@@ -124,6 +124,11 @@ describe("ND-015 — Saideira Hub API", () => {
     status: number;
     contentType: string | null;
     handshake: string;
+    cors: {
+      allowOrigin: string | null;
+      vary: string | null;
+      allowCredentials: string | null;
+    };
   }> {
     const controller = new AbortController();
     const res = await fetch(`${base()}${path}`, { signal: controller.signal, headers });
@@ -135,6 +140,11 @@ describe("ND-015 — Saideira Hub API", () => {
       status: res.status,
       contentType: res.headers.get("content-type"),
       handshake: new TextDecoder().decode(value),
+      cors: {
+        allowOrigin: res.headers.get("access-control-allow-origin"),
+        vary: res.headers.get("vary"),
+        allowCredentials: res.headers.get("access-control-allow-credentials"),
+      },
     };
   }
 
@@ -365,6 +375,17 @@ describe("ND-015 — Saideira Hub API", () => {
       );
       expect(sse.status).toBe(200);
       expect(sse.handshake).toContain(":ok");
+    });
+
+    it("should send CORS headers on the hijacked SSE response (ADR-1)", async () => {
+      const { accessToken } = await registerApiUser();
+
+      const sse = await openSseThenAbort("/api/saideira/chat/stream", authHeader(accessToken));
+
+      expect(sse.status).toBe(200);
+      expect(sse.cors.allowOrigin).toBe("http://localhost:5173");
+      expect(sse.cors.vary).toContain("Origin");
+      expect(sse.cors.allowCredentials).toBe("true");
     });
   });
 

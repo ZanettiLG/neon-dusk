@@ -179,7 +179,16 @@ describe("ND-016 — Crews Básicas API", () => {
   async function openSseThenAbort(
     path: string,
     headers?: Record<string, string>,
-  ): Promise<{ status: number; contentType: string | null; handshake: string }> {
+  ): Promise<{
+    status: number;
+    contentType: string | null;
+    handshake: string;
+    cors: {
+      allowOrigin: string | null;
+      vary: string | null;
+      allowCredentials: string | null;
+    };
+  }> {
     const controller = new AbortController();
     const res = await fetch(`${base()}${path}`, { signal: controller.signal, headers });
     const reader = res.body!.getReader();
@@ -190,6 +199,11 @@ describe("ND-016 — Crews Básicas API", () => {
       status: res.status,
       contentType: res.headers.get("content-type"),
       handshake: new TextDecoder().decode(value),
+      cors: {
+        allowOrigin: res.headers.get("access-control-allow-origin"),
+        vary: res.headers.get("vary"),
+        allowCredentials: res.headers.get("access-control-allow-credentials"),
+      },
     };
   }
 
@@ -1038,6 +1052,21 @@ describe("ND-016 — Crews Básicas API", () => {
 
       expect(sse.status).toBe(200);
       expect(sse.handshake).toContain(":ok");
+    });
+
+    it("should send CORS headers on the hijacked SSE response (ADR-1)", async () => {
+      const leader = await registerApiUser();
+      const crewId = await buildCrew(leader, "Blade Runners", "BLD");
+
+      const sse = await openSseThenAbort(
+        `/api/crews/${crewId}/chat/stream`,
+        authHeader(leader.accessToken),
+      );
+
+      expect(sse.status).toBe(200);
+      expect(sse.cors.allowOrigin).toBe("http://localhost:5173");
+      expect(sse.cors.vary).toContain("Origin");
+      expect(sse.cors.allowCredentials).toBe("true");
     });
 
     it("should reject a non-member with 403 NOT_CREW_MEMBER", async () => {

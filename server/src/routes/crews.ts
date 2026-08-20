@@ -561,6 +561,8 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     await requireMember(crewId, characterId);
 
     reply.raw.writeHead(200, {
+      // CORS for cross-origin EventSource — see app.ts (sseCorsHeaders).
+      ...request.server.sseCorsHeaders,
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
