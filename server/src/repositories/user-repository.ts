@@ -27,6 +27,8 @@ export interface UserRepository {
   findById(id: string, q?: Queryable): Promise<UserRow | null>;
   /** Insert a user and return the full row. */
   insert(input: UserInsert, q?: Queryable): Promise<UserRow>;
+  /** Replace the password hash for an existing user (admin seed convergence). */
+  updatePasswordHash(id: string, passwordHash: string, q?: Queryable): Promise<void>;
 }
 
 export function createUserRepository(q: Queryable = db): UserRepository {
@@ -44,6 +46,10 @@ export function createUserRepository(q: Queryable = db): UserRepository {
     async insert(input, tx = q): Promise<UserRow> {
       const [row] = await tx("users").insert(input).returning("*");
       return row as UserRow;
+    },
+
+    async updatePasswordHash(id, passwordHash, tx = q): Promise<void> {
+      await tx("users").where("id", id).update({ password_hash: passwordHash, updated_at: new Date() });
     },
   };
 }
