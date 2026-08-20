@@ -57,27 +57,45 @@ describe("Drawer", () => {
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
   });
 
-  it("focuses the first link on open and traps Tab at the edges", () => {
+  it("focuses the first focusable on open and traps Tab at the edges", () => {
     render(
       <MemoryRouter>
         <Drawer open onClose={vi.fn()} />
       </MemoryRouter>,
     );
 
-    const firstLink = screen.getByRole("link", { name: "Vendedores" });
     const last = screen.getByRole("link", { name: "Bondes" });
     const close = screen.getByRole("button", { name: "Fechar menu" });
-    expect(document.activeElement).toBe(firstLink);
+    // Initial focus lands on the first focusable in DOM order (the close
+    // button) — the same element used as the trap's first boundary.
+    expect(document.activeElement).toBe(close);
 
-    // The first focusable in DOM order is the close button: Shift+Tab from it
-    // wraps to the last link (jsdom has no native tab order — focus it first).
-    close.focus();
+    // Shift+Tab from the first focusable wraps to the last (jsdom has no
+    // native tab order — focus is already set on open).
     fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(last);
 
     // Tab from the last link wraps back to the first focusable.
     fireEvent.keyDown(document, { key: "Tab" });
     expect(document.activeElement).toBe(close);
+  });
+
+  it("Shift+Tab a partir do foco inicial não escapa do dialog", () => {
+    render(
+      <MemoryRouter>
+        <Drawer open onClose={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    const close = screen.getByRole("button", { name: "Fechar menu" });
+    const last = screen.getByRole("link", { name: "Bondes" });
+    // Initial focus is the first focusable, so a Shift+Tab cannot land on a
+    // boundary the trap does not watch: it cycles to the last item inside.
+    expect(document.activeElement).toBe(close);
+
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(last);
+    expect(last.closest('[role="dialog"]')).not.toBeNull();
   });
 
   it("closes on Escape and returns focus to the opening toggle", () => {
@@ -98,7 +116,9 @@ describe("Drawer", () => {
         <Drawer open onClose={onClose} />
       </MemoryRouter>,
     );
-    expect(document.activeElement).toBe(screen.getByRole("link", { name: "Vendedores" }));
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Fechar menu" }),
+    );
 
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
