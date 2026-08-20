@@ -275,6 +275,9 @@ const CODE_BANNED = [
   { label: 'runner', re: /runner/i },
   { label: 'legend', re: /legend/i },
   { label: 'unknown (Moral)', re: /"Unknown"|'Unknown'/i },
+  // Extensão #189: "MaxTac" (força de elite) → "A Garra". Sem \b — a regra
+  // word-boundary (isEmbeddedToken) isola identificadores embutidos.
+  { label: 'maxtac', re: /maxtac/i },
 ]
 
 // Self-check do CODE_BANNED (mesmo padrão do PROBES): cada probe deve disparar
@@ -304,6 +307,7 @@ const CODE_PROBES = {
   'runner': 'Um runner qualquer.',
   'legend': 'Um legend da quebrada.',
   'unknown (Moral)': 'Título "Unknown" é proibido.',
+  'maxtac': 'A MaxTac chegou ao local.',
 }
 
 // Allowlist pontual de tokens internos legítimos como palavras isoladas.

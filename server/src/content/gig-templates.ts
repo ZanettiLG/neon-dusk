@@ -326,7 +326,7 @@ export const GIG_TEMPLATES: GigTemplateSeed[] = [
     name: "Inimigo do Estado",
     description:
       "Um whistleblower corporativo está escondido na zona mais vigiada da " +
-      "cidade. Extraia ele antes que a MaxTac chegue.",
+      "cidade. Extraia ele antes que a Garra chegue.",
     tier: "t5",
     type: "extraction",
     district: "O Ponto",
