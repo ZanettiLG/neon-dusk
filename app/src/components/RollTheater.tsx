@@ -13,7 +13,7 @@ interface RollTheaterProps {
   label: string;
   /** Already-resolved outcome — this component NEVER computes success. */
   outcome: RollTheaterOutcome;
-  /** Diegetic flavor text (gig-copy). */
+  /** Diegetic flavor text (`gig-copy`). */
   copy: string;
   /** Fired when the user clicks "continuar" at the end of the sequence. */
   onComplete: () => void;

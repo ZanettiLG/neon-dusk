@@ -190,7 +190,7 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
     return {
       id: g.id as string,
       name: g.name as string,
-      // ponytaill: Knex returns string for enum columns — cast to satisfy shared types
+      // ponytail: Knex returns string for enum columns — cast to satisfy shared types
       tier: g.tier as GigListItem["tier"],
       type: g.type as GigListItem["type"],
       district: g.district as string,
