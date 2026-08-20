@@ -43,7 +43,7 @@ import {
 } from "../game/abilities";
 import { transferEddies } from "../game/economy";
 import { emitEvent } from "../telemetry/emit-event";
-import { withTransaction } from "../db";
+import { db, withTransaction } from "../db";
 import type { Queryable } from "../repositories";
 import { characterRepository as characters } from "../repositories/character-repository";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
@@ -170,6 +170,11 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
   const attrs = toAttributes(character);
   const now = new Date();
 
+  // ND-140: cromo success/stat bonuses are character-level — compute once, reuse
+  // across every board row (base chance; legwork/crew apply on top at execute).
+  const chromeBonus = await getGigSuccessBonus(db, characterId);
+  const chromeStatBonuses = await getChromeStatBonus(db, characterId);
+
   const gigRows = await gigs.listCatalog();
 
   // Last completion per trampo template → per-trampo cooldowns.
@@ -180,10 +185,12 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
     const requiredStats = g.required_stats as Record<string, number>;
     const meetsRequirements =
       meetsStatRequirements(attrs, requiredStats) && Number(character.street_cred) >= Number(g.required_street_cred);
+    const primaryStatKey = getPrimaryStatKey(g.type as GigType);
+    const { primary } = getRelevantStats(g.type as GigType, attrs);
     return {
       id: g.id as string,
       name: g.name as string,
-      // ponytaill: Knex returns string for enum columns — cast to satisfy shared types
+      // ponytail: Knex returns string for enum columns — cast to satisfy shared types
       tier: g.tier as GigListItem["tier"],
       type: g.type as GigListItem["type"],
       district: g.district as string,
@@ -193,6 +200,9 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
       requiredStats,
       meetsRequirements,
       cooldownRemaining: cooldownRemainingFor(lastByGig.get(g.id as string) ?? null, Number(g.cooldown_minutes), now),
+      // ND-140: base chance (stat + cromo) — legwork/bonde apply on top at execute.
+      successChance: calculateSuccessChance(primary, chromeBonus, Number(g.difficulty), undefined, chromeStatBonuses[primaryStatKey]),
+      heatGenerated: Number(g.heat_generated),
     };
   });
 

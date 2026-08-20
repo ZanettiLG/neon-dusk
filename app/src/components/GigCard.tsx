@@ -19,6 +19,13 @@ const TYPE_STYLES: Record<GigType, { badge: string; bar: string }> = {
   sabotage: { badge: "text-nd-gold border-nd-gold/40 bg-nd-gold/10", bar: "bg-nd-gold" },
 };
 
+/** Chance badge classes per gigChance band label (band only carries a bg- class). */
+const CHANCE_BADGES: Record<string, string> = {
+  baixa: "text-nd-magenta border-nd-magenta/40 bg-nd-magenta/10",
+  média: "text-nd-gold border-nd-gold/40 bg-nd-gold/10",
+  alta: "text-nd-green border-nd-green/40 bg-nd-green/10",
+};
+
 /**
  * One trampo on the Despachante Cupim board: type/tier badges, difficulty bar, reward
  * and NIL cost, per-attribute requirements (checked against the character)
@@ -39,6 +46,8 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
 
   const onCooldown = remaining > 0;
   const acceptDisabled = disabled || onCooldown || !trampo.meetsRequirements;
+  const chancePct = Math.round(trampo.successChance * 100);
+  const chanceBand = bandFor("gigChance", chancePct);
 
   return (
     <article className="card flex flex-col gap-3">
@@ -76,13 +85,37 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
         </div>
       </div>
 
-      {/* Reward + NIL cost */}
-      <div className="flex items-center justify-between gap-3">
-        <span className="font-data text-sm text-nd-gold">
-          G$ {trampo.baseReward.toLocaleString("pt-BR")}
+      {/* Chance (server-calculated base; legwork +20% applies on top at execute) */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-[10px] font-data uppercase tracking-widest text-nd-text-secondary">
+          <span>Chance</span>
+          <span
+            className={`font-data text-[10px] uppercase tracking-wider border rounded-terminal px-1.5 py-0.5 ${CHANCE_BADGES[chanceBand.label]}`}
+          >
+            chance {chancePct}% · {chanceBand.label}
+          </span>
+        </div>
+        <div className="h-1.5 w-full bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${chanceBand.color}`}
+            style={{ width: `${chancePct}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* CUSTO NIL → RISCO → RECOMPENSA */}
+      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-data text-xs">
+        <span className="text-nd-text-secondary">Custo NIL</span>
+        <span className="text-nd-cyan">{trampo.nilCost}</span>
+        <span className="text-nd-text-secondary">Risco</span>
+        <span className="text-nd-magenta">
+          Calor +{trampo.heatGenerated}
+          <span className="text-nd-text-secondary"> · dobra se falhar</span>
         </span>
-        <span className="font-data text-xs text-nd-text-secondary">
-          NIL <span className="text-nd-cyan">{trampo.nilCost}</span>
+        <span className="text-nd-text-secondary">Recompensa</span>
+        <span className="text-nd-gold">
+          G$ {trampo.baseReward.toLocaleString("pt-BR")}
+          <span className="text-nd-text-secondary text-[10px]"> · ×1.32 máx (legwork + sucesso)</span>
         </span>
       </div>
 

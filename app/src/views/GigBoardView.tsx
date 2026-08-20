@@ -4,6 +4,8 @@ import { GIG_TIERS, GIG_TYPES } from "@neon-dusk/shared";
 import { useGigStore } from "@/stores/gig";
 import GigCard from "@/components/GigCard";
 import ActiveGigPanel from "@/components/ActiveGigPanel";
+import FixerPortrait from "@/components/FixerPortrait";
+import DistrictBanner from "@/components/DistrictBanner";
 import { GIG_TYPE_LABELS } from "@/lib/labels";
 
 type TierFilter = "all" | GigTier;
@@ -74,9 +76,10 @@ export default function GigBoardView() {
   return (
     <div className="py-8 space-y-6">
       {/* Despachante header */}
-      <div className="card border-nd-purple/40 shadow-neon-purple">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
+      <div className="card border-nd-purple/40 shadow-neon-purple space-y-3">
+        <div className="flex items-start gap-4">
+          <FixerPortrait size="lg" />
+          <div className="min-w-0">
             <h2 className="font-heading text-2xl text-nd-purple tracking-widest">
               CUPIM <span className="text-nd-text-secondary">//</span> O PORTEIRO
             </h2>
@@ -85,11 +88,18 @@ export default function GigBoardView() {
               entrega quente e dinheiro na mão.
             </p>
           </div>
-          <div className="text-right shrink-0">
-            <p className="font-data text-[10px] text-nd-text-secondary">
-              "{"Mano, preciso que você entregue esse pacote antes que o dono perceba que sumiu. Corre!"}"
-            </p>
-          </div>
+        </div>
+
+        <DistrictBanner />
+
+        {/* Loop de rua do Cupim: vocativo → status → pacto. */}
+        <div className="space-y-1 border-l-2 border-nd-purple/40 pl-3">
+          <p className="font-data text-[11px] text-nd-text-secondary">
+            "{"Salve, mano. Firmeza? Babilônia não perdoa quem vacila. Traz o resultado que a grana tá no jeito."}"
+          </p>
+          <p className="font-data text-[11px] text-nd-purple/70">
+            "{"Mano, preciso que você entregue esse pacote antes que o dono perceba que sumiu. Corre!"}"
+          </p>
         </div>
       </div>
 
