@@ -174,10 +174,10 @@ Retorne JSON estruturado:
   "action": "<ação executada>",
   "result": {
     "issue_number": 42,
-    "issue_url": "https://github.com/zan-ia/neon-dusk/issues/42",
+    "issue_url": "https://github.com/ZanettiLG/neon-dusk/issues/42",
     "pr_number": 43,
-    "pr_url": "https://github.com/zan-ia/neon-dusk/pull/43",
-    "comment_url": "https://github.com/zan-ia/neon-dusk/issues/42#issuecomment-...",
+    "pr_url": "https://github.com/ZanettiLG/neon-dusk/pull/43",
+    "comment_url": "https://github.com/ZanettiLG/neon-dusk/issues/42#issuecomment-...",
     "branch": "feat/42-auth-system",
     "diff": "<diff content or null>"
   },
