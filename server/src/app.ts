@@ -8,6 +8,7 @@ import { apiRoutes } from "./routes";
 import { healthRoutes } from "./routes/health";
 import { errorHandler } from "./middleware/error-handler";
 import { createRedisClient } from "./lib/redis";
+import { sseCorsHeaders } from "./lib/sse";
 import telemetryPlugin from "./telemetry/middleware";
 import auditOnResponse from "./middleware/audit-middleware";
 import { metricsRoutes } from "./routes/metrics";
@@ -21,6 +22,12 @@ export interface AppOptions {
 declare module "fastify" {
   interface FastifyInstance {
     redis: Redis;
+    /**
+     * CORS headers for hijacked SSE responses — mirrors the @fastify/cors
+     * config (origin + credentials), whose reply.header() calls never reach
+     * the wire on writeHead()+hijack() responses. See lib/sse.ts.
+     */
+    sseCorsHeaders: Record<string, string>;
   }
 }
 
@@ -45,6 +52,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   });
+
+  // SSE endpoints bypass the reply pipeline (reply.raw.writeHead + hijack,
+  // ADR-1), so the cors hook's reply.header() calls never reach the wire —
+  // decorate the equivalent headers for the hijacked writeHead calls.
+  app.decorate("sseCorsHeaders", sseCorsHeaders(env));
 
   // Rate Limiting — @fastify/rate-limit v10.x with direct Redis support
   // NOTE: design pinned ^9.1.0, but v9.x requires Fastify 4. v10.x supports
