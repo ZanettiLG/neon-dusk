@@ -617,21 +617,6 @@ export interface LeaderboardResponse {
   leaderboard: LeaderboardEntry[];
 }
 
-/** POST /api/street-cred/award request body. */
-export interface AwardSCRequest {
-  amount: number;
-  source: string;
-}
-
-/** POST /api/street-cred/award response. */
-export interface AwardSCResponse {
-  score: number;
-  title: string;
-  /** Score actually granted (clamped at the 100 cap — 0 when already there). */
-  gained: number;
-  maxAchieved: number;
-}
-
 // ─── PvP (ND-014) ───────────────────────────────────────────────────────────
 // Player-vs-player combat: 20 NIL per attack, ±10 power bracket, weekly grief
 // limit and daily defeat cap (04-sistemas-e-progressao.md §6).
