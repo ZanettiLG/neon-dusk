@@ -6,34 +6,12 @@ import { GIG_PHASE_LABELS } from "@/lib/labels";
 import { formatCountdown } from "@/lib/format";
 import { gigCopy } from "@/lib/gig-copy";
 import RollTheater from "@/components/RollTheater";
-import { PhaseStepper } from "@/components/ui";
+import { OutcomeChip, PhaseStepper } from "@/components/ui";
+import type { Outcome } from "@/components/ui";
 
-/** Outcome chip — used for both execute and escape rolls. */
-function OutcomeChip({
-  label,
-  outcome,
-  roll,
-  chance,
-}: {
-  label: string;
-  outcome: string | null;
-  roll?: number;
-  chance?: number;
-}) {
-  if (!outcome) return null;
-  const ok = outcome === "success";
-  return (
-    <div className="flex flex-wrap items-center gap-2 font-data text-xs">
-      <span className={ok ? "text-nd-green" : "text-nd-magenta"}>
-        {ok ? "✓" : "✗"} {label.toUpperCase()} {ok ? "BEM-SUCEDIDA" : "FALHOU"}
-      </span>
-      {roll !== undefined && chance !== undefined && roll >= 0 && (
-        <span className="text-nd-text-secondary">
-          (rolou {roll.toFixed(2)} vs {Math.round(chance * 100)}%)
-        </span>
-      )}
-    </div>
-  );
+/** Narrows the ActiveGig string outcome to the shared Outcome union (unknown → null). */
+function toOutcome(value: string | null): Outcome {
+  return value === "success" || value === "failure" || value === "critical" ? value : null;
 }
 
 /**
@@ -60,12 +38,20 @@ export default function ActiveGigPanel() {
   /** Heat from the escape response — persists in the phase content after the theater closes. */
   const [escapeHeat, setEscapeHeat] = useState<number | null>(null);
 
-  // 1s clock for the legwork countdown.
+  // 1s clock for the legwork countdown — only while a countdown is actually
+  // visible (legwork started, not yet completed and time still remaining).
   const [now, setNow] = useState(Date.now());
+  const legworkEndsAt = activeGig?.legworkStartedAt
+    ? new Date(activeGig.legworkStartedAt).getTime() + activeGig.legworkMinutes * 1_000
+    : null;
+  const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
+  const legworkTicking =
+    legworkEndsAt !== null && !activeGig?.legworkCompleted && legworkRemaining > 0;
   useEffect(() => {
+    if (!legworkTicking) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [legworkTicking]);
 
   // Reset transient outcome state whenever the active trampo changes identity.
   const lastGigId = useRef<string | null>(null);
@@ -116,10 +102,6 @@ export default function ActiveGigPanel() {
   const errorIndex =
     trampo.escapeOutcome === "failure" ? 3 : trampo.executeOutcome === "failure" ? 2 : undefined;
 
-  // Legwork countdown (legworkStartedAt + legworkMinutes, now in seconds).
-  const legworkStarted = trampo.legworkStartedAt ? new Date(trampo.legworkStartedAt).getTime() : null;
-  const legworkEndsAt = legworkStarted ? legworkStarted + trampo.legworkMinutes * 1_000 : null;
-  const legworkRemaining = legworkEndsAt ? Math.max(0, Math.ceil((legworkEndsAt - now) / 1000)) : 0;
   const legworkDone = trampo.legworkCompleted || (legworkEndsAt !== null && legworkRemaining === 0);
 
   async function onAction(action: () => Promise<unknown>): Promise<void> {
@@ -198,7 +180,7 @@ export default function ActiveGigPanel() {
               <p className="text-nd-text-secondary text-sm">
                 Cupim aperta tua mão e fala baixo: "{"Boa escolha, moleque. Não vacila, não morre, me traz o resultado."}"
               </p>
-              <OutcomeChip label="Execução" outcome={trampo.executeOutcome} />
+              <OutcomeChip label="Execução" outcome={toOutcome(trampo.executeOutcome)} />
               <div className="flex flex-wrap gap-2">
                 <button
                   className="btn-neon text-xs"
@@ -255,7 +237,7 @@ export default function ActiveGigPanel() {
             <div className="space-y-3">
               <OutcomeChip
                 label="Execução"
-                outcome={trampo.executeOutcome}
+                outcome={toOutcome(trampo.executeOutcome)}
                 roll={lastExecute?.outcome.roll}
                 chance={lastExecute?.outcome.successChance}
               />
@@ -279,13 +261,13 @@ export default function ActiveGigPanel() {
             <div className="space-y-3">
               <OutcomeChip
                 label="Execução"
-                outcome={trampo.executeOutcome}
+                outcome={toOutcome(trampo.executeOutcome)}
                 roll={lastExecute?.outcome.roll}
                 chance={lastExecute?.outcome.successChance}
               />
               <OutcomeChip
                 label="Fuga"
-                outcome={trampo.escapeOutcome}
+                outcome={toOutcome(trampo.escapeOutcome)}
                 roll={lastEscape?.outcome.roll}
                 chance={lastEscape?.outcome.successChance}
               />
@@ -308,13 +290,13 @@ export default function ActiveGigPanel() {
             <div className="space-y-3">
               <OutcomeChip
                 label="Execução"
-                outcome={trampo.executeOutcome}
+                outcome={toOutcome(trampo.executeOutcome)}
                 roll={lastExecute?.outcome.roll}
                 chance={lastExecute?.outcome.successChance}
               />
               <OutcomeChip
                 label="Fuga"
-                outcome={trampo.escapeOutcome}
+                outcome={toOutcome(trampo.escapeOutcome)}
                 roll={lastEscape?.outcome.roll}
                 chance={lastEscape?.outcome.successChance}
               />
