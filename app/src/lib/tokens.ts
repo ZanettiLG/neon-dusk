@@ -123,6 +123,13 @@ const gigDifficultyBands: Band[] = [
   { min: 60, max: 100, color: "bg-nd-magenta", label: "difícil" },
 ];
 
+/** Trampo base success chance (GigListItem.successChance × 100, issue #140). */
+const gigChanceBands: Band[] = [
+  { min: 0, max: 39, color: "bg-nd-magenta", label: "baixa" },
+  { min: 40, max: 69, color: "bg-nd-gold", label: "média" },
+  { min: 70, max: 100, color: "bg-nd-green", label: "alta" },
+];
+
 /**
  * Moral: "lenda" (gold) is exclusive to score 100 — matches the
  * Lenda logic in StreetCredDisplay (nextThreshold === null only at 100).
@@ -135,14 +142,15 @@ const streetCredBands: Band[] = [
 /**
  * Color bands per resource bar (docs/design/05-design-tokens.md §Thresholds).
  * Invariant: each array covers every integer 0–100 with exactly one band, in
- * monotonic order (ascending for nil/hp/gigDifficulty/streetCred; descending
- * for humanity), so `bandFor` always resolves after clamping/rounding.
+ * monotonic order (ascending for nil/hp/gigDifficulty/gigChance/streetCred;
+ * descending for humanity), so `bandFor` always resolves after clamping/rounding.
  */
 export const RESOURCE_BAR_BANDS = {
   nil: nilBands,
   humanity: humanityBands,
   hp: hpBands,
   gigDifficulty: gigDifficultyBands,
+  gigChance: gigChanceBands,
   streetCred: streetCredBands,
 };
 

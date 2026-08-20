@@ -500,6 +500,11 @@ export interface GigListItem {
   requiredStats: Record<string, number>;
   meetsRequirements: boolean;
   cooldownRemaining: number;
+  /** Chance base de sucesso [0.05, 0.95] — stat primário + bônus de cromo.
+   *  Legwork (+20%) e bônus de bonde (+5pp) são aplicados POR CIMA na execução. */
+  successChance: number;
+  /** Risco antes do aceite: calor (heat) base gerado no distrito. Dobra em falha. */
+  heatGenerated: number;
 }
 
 /** Active trampo state (one per character — `active_gigs.character_id` unique). */

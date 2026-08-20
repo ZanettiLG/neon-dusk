@@ -23,6 +23,7 @@ export default {
         glitch: "glitch 0.2s ease-in-out infinite alternate",
         flicker: "flicker 0.15s ease-in-out infinite alternate",
         "pulse-neon": "pulse-neon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "fade-in": "fade-in 0.5s ease-out both",
       },
       keyframes: {
         glitch: {
@@ -40,6 +41,10 @@ export default {
         "pulse-neon": {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.5" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
         },
       },
     },
