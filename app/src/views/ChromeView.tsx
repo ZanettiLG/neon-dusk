@@ -1,19 +1,23 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChromeDefinition, InstalledChromeRecord, InstalledChromeResponse } from "@neon-dusk/shared";
+import type { ChromeDefinition, ChromeSlot, InstalledChromeRecord, InstalledChromeResponse } from "@neon-dusk/shared";
 import { api } from "@/api/client";
 import { useHudStore } from "@/stores/hud";
 import { CHROME_SLOT_LABELS } from "@/lib/labels";
 import Tab from "@/components/ui/Tab";
+import ChromeBodyMapSvg from "@/components/chrome/ChromeBodyMapSvg";
+import ChromeSurgeryPanel from "@/components/chrome/ChromeSurgeryPanel";
 
-type TabKey = "catalog" | "installed";
+type TabKey = "corpo" | "installed";
 
 /**
- * Cromo implant management — two tabs: catalog browser and installed implants.
+ * Cromo implant management — two tabs: "corpo" (interactive body map + surgery
+ * flow, issue #10) and "Meu Cromo" (installed loadout + uninstall).
  * Get chipped, mano. Cromo eats your humanity; spend it wisely.
  */
 export default function ChromeView() {
   const mountedRef = useRef(true);
-  const [tab, setTab] = useState<TabKey>("catalog");
+  const [tab, setTab] = useState<TabKey>("corpo");
+  const [selectedSlot, setSelectedSlot] = useState<ChromeSlot | null>(null);
 
   // Catalog
   const [catalog, setCatalog] = useState<ChromeDefinition[]>([]);
@@ -72,31 +76,14 @@ export default function ChromeView() {
         const ripper = vendors.find((v) => v.type === "RIPPERDOC");
         if (ripper && mountedRef.current) setVendorId(ripper.id);
       })
-      .catch(() => {}); // non-blocking — catalog still renders without a vendor
+      .catch(() => {}); // non-blocking — the panel still renders without a vendor
     return () => { mountedRef.current = false; };
   }, []);
 
-  async function onInstall(chromeDefinitionId: string) {
-    setActionLoading(true);
-    setActionError(null);
-    setActionSuccess(null);
-    try {
-      if (!vendorId) {
-        setActionError("Nenhum ferrageiro disponível. Visite a aba Vendedores.");
-        return;
-      }
-      await api.post(`/api/chrome/install`, { chromeDefinitionId, vendorId });
-      if (!mountedRef.current) return;
-      setActionSuccess("Implante instalado!");
-      fetchInstalled();
-      // Install drains grana + humanity — refresh the HUD (issue #13).
-      void useHudStore.getState().refresh();
-    } catch (e) {
-      if (!mountedRef.current) return;
-      setActionError(e instanceof Error ? e.message : "Falha ao instalar");
-    } finally {
-      if (mountedRef.current) setActionLoading(false);
-    }
+  /** Post-surgery: reload the loadout + refresh the HUD (grana e humanidade). */
+  function onSurgeryDone() {
+    void fetchInstalled();
+    void useHudStore.getState().refresh();
   }
 
   async function onUninstall(installedChromeId: string) {
@@ -123,8 +110,8 @@ export default function ChromeView() {
       <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">CROMO</h2>
 
       <div className="flex flex-wrap items-center gap-2" role="tablist">
-        <Tab state={tab === "catalog" ? "active" : "inactive"} onClick={() => setTab("catalog")}>
-          Catálogo
+        <Tab state={tab === "corpo" ? "active" : "inactive"} onClick={() => setTab("corpo")}>
+          Corpo
         </Tab>
         <Tab state={tab === "installed" ? "active" : "inactive"} onClick={() => setTab("installed")}>
           Meu Cromo
@@ -134,44 +121,34 @@ export default function ChromeView() {
       {actionSuccess && <p className="text-nd-green text-sm font-data">{actionSuccess}</p>}
       {actionError && <p className="text-nd-magenta text-sm font-data">{actionError}</p>}
 
-      {tab === "catalog" && (
+      {tab === "corpo" && (
         <div>
-          {catalogLoading ? (
-            <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>
-          ) : catalogError ? (
+          {catalogError ? (
             <p className="text-nd-magenta text-sm font-data">{catalogError}</p>
-          ) : catalog.length === 0 ? (
-            <p className="text-nd-text-secondary text-sm font-data">Nenhum implante disponível.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {catalog.map((c) => (
-                <div key={c.id} className="card border-nd-cyan/20">
-                  <h3 className="font-heading text-nd-cyan">{c.name}</h3>
-                  <p className="text-nd-text-secondary text-xs font-data mt-1">
-                    Slot: {CHROME_SLOT_LABELS[c.slot] ?? c.slot}
-                  </p>
-                  <p className="text-nd-text-secondary text-xs font-data">
-                    Tier: <span className="text-nd-gold">{c.tier}</span>
-                  </p>
-                  {c.description && (
-                    <p className="text-nd-text text-xs mt-2">{c.description}</p>
-                  )}
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="text-xs font-data space-y-0.5">
-                      <p className="text-nd-gold">G$ {c.basePrice}</p>
-                      <p className="text-nd-magenta">-{c.humanityCost} humanidade</p>
-                    </div>
-                    <button
-                      className="btn-neon text-xs px-3 py-1"
-                      disabled={actionLoading}
-                      onClick={() => void onInstall(c.id)}
-                    >
-                      Instalar
-                    </button>
-                  </div>
+            <>
+              {!catalogLoading && catalog.length === 0 && (
+                <p className="text-nd-text-secondary text-sm font-data mb-4">Nenhum implante disponível.</p>
+              )}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <div className="card">
+                  <ChromeBodyMapSvg
+                    installed={installed?.installed ?? []}
+                    selectedSlot={selectedSlot}
+                    onSelectSlot={setSelectedSlot}
+                  />
                 </div>
-              ))}
-            </div>
+                <ChromeSurgeryPanel
+                  key={selectedSlot ?? "none"}
+                  slot={selectedSlot}
+                  catalog={catalog}
+                  installed={installed}
+                  vendorId={vendorId}
+                  loading={catalogLoading || installedLoading}
+                  onSurgeryDone={onSurgeryDone}
+                />
+              </div>
+            </>
           )}
         </div>
       )}

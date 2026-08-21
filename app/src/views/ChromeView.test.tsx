@@ -58,6 +58,9 @@ const installed: InstalledChromeResponse = {
   nilMaxBonus: 0,
 };
 
+// Issue #10 — tab catálogo virou tab "Corpo" (body-map + painel de cirurgia);
+// a tab "Meu Cromo" (instalados + uninstall) segue intacta (#13).
+
 describe("ChromeView", () => {
   beforeEach(() => {
     mocks.api.get.mockReset();
@@ -69,11 +72,11 @@ describe("ChromeView", () => {
 
     render(<ChromeView />);
 
-    // Catalog and installed panels both start loading.
+    // Body map panel and surgery panel both start loading.
     expect(screen.getAllByText("▌ loading...").length).toBeGreaterThan(0);
   });
 
-  it("should render the catalog and the installed tab content", async () => {
+  it("should render the body map + surgery panel on Corpo and keep Meu Cromo intact", async () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
@@ -83,10 +86,12 @@ describe("ChromeView", () => {
 
     render(<ChromeView />);
 
-    expect(await screen.findByText("Smart Link")).toBeInTheDocument();
+    // Corpo tab (default): body map + idle surgery panel; installed implant
+    // announced via a legenda HTML (text channel).
+    expect(await screen.findByRole("group", { name: "Mapa corporal de cromo" })).toBeInTheDocument();
+    expect(screen.getByText("1/3 — Smart Link")).toBeInTheDocument();
     expect(screen.getByText(/Sistema Nervoso/)).toBeInTheDocument();
-    expect(screen.getByText("G$ 500")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Instalar" })).toBeInTheDocument();
+    expect(screen.getByText(/Selecione um slot no mapa corporal/)).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByRole("tab", { name: "Meu Cromo" }));
 
@@ -104,24 +109,24 @@ describe("ChromeView", () => {
     expect(await screen.findAllByText("Falha ao carregar catálogo")).not.toHaveLength(0);
   });
 
-  it("should surface install error from the API", async () => {
+  it("should uninstall from the Meu Cromo tab and surface errors", async () => {
     mocks.api.get.mockImplementation((url: string) => {
       if (url === "/api/chrome") return Promise.resolve([implant]);
       if (url === "/api/chrome/installed") return Promise.resolve(installed);
       if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
       return Promise.resolve([]);
     });
-    mocks.api.post.mockRejectedValue(new Error("Grana insuficiente."));
+    mocks.api.post.mockRejectedValue(new Error("Falha ao remover"));
     const user = userEvent.setup();
 
     render(<ChromeView />);
 
-    await user.click(await screen.findByRole("button", { name: "Instalar" }));
+    await user.click(await screen.findByRole("tab", { name: "Meu Cromo" }));
+    await user.click(await screen.findByRole("button", { name: "Remover" }));
 
-    expect(await screen.findByText("Grana insuficiente.")).toBeInTheDocument();
-    expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/install", {
-      chromeDefinitionId: "ch1",
-      vendorId: "v1",
+    expect(await screen.findByText("Falha ao remover")).toBeInTheDocument();
+    expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/uninstall", {
+      installedChromeId: "i1",
     });
   });
 
