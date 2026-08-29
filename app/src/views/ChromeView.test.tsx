@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import ChromeView from "@/views/ChromeView";
-import type { ChromeDefinition, InstalledChromeResponse } from "@neon-dusk/shared";
+import type { ChromeDefinition, InstalledChromeResponse, VendorWithInventory } from "@neon-dusk/shared";
 
 const mocks = vi.hoisted(() => ({
   api: {
@@ -42,6 +42,59 @@ const implant: ChromeDefinition = {
   description: "Mira assistida.",
 };
 
+const implant2: ChromeDefinition = {
+  id: "ch2",
+  slug: "mira-plasma",
+  name: "Mira de Plasma",
+  slot: "nervous_system",
+  tier: 3,
+  bonuses: { gig_success_rate: 15 },
+  humanityCost: 8,
+  basePrice: 300,
+  description: "Mira quente.",
+};
+
+/** Ferrageiro detail — o estoque cobra G$ 800/900, não os basePrice do catálogo. */
+const RIPPER_DETAIL: VendorWithInventory = {
+  vendor: { id: "v1", name: "Ferrageiro", type: "RIPPERDOC", district: "o_fervo" },
+  inventory: [
+    {
+      id: "inv1",
+      vendorId: "v1",
+      itemType: "CHROME",
+      itemId: "smart-link",
+      price: 800,
+      stock: -1,
+      chromeDefinitionId: "ch1",
+      chromeDefinitionName: "Smart Link",
+      humanityCost: 5,
+    },
+    {
+      id: "inv2",
+      vendorId: "v1",
+      itemType: "CHROME",
+      itemId: "mira-plasma",
+      price: 900,
+      stock: -1,
+      chromeDefinitionId: "ch2",
+      chromeDefinitionName: "Mira de Plasma",
+      humanityCost: 8,
+    },
+  ],
+};
+
+/** Default API mock: catalog/installed/vendors + ferrageiro detail. */
+function mockApi(overrides: Record<string, unknown> = {}) {
+  mocks.api.get.mockImplementation((url: string) => {
+    if (url === "/api/chrome") return Promise.resolve([implant, implant2]);
+    if (url === "/api/chrome/installed") return Promise.resolve(installed);
+    if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
+    if (url === "/api/vendors/v1") return Promise.resolve(RIPPER_DETAIL);
+    if (url in overrides) return Promise.resolve(overrides[url]);
+    return Promise.resolve([]);
+  });
+}
+
 const installed: InstalledChromeResponse = {
   installed: [
     {
@@ -77,12 +130,7 @@ describe("ChromeView", () => {
   });
 
   it("should render the body map + surgery panel on Corpo and keep Meu Cromo intact", async () => {
-    mocks.api.get.mockImplementation((url: string) => {
-      if (url === "/api/chrome") return Promise.resolve([implant]);
-      if (url === "/api/chrome/installed") return Promise.resolve(installed);
-      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
-      return Promise.resolve([]);
-    });
+    mockApi();
 
     render(<ChromeView />);
 
@@ -110,12 +158,7 @@ describe("ChromeView", () => {
   });
 
   it("should uninstall from the Meu Cromo tab and surface errors", async () => {
-    mocks.api.get.mockImplementation((url: string) => {
-      if (url === "/api/chrome") return Promise.resolve([implant]);
-      if (url === "/api/chrome/installed") return Promise.resolve(installed);
-      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
-      return Promise.resolve([]);
-    });
+    mockApi();
     mocks.api.post.mockRejectedValue(new Error("Falha ao remover"));
     const user = userEvent.setup();
 
@@ -151,5 +194,21 @@ describe("ChromeView", () => {
     // Empty state only appears after loading resolves — proves StrictMode remount didn't break mountedRef
     expect(await screen.findByText("Nenhum implante disponível.")).toBeInTheDocument();
     expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
+  });
+
+  it("should pass the ferrageiro stock prices to the surgery panel (no basePrice drift)", async () => {
+    mockApi();
+    const user = userEvent.setup();
+
+    render(<ChromeView />);
+
+    // Seleciona o slot e abre o implante não instalado.
+    await user.click(await screen.findByRole("button", { name: /^Sistema Nervoso — / }));
+    await user.click(await screen.findByRole("button", { name: /Mira de Plasma/ }));
+
+    // O review mostra o preço do estoque do ferrageiro (G$ 900), não o
+    // basePrice do catálogo (G$ 300).
+    expect(await screen.findByText("Custo: G$ 900")).toBeInTheDocument();
+    expect(mocks.api.get).toHaveBeenCalledWith("/api/vendors/v1");
   });
 });

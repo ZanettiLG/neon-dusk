@@ -102,6 +102,21 @@ describe("ChromeBodyMapSvg", () => {
     expect(onSelectSlot).not.toHaveBeenCalled();
   });
 
+  it("should paint the torso (integumentary) as the base layer with smaller slots on top (DOM order)", () => {
+    render(<ChromeBodyMapSvg installed={[]} selectedSlot={null} onSelectSlot={vi.fn()} />);
+
+    // Document order = paint order (later siblings capture pointer events
+    // first). The torso polygon covers skeleton/nervous_system geometry, so it
+    // must come FIRST; the smaller slots render on top of it.
+    const labels = screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"));
+    expect(labels[0]).toMatch(/^Tegumentar — /);
+    expect(labels[1]).toMatch(/^Sistema Nervoso — /);
+    expect(labels[2]).toMatch(/^Esqueleto — /);
+    expect(labels[3]).toMatch(/^Ocular — /);
+    expect(labels[4]).toMatch(/^Córtex Frontal — /);
+    expect(labels[5]).toMatch(/^Braços — /);
+  });
+
   it("should render the legenda HTML com contagens and implant names (text channel)", () => {
     render(<ChromeBodyMapSvg installed={LOADOUT} selectedSlot={null} onSelectSlot={vi.fn()} />);
 

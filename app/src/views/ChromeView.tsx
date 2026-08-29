@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChromeDefinition, ChromeSlot, InstalledChromeRecord, InstalledChromeResponse } from "@neon-dusk/shared";
+import type {
+  ChromeDefinition,
+  ChromeSlot,
+  InstalledChromeRecord,
+  InstalledChromeResponse,
+  VendorWithInventory,
+} from "@neon-dusk/shared";
 import { api } from "@/api/client";
 import { useHudStore } from "@/stores/hud";
 import { CHROME_SLOT_LABELS } from "@/lib/labels";
@@ -31,6 +37,9 @@ export default function ChromeView() {
 
   // Vendors — needed so install can pick a ferrageiro
   const [vendorId, setVendorId] = useState<string | null>(null);
+  /** Preço de estoque do ferrageiro por id de definição de cromo (null = ainda
+   * carregando). O painel de cirurgia usa o `basePrice` do catálogo quando null. */
+  const [vendorPrices, setVendorPrices] = useState<Record<string, number> | null>(null);
 
   // Action state
   const [actionLoading, setActionLoading] = useState(false);
@@ -67,16 +76,35 @@ export default function ChromeView() {
     }
   }
 
+  /** Encontra o primeiro ferrageiro e lê os preços de estoque de cromo (id de definição → G$). */
+  async function fetchVendor() {
+    try {
+      const vendors = await api.get<Array<{ id: string; type: string }>>("/api/vendors");
+      if (!mountedRef.current) return;
+      const ripper = vendors.find((v) => v.type === "RIPPERDOC");
+      if (!ripper) return;
+      setVendorId(ripper.id);
+
+      const detail = await api.get<VendorWithInventory>(`/api/vendors/${ripper.id}`);
+      if (!mountedRef.current) return;
+      const prices: Record<string, number> = {};
+      for (const item of detail.inventory) {
+        if (item.itemType === "CHROME" && item.chromeDefinitionId) {
+          prices[item.chromeDefinitionId] = item.price;
+        }
+      }
+      setVendorPrices(prices);
+    } catch {
+      // Non-blocking — the panel still renders; costs fall back to basePrice
+      // and the server stays authoritative on the actual charge.
+    }
+  }
+
   useEffect(() => {
     mountedRef.current = true;
     fetchCatalog();
     fetchInstalled();
-    api.get<Array<{ id: string; type: string }>>("/api/vendors")
-      .then((vendors) => {
-        const ripper = vendors.find((v) => v.type === "RIPPERDOC");
-        if (ripper && mountedRef.current) setVendorId(ripper.id);
-      })
-      .catch(() => {}); // non-blocking — the panel still renders without a vendor
+    void fetchVendor();
     return () => { mountedRef.current = false; };
   }, []);
 
@@ -95,7 +123,9 @@ export default function ChromeView() {
       if (!mountedRef.current) return;
       setActionSuccess("Implante removido.");
       fetchInstalled();
-      // Uninstall refunds grana and frees humanity — refresh the HUD (issue #13).
+      // Uninstall NÃO reembolsa grana nem devolve humanidade — o server só
+      // libera o slot e recalcula o NIL máx. (auditoria com valor 0). O
+      // refresh do HUD apenas mantém o painel em dia após a remoção.
       void useHudStore.getState().refresh();
     } catch (e) {
       if (!mountedRef.current) return;
@@ -144,6 +174,7 @@ export default function ChromeView() {
                   catalog={catalog}
                   installed={installed}
                   vendorId={vendorId}
+                  vendorPrices={vendorPrices}
                   loading={catalogLoading || installedLoading}
                   onSurgeryDone={onSurgeryDone}
                 />

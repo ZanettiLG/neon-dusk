@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { AttributeKey, ChromeDefinition, ChromeSlot, InstalledChromeResponse } from "@neon-dusk/shared";
+import type {
+  AttributeKey,
+  Character,
+  ChromeDefinition,
+  ChromeSlot,
+  InstalledChromeResponse,
+} from "@neon-dusk/shared";
 import { SLOT_CAPACITY } from "@neon-dusk/shared";
 import { api } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
@@ -29,10 +35,40 @@ interface ChromeSurgeryPanelProps {
   catalog: ChromeDefinition[];
   installed: InstalledChromeResponse | null;
   vendorId: string | null;
+  /**
+   * Preço de estoque do ferrageiro por id de definição de cromo (do inventário
+   * de GET /api/vendors/:id, itemType === "CHROME"). Entradas ausentes caem no
+   * `basePrice` do catálogo — conservador, mas o server continua autoridade na
+   * cobrança real (usa `stockItem.price`, nunca `base_price`).
+   */
+  vendorPrices?: Record<string, number> | null;
   /** True while the parent is still loading catalog/installed. */
   loading: boolean;
   /** Fired once the surgery theater finishes — parent reloads installed + HUD. */
   onSurgeryDone: () => void;
+}
+
+/**
+ * Mirror of the server's `getOverclockBonus` gate (feature #65): the
+ * gambiarrista's Overclock is active while the one-shot ability is pending
+ * consumption. One-shot abilities never auto-expire (activeUntil is a flag),
+ * so this follows `resolveAbilityState` rules from the raw timestamps instead
+ * of the API's `isActive` flag (which only reflects a FUTURE timestamp):
+ * activeUntil set AND cooldown not yet expired → active.
+ *
+ * The mirror uses `character.ability` from the auth store; if that data is
+ * stale (e.g. activated elsewhere without a refetch), the check falls back to
+ * "not active" — conservative, same as any client-side cost estimate.
+ *
+ * @param character - Character from the auth store (null = logged out/loading).
+ * @param now       - Reference time (injectable for tests).
+ */
+export function isOverclockActive(character: Character | null, now: number = Date.now()): boolean {
+  if (!character || character.role !== "gambiarrista") return false;
+  const ability = character.ability;
+  if (!ability || ability.abilityType !== "overclock" || !ability.activeUntil) return false;
+  if (ability.cooldownUntil && Date.parse(ability.cooldownUntil) < now) return false;
+  return true;
 }
 
 /**
@@ -46,6 +82,7 @@ export default function ChromeSurgeryPanel({
   catalog,
   installed,
   vendorId,
+  vendorPrices = null,
   loading,
   onSurgeryDone,
 }: ChromeSurgeryPanelProps) {
@@ -101,14 +138,36 @@ export default function ChromeSurgeryPanel({
     return (character?.[key] ?? 0) + (installed?.statBonus[key] ?? 0);
   }
 
-  /** Blocking reasons joined — the server re-validates everything on install. */
+  // Overclock (feature #65) mirrors the server: metade do preço, zero de
+  // humanidade na próxima instalação de cromo (consumido no uso).
+  const overclockActive = isOverclockActive(character);
+
+  /** Grana que o server vai cobrar (espelha installChrome §7): preço do
+   * ferrageiro quando conhecido (fallback: basePrice do catálogo), com −50%
+   * arredondado pra cima quando o Overclock está ativo. */
+  function effectivePrice(def: ChromeDefinition): number {
+    const base = vendorPrices?.[def.id] ?? def.basePrice;
+    return overclockActive ? Math.ceil(base * 0.5) : base;
+  }
+
+  /** Custo de humanidade que o server vai aplicar (espelha installChrome §6):
+   * 0 com Overclock ativo, senão o custo do cromo. */
+  function effectiveHumanityCost(def: ChromeDefinition): number {
+    return overclockActive ? 0 : def.humanityCost;
+  }
+
+  /**
+   * Blocking reasons joined — the server re-validates everything on install
+   * (including available funds = balance − escrow, which the client HUD does
+   * not track).
+   */
   function blockReason(def: ChromeDefinition): string | null {
     if (!installed) return null;
     const reasons: string[] = [];
     if (!vendorId) reasons.push("Nenhum ferrageiro disponível. Visite a aba Vendedores.");
     if (slotFull) reasons.push("Slot cheio.");
-    if (balance !== null && balance < def.basePrice) reasons.push("Grana insuficiente.");
-    if (installed.effectiveHumanity - def.humanityCost < 0) reasons.push("Humanidade insuficiente.");
+    if (balance !== null && balance < effectivePrice(def)) reasons.push("Grana insuficiente.");
+    if (installed.effectiveHumanity - effectiveHumanityCost(def) < 0) reasons.push("Humanidade insuficiente.");
     return reasons.length ? reasons.join(" ") : null;
   }
 
@@ -162,7 +221,7 @@ export default function ChromeSurgeryPanel({
 
   // ── surgery_playing ────────────────────────────────────────────────────────
   if (stage === "surgery_playing" && implant && installed) {
-    const projectedHumanity = installed.effectiveHumanity - implant.humanityCost;
+    const projectedHumanity = installed.effectiveHumanity - effectiveHumanityCost(implant);
     return (
       <div role="status" aria-live="polite" className="card border-nd-magenta/20 space-y-3">
         <p className="font-data text-xs text-nd-magenta animate-pulse-neon tracking-widest">
@@ -213,11 +272,11 @@ export default function ChromeSurgeryPanel({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-heading text-nd-cyan text-sm">{def.name}</span>
-                      <span className="font-data text-xs text-nd-gold">{formatEds(def.basePrice)}</span>
+                      <span className="font-data text-xs text-nd-gold">{formatEds(effectivePrice(def))}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-1">
                       <span className="font-data text-[11px] text-nd-text-secondary">
-                        Tier {def.tier} · -{def.humanityCost} humanidade
+                        Tier {def.tier} · -{effectiveHumanityCost(def)} humanidade
                       </span>
                       {already && <span className="font-data text-[11px] text-nd-text-secondary">(instalado)</span>}
                     </div>
@@ -240,6 +299,8 @@ export default function ChromeSurgeryPanel({
   };
   const bonus = implant.bonuses;
   const blocked = blockReason(implant);
+  const price = effectivePrice(implant);
+  const humanityCost = effectiveHumanityCost(implant);
 
   return (
     <div className="card space-y-3">
@@ -252,8 +313,11 @@ export default function ChromeSurgeryPanel({
       {implant.description && <p className="text-nd-text-secondary text-xs">{implant.description}</p>}
 
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs font-data">
-        <p className="text-nd-gold">Custo: {formatEds(implant.basePrice)}</p>
-        <p className="text-nd-magenta">-{implant.humanityCost} humanidade</p>
+        <p className="text-nd-gold">Custo: {formatEds(price)}</p>
+        <p className="text-nd-magenta">-{humanityCost} humanidade</p>
+        {overclockActive && (
+          <p className="text-nd-purple">Overclock ativo: metade do preço, zero de humanidade.</p>
+        )}
       </div>
 
       <div className="border-t border-nd-cyan/10 pt-2 space-y-1 text-xs font-data">
@@ -293,9 +357,9 @@ export default function ChromeSurgeryPanel({
         <div className="pt-1">
           <p className="text-nd-text-secondary pb-1">
             Humanidade: <span className="text-nd-text">{before.humanity}</span>
-            <span className="text-nd-magenta"> → {before.humanity - implant.humanityCost}</span>
+            <span className="text-nd-magenta"> → {before.humanity - humanityCost}</span>
           </p>
-          <MetricBar resource="humanity" value={before.humanity - implant.humanityCost} label="Humanidade pós-cirurgia" />
+          <MetricBar resource="humanity" value={before.humanity - humanityCost} label="Humanidade pós-cirurgia" />
         </div>
       </div>
 

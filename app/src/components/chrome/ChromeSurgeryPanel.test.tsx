@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import ChromeSurgeryPanel from "@/components/chrome/ChromeSurgeryPanel";
+import ChromeSurgeryPanel, { isOverclockActive } from "@/components/chrome/ChromeSurgeryPanel";
 import { useAuthStore } from "@/stores/auth";
 import { useHudStore } from "@/stores/hud";
 import type { Character, ChromeDefinition, ChromeSlot, InstalledChromeResponse } from "@neon-dusk/shared";
@@ -61,6 +61,32 @@ const CHARACTER: Character = {
   cool: 4,
 };
 
+/** Gambiarrista com Overclock pendente (one-shot: activeUntil é flag, não timer). */
+const OVERCLOCK_CHARACTER: Character = {
+  ...CHARACTER,
+  role: "gambiarrista",
+  ability: {
+    abilityType: "overclock",
+    isActive: false, // API flag só reflete timestamp futuro — o mirror usa os timestamps crus
+    activeUntil: "2026-01-01T00:00:00.000Z",
+    cooldownUntil: null,
+    cooldownRemainingMs: 0,
+  },
+};
+
+/** Gambiarrista cujo cooldown do Overclock já expirou → habilidade pronta (não ativa). */
+const OVERCLOCK_COOLDOWN_EXPIRED: Character = {
+  ...CHARACTER,
+  role: "gambiarrista",
+  ability: {
+    abilityType: "overclock",
+    isActive: false,
+    activeUntil: null,
+    cooldownUntil: "2026-01-01T00:00:00.000Z",
+    cooldownRemainingMs: 0,
+  },
+};
+
 const CUCA: ChromeDefinition = {
   id: "cuca",
   slug: "neural-booster",
@@ -92,6 +118,7 @@ interface RenderOptions {
   catalog?: ChromeDefinition[];
   installed?: InstalledChromeResponse;
   vendorId?: string | null;
+  vendorPrices?: Record<string, number> | null;
   loading?: boolean;
 }
 
@@ -103,6 +130,7 @@ function renderPanel(options: RenderOptions = {}) {
       catalog={options.catalog ?? [CUCA]}
       installed={options.installed ?? INSTALLED}
       vendorId={options.vendorId === undefined ? "v1" : options.vendorId}
+      vendorPrices={options.vendorPrices}
       loading={options.loading ?? false}
       onSurgeryDone={onSurgeryDone}
     />,
@@ -289,5 +317,94 @@ describe("ChromeSurgeryPanel", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Grana insuficiente.");
     expect(screen.getByRole("button", { name: "Confirmar cirurgia" })).toBeEnabled();
+  });
+
+  it("should use the ferrageiro stock price when provided (vendor price > catalog basePrice)", () => {
+    useHudStore.setState({ balance: 1800 });
+    renderPanel({ vendorPrices: { cuca: 2000 } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    // Custo mostra o preço do estoque, não o basePrice do catálogo (G$ 1.500).
+    expect(screen.getByText("Custo: G$ 2.000")).toBeInTheDocument();
+    // 1800 < 2000 → bloqueia, embora 1800 > basePrice.
+    expect(screen.getByText(/⛔ Grana insuficiente\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar cirurgia" })).toBeDisabled();
+  });
+
+  it("should allow the confirm when the balance covers the vendor price but not the basePrice drift", () => {
+    useHudStore.setState({ balance: 2200 });
+    renderPanel({ vendorPrices: { cuca: 2000 } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    expect(screen.getByText("Custo: G$ 2.000")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar cirurgia" })).toBeEnabled();
+  });
+
+  it("should apply Overclock: half price, zero humanity, no block for a poor gambiarrista", () => {
+    useAuthStore.setState({ character: OVERCLOCK_CHARACTER });
+    useHudStore.setState({ balance: 800 }); // ceil(1500 * 0.5) = 750
+    renderPanel({ installed: installedWith({ effectiveHumanity: 2 }) }); // custo normal 3 bloquearia
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    expect(screen.getByText("Custo: G$ 750")).toBeInTheDocument();
+    expect(screen.getByText("-0 humanidade")).toBeInTheDocument();
+    expect(screen.getByText("Overclock ativo: metade do preço, zero de humanidade.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar cirurgia" })).toBeEnabled();
+    expect(mocks.api.post).not.toHaveBeenCalled();
+  });
+
+  it("should still block grana under Overclock when the halved vendor price exceeds the balance", () => {
+    useAuthStore.setState({ character: OVERCLOCK_CHARACTER });
+    useHudStore.setState({ balance: 900 }); // ceil(2000 * 0.5) = 1000
+    renderPanel({ vendorPrices: { cuca: 2000 } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    expect(screen.getByText("Custo: G$ 1.000")).toBeInTheDocument();
+    expect(screen.getByText(/⛔ Grana insuficiente\./)).toBeInTheDocument();
+    // Sem bloqueio de humanidade (custo 0 com Overclock).
+    expect(screen.queryByText(/Humanidade insuficiente\./)).not.toBeInTheDocument();
+  });
+
+  it("should NOT apply Overclock when the cooldown already expired (ability ready)", () => {
+    useAuthStore.setState({ character: OVERCLOCK_COOLDOWN_EXPIRED });
+    useHudStore.setState({ balance: 800 }); // sem desconto: 1500 > 800
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    expect(screen.getByText("Custo: G$ 1.500")).toBeInTheDocument();
+    expect(screen.getByText(/⛔ Grana insuficiente\./)).toBeInTheDocument();
+  });
+});
+
+describe("isOverclockActive (mirror of server getOverclockBonus)", () => {
+  it("should be false for non-gambiarristas and null characters", () => {
+    expect(isOverclockActive(null)).toBe(false);
+    expect(isOverclockActive(CHARACTER)).toBe(false);
+    expect(isOverclockActive(OVERCLOCK_COOLDOWN_EXPIRED, 0)).toBe(false);
+  });
+
+  it("should be true while the one-shot is pending consumption, even with a past activeUntil", () => {
+    // activeUntil no passado continua ativo (one-shot não expira sozinho),
+    // espelhando resolveAbilityState — o flag isActive da API é irrelevante.
+    expect(isOverclockActive(OVERCLOCK_CHARACTER, Date.parse("2026-06-01T00:00:00.000Z"))).toBe(true);
+  });
+
+  it("should be false once the cooldown has expired", () => {
+    const expired: Character = {
+      ...OVERCLOCK_CHARACTER,
+      ability: {
+        abilityType: "overclock",
+        isActive: false,
+        activeUntil: "2026-01-01T00:00:00.000Z",
+        cooldownUntil: "2026-01-01T00:00:00.000Z",
+        cooldownRemainingMs: 0,
+      },
+    };
+    expect(isOverclockActive(expired, Date.parse("2026-06-01T00:00:00.000Z"))).toBe(false);
   });
 });

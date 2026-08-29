@@ -5,8 +5,10 @@ import { CHROME_SLOT_LABELS } from "@/lib/labels";
 // Frontal silhouette geometry (viewBox 200×400). Hit zones are drawn as
 // invisible shapes (transparent fill/stroke + explicit pointer-events) so each
 // slot keeps a ≥44-viewBox-unit target without painting over the artwork.
-// Layer order (topmost wins where hits overlap): integumentary (torso fill) →
-// nervous_system → skeleton → ocular → frontal_cortex → arms.
+// Paint order is bottom → top (later SVG siblings capture pointer events
+// first): the torso (integumentary) is the base layer and the smaller slots
+// render ON TOP of it, so skeleton/nervous_system hits never get swallowed by
+// the torso fill. See LAYER_ORDER below.
 
 const TORSO_D = "M40,92 L160,92 L165,235 L35,235 Z";
 const ARMS_D = "M46,102 Q30,162 24,220 M154,102 Q170,162 176,220";
@@ -14,6 +16,22 @@ const SKELETON_D =
   "M100,72 L100,193 M100,108 Q74,116 58,146 M100,108 Q126,116 142,146 M100,140 Q80,146 70,170 M100,140 Q120,146 130,170";
 const NERVOUS_D =
   "M100,158 L84,192 M100,158 L116,192 M100,192 L92,228 M100,192 L108,228";
+
+/**
+ * Render order of the slot layers, painted bottom → top. The torso polygon
+ * (integumentary, x 35–165 / y 92–235) geometrically covers the skeleton
+ * (x 58–142 / y 72–193) and nervous_system (x 84–116 / y 158–228) hit zones,
+ * so it MUST paint first as the base layer; every smaller slot paints on top
+ * and wins clicks where the hit zones overlap. Every slot appears exactly once.
+ */
+const LAYER_ORDER: ChromeSlot[] = [
+  "integumentary",
+  "nervous_system",
+  "skeleton",
+  "ocular",
+  "frontal_cortex",
+  "arms",
+];
 
 /** Pips/badge anchor per slot (pips centered horizontally on the anchor). */
 const PIPS: Record<ChromeSlot, { x: number; y: number; gap: number }> = {
@@ -160,7 +178,7 @@ export default function ChromeBodyMapSvg({ installed, selectedSlot, onSelectSlot
           <path d={TORSO_D} className="fill-nd-cyan/5 stroke-nd-cyan/15" strokeWidth={1} strokeLinejoin="round" />
         </g>
 
-        {CHROME_SLOTS.map((slot) => {
+        {LAYER_ORDER.map((slot) => {
           const label = CHROME_SLOT_LABELS[slot] ?? slot;
           const capacity = SLOT_CAPACITY[slot];
           const count = installed.filter((rec) => rec.definition.slot === slot).length;
