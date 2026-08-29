@@ -2,7 +2,7 @@
 description: Designs software architecture for Neon Dusk features. Produces database schemas, API contracts, file structure plans, and architecture decision records (ADRs). Does not write implementation code.
 mode: subagent
 hidden: true
-model: opencode-go/deepseek-v4-pro
+model: opencode-go/deepseek-v4-flash
 temperature: 0.1
 thinking:
   type: enabled

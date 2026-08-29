@@ -1,7 +1,7 @@
 ---
 description: Orchestrates the complete feature development pipeline for Neon Dusk. Receives feature descriptions, delegates to architect/developer/tester/reviewer/pr-reviewer, applies quality gates, and manages self-refinement of the dev harness. GitHub is the default — issues as canonical records, comments as handoffs, PRs as deliverable artifacts. Use --local to skip GitHub integration.
 mode: all
-model: opencode-go/deepseek-v4-pro
+model: opencode-go/deepseek-v4-flash
 temperature: 0.2
 thinking:
   type: enabled

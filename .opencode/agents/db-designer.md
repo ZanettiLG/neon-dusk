@@ -2,7 +2,7 @@
 description: Designs PostgreSQL schemas for Neon Dusk game systems. Specializes in game data modeling, migrations with rollback, performance indexing for leaderboards, and economy integrity constraints. Produces SQL migrations.
 mode: subagent
 hidden: true
-model: opencode-go/deepseek-v4-pro
+model: opencode-go/deepseek-v4-flash
 temperature: 0.1
 thinking:
   type: enabled

@@ -4,6 +4,21 @@ Histórico de mudanças nos agentes de desenvolvimento.
 
 ## 2026-08-29
 ### Trigger
+Decisão humana: aplicar mapping otimizado de modelos (pesquisa deep-researcher, cenário −42.5% de consumo).
+
+### Change
+- decision-agent: glm-5.3 → glm-5.3-flash (9× mais barato, GDPval-AA v2 Elo 1773 > 1769) + descrição stale "Claude Opus 4.8" corrigida
+- architect, db-designer, dev-orchestrator, game-logic-dev: deepseek-v4-pro → deepseek-v4-flash
+- Manter em v4-pro: code-reviewer, pr-reviewer (#1 CodeReviewBench F1 43.9), harness-engineer
+- Manter: developer/test-writer/github-ops/deep-researcher (flash), qa-browser (flash-vision-exp)
+
+### Impact
+Redução estimada de 42.5% na taxa de consumo do orçamento de uso ($12/5h, $60/mês) — dobra o headroom do pipeline. Risco: degradação de gates evitada (pro mantido); nota: model changes só valem após restart da sessão opencode.
+
+---
+
+## 2026-08-29
+### Trigger
 Otimização de custo dos agentes (decisão humana: commit parcial do stash de modelos).
 
 ### Change

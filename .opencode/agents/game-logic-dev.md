@@ -2,7 +2,7 @@
 description: Implements game mechanics and formulas for Neon Dusk. Specializes in game economy balance, stat calculations, cyberpsychosis thresholds, trampo success formulas, and season event logic. Produces pure functions with thorough edge-case handling.
 mode: subagent
 hidden: true
-model: opencode-go/deepseek-v4-pro
+model: opencode-go/deepseek-v4-flash
 temperature: 0.2
 thinking:
   type: enabled
