@@ -2,6 +2,18 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-29
+### Trigger
+qa-browser retornava env-blocked: MCP agent-browser não injetado na sessão do subagente (sem permissão no frontmatter) + nomes de ferramentas desatualizados no prompt.
+
+### Change
+Adicionada permissão agent_browser_* ao frontmatter; lista de ferramentas do prompt atualizada para os nomes reais do MCP (agent_browser_navigate removido).
+
+### Impact
+QA interativa executável pelo subagente qa-browser; pipeline 3.5 desbloqueado.
+
+---
+
 ## 2026-08-20 — N1: Reuso obrigatório de componentes visuais compartilhados (feature #140)
 
 ### Trigger
