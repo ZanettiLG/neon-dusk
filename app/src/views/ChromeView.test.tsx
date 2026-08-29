@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import ChromeView from "@/views/ChromeView";
-import type { ChromeDefinition, InstalledChromeResponse } from "@neon-dusk/shared";
+import type { ChromeDefinition, InstalledChromeResponse, VendorWithInventory } from "@neon-dusk/shared";
 
 const mocks = vi.hoisted(() => ({
   api: {
@@ -42,6 +42,59 @@ const implant: ChromeDefinition = {
   description: "Mira assistida.",
 };
 
+const implant2: ChromeDefinition = {
+  id: "ch2",
+  slug: "mira-plasma",
+  name: "Mira de Plasma",
+  slot: "nervous_system",
+  tier: 3,
+  bonuses: { gig_success_rate: 15 },
+  humanityCost: 8,
+  basePrice: 300,
+  description: "Mira quente.",
+};
+
+/** Ferrageiro detail — o estoque cobra G$ 800/900, não os basePrice do catálogo. */
+const RIPPER_DETAIL: VendorWithInventory = {
+  vendor: { id: "v1", name: "Ferrageiro", type: "RIPPERDOC", district: "o_fervo" },
+  inventory: [
+    {
+      id: "inv1",
+      vendorId: "v1",
+      itemType: "CHROME",
+      itemId: "smart-link",
+      price: 800,
+      stock: -1,
+      chromeDefinitionId: "ch1",
+      chromeDefinitionName: "Smart Link",
+      humanityCost: 5,
+    },
+    {
+      id: "inv2",
+      vendorId: "v1",
+      itemType: "CHROME",
+      itemId: "mira-plasma",
+      price: 900,
+      stock: -1,
+      chromeDefinitionId: "ch2",
+      chromeDefinitionName: "Mira de Plasma",
+      humanityCost: 8,
+    },
+  ],
+};
+
+/** Default API mock: catalog/installed/vendors + ferrageiro detail. */
+function mockApi(overrides: Record<string, unknown> = {}) {
+  mocks.api.get.mockImplementation((url: string) => {
+    if (url === "/api/chrome") return Promise.resolve([implant, implant2]);
+    if (url === "/api/chrome/installed") return Promise.resolve(installed);
+    if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
+    if (url === "/api/vendors/v1") return Promise.resolve(RIPPER_DETAIL);
+    if (url in overrides) return Promise.resolve(overrides[url]);
+    return Promise.resolve([]);
+  });
+}
+
 const installed: InstalledChromeResponse = {
   installed: [
     {
@@ -58,6 +111,9 @@ const installed: InstalledChromeResponse = {
   nilMaxBonus: 0,
 };
 
+// Issue #10 — tab catálogo virou tab "Corpo" (body-map + painel de cirurgia);
+// a tab "Meu Cromo" (instalados + uninstall) segue intacta (#13).
+
 describe("ChromeView", () => {
   beforeEach(() => {
     mocks.api.get.mockReset();
@@ -69,24 +125,21 @@ describe("ChromeView", () => {
 
     render(<ChromeView />);
 
-    // Catalog and installed panels both start loading.
+    // Body map panel and surgery panel both start loading.
     expect(screen.getAllByText("▌ loading...").length).toBeGreaterThan(0);
   });
 
-  it("should render the catalog and the installed tab content", async () => {
-    mocks.api.get.mockImplementation((url: string) => {
-      if (url === "/api/chrome") return Promise.resolve([implant]);
-      if (url === "/api/chrome/installed") return Promise.resolve(installed);
-      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
-      return Promise.resolve([]);
-    });
+  it("should render the body map + surgery panel on Corpo and keep Meu Cromo intact", async () => {
+    mockApi();
 
     render(<ChromeView />);
 
-    expect(await screen.findByText("Smart Link")).toBeInTheDocument();
+    // Corpo tab (default): body map + idle surgery panel; installed implant
+    // announced via a legenda HTML (text channel).
+    expect(await screen.findByRole("group", { name: "Mapa corporal de cromo" })).toBeInTheDocument();
+    expect(screen.getByText("1/3 — Smart Link")).toBeInTheDocument();
     expect(screen.getByText(/Sistema Nervoso/)).toBeInTheDocument();
-    expect(screen.getByText("G$ 500")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Instalar" })).toBeInTheDocument();
+    expect(screen.getByText(/Selecione um slot no mapa corporal/)).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByRole("tab", { name: "Meu Cromo" }));
 
@@ -104,24 +157,51 @@ describe("ChromeView", () => {
     expect(await screen.findAllByText("Falha ao carregar catálogo")).not.toHaveLength(0);
   });
 
-  it("should surface install error from the API", async () => {
+  it("should surface the installed error on Corpo with a retry instead of hanging in loading", async () => {
     mocks.api.get.mockImplementation((url: string) => {
-      if (url === "/api/chrome") return Promise.resolve([implant]);
-      if (url === "/api/chrome/installed") return Promise.resolve(installed);
+      if (url === "/api/chrome") return Promise.resolve([implant, implant2]);
+      if (url === "/api/chrome/installed") return Promise.reject(new Error("Falha ao carregar cromo instalado"));
       if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
+      if (url === "/api/vendors/v1") return Promise.resolve(RIPPER_DETAIL);
       return Promise.resolve([]);
     });
-    mocks.api.post.mockRejectedValue(new Error("Grana insuficiente."));
     const user = userEvent.setup();
 
     render(<ChromeView />);
 
-    await user.click(await screen.findByRole("button", { name: "Instalar" }));
+    // Error banner with retry — the body map grid never renders.
+    expect(await screen.findByText("Não foi possível carregar seu cromo. Tente novamente.")).toBeInTheDocument();
+    expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Mapa corporal de cromo" })).not.toBeInTheDocument();
 
-    expect(await screen.findByText("Grana insuficiente.")).toBeInTheDocument();
-    expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/install", {
-      chromeDefinitionId: "ch1",
-      vendorId: "v1",
+    // Retry re-fetches the loadout and the grid recovers.
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/chrome") return Promise.resolve([implant, implant2]);
+      if (url === "/api/chrome/installed") return Promise.resolve(installed);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
+      if (url === "/api/vendors/v1") return Promise.resolve(RIPPER_DETAIL);
+      return Promise.resolve([]);
+    });
+
+    await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    expect(await screen.findByRole("group", { name: "Mapa corporal de cromo" })).toBeInTheDocument();
+    expect(screen.getByText("1/3 — Smart Link")).toBeInTheDocument();
+  });
+
+  it("should uninstall from the Meu Cromo tab and surface errors", async () => {
+    mockApi();
+    mocks.api.post.mockRejectedValue(new Error("Falha ao remover"));
+    const user = userEvent.setup();
+
+    render(<ChromeView />);
+
+    await user.click(await screen.findByRole("tab", { name: "Meu Cromo" }));
+    await user.click(await screen.findByRole("button", { name: "Remover" }));
+
+    expect(await screen.findByText("Falha ao remover")).toBeInTheDocument();
+    expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/uninstall", {
+      installedChromeId: "i1",
     });
   });
 
@@ -146,5 +226,21 @@ describe("ChromeView", () => {
     // Empty state only appears after loading resolves — proves StrictMode remount didn't break mountedRef
     expect(await screen.findByText("Nenhum implante disponível.")).toBeInTheDocument();
     expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
+  });
+
+  it("should pass the ferrageiro stock prices to the surgery panel (no basePrice drift)", async () => {
+    mockApi();
+    const user = userEvent.setup();
+
+    render(<ChromeView />);
+
+    // Seleciona o slot e abre o implante não instalado.
+    await user.click(await screen.findByRole("button", { name: /^Sistema Nervoso — / }));
+    await user.click(await screen.findByRole("button", { name: /Mira de Plasma/ }));
+
+    // O review mostra o preço do estoque do ferrageiro (G$ 900), não o
+    // basePrice do catálogo (G$ 300).
+    expect(await screen.findByText("Custo: G$ 900")).toBeInTheDocument();
+    expect(mocks.api.get).toHaveBeenCalledWith("/api/vendors/v1");
   });
 });
