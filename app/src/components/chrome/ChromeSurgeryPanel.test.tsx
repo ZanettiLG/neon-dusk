@@ -207,6 +207,30 @@ describe("ChromeSurgeryPanel", () => {
     expect(mocks.api.post).not.toHaveBeenCalled();
   });
 
+  it("should block the confirm when no ferrageiro (vendor) is available", () => {
+    renderPanel({ vendorId: null });
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    expect(screen.getByText(/⛔ Nenhum ferrageiro disponível\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar cirurgia" })).toBeDisabled();
+    expect(mocks.api.post).not.toHaveBeenCalled();
+  });
+
+  it("should go back to the slot picker via the trocar button", () => {
+    renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+    expect(screen.getByText("Custo: G$ 1.500")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "trocar" }));
+
+    // Back on the slot picker: catalog list again, review screen gone.
+    expect(screen.getByRole("button", { name: /Cuca Acesa/ })).toBeInTheDocument();
+    expect(screen.queryByText("Custo: G$ 1.500")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirmar cirurgia" })).not.toBeInTheDocument();
+  });
+
   it("should play the full flow: confirm → POST → theater → done → onSurgeryDone", async () => {
     stubMatchMedia(false);
     vi.useFakeTimers();
@@ -226,7 +250,8 @@ describe("ChromeSurgeryPanel", () => {
     const theater = screen.getByRole("status");
     expect(theater).toHaveAttribute("aria-live", "polite");
     expect(screen.getByText(/BATIMENTO NEURAL/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /ferro esfriando/ })).toBeInTheDocument();
+    // Cooldown ~5s client-side (critério #10): "ferro esfriando 0:05".
+    expect(screen.getByRole("button", { name: "ferro esfriando 0:05" })).toBeInTheDocument();
 
     act(() => vi.advanceTimersByTime(5000));
 

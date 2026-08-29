@@ -222,8 +222,11 @@ describe("router: new views", () => {
 
     renderAt("/chrome");
 
-    expect(await screen.findByText("CROMO")).toBeInTheDocument();
-    expect(await screen.findByText("Nenhum implante disponível.")).toBeInTheDocument();
+    // ChromeView lazy-loads the heaviest module graph of the 7 views (body map
+    // + surgery panel + typewriter); under full-suite parallel load the first
+    // transform can exceed the 1000ms findBy default — give it room.
+    expect(await screen.findByText("CROMO", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText("Nenhum implante disponível.", {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it("should render VendorsView at /vendors", async () => {
