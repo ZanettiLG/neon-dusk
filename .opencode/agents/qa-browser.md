@@ -2,7 +2,7 @@
 description: End-to-end QA agent that tests Neon Dusk features in the browser using agent-browser MCP. Executes structured test plans covering happy paths, error paths, edge cases, and side-effects. Supports feature testing, smoke tests, and regression suites.
 mode: subagent
 hidden: true
-model: opencode-go/deepseek-v4-pro
+model: opencode-go/deepseek-v4-flash-vision-exp
 temperature: 0.1
 thinking:
   type: enabled

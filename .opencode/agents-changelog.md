@@ -4,6 +4,18 @@ Histórico de mudanças nos agentes de desenvolvimento.
 
 ## 2026-08-29
 ### Trigger
+Otimização de custo dos agentes (decisão humana: commit parcial do stash de modelos).
+
+### Change
+qa-browser: opencode-go/deepseek-v4-pro → opencode-go/deepseek-v4-flash-vision-exp (capacidade de visão para análise de screenshots). code-reviewer e pr-reviewer PERMANECEM em deepseek-v4-pro (quality gates). Pesquisa de custo×benefício geral em andamento — mapping completo pendente de aprovação.
+
+### Impact
+QA interativa ganha análise visual de screenshots; revisores mantêm robustez pro. Custo de QA reduzido.
+
+---
+
+## 2026-08-29
+### Trigger
 qa-browser retornava env-blocked: MCP agent-browser não injetado na sessão do subagente (sem permissão no frontmatter) + nomes de ferramentas desatualizados no prompt.
 
 ### Change
