@@ -1,28 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import TypewriterText, { prefersReducedMotion } from "@/components/chrome/TypewriterText";
+import { stubMatchMedia, restoreMatchMedia } from "@/test-utils/matchMedia";
 
 // Issue #10 — TypewriterText: digitação progressiva do log do Ferrageiro,
 // instantânea sob prefers-reduced-motion, cleanup no unmount.
-
-const originalMatchMedia = window.matchMedia;
-
-function stubMatchMedia(matches: boolean) {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as unknown as typeof window.matchMedia;
-}
-
-function restoreMatchMedia() {
-  window.matchMedia = originalMatchMedia as typeof window.matchMedia;
-}
 
 describe("TypewriterText", () => {
   afterEach(() => {

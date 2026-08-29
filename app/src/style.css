@@ -99,6 +99,15 @@
     @apply font-heading text-xs uppercase tracking-widest text-nd-text-secondary
            hover:text-nd-cyan transition-colors;
   }
+
+  /* Body-map slots (SVG <g role="button">): keyboard focus must stay visible.
+     `outline-none` used to kill the global :focus-visible ring, leaving
+     keyboard users blind — this restores the canonical focus token
+     (docs/design/05-design-tokens.md §10) explicitly on the slot. */
+  .chrome-svg-slot:focus-visible {
+    outline: var(--nd-focus-width) solid var(--nd-focus-color);
+    outline-offset: var(--nd-focus-offset);
+  }
 }
 
 @layer utilities {

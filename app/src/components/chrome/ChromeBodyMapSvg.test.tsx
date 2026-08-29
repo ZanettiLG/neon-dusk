@@ -77,11 +77,11 @@ describe("ChromeBodyMapSvg", () => {
     expect(onSelectSlot).toHaveBeenCalledWith("ocular");
   });
 
-  it("should mark the selected slot with aria-current and keep color as decoration", () => {
+  it("should mark the selected slot with aria-pressed and keep color as decoration", () => {
     render(<ChromeBodyMapSvg installed={[]} selectedSlot="arms" onSelectSlot={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: /^Braços — / })).toHaveAttribute("aria-current", "true");
-    expect(screen.getByRole("button", { name: /^Ocular — / })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /^Braços — / })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /^Ocular — / })).not.toHaveAttribute("aria-pressed");
   });
 
   it("should disable a full slot: aria-disabled, no click, no keyboard selection", () => {

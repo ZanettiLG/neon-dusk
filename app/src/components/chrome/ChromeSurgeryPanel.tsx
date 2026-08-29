@@ -44,6 +44,11 @@ interface ChromeSurgeryPanelProps {
   vendorPrices?: Record<string, number> | null;
   /** True while the parent is still loading catalog/installed. */
   loading: boolean;
+  /** Error from the installed fetch (parent); when set with no cached loadout,
+   * the panel shows a retry instead of hanging in "loading..." forever. */
+  error?: string | null;
+  /** Retry callback for the installed fetch (parent). */
+  onRetry?: () => void;
   /** Fired once the surgery theater finishes — parent reloads installed + HUD. */
   onSurgeryDone: () => void;
 }
@@ -84,6 +89,8 @@ export default function ChromeSurgeryPanel({
   vendorId,
   vendorPrices = null,
   loading,
+  error,
+  onRetry,
   onSurgeryDone,
 }: ChromeSurgeryPanelProps) {
   const character = useAuthStore((s) => s.character);
@@ -111,6 +118,20 @@ export default function ChromeSurgeryPanel({
   // on completion (which flips `loading` back to true for a moment).
   const theaterActive = stage === "surgery_playing" || stage === "done";
 
+  // Installed loadout failed to load (and there is no cached loadout to
+  // compute surgery math from) — surface the error with a retry instead of
+  // hanging on the loading spinner forever.
+  if (slot && !installed && !loading && error) {
+    return (
+      <div role="alert" className="card space-y-3">
+        <p className="text-nd-magenta text-sm font-data">
+          Não foi possível carregar seu cromo. Tente novamente.
+        </p>
+        {onRetry && <ActionButton onClick={onRetry}>Tentar novamente</ActionButton>}
+      </div>
+    );
+  }
+
   if ((loading || (slot && !installed)) && !theaterActive) {
     return <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>;
   }
@@ -128,7 +149,13 @@ export default function ChromeSurgeryPanel({
   const count = inSlot.length;
   const capacity = SLOT_CAPACITY[slot];
   const slotFull = count >= capacity;
-  const available = catalog.filter((c) => c.slot === slot);
+  const catalogForSlot = catalog.filter((c) => c.slot === slot);
+  /** Stock gate: when the ferrageiro's inventory is known, only implants he
+   * actually carries are offered; unknown inventory (null) falls back to the
+   * full slot catalog — the server stays authoritative on the charge. */
+  const available = vendorPrices
+    ? catalogForSlot.filter((c) => vendorPrices[c.id] !== undefined)
+    : catalogForSlot;
 
   function isInstalled(def: ChromeDefinition): boolean {
     return inSlot.some((rec) => rec.definition.id === def.id);
@@ -223,7 +250,7 @@ export default function ChromeSurgeryPanel({
   if (stage === "surgery_playing" && implant && installed) {
     const projectedHumanity = installed.effectiveHumanity - effectiveHumanityCost(implant);
     return (
-      <div role="status" aria-live="polite" className="card border-nd-magenta/20 space-y-3">
+      <div role="status" className="card border-nd-magenta/20 space-y-3">
         <p className="font-data text-xs text-nd-magenta animate-pulse-neon tracking-widest">
           /// BATIMENTO NEURAL ///
         </p>
@@ -251,8 +278,12 @@ export default function ChromeSurgeryPanel({
         <p className="text-nd-text-secondary text-xs font-data">
           {count}/{capacity} ocupados
         </p>
-        {available.length === 0 ? (
+        {catalogForSlot.length === 0 ? (
           <p className="text-nd-text-secondary text-sm font-data">Nenhum cromo para este slot.</p>
+        ) : available.length === 0 ? (
+          <p className="text-nd-text-secondary text-sm font-data">
+            O ferrageiro não tem cromo em estoque para este slot.
+          </p>
         ) : (
           <ul className="space-y-2">
             {available.map((def) => {

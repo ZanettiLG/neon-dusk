@@ -155,6 +155,15 @@ export default function ChromeView() {
         <div>
           {catalogError ? (
             <p className="text-nd-magenta text-sm font-data">{catalogError}</p>
+          ) : installedError && !installed ? (
+            <div role="alert" className="card space-y-3">
+              <p className="text-nd-magenta text-sm font-data">
+                Não foi possível carregar seu cromo. Tente novamente.
+              </p>
+              <button type="button" className="btn-neon" onClick={() => void fetchInstalled()}>
+                Tentar novamente
+              </button>
+            </div>
           ) : (
             <>
               {!catalogLoading && catalog.length === 0 && (
@@ -176,6 +185,8 @@ export default function ChromeView() {
                   vendorId={vendorId}
                   vendorPrices={vendorPrices}
                   loading={catalogLoading || installedLoading}
+                  error={installedError}
+                  onRetry={() => void fetchInstalled()}
                   onSurgeryDone={onSurgeryDone}
                 />
               </div>

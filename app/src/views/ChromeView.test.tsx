@@ -157,6 +157,38 @@ describe("ChromeView", () => {
     expect(await screen.findAllByText("Falha ao carregar catálogo")).not.toHaveLength(0);
   });
 
+  it("should surface the installed error on Corpo with a retry instead of hanging in loading", async () => {
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/chrome") return Promise.resolve([implant, implant2]);
+      if (url === "/api/chrome/installed") return Promise.reject(new Error("Falha ao carregar cromo instalado"));
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
+      if (url === "/api/vendors/v1") return Promise.resolve(RIPPER_DETAIL);
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+
+    render(<ChromeView />);
+
+    // Error banner with retry — the body map grid never renders.
+    expect(await screen.findByText("Não foi possível carregar seu cromo. Tente novamente.")).toBeInTheDocument();
+    expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Mapa corporal de cromo" })).not.toBeInTheDocument();
+
+    // Retry re-fetches the loadout and the grid recovers.
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/chrome") return Promise.resolve([implant, implant2]);
+      if (url === "/api/chrome/installed") return Promise.resolve(installed);
+      if (url === "/api/vendors") return Promise.resolve([{ id: "v1", type: "RIPPERDOC" }]);
+      if (url === "/api/vendors/v1") return Promise.resolve(RIPPER_DETAIL);
+      return Promise.resolve([]);
+    });
+
+    await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    expect(await screen.findByRole("group", { name: "Mapa corporal de cromo" })).toBeInTheDocument();
+    expect(screen.getByText("1/3 — Smart Link")).toBeInTheDocument();
+  });
+
   it("should uninstall from the Meu Cromo tab and surface errors", async () => {
     mockApi();
     mocks.api.post.mockRejectedValue(new Error("Falha ao remover"));

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import ChromeSurgeryPanel, { isOverclockActive } from "@/components/chrome/ChromeSurgeryPanel";
+import { stubMatchMedia, restoreMatchMedia } from "@/test-utils/matchMedia";
 import { useAuthStore } from "@/stores/auth";
 import { useHudStore } from "@/stores/hud";
 import type { Character, ChromeDefinition, ChromeSlot, InstalledChromeResponse } from "@neon-dusk/shared";
@@ -23,25 +24,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/api/client", () => ({
   api: mocks.api,
 }));
-
-const originalMatchMedia = window.matchMedia;
-
-function stubMatchMedia(matches: boolean) {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })) as unknown as typeof window.matchMedia;
-}
-
-function restoreMatchMedia() {
-  window.matchMedia = originalMatchMedia as typeof window.matchMedia;
-}
 
 const CHARACTER: Character = {
   id: "c1",
@@ -116,10 +98,12 @@ function installedWith(overrides: Partial<InstalledChromeResponse>): InstalledCh
 interface RenderOptions {
   slot?: ChromeSlot | null;
   catalog?: ChromeDefinition[];
-  installed?: InstalledChromeResponse;
+  installed?: InstalledChromeResponse | null;
   vendorId?: string | null;
   vendorPrices?: Record<string, number> | null;
   loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 function renderPanel(options: RenderOptions = {}) {
@@ -128,10 +112,12 @@ function renderPanel(options: RenderOptions = {}) {
     <ChromeSurgeryPanel
       slot={options.slot === undefined ? "frontal_cortex" : options.slot}
       catalog={options.catalog ?? [CUCA]}
-      installed={options.installed ?? INSTALLED}
+      installed={options.installed === undefined ? INSTALLED : options.installed}
       vendorId={options.vendorId === undefined ? "v1" : options.vendorId}
       vendorPrices={options.vendorPrices}
       loading={options.loading ?? false}
+      error={options.error}
+      onRetry={options.onRetry}
       onSurgeryDone={onSurgeryDone}
     />,
   );
@@ -274,9 +260,10 @@ describe("ChromeSurgeryPanel", () => {
       vendorId: "v1",
     });
 
-    // Teatro: batimento neural + log digitado + botão em cooldown, aria-live.
+    // Teatro: batimento neural + log digitado + botão em cooldown.
+    // role="status" já implica aria-live polite — sem atributo redundante.
     const theater = screen.getByRole("status");
-    expect(theater).toHaveAttribute("aria-live", "polite");
+    expect(theater).not.toHaveAttribute("aria-live");
     expect(screen.getByText(/BATIMENTO NEURAL/)).toBeInTheDocument();
     // Cooldown ~5s client-side (critério #10): "ferro esfriando 0:05".
     expect(screen.getByRole("button", { name: "ferro esfriando 0:05" })).toBeInTheDocument();
@@ -317,6 +304,37 @@ describe("ChromeSurgeryPanel", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Grana insuficiente.");
     expect(screen.getByRole("button", { name: "Confirmar cirurgia" })).toBeEnabled();
+  });
+
+  it("should show the installed error with a retry instead of hanging in loading forever", () => {
+    const onRetry = vi.fn();
+    renderPanel({ installed: null, error: "Falha ao carregar cromo instalado", onRetry });
+
+    expect(screen.getByText("Não foi possível carregar seu cromo. Tente novamente.")).toBeInTheDocument();
+    expect(screen.queryByText("▌ loading...")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("should hide implants the ferrageiro does not carry when vendor stock is known", () => {
+    renderPanel({ vendorPrices: { outro: 2000 } });
+
+    expect(screen.queryByRole("button", { name: /Cuca Acesa/ })).not.toBeInTheDocument();
+    expect(screen.getByText("O ferrageiro não tem cromo em estoque para este slot.")).toBeInTheDocument();
+  });
+
+  it("should keep offering implants the ferrageiro carries when vendor stock is known", () => {
+    renderPanel({ vendorPrices: { cuca: 2000 } });
+
+    expect(screen.getByRole("button", { name: /Cuca Acesa/ })).toBeInTheDocument();
+  });
+
+  it("should fall back to the full slot catalog when vendor stock is unknown", () => {
+    renderPanel({ vendorPrices: null });
+
+    expect(screen.getByRole("button", { name: /Cuca Acesa/ })).toBeInTheDocument();
   });
 
   it("should use the ferrageiro stock price when provided (vendor price > catalog basePrice)", () => {

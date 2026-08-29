@@ -203,10 +203,10 @@ export default function ChromeBodyMapSvg({ installed, selectedSlot, onSelectSlot
               role="button"
               tabIndex={full ? -1 : 0}
               aria-label={`${label} — ${count}/${capacity} ocupados`}
-              aria-current={selected || undefined}
+              aria-pressed={selected || undefined}
               aria-disabled={full || undefined}
               data-slot={slot}
-              className={`chrome-svg-slot outline-none ${full ? "cursor-not-allowed" : "cursor-pointer"}`}
+              className={`chrome-svg-slot ${full ? "cursor-not-allowed" : "cursor-pointer"}`}
               onClick={full ? undefined : () => onSelectSlot(slot)}
               onKeyDown={(e) => {
                 if (full) return;
