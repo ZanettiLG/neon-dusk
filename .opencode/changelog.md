@@ -2,6 +2,18 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-29
+### Trigger
+Migração de repositório: upstream zan-ia/neon-dusk deletado; fork ZanettiLG/neon-dusk virou canônico.
+
+### Change
+Atualizadas URLs de exemplo em github-ops.md e dev-orchestrator.md (zan-ia → ZanettiLG).
+
+### Impact
+Pipeline aponta para o repo canônico correto; sem referências quebradas no harness.
+
+---
+
 ## 2026-08-20 — Infra: Repo canônico re-apontado para `ZanettiLG/neon-dusk`
 
 ### Trigger
