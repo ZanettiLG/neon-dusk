@@ -2,6 +2,16 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-30
+### Trigger
+Issue #30 (ND-052): code-reviewer identificou seed GIG_BASE_REWARD duplicado entre migration 0034 e content-seeds (2ª ocorrência do padrão).
+### Change
+Check fixo no self-review do developer: seeds só em content-seeds, migrations só DDL/índices.
+### Impact
+Esperado: eliminação de seeds duplicados em features futuras.
+
+---
+
 ## 2026-08-30 — N1: Fonte única de formatadores de tempo/valor no react-patterns (issue #48)
 
 ### Trigger

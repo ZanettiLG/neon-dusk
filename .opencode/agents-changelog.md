@@ -4,6 +4,16 @@ Histórico de mudanças nos agentes de desenvolvimento.
 
 ## 2026-08-30
 ### Trigger
+Issue #30 (ND-052): code-reviewer identificou seed GIG_BASE_REWARD duplicado entre migration 0034 e content-seeds (2ª ocorrência do padrão — a 1ª foi na issue #48).
+### Change
+Adicionado check #47 ao self-review do developer: seeds de dados de jogo vivem SOMENTE em `content-seeds.ts`/`DEFAULT_PARAMS` (upsert idempotente) — migrations fazem apenas DDL/índices; nenhum INSERT de seed em migration. Total de checks: 46 → 47.
+### Impact
+Esperado: eliminação de seeds duplicados em features futuras.
+
+---
+
+## 2026-08-30
+### Trigger
 Issue #48: code-reviewer identificou helper local `formatCooldown` duplicando `formatDuration` — padrão recorrente, também presente em `TherapyPanel.tsx` com um `formatCountdown` local.
 
 ### Change
