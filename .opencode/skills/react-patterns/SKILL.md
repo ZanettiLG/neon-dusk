@@ -328,6 +328,17 @@ useEffect(() => {
 }, [])
 ```
 
+## Formatação de Duração/Countdown
+
+Reutilize `@/lib/format` — fonte única dos formatadores de tempo/valor:
+
+- `formatDuration(seconds)` → `"1d 2h"` / `"3h"` (unidades zero omitidas)
+- `formatCountdown(seconds)` → `"m:ss"` (countdown curto)
+- `formatRelativeTime(iso)` → `"agora"` / `"há N min"` / `"há N h"` / `"há N d"`
+- `formatEds(amount)` → `"G$ 1.234"` (agrupamento pt-BR)
+
+Helper local de formatação só quando o formato for genuinamente novo e não coberto por `@/lib/format`. Nunca duplique um formatador já existente com outro nome (ex: `formatCooldown` local duplicando `formatDuration`).
+
 ## Responsividade
 
 - Mobile-first: 320px → 768px → 1024px

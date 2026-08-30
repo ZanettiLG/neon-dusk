@@ -2,6 +2,33 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-30 — N1: Fonte única de formatadores de tempo/valor no react-patterns (issue #48)
+
+### Trigger
+Ciclo ACT→OBSERVE→REFINE da issue #48 (consumables-ui). O code-reviewer identificou helper local `formatCooldown` duplicando `formatDuration` (padrão também presente em `TherapyPanel.tsx` com `formatCountdown` local).
+
+### Change
+- `react-patterns` skill: nova seção "Formatação de Duração/Countdown" documentando `@/lib/format` como fonte única (`formatDuration`, `formatCountdown`, `formatRelativeTime`, `formatEds`) e o anti-padrão de duplicar formatador existente com outro nome.
+
+### Impact
+Developer e code-reviewer (que carregam react-patterns) passam a tratar `@/lib/format` como fonte canônica; previne helpers locais duplicados em features futuras.
+
+---
+
+## 2026-08-30 — Infra: Job `test` do CI reativado
+
+### Trigger
+pr-reviewer da issue #48: `.github/workflows/ci.yml` rodava só Lint + Type Check — o job `test` (suíte de 809 testes) estava comentado desde o commit `3997500` ("comment test and build", 2026-08-20), deixando a suíte restrita ao ambiente local.
+
+### Change
+- Job `test` reativado (estava comentado sem blocker documentado): sobe a infra isolada (`docker compose -f docker-compose.test.yml up -d --wait`), roda migrations/seeds, executa `npm run test` (server + app) e o guard de terminologia (`node --test scripts/__tests__/check-terminologia.test.mjs`), com teardown em `always()`.
+- Config validada: portas (55432/56379) e credenciais efêmeras batem com `server/src/__tests__/setup.ts` e `docker-compose.test.yml`; `docker compose` está disponível no runner `ubuntu-latest`.
+
+### Impact
+CI volta a rodar a suíte completa antes de liberar o deploy (deploy.yml dispara via `workflow_run` com `conclusion == 'success'`); regressões deixam de chegar à main silenciosamente. Job `build` permanece comentado (fora do escopo desta nota).
+
+---
+
 ## 2026-08-29
 ### Trigger
 Migração de repositório: upstream zan-ia/neon-dusk deletado; fork ZanettiLG/neon-dusk virou canônico.

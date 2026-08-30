@@ -2,6 +2,18 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-30
+### Trigger
+Issue #48: code-reviewer identificou helper local `formatCooldown` duplicando `formatDuration` — padrão recorrente, também presente em `TherapyPanel.tsx` com um `formatCountdown` local.
+
+### Change
+Adicionado check #46 ao self-review do developer: formatação de duração/countdown deve reutilizar `@/lib/format` (`formatDuration`, `formatCountdown`, `formatRelativeTime`, `formatEds`); helper local só se o formato for genuinamente novo e não coberto. Total de checks: 45 → 46.
+
+### Impact
+Prevê a duplicação de formatadores de tempo/valor antes do review; reduz achados de consistência/manutenibilidade em features futuras.
+
+---
+
 ## 2026-08-29
 ### Trigger
 Issue #28: gate FLATLINED esquecido em startLegwork (encontrado no re-review ciclo 3) — padrão recorrente de gates de estado em endpoints mutantes.
