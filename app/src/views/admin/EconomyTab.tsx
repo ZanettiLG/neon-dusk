@@ -1,9 +1,11 @@
 import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { useAdminStore } from "@/stores/admin";
 
 /**
- * Economy dashboard tab (ND-052). Big-number cards, hourly bar chart,
- * top faucets and sinks side by side.
+ * Economy dashboard tab (ND-052). Big-number cards (including round
+ * inflation with a green/amber/magenta badge), hourly bar chart, top faucets
+ * and sinks side by side.
  */
 export default function EconomyTab() {
   const { economy, economyLoading, economyError, fetchEconomy } = useAdminStore();
@@ -24,6 +26,17 @@ export default function EconomyTab() {
 
   const maxHourly = Math.max(1, ...economy.hourlyBreakdown24h.map((h) => h.count));
 
+  // Inflation badge: <5% saudável (verde), 5-15% atenção (âmbar), ≥15% risco
+  // (magenta). O percentual usa vírgula decimal (pt-BR).
+  const inflationPct = economy.inflation * 100;
+  const inflationLabel = `${inflationPct.toFixed(1).replace(".", ",")}%`;
+  const inflationBadge =
+    economy.inflation < 0.05
+      ? "text-nd-green border-nd-green/30"
+      : economy.inflation < 0.15
+        ? "text-nd-gold border-nd-gold/30"
+        : "text-nd-magenta border-nd-magenta/30";
+
   return (
     <div>
       {/* Big-number cards */}
@@ -33,6 +46,21 @@ export default function EconomyTab() {
           value={economy.eddiesInCirculation.toLocaleString()}
           unit="G$"
         />
+        <Card
+          label="Inflação (rodada)"
+          value={inflationLabel}
+          badge={
+            <span className={`text-xs px-2 py-0.5 rounded border font-mono ${inflationBadge}`}>
+              {economy.inflation < 0.05
+                ? "estável"
+                : economy.inflation < 0.15
+                  ? "atenção"
+                  : "risco"}
+            </span>
+          }
+        />
+        <Card label="Faucets (rodada)" value={economy.faucetsTotal.toLocaleString()} unit="G$" />
+        <Card label="Sinks (rodada)" value={economy.sinksTotal.toLocaleString()} unit="G$" />
         <Card label="Ativos (24h)" value={String(economy.dailyActiveCharacters)} />
         <Card label="Transações (24h)" value={String(economy.transactions24h)} />
         <Card
@@ -48,9 +76,7 @@ export default function EconomyTab() {
 
       {/* Hourly breakdown bar chart */}
       <div className="mb-8">
-        <h3 className="font-mono text-nd-cyan text-sm mb-3">
-          Atividade por Hora (24h)
-        </h3>
+        <h3 className="font-mono text-nd-cyan text-sm mb-3">Atividade por Hora (24h)</h3>
         <div className="flex items-end gap-1 h-32">
           {economy.hourlyBreakdown24h.map((h) => (
             <div
@@ -116,11 +142,13 @@ function Card({
   value,
   unit,
   sub,
+  badge,
 }: {
   label: string;
   value: string;
   unit?: string;
   sub?: string;
+  badge?: ReactNode;
 }) {
   return (
     <div className="bg-nd-surface border border-nd-cyan/10 rounded-lg p-4">
@@ -129,6 +157,7 @@ function Card({
         {value}
         {unit && <span className="text-nd-text-secondary text-sm ml-1">{unit}</span>}
       </div>
+      {badge && <div className="mt-1.5">{badge}</div>}
       {sub && <div className="text-nd-text-secondary text-xs font-mono mt-1">{sub}</div>}
     </div>
   );

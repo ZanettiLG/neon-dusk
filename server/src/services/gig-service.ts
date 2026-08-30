@@ -15,7 +15,7 @@ import type {
   GigWrapupResponse,
   Role,
 } from "@neon-dusk/shared";
-import { NIL_REGEN_INTERVAL_MS, NIL_REGEN_RATE } from "@neon-dusk/shared";
+import { NIL_REGEN_RATE } from "@neon-dusk/shared";
 import { AppError } from "../middleware/error-handler";
 import {
   applyHeatDecay,
@@ -37,11 +37,7 @@ import {
 import { calculateGigSuccessBonus, calculateStatBonus } from "../game/chrome";
 import type { ChromeDefinition } from "@neon-dusk/shared";
 import { calculateCrewBonuses } from "../game/crews.js";
-import {
-  getSilverTongueBonus,
-  canRunSecondGig,
-  computeConsumption,
-} from "../game/abilities";
+import { getSilverTongueBonus, canRunSecondGig, computeConsumption } from "../game/abilities";
 import { resolveOsActiveBonus } from "./os-service";
 import { transferEddies } from "../game/economy";
 import { emitEvent } from "../telemetry/emit-event";
@@ -56,6 +52,7 @@ import { crewRepository as crews } from "../repositories/crew-repository";
 import { heatRepository as heat } from "../repositories/heat-repository";
 import { gigRepository as gigs } from "../repositories/gig-repository";
 import type { ActiveGigJoinedRow } from "../repositories/gig-repository";
+import { getGameParam } from "../repositories/game-param-repository";
 
 // Neon Dusk — Trampo service (orchestration over the pure game logic)
 // ============================================================================
@@ -88,7 +85,11 @@ function toActiveGig(row: ActiveGigJoinedRow): ActiveGig {
 }
 
 /** Character row → Attributes object for the pure game functions. */
-function toAttributes(row: Record<string, unknown> | { body: number; reflexes: number; intelligence: number; technical: number; cool: number }): Attributes {
+function toAttributes(
+  row:
+    | Record<string, unknown>
+    | { body: number; reflexes: number; intelligence: number; technical: number; cool: number },
+): Attributes {
   return {
     body: Number(row.body),
     reflexes: Number(row.reflexes),
@@ -107,12 +108,36 @@ function toDate(v: Date | string | null): Date | null {
 }
 
 /** Seconds left on a trampo cooldown (0 = ready). */
-function cooldownRemainingFor(lastAt: Date | string | null, cooldownMinutes: number, now: Date): number {
+function cooldownRemainingFor(
+  lastAt: Date | string | null,
+  cooldownMinutes: number,
+  now: Date,
+): number {
   const last = toDate(lastAt);
   if (!last) return 0;
   if (isCooldownExpired(last, cooldownMinutes, now)) return 0;
   const msLeft = last.getTime() + cooldownMinutes * 60 * 1000 - now.getTime();
   return Math.ceil(msLeft / 1000);
+}
+
+/**
+ * ND-052: global cooldown floor (game_params GIG_COOLDOWN_MINUTES, fallback
+ * 10). Template cooldowns (balance pass #114: T1=10 … T5=30) stay
+ * authoritative; the param only raises the floor for every trampo when an
+ * admin wants to slow the grind.
+ */
+async function globalCooldownMinutes(q: Queryable): Promise<number> {
+  return Number(await getGameParam("GIG_COOLDOWN_MINUTES", "10", q));
+}
+
+/** ND-052: NIL passive regen interval in ms (game_params NIL_REGEN_MINUTES, fallback 5). */
+async function regenIntervalMs(q: Queryable): Promise<number> {
+  return Number(await getGameParam("NIL_REGEN_MINUTES", "5", q)) * 60_000;
+}
+
+/** ND-052: global minimum payout base (game_params GIG_BASE_REWARD, fallback 100). */
+async function minPayoutBase(q: Queryable): Promise<number> {
+  return Number(await getGameParam("GIG_BASE_REWARD", "100", q));
 }
 
 /** Sum of the character's installed-cromo trampo success bonus (percentage points). */
@@ -126,10 +151,7 @@ async function getGigSuccessBonus(q: Queryable, characterId: string): Promise<nu
 }
 
 /** Sum of the character's installed-cromo attribute bonuses (all 5 stats). */
-async function getChromeStatBonus(
-  q: Queryable,
-  characterId: string,
-): Promise<Attributes> {
+async function getChromeStatBonus(q: Queryable, characterId: string): Promise<Attributes> {
   const installed = await chrome.listInstalledDefinitionIds(characterId, q);
   if (installed.length === 0) {
     return { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 };
@@ -198,6 +220,9 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
 
   const gigRows = await gigs.listCatalog();
 
+  // ND-052: the global cooldown floor applies on top of per-template values.
+  const cooldownFloor = await globalCooldownMinutes(db);
+
   // Last completion per trampo template → per-trampo cooldowns.
   const completions = await gigs.listLastCompletions(characterId);
   const lastByGig = new Map(completions.map((c) => [c.gigId, c.lastAt as Date]));
@@ -205,7 +230,8 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
   const board: GigListItem[] = gigRows.map((g) => {
     const requiredStats = g.required_stats as Record<string, number>;
     const meetsRequirements =
-      meetsStatRequirements(attrs, requiredStats) && Number(character.street_cred) >= Number(g.required_street_cred);
+      meetsStatRequirements(attrs, requiredStats) &&
+      Number(character.street_cred) >= Number(g.required_street_cred);
     const primaryStatKey = getPrimaryStatKey(g.type as GigType);
     const { primary } = getRelevantStats(g.type as GigType, attrs);
     return {
@@ -220,9 +246,19 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
       nilCost: Number(g.nil_cost),
       requiredStats,
       meetsRequirements,
-      cooldownRemaining: cooldownRemainingFor(lastByGig.get(g.id as string) ?? null, Number(g.cooldown_minutes), now),
+      cooldownRemaining: cooldownRemainingFor(
+        lastByGig.get(g.id as string) ?? null,
+        Math.max(Number(g.cooldown_minutes), cooldownFloor),
+        now,
+      ),
       // ND-140: base chance (stat + cromo) — legwork/bonde apply on top at execute.
-      successChance: calculateSuccessChance(primary, chromeBonus, Number(g.difficulty), undefined, chromeStatBonuses[primaryStatKey]),
+      successChance: calculateSuccessChance(
+        primary,
+        chromeBonus,
+        Number(g.difficulty),
+        undefined,
+        chromeStatBonuses[primaryStatKey],
+      ),
       heatGenerated: Number(g.heat_generated),
     };
   });
@@ -242,10 +278,7 @@ export async function getActiveGig(characterId: string): Promise<ActiveGig | nul
 }
 
 /** GET /api/gigs/:id — one template with requirement/cooldown flags. */
-export async function getGigDetail(
-  characterId: string,
-  gigId: string,
-): Promise<GigDetailResponse> {
+export async function getGigDetail(characterId: string, gigId: string): Promise<GigDetailResponse> {
   const trampo = await gigs.findById(gigId);
   if (!trampo) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
@@ -258,7 +291,11 @@ export async function getGigDetail(
     Number(character.street_cred) >= Number(trampo.required_street_cred);
 
   const last = await gigs.findLastCompletion(characterId, gigId);
-  const cdRemaining = cooldownRemainingFor(last?.lastAt ?? null, Number(trampo.cooldown_minutes), new Date());
+  const cdRemaining = cooldownRemainingFor(
+    last?.lastAt ?? null,
+    Math.max(Number(trampo.cooldown_minutes), await globalCooldownMinutes(db)),
+    new Date(),
+  );
 
   const template: GigTemplate = {
     id: trampo.id as string,
@@ -289,6 +326,10 @@ export async function getGigDetail(
  */
 export async function acceptGig(characterId: string, gigId: string): Promise<GigAcceptResponse> {
   return withTransaction(async (trx) => {
+    // ND-052: tunables read once per accept (30s cache keeps them cheap).
+    const cooldownFloor = await globalCooldownMinutes(trx);
+    const regenInterval = await regenIntervalMs(trx);
+
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
@@ -342,18 +383,33 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
           `Precisa de ${trampo.required_street_cred} de Moral, tem ${character.street_cred}.`,
         );
       }
-      if (!meetsStatRequirements({
-        body: Number(character.body),
-        reflexes: Number(character.reflexes),
-        intelligence: Number(character.intelligence),
-        technical: Number(character.technical),
-        cool: Number(character.cool),
-      }, trampo.required_stats as Record<string, number>)) {
-        throw new AppError(403, "INSUFFICIENT_STATS", "Atributos não atendem aos requisitos do trampo");
+      if (
+        !meetsStatRequirements(
+          {
+            body: Number(character.body),
+            reflexes: Number(character.reflexes),
+            intelligence: Number(character.intelligence),
+            technical: Number(character.technical),
+            cool: Number(character.cool),
+          },
+          trampo.required_stats as Record<string, number>,
+        )
+      ) {
+        throw new AppError(
+          403,
+          "INSUFFICIENT_STATS",
+          "Atributos não atendem aos requisitos do trampo",
+        );
       }
 
       const last = await gigs.findLastCompletion(characterId, gigId, trx);
-      if (last && !isCooldownExpired(new Date(last.lastAt), Number(trampo.cooldown_minutes))) {
+      if (
+        last &&
+        !isCooldownExpired(
+          new Date(last.lastAt),
+          Math.max(Number(trampo.cooldown_minutes), cooldownFloor),
+        )
+      ) {
         throw new AppError(400, "GIG_COOLDOWN", "Este trampo ainda está em cooldown");
       }
 
@@ -362,11 +418,17 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
       // optimistic lock — a concurrent spend that passed the fail-fast check
       // still loses the WHERE race and gets INSUFFICIENT_NIL.
       const elapsed = Math.max(0, Date.now() - new Date(character.nil_updated_at).getTime());
-      const regenOffset = Math.floor(elapsed / NIL_REGEN_INTERVAL_MS) * NIL_REGEN_RATE;
+      const regenOffset = Math.floor(elapsed / regenInterval) * NIL_REGEN_RATE;
       const nilCost = Number(trampo.nil_cost);
       const rawNil = Number(character.nil);
 
-      const updated = await characters.updateNilSpend(characterId, regenOffset, nilCost, rawNil, trx);
+      const updated = await characters.updateNilSpend(
+        characterId,
+        regenOffset,
+        nilCost,
+        rawNil,
+        trx,
+      );
       if (!updated) {
         throw new AppError(400, "INSUFFICIENT_NIL", `NIL insuficiente (precisa de ${nilCost})`);
       }
@@ -389,7 +451,11 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
         escapeDifficulty: Number(trampo.escape_difficulty),
       };
 
-      trackGigEvent("GIG_STARTED", characterId, { gigId: trampo.id, gigName: trampo.name, tier: trampo.tier });
+      trackGigEvent("GIG_STARTED", characterId, {
+        gigId: trampo.id,
+        gigName: trampo.name,
+        tier: trampo.tier,
+      });
       return { activeGig, nilRemaining: updated.nil };
     } catch (err) {
       // Any validation failure after the INSERT rolls the trampo back — the
@@ -417,11 +483,16 @@ export async function doLegwork(characterId: string, gigId: string): Promise<Act
 
     const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
+    if (active.gigId !== gigId)
+      throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
 
     const next = canTransition(active.phase, "start_legwork");
     if (!next) {
-      throw new AppError(409, "INVALID_PHASE_TRANSITION", `Não é possível iniciar legwork a partir de ${active.phase}`);
+      throw new AppError(
+        409,
+        "INVALID_PHASE_TRANSITION",
+        `Não é possível iniciar legwork a partir de ${active.phase}`,
+      );
     }
 
     await gigs.transitionActiveGig(
@@ -443,7 +514,8 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
   return withTransaction(async (trx) => {
     const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
+    if (active.gigId !== gigId)
+      throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
 
     const trampo = await gigs.findById(active.gigId, trx);
     if (!trampo) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
@@ -466,19 +538,20 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
           ? canTransition("legwork", "execute")
           : null;
     if (!next) {
-      throw new AppError(409, "INVALID_PHASE_TRANSITION", `Não é possível executar a partir de ${active.phase}`);
+      throw new AppError(
+        409,
+        "INVALID_PHASE_TRANSITION",
+        `Não é possível executar a partir de ${active.phase}`,
+      );
     }
 
     // Gate: if legwork was started, the timer must have elapsed (ND-078).
     const legworkDone =
       active.legworkStartedAt !== null &&
-      Date.now() >= new Date(active.legworkStartedAt).getTime() + Number(trampo.legwork_minutes) * 60 * 1000;
+      Date.now() >=
+        new Date(active.legworkStartedAt).getTime() + Number(trampo.legwork_minutes) * 60 * 1000;
     if (!skippedLegwork && !legworkDone) {
-      throw new AppError(
-        409,
-        "LEGWORK_IN_PROGRESS",
-        "Legwork em andamento. Aguarde o timer.",
-      );
+      throw new AppError(409, "LEGWORK_IN_PROGRESS", "Legwork em andamento. Aguarde o timer.");
     }
 
     const { primary } = getRelevantStats(trampo.type as GigType, toAttributes(character));
@@ -501,14 +574,27 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       if (gigBonus) crewBonus = gigBonus.value;
     }
 
-    const baseChance = calculateSuccessChance(primary, chromeBonus, Number(trampo.difficulty), undefined, chromeStatBonusValue, statMultiplier);
+    const baseChance = calculateSuccessChance(
+      primary,
+      chromeBonus,
+      Number(trampo.difficulty),
+      undefined,
+      chromeStatBonusValue,
+      statMultiplier,
+    );
     const chance = applyLegworkModifier(baseChance, { skippedLegwork, legworkDone });
     // Crew bonus adds percentage points after base chance (value=5 → +0.05).
     const chanceWithCrew = Math.min(0.95, chance + crewBonus / 100);
 
     const outcome = rollGigOutcome(chanceWithCrew);
+    // ND-052: GIG_BASE_REWARD raises the payout base when a template pays
+    // below the global floor (no-op at the 100 seed — templates pay ≥ 500).
     const actualPayout = outcome.success
-      ? calculatePayout(Number(trampo.base_reward), { legworkBonus: legworkDone, successBonus: true })
+      ? calculatePayout(
+          Number(trampo.base_reward),
+          { legworkBonus: legworkDone, successBonus: true },
+          await minPayoutBase(trx),
+        )
       : 0;
 
     await gigs.transitionActiveGig(
@@ -531,7 +617,11 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
         executeOutcome: outcome.success ? "success" : "failure",
         actualPayout: actualPayout,
       }),
-      outcome: { success: outcome.success, roll: outcome.roll, successChance: outcome.successChance },
+      outcome: {
+        success: outcome.success,
+        roll: outcome.roll,
+        successChance: outcome.successChance,
+      },
     };
   });
 }
@@ -545,7 +635,8 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
   return withTransaction(async (trx) => {
     const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
+    if (active.gigId !== gigId)
+      throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
     const trampo = await gigs.findById(active.gigId, trx);
     if (!trampo) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
@@ -598,7 +689,10 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
       osBonus.dodgeMultiplier,
     );
     const outcome = rollGigOutcome(chance);
-    const heatGenerated = calculateHeat(Number(trampo.heat_generated), (active.executeOutcome ?? "failure") as "success" | "failure");
+    const heatGenerated = calculateHeat(
+      Number(trampo.heat_generated),
+      (active.executeOutcome ?? "failure") as "success" | "failure",
+    );
 
     await gigs.transitionActiveGig(
       active.id,
@@ -616,7 +710,11 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
         phase: "escape",
         escapeOutcome: outcome.success ? "success" : "failure",
       }),
-      outcome: { success: outcome.success, roll: outcome.roll, successChance: outcome.successChance },
+      outcome: {
+        success: outcome.success,
+        roll: outcome.roll,
+        successChance: outcome.successChance,
+      },
       heatGenerated,
     };
   });
@@ -631,7 +729,8 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
   return withTransaction(async (trx) => {
     const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
-    if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
+    if (active.gigId !== gigId)
+      throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
 
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
@@ -648,7 +747,11 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     // machine in game/gigs.ts: escape → wrap_up); wrap_up is terminal and the
     // row is deleted right after, so it is never observed by the client.
     if (active.phase !== "escape") {
-      throw new AppError(409, "INVALID_PHASE_TRANSITION", "Wrap up só está disponível após escapar");
+      throw new AppError(
+        409,
+        "INVALID_PHASE_TRANSITION",
+        "Wrap up só está disponível após escapar",
+      );
     }
     const terminalPhase = canTransition("escape", "wrap_up");
 
@@ -666,16 +769,23 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const executed = active.executeOutcome === "success";
     const outcome = executed ? "success" : "failure";
     const basePayout = executed
-      ? calculatePayout(Number(trampo.base_reward), { legworkBonus: active.legworkCompleted, successBonus: true })
+      ? calculatePayout(
+          Number(trampo.base_reward),
+          { legworkBonus: active.legworkCompleted, successBonus: true },
+          await minPayoutBase(trx),
+        )
       : 0;
-    const payout = silverTongue && basePayout > 0
-      ? Math.ceil(basePayout * silverTongue.eddieMultiplier)
-      : basePayout;
+    const payout =
+      silverTongue && basePayout > 0
+        ? Math.ceil(basePayout * silverTongue.eddieMultiplier)
+        : basePayout;
     const baseSC = executed ? calculateStreetCred(trampo.tier as GigTier) : 0;
-    const streetCredGained = silverTongue && baseSC > 0
-      ? Math.ceil(baseSC * silverTongue.scMultiplier)
-      : baseSC;
-    const heatDelta = calculateHeat(Number(trampo.heat_generated), (active.executeOutcome ?? "failure") as "success" | "failure");
+    const streetCredGained =
+      silverTongue && baseSC > 0 ? Math.ceil(baseSC * silverTongue.scMultiplier) : baseSC;
+    const heatDelta = calculateHeat(
+      Number(trampo.heat_generated),
+      (active.executeOutcome ?? "failure") as "success" | "failure",
+    );
 
     // 1. Wallet credit — optimistic lock (same pattern as buyFromVendor).
     const wallet = await wallets.ensure(characterId, trx);
@@ -694,7 +804,11 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
         trx,
       );
       if (!updatedWallet) {
-        throw new AppError(409, "CONCURRENCY_CONFLICT", "Carteira alterada concorrentemente. Tente novamente.");
+        throw new AppError(
+          409,
+          "CONCURRENCY_CONFLICT",
+          "Carteira alterada concorrentemente. Tente novamente.",
+        );
       }
       await transactions.insert(
         {
@@ -766,11 +880,12 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     // 5. Close the active trampo.
     await gigs.closeActiveGig(active.id, trx);
 
-    trackGigEvent(
-      outcome === "success" ? "GIG_COMPLETED" : "GIG_FAILED",
-      characterId,
-      { gigId: trampo.id, gigName: trampo.name, payout, streetCred: scGranted },
-    );
+    trackGigEvent(outcome === "success" ? "GIG_COMPLETED" : "GIG_FAILED", characterId, {
+      gigId: trampo.id,
+      gigName: trampo.name,
+      payout,
+      streetCred: scGranted,
+    });
 
     return {
       outcome,

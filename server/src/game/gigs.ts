@@ -37,11 +37,11 @@ export type GigPhase = (typeof GIG_PHASES)[number];
 
 /** Maps a phase → valid next phases via an action. */
 const TRANSITIONS: Record<string, Record<string, string>> = {
-  meet:     { start_legwork: "legwork", skip_to_execute: "execute" },
-  legwork:  { execute: "execute" },
-  execute:  { escape: "escape" },
-  escape:   { wrap_up: "wrap_up" },
-  wrap_up:  {},
+  meet: { start_legwork: "legwork", skip_to_execute: "execute" },
+  legwork: { execute: "execute" },
+  execute: { escape: "escape" },
+  escape: { wrap_up: "wrap_up" },
+  wrap_up: {},
 };
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -70,8 +70,8 @@ export const STAT_SCALING = 5;
  */
 const GIG_STATS: Record<GigType, readonly [keyof Attributes, keyof Attributes]> = {
   extraction: ["body", "reflexes"],
-  delivery:   ["reflexes", "cool"],
-  sabotage:   ["technical", "intelligence"],
+  delivery: ["reflexes", "cool"],
+  sabotage: ["technical", "intelligence"],
 };
 
 /**
@@ -80,8 +80,8 @@ const GIG_STATS: Record<GigType, readonly [keyof Attributes, keyof Attributes]> 
  */
 const ESCAPE_STATS: Record<GigType, keyof Attributes> = {
   extraction: "reflexes",
-  delivery:   "reflexes",
-  sabotage:    "cool",
+  delivery: "reflexes",
+  sabotage: "cool",
 };
 
 // ─── Functions ──────────────────────────────────────────────────────────────
@@ -184,10 +184,7 @@ export interface LegworkModifiers {
  * @edgecases If both skipped and done (should never happen), skipped wins.
  *            Nil modifiers (neither skipped nor done) returns chance unchanged.
  */
-export function applyLegworkModifier(
-  baseChance: number,
-  modifiers: LegworkModifiers,
-): number {
+export function applyLegworkModifier(baseChance: number, modifiers: LegworkModifiers): number {
   if (modifiers.skippedLegwork) return Math.min(SUCCESS_CAP, baseChance * LEGWORK_SKIP_MULTIPLIER);
   if (modifiers.legworkDone) return Math.min(SUCCESS_CAP, baseChance * LEGWORK_MULTIPLIER);
   return baseChance;
@@ -204,10 +201,7 @@ export function applyLegworkModifier(
  *
  * @edgecases Values outside [0, 1] are clamped before comparison.
  */
-export function rollGigOutcome(
-  successChance: number,
-  rng: () => number = Math.random,
-): GigOutcome {
+export function rollGigOutcome(successChance: number, rng: () => number = Math.random): GigOutcome {
   const clamped = Math.min(1, Math.max(0, successChance));
   const roll = rng();
   return { success: roll < clamped, roll, successChance: clamped };
@@ -218,9 +212,13 @@ export function rollGigOutcome(
  * multiplicativamente.
  *
  * Fórmula: `baseReward × legwork(1.2) × success(1.1)`, arredondado para baixo.
+ * O piso `minBaseReward` (game_params GIG_BASE_REWARD, ND-052) eleva a base
+ * usada quando o template paga menos que o mínimo global — no seed (100) ele
+ * nunca liga, pois todo template paga ≥ 500 (03-mecanicas-core.md §2).
  *
- * @param baseReward - Recompensa base em grana do trampo.
- * @param modifiers  - Modificadores de fase opcionais (legwork concluído, trampo bem-sucedido).
+ * @param baseReward    - Recompensa base em grana do trampo.
+ * @param modifiers     - Modificadores de fase opcionais (legwork concluído, trampo bem-sucedido).
+ * @param minBaseReward - Piso global da base de recompensa (default 0 = sem piso).
  * @returns Grana inteiro (via `Math.floor`).
  *
  * @edgecases `baseReward < 0` retorna 0 (sem pagamento negativo).
@@ -229,12 +227,14 @@ export function rollGigOutcome(
 export function calculatePayout(
   baseReward: number,
   modifiers?: PayoutModifiers,
+  minBaseReward: number = 0,
 ): number {
   if (baseReward <= 0) return 0;
+  const effectiveBase = Math.max(baseReward, minBaseReward);
   let multiplier = 1.0;
   if (modifiers?.legworkBonus) multiplier *= LEGWORK_MULTIPLIER;
   if (modifiers?.successBonus) multiplier *= SUCCESS_MULTIPLIER;
-  return Math.floor(baseReward * multiplier);
+  return Math.floor(effectiveBase * multiplier);
 }
 
 /**
@@ -308,10 +308,7 @@ const SC_RANGES: Record<GigTier, [number, number]> = {
  *
  * @edgecases Uses uniform distribution within the tier range (inclusive).
  */
-export function calculateStreetCred(
-  tier: GigTier,
-  rng: () => number = Math.random,
-): number {
+export function calculateStreetCred(tier: GigTier, rng: () => number = Math.random): number {
   const [min, max] = SC_RANGES[tier];
   return Math.floor(rng() * (max - min + 1)) + min;
 }

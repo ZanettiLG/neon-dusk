@@ -46,15 +46,7 @@ export async function seedChrome(knex: Knex): Promise<number> {
         is_active: true,
       })
       .onConflict("slug")
-      .merge([
-        "name",
-        "slot",
-        "tier",
-        "bonuses",
-        "humanity_cost",
-        "base_price",
-        "description",
-      ]);
+      .merge(["name", "slot", "tier", "bonuses", "humanity_cost", "base_price", "description"]);
   }
   return CHROME_DEFINITIONS.length;
 }
@@ -227,17 +219,19 @@ const DEFAULT_PARAMS: Record<string, string> = {
   ROUND_DURATION_DAYS: "14",
   NIL_REGEN_MINUTES: "5",
   GIG_COOLDOWN_MINUTES: "10",
-  PVP_NIL_COST: "10",
+  // ND-052: aligned with 03-mecanicas-core.md §3 ("Atacante gasta 20 NIL")
+  // and the pre-ND-052 code constant — the seed previously diverged at 10.
+  PVP_NIL_COST: "20",
   INITIAL_BALANCE: "500",
+  // ND-052: global floor for trampo payout bases (no-op at seed — all
+  // templates pay ≥ 500, see 03-mecanicas-core.md §2).
+  GIG_BASE_REWARD: "100",
   MAX_CREW_SIZE: "4",
 };
 
 /** Seed the default game params, upserting by key. */
 export async function seedGameParams(knex: Knex): Promise<void> {
   for (const [key, value] of Object.entries(DEFAULT_PARAMS)) {
-    await knex("game_params")
-      .insert({ key, value })
-      .onConflict("key")
-      .merge(["value"]);
+    await knex("game_params").insert({ key, value }).onConflict("key").merge(["value"]);
   }
 }

@@ -9,6 +9,7 @@ import type { FastifyInstance } from "fastify";
 import { env } from "../env";
 import { performRoundReset } from "../services/round-service";
 import { roundRepository as rounds } from "../repositories/round-repository";
+import { getGameParam } from "../repositories/game-param-repository";
 
 /** How often the round expiry is checked. */
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
@@ -35,9 +36,16 @@ export function startRoundCheckCron(app: FastifyInstance): NodeJS.Timeout {
 /**
  * Check if the active round is over (started_at + ROUND_DURATION_DAYS < now)
  * and trigger the reset if so. Exported for direct invocation in tests.
+ *
+ * The round duration is read from game_params (admin-tunable, ND-052) with
+ * the env value as fallback — the admin panel knob stays the source of truth
+ * for how long a round runs.
  */
 export async function checkAndReset(app: FastifyInstance): Promise<void> {
-  const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
+  const durationDays = Number(
+    await getGameParam("ROUND_DURATION_DAYS", String(env.ROUND_DURATION_DAYS)),
+  );
+  const durationMs = durationDays * DAY_MS;
 
   const activeRound = await rounds.findActive();
 
@@ -54,7 +62,7 @@ export async function checkAndReset(app: FastifyInstance): Promise<void> {
       {
         roundNumber: activeRound.round_number,
         endsAt: new Date(endsAt).toISOString(),
-        roundDurationDays: env.ROUND_DURATION_DAYS,
+        roundDurationDays: durationDays,
       },
       "round-check: round still active, skipping",
     );

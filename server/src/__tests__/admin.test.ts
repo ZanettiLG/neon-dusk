@@ -4,7 +4,13 @@ import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json, authHeader, insertTestCharacter, registerTestUser } from "./helpers";
+import {
+  startTestServer,
+  json,
+  authHeader,
+  insertTestCharacter,
+  registerTestUser,
+} from "./helpers";
 import { db } from "../db";
 import type {
   AdminPlayersResponse,
@@ -57,17 +63,23 @@ describe("ND-052 — admin panel API", () => {
     return registerTestUser(server, email, password);
   }
 
-  /** Ensure game_params has default values (may be truncated by CASCADE from other tests). */
+  /**
+   * Ensure game_params has canonical values (may be truncated by CASCADE from
+   * other tests, or mutated by a previous PATCH). Upsert (DO UPDATE) forces
+   * the canonical set so this suite is deterministic regardless of run order.
+   * PVP_NIL_COST is 20 (docs §3 — the seed default was aligned in ND-052).
+   */
   async function ensureGameParams(): Promise<void> {
     await db.raw(`
       INSERT INTO game_params (key, value) VALUES
         ('ROUND_DURATION_DAYS', '14'),
         ('NIL_REGEN_MINUTES', '5'),
         ('GIG_COOLDOWN_MINUTES', '10'),
-        ('PVP_NIL_COST', '10'),
+        ('PVP_NIL_COST', '20'),
         ('INITIAL_BALANCE', '500'),
+        ('GIG_BASE_REWARD', '100'),
         ('MAX_CREW_SIZE', '4')
-      ON CONFLICT (key) DO NOTHING
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
     `);
   }
 
@@ -83,7 +95,10 @@ describe("ND-052 — admin panel API", () => {
     it("should return paginated players for an admin", async () => {
       const admin = await createAdminUser(`admin-${Date.now()}-1@test.com`);
       // Insert a character so there's data.
-      await insertTestCharacter({ email: `extra-${Date.now()}-admin@test.com`, name: `RunnerX-${Date.now()}` });
+      await insertTestCharacter({
+        email: `extra-${Date.now()}-admin@test.com`,
+        name: `RunnerX-${Date.now()}`,
+      });
 
       const res = await fetch(
         `http://127.0.0.1:${server.port}/api/admin/players?page=1&pageSize=10`,
@@ -109,10 +124,9 @@ describe("ND-052 — admin panel API", () => {
       const ts = Date.now();
       await insertTestCharacter({ email: `srch-${ts}@test.com`, name: `FindMe-${ts}` });
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/players?search=FindMe`,
-        { headers: authHeader(admin.accessToken) },
-      );
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/players?search=FindMe`, {
+        headers: authHeader(admin.accessToken),
+      });
 
       expect(res.status).toBe(200);
       const body = await json<AdminPlayersResponse>(res);
@@ -123,10 +137,9 @@ describe("ND-052 — admin panel API", () => {
       const admin = await createAdminUser(`admin-${Date.now()}-3@test.com`);
 
       for (const sort of ["name", "sc", "level", "last_activity"]) {
-        const res = await fetch(
-          `http://127.0.0.1:${server.port}/api/admin/players?sort=${sort}`,
-          { headers: authHeader(admin.accessToken) },
-        );
+        const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/players?sort=${sort}`, {
+          headers: authHeader(admin.accessToken),
+        });
         expect(res.status).toBe(200);
       }
     });
@@ -135,10 +148,9 @@ describe("ND-052 — admin panel API", () => {
       it("search with % wildcard does not leak all players", async () => {
         const admin = await createAdminUser(`admin-${Date.now()}-pct@test.com`);
         // URL-encode % as %25 so the query string reaches the server
-        const res = await fetch(
-          `http://127.0.0.1:${server.port}/api/admin/players?search=%25`,
-          { headers: authHeader(admin.accessToken) },
-        );
+        const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/players?search=%25`, {
+          headers: authHeader(admin.accessToken),
+        });
         expect(res.status).toBe(200);
         const body = await json<AdminPlayersResponse>(res);
         // LIKE wildcards are escaped; should only match names containing literal %.
@@ -147,10 +159,9 @@ describe("ND-052 — admin panel API", () => {
 
       it("search with _ wildcard does not leak all players", async () => {
         const admin = await createAdminUser(`admin-${Date.now()}-und@test.com`);
-        const res = await fetch(
-          `http://127.0.0.1:${server.port}/api/admin/players?search=_`,
-          { headers: authHeader(admin.accessToken) },
-        );
+        const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/players?search=_`, {
+          headers: authHeader(admin.accessToken),
+        });
         expect(res.status).toBe(200);
         const body = await json<AdminPlayersResponse>(res);
         // LIKE wildcards are escaped; should only match names containing literal _.
@@ -164,10 +175,9 @@ describe("ND-052 — admin panel API", () => {
         await insertTestCharacter({ email: `bs-${ts}@test.com`, name: `Back\\slash-${ts}` });
 
         // Search for backslash literally — should find the character with backslash.
-        const resBs = await fetch(
-          `http://127.0.0.1:${server.port}/api/admin/players?search=%5C`,
-          { headers: authHeader(admin.accessToken) },
-        );
+        const resBs = await fetch(`http://127.0.0.1:${server.port}/api/admin/players?search=%5C`, {
+          headers: authHeader(admin.accessToken),
+        });
         expect(resBs.status).toBe(200);
         const bodyBs = await json<AdminPlayersResponse>(resBs);
         expect(bodyBs.players.some((p) => p.name.includes("\\"))).toBe(true);
@@ -181,7 +191,9 @@ describe("ND-052 — admin panel API", () => {
         const bodyPlain = await json<AdminPlayersResponse>(resPlain);
         // The character with backslash in name still appears because "slash" substring matches.
         // The point: backslash itself didn't make it match unrelated records.
-        expect(bodyPlain.players.every((p) => p.name === `Back\\slash-${ts}` || !p.name.includes("\\"))).toBe(true);
+        expect(
+          bodyPlain.players.every((p) => p.name === `Back\\slash-${ts}` || !p.name.includes("\\")),
+        ).toBe(true);
       });
 
       it("normal search works correctly", async () => {
@@ -225,9 +237,7 @@ describe("ND-052 — admin panel API", () => {
       expect(banRes.status).toBe(200);
 
       // Verify banned in DB.
-      const [char] = await db("characters")
-        .select("is_banned")
-        .where("id", characterId);
+      const [char] = await db("characters").select("is_banned").where("id", characterId);
       expect(char?.is_banned).toBe(true);
 
       // Ban should appear in player list as "banned".
@@ -250,9 +260,7 @@ describe("ND-052 — admin panel API", () => {
       expect(unbanRes.status).toBe(200);
 
       // Verify unbanned in DB.
-      const [char2] = await db("characters")
-        .select("is_banned")
-        .where("id", characterId);
+      const [char2] = await db("characters").select("is_banned").where("id", characterId);
       expect(char2?.is_banned).toBe(false);
     });
 
@@ -260,17 +268,14 @@ describe("ND-052 — admin panel API", () => {
       const admin = await createAdminUser(`admin-${Date.now()}-404@test.com`);
       const fakeId = randomUUID();
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/players/${fakeId}/ban`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeader(admin.accessToken),
-          },
-          body: JSON.stringify({ reason: "test" }),
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/players/${fakeId}/ban`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
         },
-      );
+        body: JSON.stringify({ reason: "test" }),
+      });
       expect(res.status).toBe(404);
     });
   });
@@ -279,10 +284,9 @@ describe("ND-052 — admin panel API", () => {
     it("should return economy dashboard snapshot", async () => {
       const admin = await createAdminUser(`admin-${Date.now()}-econ@test.com`);
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/economy`,
-        { headers: authHeader(admin.accessToken) },
-      );
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/economy`, {
+        headers: authHeader(admin.accessToken),
+      });
 
       expect(res.status).toBe(200);
       const body = await json<AdminEconomy>(res);
@@ -292,6 +296,87 @@ describe("ND-052 — admin panel API", () => {
       expect(typeof body.dailyActiveCharacters).toBe("number");
       expect(typeof body.transactions24h).toBe("number");
       expect(Array.isArray(body.hourlyBreakdown24h)).toBe(true);
+      // ND-052: round inflation readout.
+      expect(typeof body.inflation).toBe("number");
+      expect(typeof body.faucetsTotal).toBe("number");
+      expect(typeof body.sinksTotal).toBe("number");
+    });
+
+    it("should report zero inflation when there is no circulating supply", async () => {
+      const admin = await createAdminUser(`admin-${Date.now()}-inf0@test.com`);
+
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/economy`, {
+        headers: authHeader(admin.accessToken),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await json<AdminEconomy>(res);
+      // Wallets may exist from other tests in the shared DB — the formula
+      // must never divide by zero. If the supply is 0, inflation is 0.
+      if (body.eddiesInCirculation === 0) {
+        expect(body.inflation).toBe(0);
+      }
+      expect(Number.isFinite(body.inflation)).toBe(true);
+    });
+
+    it("should compute inflation = (faucets − sinks) / supply over the current round", async () => {
+      const admin = await createAdminUser(`admin-${Date.now()}-infl@test.com`);
+      const { characterId } = await insertTestCharacter({
+        email: `inflation-${Date.now()}@test.com`,
+        name: `InflationTest-${Date.now()}`,
+      });
+
+      // Wallet + a known faucet/sink mix inside the round window.
+      await db("character_wallets").insert({
+        character_id: characterId,
+        balance: 1000,
+        escrow: 0,
+        lifetime_earned: 1000,
+        lifetime_spent: 0,
+        version: 0,
+      });
+      await db("transaction_log").insert([
+        {
+          character_id: characterId,
+          type: "GIG_PAYOUT",
+          amount: 600,
+          balance_before: 0,
+          balance_after: 600,
+          source: "corrida-teste-a",
+        },
+        {
+          character_id: characterId,
+          type: "PVP_REWARD",
+          amount: 100,
+          balance_before: 600,
+          balance_after: 700,
+          source: "corrida-teste-b",
+        },
+        {
+          character_id: characterId,
+          type: "VENDOR_PURCHASE",
+          amount: -200,
+          balance_before: 700,
+          balance_after: 500,
+          source: "corrida-teste-c",
+        },
+      ]);
+
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/economy`, {
+        headers: authHeader(admin.accessToken),
+      });
+      expect(res.status).toBe(200);
+      const body = await json<AdminEconomy>(res);
+
+      expect(body.faucetsTotal).toBe(700); // 600 GIG_PAYOUT + 100 PVP_REWARD
+      expect(body.sinksTotal).toBe(200); // 200 VENDOR_PURCHASE
+      // Supply includes wallets created by other tests in the shared DB —
+      // compute the expected ratio from the live supply.
+      const [supplyRow] = await db("character_wallets").select(
+        db.raw("coalesce(sum(balance), 0)::int as total"),
+      );
+      const supply = Number((supplyRow as { total: number }).total ?? 0);
+      expect(body.inflation).toBeCloseTo((700 - 200) / supply, 4);
     });
   });
 
@@ -299,10 +384,9 @@ describe("ND-052 — admin panel API", () => {
     it("should return paginated transactions", async () => {
       const admin = await createAdminUser(`admin-${Date.now()}-tx@test.com`);
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/transactions?limit=10`,
-        { headers: authHeader(admin.accessToken) },
-      );
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/transactions?limit=10`, {
+        headers: authHeader(admin.accessToken),
+      });
 
       expect(res.status).toBe(200);
       const body = await json<AdminTransactionsResponse>(res);
@@ -316,16 +400,19 @@ describe("ND-052 — admin panel API", () => {
       await ensureGameParams();
       const admin = await createAdminUser(`admin-${Date.now()}-params@test.com`);
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/params`,
-        { headers: authHeader(admin.accessToken) },
-      );
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        headers: authHeader(admin.accessToken),
+      });
 
       expect(res.status).toBe(200);
       const body = await json<Record<string, string>>(res);
       expect(body).toHaveProperty("ROUND_DURATION_DAYS");
       expect(body).toHaveProperty("NIL_REGEN_MINUTES");
       expect(body).toHaveProperty("GIG_COOLDOWN_MINUTES");
+      // ND-052: the global payout floor is seeded (and the PvP cost is 20 —
+      // docs §3; ensureGameParams upserts canonical values).
+      expect(body).toHaveProperty("GIG_BASE_REWARD", "100");
+      expect(body).toHaveProperty("PVP_NIL_COST", "20");
       // ponytail: default values may have been mutated by other tests.
       expect(["14", "21"]).toContain(body.ROUND_DURATION_DAYS);
     });
@@ -334,37 +421,37 @@ describe("ND-052 — admin panel API", () => {
       await ensureGameParams();
       const admin = await createAdminUser(`admin-${Date.now()}-updparams@test.com`);
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/params`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeader(admin.accessToken),
-          },
-          body: JSON.stringify({ params: { ROUND_DURATION_DAYS: "21" } }),
+      // PATCH MAX_CREW_SIZE (not ROUND_DURATION_DAYS): the round duration is
+      // now consumed from game_params by the round cron/API, so mutating it
+      // here would race other suites in the shared test DB (singleFork).
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
         },
-      );
+        body: JSON.stringify({ params: { MAX_CREW_SIZE: "5" } }),
+      });
 
       expect(res.status).toBe(200);
       const body = await json<Record<string, string>>(res);
-      expect(body.ROUND_DURATION_DAYS).toBe("21");
+      expect(body.MAX_CREW_SIZE).toBe("5");
+
+      // Restore the canonical value so later assertions stay deterministic.
+      await ensureGameParams();
     });
 
     it("should reject unknown param keys", async () => {
       const admin = await createAdminUser(`admin-${Date.now()}-bad@test.com`);
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/params`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeader(admin.accessToken),
-          },
-          body: JSON.stringify({ params: { BOGUS_KEY: "value" } }),
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
         },
-      );
+        body: JSON.stringify({ params: { BOGUS_KEY: "value" } }),
+      });
 
       expect(res.status).toBe(400);
       const body = await json<ErrorBody>(res);
@@ -376,10 +463,9 @@ describe("ND-052 — admin panel API", () => {
     it("should return paginated audit log entries", async () => {
       const admin = await createAdminUser(`admin-${Date.now()}-audit@test.com`);
 
-      const res = await fetch(
-        `http://127.0.0.1:${server.port}/api/admin/audit?limit=10`,
-        { headers: authHeader(admin.accessToken) },
-      );
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/audit?limit=10`, {
+        headers: authHeader(admin.accessToken),
+      });
 
       expect(res.status).toBe(200);
       const body = await json<AdminAuditResponse>(res);
@@ -484,9 +570,7 @@ describe("ND-052 — admin panel API", () => {
       });
 
       // Set both: ban + circuit_break. Banned should take priority.
-      await db("characters")
-        .where("id", characterId)
-        .update({ is_banned: true });
+      await db("characters").where("id", characterId).update({ is_banned: true });
 
       const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
       await redis.connect();
@@ -504,9 +588,7 @@ describe("ND-052 — admin panel API", () => {
       expect(player?.status).toBe("banned");
 
       // Cleanup: unban.
-      await db("characters")
-        .where("id", characterId)
-        .update({ is_banned: false });
+      await db("characters").where("id", characterId).update({ is_banned: false });
     });
   });
 
@@ -521,7 +603,9 @@ describe("ND-052 — admin panel API", () => {
 
     for (const ep of adminEndpoints) {
       it(`should return 403 for non-admin on ${ep.method} ${ep.path}`, async () => {
-        const player = await createPlayerUser(`player-${Date.now()}-${ep.path.replace(/\//g, "-")}@test.com`);
+        const player = await createPlayerUser(
+          `player-${Date.now()}-${ep.path.replace(/\//g, "-")}@test.com`,
+        );
 
         const res = await fetch(`http://127.0.0.1:${server.port}${ep.path}`, {
           method: ep.method,

@@ -23,7 +23,9 @@ const EXPECTED = {
   loot: 9,
   legends: 5,
   round: 1,
-  params: 6,
+  // ND-052: GIG_BASE_REWARD joined the default set (PVP_NIL_COST aligned to
+  // the docs §3 value 20 — same key count).
+  params: 7,
   consumables: 3,
 } as const;
 

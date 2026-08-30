@@ -30,6 +30,7 @@ import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 import { chromeRepository as chrome } from "../repositories/chrome-repository";
 import { pvpRepository as pvp } from "../repositories/pvp-repository";
+import { getGameParam } from "../repositories/game-param-repository";
 
 // Neon Dusk — PvP service (ND-014)
 // ============================================================================
@@ -40,8 +41,8 @@ import { pvpRepository as pvp } from "../repositories/pvp-repository";
 // The Redis cooldown is only set AFTER the transaction commits — a rollback
 // must never burn the attacker's cooldown.
 
-/** NIL cost per attack. */
-const PVP_NIL_COST = 20;
+/** NIL cost per attack — fallback when the game_params key is missing. */
+const PVP_NIL_COST_FALLBACK = "20";
 /** Max allowed |attacker power − defender power| (matching game/pvp ±10). */
 const POWER_RANGE = 10;
 /** Redis cooldown key prefix (per attacking character). */
@@ -164,6 +165,11 @@ export async function executeAttack(
     throw new AppError(429, "PVP_COOLDOWN", "Você ainda está em cooldown de ataque");
   }
 
+  // ND-052: the NIL cost is a tunable game param (docs §3: 20 NIL per
+  // attack). Read it once, outside the transaction — the 30s cache keeps
+  // this off the hot path.
+  const nilCost = Number(await getGameParam("PVP_NIL_COST", PVP_NIL_COST_FALLBACK));
+
   const result = await withTransaction(async (trx) => {
     const attacker = await characters.findByIdForUpdate(attackerId, trx);
     if (!attacker) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
@@ -181,8 +187,8 @@ export async function executeAttack(
       throw new AppError(400, "TARGET_IMMUNE", "Este jogador está imune a ataques");
     }
 
-    if (attacker.nil < PVP_NIL_COST) {
-      throw new AppError(400, "INSUFFICIENT_NIL", `Precisa de ${PVP_NIL_COST} NIL para atacar`);
+    if (attacker.nil < nilCost) {
+      throw new AppError(400, "INSUFFICIENT_NIL", `Precisa de ${nilCost} NIL para atacar`);
     }
 
     // Power bracket: effective (non-random) power must be within ±10.
@@ -191,7 +197,11 @@ export async function executeAttack(
     const attackerBase = attacker.body + attacker.reflexes + attackerChrome;
     const defenderBase = defender.body + defender.reflexes + defenderChrome;
     if (Math.abs(attackerBase - defenderBase) > POWER_RANGE) {
-      throw new AppError(400, "POWER_RANGE_EXCEEDED", "Diferença de poder muito grande para atacar");
+      throw new AppError(
+        400,
+        "POWER_RANGE_EXCEEDED",
+        "Diferença de poder muito grande para atacar",
+      );
     }
 
     // Anti-grief limits (design: weekly attacks on the target).
@@ -208,11 +218,12 @@ export async function executeAttack(
         reflexes: attacker.reflexes,
         chromePower: attackerChrome,
         role: attacker.role as Role,
-        tranceActive: getCombatTranceBonus(
-          attacker.role as Role,
-          attacker.ability_active_until ? new Date(attacker.ability_active_until) : null,
-          attacker.ability_cooldown_until ? new Date(attacker.ability_cooldown_until) : null,
-        ) !== null,
+        tranceActive:
+          getCombatTranceBonus(
+            attacker.role as Role,
+            attacker.ability_active_until ? new Date(attacker.ability_active_until) : null,
+            attacker.ability_cooldown_until ? new Date(attacker.ability_cooldown_until) : null,
+          ) !== null,
         osBonus: attackerOs,
       },
       defender: {
@@ -220,11 +231,12 @@ export async function executeAttack(
         reflexes: defender.reflexes,
         chromePower: defenderChrome,
         role: defender.role as Role,
-        tranceActive: getCombatTranceBonus(
-          defender.role as Role,
-          defender.ability_active_until ? new Date(defender.ability_active_until) : null,
-          defender.ability_cooldown_until ? new Date(defender.ability_cooldown_until) : null,
-        ) !== null,
+        tranceActive:
+          getCombatTranceBonus(
+            defender.role as Role,
+            defender.ability_active_until ? new Date(defender.ability_active_until) : null,
+            defender.ability_cooldown_until ? new Date(defender.ability_cooldown_until) : null,
+          ) !== null,
         osBonus: defenderOs,
       },
     });
@@ -254,7 +266,7 @@ export async function executeAttack(
     const combatId = randomUUID();
 
     // Attacker always pays the NIL cost.
-    await characters.updateNil(attackerId, attacker.nil - PVP_NIL_COST, trx);
+    await characters.updateNil(attackerId, attacker.nil - nilCost, trx);
 
     // Winner: +SC (capped at 100, lifetime max tracked). No-op when already capped.
     if (winnerSC.change > 0) {
@@ -293,7 +305,11 @@ export async function executeAttack(
         trx,
       );
       if (!updatedLoser) {
-        throw new AppError(409, "CONCURRENCY_CONFLICT", "Carteira alterada concorrentemente. Tente novamente.");
+        throw new AppError(
+          409,
+          "CONCURRENCY_CONFLICT",
+          "Carteira alterada concorrentemente. Tente novamente.",
+        );
       }
       await transactions.insert(
         {
@@ -333,7 +349,11 @@ export async function executeAttack(
         trx,
       );
       if (!updatedWinner) {
-        throw new AppError(409, "CONCURRENCY_CONFLICT", "Carteira alterada concorrentemente. Tente novamente.");
+        throw new AppError(
+          409,
+          "CONCURRENCY_CONFLICT",
+          "Carteira alterada concorrentemente. Tente novamente.",
+        );
       }
       await transactions.insert(
         {

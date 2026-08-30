@@ -13,6 +13,7 @@ import { transactionRepository as transactions } from "../repositories/transacti
 import { gameEventRepository as gameEvents } from "../repositories/game-event-repository";
 import { gameParamRepository as gameParams } from "../repositories/game-param-repository";
 import { auditRepository as audit } from "../repositories/audit-repository";
+import { roundRepository as rounds } from "../repositories/round-repository";
 
 // Neon Dusk — Admin service (ND-052)
 // ============================================================================
@@ -25,10 +26,7 @@ import { auditRepository as audit } from "../repositories/audit-repository";
 // ---------------------------------------------------------------------------
 
 /** Derive a PlayerStatus from ban flag + batched circuit-break state. */
-function resolveStatus(
-  isBanned: boolean,
-  cbResult: string | null,
-): AdminPlayer["status"] {
+function resolveStatus(isBanned: boolean, cbResult: string | null): AdminPlayer["status"] {
   if (isBanned) return "banned";
   if (cbResult !== null) return "circuit_broken";
   return "active";
@@ -121,10 +119,7 @@ export async function banPlayer(
 /**
  * Unban a character by ID. Sets is_banned = false, logs to audit.
  */
-export async function unbanPlayer(
-  characterId: string,
-  adminUserId: string,
-): Promise<void> {
+export async function unbanPlayer(characterId: string, adminUserId: string): Promise<void> {
   const updated = await characters.updateBan(characterId, false);
 
   if (!updated) {
@@ -146,27 +141,61 @@ export async function unbanPlayer(
 // ---------------------------------------------------------------------------
 
 /**
- * Economy overview: aggregate balances, top faucets/sinks, DAU, hourly activity.
+ * Start of the inflation window: the current round's started_at, falling
+ * back to a 24h window when no round is active (degenerate pre-seed state).
  */
-export async function getEconomy(): Promise<AdminEconomy> {
-  const [
-    eddiesInCirculation,
-    faucets,
-    sinks,
-    dailyActiveCharacters,
-    transactions24h,
-    hourly,
-  ] = await Promise.all([
+async function inflationWindowStart(): Promise<Date> {
+  const active = await rounds.findActive();
+  return active ? new Date(active.started_at) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Round inflation rate: (faucets − sinks) / circulating supply over the
+ * current round (0 when the supply is 0). Faucets/sinks buckets follow the
+ * real transaction_type enum (see ECONOMY_FAUCET_TYPES/SINK_TYPES in the
+ * transaction repository); the ratio is rounded to 4 decimals so API
+ * consumers can compare it deterministically.
+ */
+async function computeInflation(): Promise<{
+  inflation: number;
+  faucetsTotal: number;
+  sinksTotal: number;
+}> {
+  const since = await inflationWindowStart();
+  const [supply, faucetsTotal, sinksTotal] = await Promise.all([
     transactions.sumBalances(),
-    transactions.topFaucets24h(),
-    transactions.topSinks24h(),
-    gameEvents.countDistinctActors(24),
-    transactions.count24h(),
-    gameEvents.listHourlyCounts(24),
+    transactions.sumFaucetsSince(since),
+    transactions.sumSinksSince(since),
   ]);
 
+  // Division by zero guard: no wallets → no supply → no inflation.
+  const inflation = supply > 0 ? (faucetsTotal - sinksTotal) / supply : 0;
   return {
-    eddiesInCirculation,
+    inflation: Math.round(inflation * 10_000) / 10_000,
+    faucetsTotal,
+    sinksTotal,
+  };
+}
+
+/**
+ * Economy overview: aggregate balances, round inflation, top faucets/sinks,
+ * DAU, hourly activity.
+ */
+export async function getEconomy(): Promise<AdminEconomy> {
+  const [circulation, faucets, sinks, dailyActiveCharacters, transactions24h, hourly, inflation] =
+    await Promise.all([
+      transactions.sumBalances(),
+      transactions.topFaucets24h(),
+      transactions.topSinks24h(),
+      gameEvents.countDistinctActors(24),
+      transactions.count24h(),
+      gameEvents.listHourlyCounts(24),
+      computeInflation(),
+    ]);
+
+  return {
+    eddiesInCirculation: circulation,
+    ...inflation,
     topFaucets24h: faucets.map((f) => ({ source: f.source, amount: f.amount })),
     topSinks24h: sinks.map((s) => ({ source: s.source, amount: s.amount })),
     dailyActiveCharacters,
@@ -226,17 +255,11 @@ export async function updateParams(
   params: Record<string, string>,
   adminUserId: string,
 ): Promise<Record<string, string>> {
-  const existingKeys = new Set(
-    (await gameParams.list()).map((r) => r.key),
-  );
+  const existingKeys = new Set((await gameParams.list()).map((r) => r.key));
 
   const unknownKeys = Object.keys(params).filter((k) => !existingKeys.has(k));
   if (unknownKeys.length > 0) {
-    throw new AppError(
-      400,
-      "UNKNOWN_PARAMS",
-      `Unknown game param keys: ${unknownKeys.join(", ")}`,
-    );
+    throw new AppError(400, "UNKNOWN_PARAMS", `Unknown game param keys: ${unknownKeys.join(", ")}`);
   }
 
   // Read current values for diffing.

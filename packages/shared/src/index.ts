@@ -1095,6 +1095,16 @@ export interface AdminPlayersResponse {
 /** Economy dashboard snapshot. */
 export interface AdminEconomy {
   eddiesInCirculation: number;
+  /**
+   * Round inflation rate: (faucets − sinks) / circulating supply over the
+   * current round. 0 when the supply is 0. Positive = money is being created
+   * faster than it is removed.
+   */
+  inflation: number;
+  /** Faucets (money created) over the current round, in Grana. */
+  faucetsTotal: number;
+  /** Sinks (money removed) over the current round, in Grana. */
+  sinksTotal: number;
   topFaucets24h: { source: string; amount: number }[];
   topSinks24h: { source: string; amount: number }[];
   dailyActiveCharacters: number;
