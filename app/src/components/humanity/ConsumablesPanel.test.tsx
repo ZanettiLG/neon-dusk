@@ -266,6 +266,83 @@ describe("ConsumablesPanel", () => {
     expect(await screen.findByText("Máximo de 3 usos por 24h atingido.")).toBeInTheDocument();
   });
 
+  it("should show the NOT_OWNED error message", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(400, "NOT_OWNED", "Você não tem este item no inventário."),
+    );
+    const user = userEvent.setup();
+
+    render(<ConsumablesPanel info={info()} />);
+
+    await user.click(screen.getAllByRole("button", { name: "Usar" })[0]);
+    await user.click(screen.getByRole("button", { name: "Confirmar uso?" }));
+
+    expect(await screen.findByText("Você não tem este item no inventário.")).toBeInTheDocument();
+  });
+
+  it("should show the CONSUMABLE_NOT_FOUND error message", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(404, "CONSUMABLE_NOT_FOUND", "Item não encontrado."),
+    );
+    const user = userEvent.setup();
+
+    render(<ConsumablesPanel info={info()} />);
+
+    await user.click(screen.getAllByRole("button", { name: "Usar" })[0]);
+    await user.click(screen.getByRole("button", { name: "Confirmar uso?" }));
+
+    expect(await screen.findByText("Item não encontrado.")).toBeInTheDocument();
+  });
+
+  it("should show the RATE_LIMITED error message", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(429, "RATE_LIMITED", "Muitas requisições. Aguarde."),
+    );
+    const user = userEvent.setup();
+
+    render(<ConsumablesPanel info={info()} />);
+
+    await user.click(screen.getAllByRole("button", { name: "Usar" })[0]);
+    await user.click(screen.getByRole("button", { name: "Confirmar uso?" }));
+
+    expect(await screen.findByText("Muitas requisições. Aguarde.")).toBeInTheDocument();
+  });
+
+  it("should show the UNAUTHORIZED error message", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(401, "UNAUTHORIZED", "Sessão expirada. Faça login novamente."),
+    );
+    const user = userEvent.setup();
+
+    render(<ConsumablesPanel info={info()} />);
+
+    await user.click(screen.getAllByRole("button", { name: "Usar" })[0]);
+    await user.click(screen.getByRole("button", { name: "Confirmar uso?" }));
+
+    expect(await screen.findByText("Sessão expirada. Faça login novamente.")).toBeInTheDocument();
+  });
+
+  it("should format a COOLDOWN_ACTIVE error longer than 24h as days and hours", async () => {
+    vi.useFakeTimers();
+    const unlock = new Date(Date.now() + 30 * 3600_000).toISOString();
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(429, "COOLDOWN_ACTIVE", "Este item ainda está em cooldown.", {
+        nextAvailableAt: unlock,
+      }),
+    );
+
+    render(<ConsumablesPanel info={info()} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Usar" })[0]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Confirmar uso?" }));
+    });
+
+    expect(
+      screen.getByText("Este item ainda está em cooldown. Disponível em 1d 6h."),
+    ).toBeInTheDocument();
+  });
+
   it("should block every button for a flatlined character", () => {
     render(<ConsumablesPanel info={info({ flatlined: true })} />);
 
@@ -331,5 +408,52 @@ describe("ConsumablesPanel", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Falha ao carregar consumíveis");
     expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
+
+  it("should call fetch again when the retry button is clicked", () => {
+    const fetchSpy = vi.fn();
+    useConsumablesStore.setState({
+      items: null,
+      loading: false,
+      error: "Falha ao carregar consumíveis",
+      fetch: fetchSpy,
+    });
+
+    render(<ConsumablesPanel info={info()} />);
+
+    // Mount effect already fired one fetch; the retry must fire a second one.
+    fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("should show the loading state on the button while the use is in flight", async () => {
+    let resolvePost!: (value: unknown) => void;
+    mocks.api.post.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePost = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+
+    render(<ConsumablesPanel info={info()} />);
+
+    await user.click(screen.getAllByRole("button", { name: "Usar" })[0]);
+    await user.click(screen.getByRole("button", { name: "Confirmar uso?" }));
+
+    // The POST is pending — exactly one button is busy (the armed item).
+    const busy = screen
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("aria-busy") === "true");
+    expect(busy).toHaveLength(1);
+    expect(busy[0]).toBeDisabled();
+
+    await act(async () => {
+      resolvePost(useResponse);
+    });
+
+    expect(
+      await screen.findByText("Estabilizador: +5 de humanidade (50 → 55)."),
+    ).toBeInTheDocument();
   });
 });

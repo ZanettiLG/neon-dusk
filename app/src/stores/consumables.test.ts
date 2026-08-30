@@ -182,4 +182,49 @@ describe("useConsumablesStore", () => {
       nextAvailableAt: null,
     });
   });
+
+  // The remaining server error codes the panel can surface (issue #48
+  // criteria 2): same normalization path as COOLDOWN_ACTIVE — structured
+  // useError, no refetch, no cross-store pings, re-throw for the caller.
+  it.each([
+    ["NOT_OWNED", 400, "Você não tem este item no inventário."],
+    ["CONSUMABLE_NOT_FOUND", 404, "Item não encontrado."],
+    ["RATE_LIMITED", 429, "Muitas requisições. Aguarde."],
+    ["UNAUTHORIZED", 401, "Sessão expirada. Faça login novamente."],
+    ["FLATLINED", 403, "Personagem apagado. Sem ações permitidas."],
+    ["VALIDATION_ERROR", 400, "Dados inválidos. Verifique os campos."],
+  ])(
+    "should set a structured %s error and re-throw",
+    async (code, status, message) => {
+      mocks.api.post.mockRejectedValue(new mocks.ApiError(status, code, message));
+
+      await expect(useConsumablesStore.getState().useItem("estabilizador")).rejects.toBeInstanceOf(
+        mocks.ApiError,
+      );
+
+      const s = useConsumablesStore.getState();
+      expect(s.useError).toEqual({ code, message, nextAvailableAt: null });
+      expect(s.usingItemId).toBeNull();
+      expect(s.lastUse).toBeNull();
+      expect(mocks.hudRefresh).not.toHaveBeenCalled();
+      expect(mocks.humanityFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("should still resolve with the use result when the post-use refetch fails", async () => {
+    mocks.api.post.mockResolvedValue(useResponse);
+    // The follow-up GET /api/consumables fails — fetch() swallows the error
+    // (sets `error`), so the use still resolves and the success feedback shows.
+    mocks.api.get.mockRejectedValue(new Error("api down"));
+
+    const result = await useConsumablesStore.getState().useItem("estabilizador");
+
+    expect(result).toEqual(useResponse);
+    const s = useConsumablesStore.getState();
+    expect(s.lastUse).toEqual(useResponse);
+    expect(s.useError).toBeNull();
+    expect(s.error).toBe("api down");
+    expect(mocks.hudRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.humanityFetch).toHaveBeenCalledTimes(1);
+  });
 });
