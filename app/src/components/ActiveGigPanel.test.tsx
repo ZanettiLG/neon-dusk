@@ -374,4 +374,32 @@ describe("ActiveGigPanel", () => {
     act(() => vi.advanceTimersByTime(500));
     expect(screen.getByText(/base 95% → 76% \(-19% Executar direto\)/)).toBeInTheDocument();
   });
+
+  it("does not pass a chance breakdown to the FUGA theater (escape has no modifiers)", async () => {
+    vi.useFakeTimers();
+    useGigStore.setState({
+      board: {
+        gigs: [],
+        activeGig: escapePhaseGig({ phase: "execute", escapeOutcome: null }),
+      },
+    });
+    // The escape response carries no baseChance/modifiers — only the execute
+    // verdict explains the chance chain (issue #2).
+    mocks.api.post.mockResolvedValueOnce({
+      activeGig: escapePhaseGig(),
+      outcome: { success: true, roll: 0.9, successChance: 0.8 },
+      heatGenerated: 3,
+    });
+
+    render(<ActiveGigPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /fugir/i }));
+    await act(async () => {}); // settle the POST → theater opens
+
+    // Advance the theater stage machine to the verdict (rolling 1400 → reveal 500).
+    act(() => vi.advanceTimersByTime(1400));
+    act(() => vi.advanceTimersByTime(500));
+    // The escape verdict explains ROLL vs CHANCE but never a "base ... → ..." chain.
+    expect(screen.getByText(/ROLL 0\.90 \(90%\) vs CHANCE 80%/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^base /)).not.toBeInTheDocument();
+  });
 });

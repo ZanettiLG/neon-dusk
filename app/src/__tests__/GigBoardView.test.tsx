@@ -92,6 +92,9 @@ describe("GigBoardView", () => {
       expect(screen.getByRole("tab", { name: tier })).toBeInTheDocument();
     }
 
+    // The filter container exposes the tablist role (ARIA tab pattern).
+    expect(screen.getByRole("tablist")).toBeInTheDocument();
+
     // Type filter: "Todos tipos" active, plus one tab per trampo type.
     expect(screen.getByRole("tab", { name: "Todos tipos" })).toHaveAttribute(
       "aria-selected",

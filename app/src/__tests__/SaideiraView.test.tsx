@@ -142,6 +142,10 @@ describe("SaideiraView", () => {
     expect(screen.getByRole("tab", { name: "Chat" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Ranking" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Lendas" })).toBeInTheDocument();
+    // The tab container exposes the tablist role and the active tab is aria-selected.
+    expect(screen.getByRole("tablist")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Chat" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Ranking" })).toHaveAttribute("aria-selected", "false");
     expect(screen.queryByText("⚡ ACESSO RESTRITO")).not.toBeInTheDocument();
   });
 

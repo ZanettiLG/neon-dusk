@@ -549,6 +549,30 @@ describe("buildChanceBreakdown", () => {
       modifiers: [],
     });
   });
+
+  it("should report the skip-legwork penalty as 'Executar direto' -10pp below the cap", () => {
+    // base 0.5 → ×0.8 = 0.4 → delta -10pp (not swallowed by the cap).
+    expect(buildChanceBreakdown(0.5, { skippedLegwork: true, legworkDone: false }, 0)).toEqual({
+      finalChance: 0.4,
+      modifiers: [{ label: "Executar direto", deltaPp: -10 }],
+    });
+  });
+
+  it("should omit the crew modifier when the bonus is negative (chance still drops)", () => {
+    // crewBonusPp ≤ 0 never adds a "Bonde" modifier — the docstring contract.
+    expect(buildChanceBreakdown(0.5, { skippedLegwork: false, legworkDone: false }, -5)).toEqual({
+      finalChance: 0.45,
+      modifiers: [],
+    });
+  });
+
+  it("should report the crew delta swallowed by the cap as the visible delta (+2pp)", () => {
+    // base 0.93 + 5pp = 0.98 → capped 0.95 → the visible delta is +2pp, not +5pp.
+    expect(buildChanceBreakdown(0.93, { skippedLegwork: false, legworkDone: false }, 5)).toEqual({
+      finalChance: 0.95,
+      modifiers: [{ label: "Bonde", deltaPp: 2 }],
+    });
+  });
 });
 
 describe("applyHeatDecay", () => {
