@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { TherapyResponse, TherapyType } from "@neon-dusk/shared";
 import { useHumanityStore } from "@/stores/humanity";
 import { useHudStore } from "@/stores/hud";
+import ConsumablesPanel from "@/components/humanity/ConsumablesPanel";
 import HumanityBar from "@/components/humanity/HumanityBar";
 import TherapyPanel from "@/components/humanity/TherapyPanel";
 
@@ -24,7 +25,9 @@ export default function HumanityView() {
   useEffect(() => {
     mountedRef.current = true;
     void fetch();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetch]);
 
   async function onTherapy(therapyType: TherapyType): Promise<TherapyResponse> {
@@ -52,8 +55,8 @@ export default function HumanityView() {
     <div className="py-8 space-y-6">
       <h2 className="font-heading text-2xl text-nd-cyan tracking-widest">HUMANIDADE</h2>
       <p className="text-nd-text-secondary text-sm font-data max-w-prose">
-        Cromo te dá poder. Cromo te tira humanidade. A pergunta não é "quanto
-        você aguenta?". É "quanto de você sobra no final?".
+        Cromo te dá poder. Cromo te tira humanidade. A pergunta não é "quanto você aguenta?". É
+        "quanto de você sobra no final?".
       </p>
 
       {therapySuccess && <p className="text-nd-green text-sm font-data">{therapySuccess}</p>}
@@ -61,13 +64,12 @@ export default function HumanityView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <HumanityBar info={info} loading={loading} error={error} onRetry={() => void fetch()} />
-        <TherapyPanel
-          info={info}
-          loading={loading}
-          error={error}
-          onTherapy={onTherapy}
-        />
+        <TherapyPanel info={info} loading={loading} error={error} onTherapy={onTherapy} />
       </div>
+
+      {/* Itens anti-insanidade (issue #48): consumíveis compráveis que restauram
+          humanidade — painel auto-contido, largura total abaixo do grid. */}
+      <ConsumablesPanel info={info} />
     </div>
   );
 }
