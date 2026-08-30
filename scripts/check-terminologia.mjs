@@ -406,7 +406,9 @@ function walkCode(dir) {
     return files
   }
   for (const entry of entries) {
-    const p = join(dir, entry)
+    // Normaliza separadores: no Windows join() devolve `\` e as comparações
+    // de path (CODE_EXCLUDE, CANONICAL/PIPELINE_DOC) usam `/`.
+    const p = join(dir, entry).replaceAll('\\', '/')
     let st
     try {
       st = statSync(p)
@@ -476,7 +478,7 @@ const NEGATION = /\bnão\b|\bnao\b/i
 function walk(dir) {
   const files = []
   for (const entry of readdirSync(dir)) {
-    const p = join(dir, entry)
+    const p = join(dir, entry).replaceAll('\\', '/')
     if (statSync(p).isDirectory()) files.push(...walk(p))
     else if (p.endsWith('.md')) files.push(p)
   }

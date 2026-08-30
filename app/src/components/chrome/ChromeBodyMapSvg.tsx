@@ -16,31 +16,40 @@ const SKELETON_D =
   "M100,72 L100,193 M100,108 Q74,116 58,146 M100,108 Q126,116 142,146 M100,140 Q80,146 70,170 M100,140 Q120,146 130,170";
 const NERVOUS_D =
   "M100,158 L84,192 M100,158 L116,192 M100,192 L92,228 M100,192 L108,228";
+const LEGS_D = "M84,235 L84,332 M116,235 L116,332";
 
 /**
  * Render order of the slot layers, painted bottom → top. The torso polygon
  * (integumentary, x 35–165 / y 92–235) geometrically covers the skeleton
  * (x 58–142 / y 72–193) and nervous_system (x 84–116 / y 158–228) hit zones,
  * so it MUST paint first as the base layer; every smaller slot paints on top
- * and wins clicks where the hit zones overlap. Every slot appears exactly once.
+ * and wins clicks where the hit zones overlap. Issue #28 added legs (under
+ * the torso), circulatory (heart — over the skeleton spine) and the OS deck
+ * (neck — over the ocular zone). Every slot appears exactly once.
  */
 const LAYER_ORDER: ChromeSlot[] = [
+  "legs",
   "integumentary",
   "nervous_system",
   "skeleton",
-  "ocular",
-  "frontal_cortex",
+  "circulatory",
   "arms",
+  "ocular",
+  "operating_system",
+  "frontal_cortex",
 ];
 
 /** Pips/badge anchor per slot (pips centered horizontally on the anchor). */
 const PIPS: Record<ChromeSlot, { x: number; y: number; gap: number }> = {
   frontal_cortex: { x: 100, y: 12, gap: 14 },
   ocular: { x: 100, y: 86, gap: 12 },
+  operating_system: { x: 100, y: 52, gap: 12 },
   arms: { x: 36, y: 246, gap: 12 },
   skeleton: { x: 112, y: 132, gap: 12 },
   nervous_system: { x: 112, y: 252, gap: 12 },
+  circulatory: { x: 56, y: 176, gap: 12 },
   integumentary: { x: 60, y: 252, gap: 12 },
+  legs: { x: 100, y: 352, gap: 12 },
 };
 
 interface ChromeBodyMapSvgProps {
@@ -69,14 +78,20 @@ function SlotVisuals({
           <ellipse cx={113} cy={57} rx={7} ry={5} className={strokeClass} fill={fillClass} strokeWidth={2} />
         </>
       );
+    case "operating_system":
+      return <ellipse cx={100} cy={74} rx={13} ry={9} className={strokeClass} fill={fillClass} strokeWidth={2} />;
     case "arms":
       return <path d={ARMS_D} className={strokeClass} fill="none" strokeWidth={10} strokeLinecap="round" />;
     case "skeleton":
       return <path d={SKELETON_D} className={strokeClass} fill="none" strokeWidth={5} strokeLinecap="round" />;
     case "nervous_system":
       return <path d={NERVOUS_D} className={strokeClass} fill="none" strokeWidth={5} strokeLinecap="round" />;
+    case "circulatory":
+      return <ellipse cx={78} cy={118} rx={7} ry={7} className={strokeClass} fill={fillClass} strokeWidth={2} />;
     case "integumentary":
       return <path d={TORSO_D} className={strokeClass} fill={fillClass} strokeWidth={3} strokeLinejoin="round" />;
+    case "legs":
+      return <path d={LEGS_D} className={strokeClass} fill="none" strokeWidth={8} strokeLinecap="round" />;
   }
 }
 
@@ -87,14 +102,20 @@ function SlotHits({ slot }: { slot: ChromeSlot }) {
       return <ellipse cx={100} cy={30} rx={27} ry={23} fill="transparent" pointerEvents="fill" />;
     case "ocular":
       return <ellipse cx={100} cy={60} rx={32} ry={23} fill="transparent" pointerEvents="fill" />;
+    case "operating_system":
+      return <ellipse cx={100} cy={74} rx={22} ry={16} fill="transparent" pointerEvents="fill" />;
     case "arms":
       return <path d={ARMS_D} fill="none" stroke="transparent" strokeWidth={40} pointerEvents="stroke" />;
     case "skeleton":
       return <path d={SKELETON_D} fill="none" stroke="transparent" strokeWidth={36} pointerEvents="stroke" />;
     case "nervous_system":
       return <path d={NERVOUS_D} fill="none" stroke="transparent" strokeWidth={30} pointerEvents="stroke" />;
+    case "circulatory":
+      return <ellipse cx={78} cy={118} rx={16} ry={16} fill="transparent" pointerEvents="fill" />;
     case "integumentary":
       return <path d={TORSO_D} fill="transparent" pointerEvents="fill" />;
+    case "legs":
+      return <path d={LEGS_D} fill="none" stroke="transparent" strokeWidth={36} pointerEvents="stroke" />;
   }
 }
 
@@ -111,14 +132,20 @@ function SlotRings({ slot }: { slot: ChromeSlot }) {
           <ellipse cx={113} cy={57} rx={12} ry={10} className={ring} fill="none" strokeWidth={2} pointerEvents="none" />
         </>
       );
+    case "operating_system":
+      return <ellipse cx={100} cy={74} rx={19} ry={14} className={ring} fill="none" strokeWidth={2} pointerEvents="none" />;
     case "arms":
       return <path d={ARMS_D} className={ring} fill="none" strokeWidth={16} strokeLinecap="round" pointerEvents="none" />;
     case "skeleton":
       return <path d={SKELETON_D} className={ring} fill="none" strokeWidth={9} strokeLinecap="round" pointerEvents="none" />;
     case "nervous_system":
       return <path d={NERVOUS_D} className={ring} fill="none" strokeWidth={9} strokeLinecap="round" pointerEvents="none" />;
+    case "circulatory":
+      return <ellipse cx={78} cy={118} rx={13} ry={13} className={ring} fill="none" strokeWidth={2} pointerEvents="none" />;
     case "integumentary":
       return <path d={TORSO_D} className={ring} fill="none" strokeWidth={6} strokeLinejoin="round" pointerEvents="none" />;
+    case "legs":
+      return <path d={LEGS_D} className={ring} fill="none" strokeWidth={14} strokeLinecap="round" pointerEvents="none" />;
   }
 }
 
@@ -158,7 +185,7 @@ function FullBadge({ x, y }: { x: number; y: number }) {
 }
 
 /**
- * Interactive body map of the 6 cromo slots (issue #10). Each slot is a
+ * Interactive body map of the 9 cromo slots (issue #10 + #28). Each slot is a
  * keyboard-focusable region (Enter/Space), announced with its occupancy.
  * Visual states: empty (weak stroke), partial (cyan fill + pips), full
  * (disabled + CHEIO badge) and selected (gold ring). Color is never the only

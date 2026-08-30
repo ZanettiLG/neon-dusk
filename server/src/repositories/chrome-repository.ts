@@ -83,6 +83,10 @@ export interface ChromeRepository {
     characterId: string,
     q?: Queryable,
   ): Promise<{ id: string; name: string; slot: string } | null>;
+  /** Slug of a cromo definition by id (OS resolution via os_ability_id). */
+  findSlugById(id: string, q?: Queryable): Promise<string | null>;
+  /** True when the character has the given definition slug installed. */
+  isInstalledBySlug(characterId: string, slug: string, q?: Queryable): Promise<boolean>;
 }
 
 export function createChromeRepository(q: Queryable = db): ChromeRepository {
@@ -196,6 +200,21 @@ export function createChromeRepository(q: Queryable = db): ChromeRepository {
       return rows.length
         ? (rows[0] as { id: string; name: string; slot: string })
         : null;
+    },
+
+    async findSlugById(id, tx = q) {
+      const rows = await tx("chrome_definitions").select("slug").where("id", id).limit(1);
+      return rows.length ? (rows[0] as { slug: string }).slug : null;
+    },
+
+    async isInstalledBySlug(characterId, slug, tx = q) {
+      const rows = await tx("installed_chrome")
+        .select("installed_chrome.id")
+        .join("chrome_definitions", "installed_chrome.chrome_definition_id", "=", "chrome_definitions.id")
+        .where("installed_chrome.character_id", characterId)
+        .where("chrome_definitions.slug", slug)
+        .limit(1);
+      return rows.length > 0;
     },
   };
 }

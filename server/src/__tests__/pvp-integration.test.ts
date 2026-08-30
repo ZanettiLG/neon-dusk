@@ -368,6 +368,32 @@ describe("ND-014 — PvP combat API", () => {
       expect((body as ErrorBody).error).toBe("TARGET_IMMUNE");
     });
 
+    it("should return 403 FLATLINED when the attacker is apagado", async () => {
+      const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
+      const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
+      await db("characters")
+        .where("id", attacker.characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      const { status, body } = await attack(attacker, defender.characterId);
+
+      expect(status).toBe(403);
+      expect((body as ErrorBody).error).toBe("FLATLINED");
+    });
+
+    it("should return 403 FLATLINED when the defender is apagado", async () => {
+      const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
+      const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
+      await db("characters")
+        .where("id", defender.characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      const { status, body } = await attack(attacker, defender.characterId);
+
+      expect(status).toBe(403);
+      expect((body as ErrorBody).error).toBe("FLATLINED");
+    });
+
     it("should reject attacks when the power difference exceeds ±10 (400 POWER_RANGE_EXCEEDED)", async () => {
       const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS }); // base 15
       const defender = await createPvpPlayer({

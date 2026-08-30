@@ -49,6 +49,8 @@ export function errorHandler(
 ) {
   if (error instanceof AppError) {
     // ND-053: RATE_LIMITED, COOLDOWN_ACTIVE, CIRCUIT_BREAK — 429 with Retry-After header.
+    // `details` (e.g. nextAvailableAt) is always propagated so cooldown clients
+    // can render the exact unlock time, not just a generic retry hint.
     if (error.code === "RATE_LIMITED") {
       const retryAfter = (error.details as { retryAfter?: number } | undefined)?.retryAfter;
       if (retryAfter !== undefined) {
@@ -58,6 +60,7 @@ export function errorHandler(
         error: error.code,
         message: error.message,
         retryAfter,
+        ...(error.details ? { details: error.details } : {}),
       });
     }
 
@@ -70,6 +73,7 @@ export function errorHandler(
         error: error.code,
         message: error.message,
         retryAfter,
+        ...(error.details ? { details: error.details } : {}),
       });
     }
 

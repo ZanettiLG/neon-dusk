@@ -19,6 +19,7 @@ import {
   resolveCombat,
 } from "../game/pvp";
 import { getCombatTranceBonus } from "../game/abilities";
+import { resolveOsActiveBonus } from "./os-service";
 import { transferEddies, type WalletState } from "../game/economy";
 import { instrument } from "../telemetry/instrument";
 import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
@@ -149,6 +150,12 @@ export async function executeAttack(
   if (!attackerRow) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
   const attackerId = attackerRow.id;
 
+  // Issue #28: flatline enforcement — an Apagado character is permanently
+  // lost (docs §4) and cannot attack.
+  if (attackerRow.is_flatlined) {
+    throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+  }
+
   if (targetId === attackerId) {
     throw new AppError(400, "CANNOT_ATTACK_SELF", "Você não pode atacar a si mesmo");
   }
@@ -163,6 +170,12 @@ export async function executeAttack(
 
     const defender = await characters.findByIdForUpdate(targetId, trx);
     if (!defender) throw new AppError(404, "TARGET_NOT_FOUND", "Personagem alvo não encontrado");
+
+    // Issue #28: an Apagado defender is permanently lost (docs §4) — no
+    // combat, no loot farm on a dead character.
+    if (defender.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Alvo apagado. Sem ações permitidas.");
+    }
 
     if (isImmune(new Date(defender.created_at))) {
       throw new AppError(400, "TARGET_IMMUNE", "Este jogador está imune a ataques");
@@ -186,6 +199,9 @@ export async function executeAttack(
     const grieferPenalty = isGriefLimited(weeklyAttacks);
 
     // Resolve the fight (game logic incl. bicho role multiplier + crit).
+    // OS multipliers come from the shared resolver (issue #28 review, cycle 2).
+    const attackerOs = await resolveOsActiveBonus(attacker, trx);
+    const defenderOs = await resolveOsActiveBonus(defender, trx);
     const { winner, attackerPower, defenderPower } = resolveCombat({
       attacker: {
         body: attacker.body,
@@ -197,6 +213,7 @@ export async function executeAttack(
           attacker.ability_active_until ? new Date(attacker.ability_active_until) : null,
           attacker.ability_cooldown_until ? new Date(attacker.ability_cooldown_until) : null,
         ) !== null,
+        osBonus: attackerOs,
       },
       defender: {
         body: defender.body,
@@ -208,6 +225,7 @@ export async function executeAttack(
           defender.ability_active_until ? new Date(defender.ability_active_until) : null,
           defender.ability_cooldown_until ? new Date(defender.ability_cooldown_until) : null,
         ) !== null,
+        osBonus: defenderOs,
       },
     });
     const attackerWon = winner === "attacker";

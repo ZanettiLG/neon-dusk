@@ -3,6 +3,7 @@ import { CHROME_DEFINITIONS } from "../content/chrome-definitions";
 import { VENDOR_SEED } from "../content/vendor-inventories";
 import { GIG_TEMPLATES } from "../content/gig-templates";
 import { LOOT_TABLES } from "../content/loot-tables";
+import { CONSUMABLE_CATALOG } from "../content/consumables";
 
 // Neon Dusk — Content seed executors (#158 DB repository layer)
 // ============================================================================
@@ -149,6 +150,24 @@ export async function seedLoot(knex: Knex): Promise<number> {
       .ignore();
   }
   return LOOT_TABLES.length;
+}
+
+/** Seed the sanity-consumable catalog, upserting by slug. Returns the count. */
+export async function seedConsumables(knex: Knex): Promise<number> {
+  for (const c of CONSUMABLE_CATALOG) {
+    await knex("consumables")
+      .insert({
+        slug: c.slug,
+        name: c.name,
+        tier: c.tier,
+        restore_amount: c.restoreAmount,
+        cooldown_hours: c.cooldownHours,
+        is_active: true,
+      })
+      .onConflict("slug")
+      .merge(["name", "tier", "restore_amount", "cooldown_hours"]);
+  }
+  return CONSUMABLE_CATALOG.length;
 }
 
 const SEED_LEGENDS = [

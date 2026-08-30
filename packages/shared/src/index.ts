@@ -210,6 +210,7 @@ export const TRANSACTION_TYPES = [
   "CHROME_UNINSTALL",
   "STREET_CRED_AWARD",
   "CREW_CREATION",
+  "THERAPY_PAYMENT",
 ] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
 
@@ -315,6 +316,9 @@ export const GAME_EVENT_TYPES = [
   "VENDOR_PURCHASE",
   "ABILITY_ACTIVATED",
   "ABILITY_CONSUMED",
+  "OS_ACTIVATED",
+  "THERAPY_COMPLETED",
+  "HUMANITY_RESTORED",
 ] as const;
 export type GameEventType = (typeof GAME_EVENT_TYPES)[number];
 
@@ -367,25 +371,31 @@ export interface CharacterEventsResponse {
 // Implants fill body slots, grant stat bonuses and drain humanity (100 base).
 // Slot capacities and humanity pricing follow 04-sistemas-e-progressao.md §3-4.
 
-/** Body slots an implant can occupy (MVP subset of the 9-slot table). */
+/** Body slots an implant can occupy (full 9-slot table from the docs). */
 export const CHROME_SLOTS = [
   "frontal_cortex",
   "ocular",
+  "operating_system",
   "arms",
   "skeleton",
   "nervous_system",
+  "circulatory",
   "integumentary",
+  "legs",
 ] as const;
 export type ChromeSlot = (typeof CHROME_SLOTS)[number];
 
-/** How many implants fit per slot. */
+/** How many implants fit per slot (04-sistemas-e-progressao.md §3). */
 export const SLOT_CAPACITY: Record<ChromeSlot, number> = {
   frontal_cortex: 3,
   ocular: 2,
+  operating_system: 1,
   arms: 2,
   skeleton: 2,
   nervous_system: 3,
+  circulatory: 3,
   integumentary: 3,
+  legs: 1,
 };
 
 /** Stat deltas granted by an implant (all optional — an implant may give none). */
@@ -433,6 +443,8 @@ export interface InstalledChromeResponse {
   gigSuccessBonus: number;
   /** Extra NIL cap granted by installed cromo (purely from nil_max bonuses). */
   nilMaxBonus: number;
+  /** Installed OS activation readout (null before the OS system ships state). */
+  osAbility?: OsStatus | null;
 }
 
 /** POST /api/chrome/install response (201). */
@@ -448,6 +460,171 @@ export interface ChromeUninstallResponse {
   freedSlot: ChromeSlot;
   /** Humanity is unchanged by uninstall (no refund, no recovery). */
   effectiveHumanity: number;
+}
+
+// ─── OS (Operating System) — issue #28 ───────────────────────────────────────
+// The OS is a chrome_definition installed in the `operating_system` slot
+// (permanent for the round). Activation is a daily-charge ability: Fúria
+// 3x/day 60s +50% Body; Surto 5x/day 30s +50% Reflexes +25% dodge; Gazuá is
+// inert until hacking (Fase 2). Daily reset happens at UTC midnight.
+
+/** Installed OS slugs — the keys of server/src/game/os-abilities.ts. */
+export const OS_ABILITY_SLUGS = ["os-gazuah", "os-fury", "os-surge"] as const;
+export type OsAbilitySlug = (typeof OS_ABILITY_SLUGS)[number];
+
+/** GET /api/os/status response — installed OS + activation readout. */
+export interface OsStatus {
+  installed: boolean;
+  /** Installed OS identity (null when no OS is installed). */
+  os: { slug: OsAbilitySlug; name: string } | null;
+  /**
+   * Activation state of the installed OS. Null when no OS is installed.
+   * Inert OSes (Gazuá) expose `inert: true` with zero uses/duration.
+   */
+  ability: {
+    /** True while the active effect window is running. */
+    isActive: boolean;
+    /** ISO — when the current activation expires (null when inactive). */
+    activeUntil: string | null;
+    /** Activations left today (daily reset at UTC midnight). */
+    usesRemaining: number;
+    /** Activations already spent today. */
+    usedToday: number;
+    /** Daily charge cap (0 when inert). */
+    maxUsesPerDay: number;
+    /** Effect window length in seconds (0 when inert). */
+    durationSeconds: number;
+    /** True when the OS has no activatable ability (Gazuá — Fase 2). */
+    inert: boolean;
+    /** ISO — when the daily counter resets (next UTC midnight). */
+    resetsAt: string;
+  } | null;
+}
+
+/** POST /api/os/activate response. */
+export interface OsActivateResponse {
+  success: true;
+  /** ISO — when the activation expires (now + duration). */
+  activeUntil: string;
+  /** Activations left after this one. */
+  usesRemaining: number;
+  message: string;
+}
+
+// ─── Humanidade / Cyberpsychosis — issue #28 ─────────────────────────────────
+// Bands follow 04-sistemas-e-progressao.md §4: Íntegro >70, Instável 41-70,
+// Borderline 21-40, Cyberpsycho 1-20, Apagado 0 (flatline). The Neural
+// Scrubber regens +1/24h lazily, capped at 50.
+
+/** Humanidade bands (API identifiers — PT labels live in the app). */
+export const HUMANITY_BANDS = [
+  "integro",
+  "instavel",
+  "borderline",
+  "cyberpsycho",
+  "apagado",
+] as const;
+export type HumanityBand = (typeof HUMANITY_BANDS)[number];
+
+/** Therapy modalities (clínica cara/eficaz; sintonia barata/fraca). */
+export const THERAPY_TYPES = ["clinic", "attunement"] as const;
+export type TherapyType = (typeof THERAPY_TYPES)[number];
+
+/** GET /api/humanity response — live humanity readout with scrubber + therapy. */
+export interface HumanityInfo {
+  /** Effective humanity (100 base, scrubber lazy regen applied in-memory). */
+  humanity: number;
+  band: HumanityBand;
+  /** True when humanity reached 0 (character permanently lost). */
+  flatlined: boolean;
+  flatlinedAt: string | null;
+  scrubber: {
+    installed: boolean;
+    /** Humanity points the scrubber already owes (lazy regen pending). */
+    pendingRegen: number;
+    /** ISO — when the next +1 lands (null when at cap or no scrubber). */
+    nextRegenAt: string | null;
+    /** Regen cap (50 per design). */
+    cap: number;
+  };
+  therapy: {
+    lastCompletedAt: string | null;
+    /** ISO — when the shared 24h cooldown ends (null when ready). */
+    nextAvailableAt: string | null;
+    cooldownRemainingMs: number;
+    clinic: TherapyOption;
+    attunement: TherapyOption;
+  };
+}
+
+/** Cost/restore ranges of one therapy modality (rolled at session time). */
+export interface TherapyOption {
+  therapyType: TherapyType;
+  costMin: number;
+  costMax: number;
+  restoreMin: number;
+  restoreMax: number;
+}
+
+/** POST /api/therapy request body. */
+export interface TherapyRequest {
+  therapyType: TherapyType;
+}
+
+/** POST /api/therapy response. */
+export interface TherapyResponse {
+  therapyType: TherapyType;
+  /** Grana charged for the session. */
+  cost: number;
+  /** Humanity points restored (capped at 100). */
+  restored: number;
+  humanityBefore: number;
+  humanityAfter: number;
+  completedAt: string;
+}
+
+// ─── Itens anti-insanidade (consumíveis) — issue #28 ─────────────────────────
+// Catalog items restore humanity with a global rolling-24h diminishing
+// returns window (100/60/30%, 4th use blocked). BAND_CAP=70: Íntegro
+// characters cannot use them. Prices live in vendor_inventory (ADR 28-C).
+
+/** One consumables catalog entry. */
+export interface Consumable {
+  id: string;
+  slug: string;
+  name: string;
+  tier: number;
+  restoreAmount: number;
+  /** Per-item cooldown (T2 12h, T3 24h, T1 none). */
+  cooldownHours: number;
+}
+
+/** GET /api/consumables response — catalog joined with the player's stock. */
+export interface ConsumablesResponse {
+  items: Array<
+    Consumable & {
+      ownedQuantity: number;
+      /** ISO — when this item's own cooldown ends (null when ready). */
+      nextAvailableAt: string | null;
+    }
+  >;
+}
+
+/** POST /api/consumables/use request body. */
+export interface ConsumableUseRequest {
+  itemId: string;
+}
+
+/** POST /api/consumables/use response. */
+export interface ConsumableUseResponse {
+  humanityBefore: number;
+  humanityAfter: number;
+  /** Humanity actually restored (multiplier × base, capped at 100). */
+  restored: number;
+  /** Eddy value consumed by the use (0 — the item was already purchased). */
+  costEddies: number;
+  /** ISO — when the item's cooldown ends (null when ready/cooldownless). */
+  nextAvailableAt: string | null;
 }
 
 // ─── Trampos (Feature #4 / ND-011) ───────────────────────────────────────────

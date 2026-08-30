@@ -12,12 +12,15 @@ import { CHROME_SLOT_LABELS } from "@/lib/labels";
 import Tab from "@/components/ui/Tab";
 import ChromeBodyMapSvg from "@/components/chrome/ChromeBodyMapSvg";
 import ChromeSurgeryPanel from "@/components/chrome/ChromeSurgeryPanel";
+import OsView from "@/views/OsView";
+import HumanityView from "@/views/HumanityView";
 
-type TabKey = "corpo" | "installed";
+type TabKey = "corpo" | "installed" | "os" | "humanity";
 
 /**
- * Cromo implant management — two tabs: "corpo" (interactive body map + surgery
- * flow, issue #10) and "Meu Cromo" (installed loadout + uninstall).
+ * Cromo implant management — four tabs (issue #28): "corpo" (interactive body
+ * map + surgery flow, issue #10), "Meu Cromo" (installed loadout + uninstall),
+ * "OS" (Operating System activation) e "Humanidade" (bands + terapia).
  * Get chipped, mano. Cromo eats your humanity; spend it wisely.
  */
 export default function ChromeView() {
@@ -146,6 +149,12 @@ export default function ChromeView() {
         <Tab state={tab === "installed" ? "active" : "inactive"} onClick={() => setTab("installed")}>
           Meu Cromo
         </Tab>
+        <Tab state={tab === "os" ? "active" : "inactive"} onClick={() => setTab("os")}>
+          OS
+        </Tab>
+        <Tab state={tab === "humanity" ? "active" : "inactive"} onClick={() => setTab("humanity")}>
+          Humanidade
+        </Tab>
       </div>
 
       {actionSuccess && <p className="text-nd-green text-sm font-data">{actionSuccess}</p>}
@@ -249,6 +258,10 @@ export default function ChromeView() {
           )}
         </div>
       )}
+
+      {tab === "os" && <OsView />}
+
+      {tab === "humanity" && <HumanityView />}
     </div>
   );
 }

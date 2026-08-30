@@ -1,13 +1,19 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { db } from "../db";
 import { resetDb, resetRounds, insertTestCharacter } from "./helpers";
-import { seedChrome, seedVendors, seedGigs as seedGigsFn, seedLoot } from "../seed/content-seeds";
+import {
+  seedChrome,
+  seedVendors,
+  seedGigs as seedGigsFn,
+  seedLoot,
+  seedConsumables,
+} from "../seed/content-seeds";
 import { performRoundReset } from "../services/round-service";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 
 // ND-054 — seed executor integration tests. Real Postgres on the isolated
 // test stack (docker-compose.test.yml). These tests run the ACTUAL seed
-// functions (seeds/01-04) against a truncated catalog so counts are
+// functions (seeds/01-04 + 08) against a truncated catalog so counts are
 // deterministic, then verify idempotency, content correctness, round-reset
 // compatibility and wallet integrity.
 //
@@ -17,30 +23,34 @@ import { walletRepository as wallets } from "../repositories/wallet-repository";
 
 const CONTENT_COUNTS = {
   gigs: 19,
-  chrome: 5,
+  chrome: 12,
   vendors: 4,
-  inventory: 8,
+  inventory: 18,
   loot: 9,
+  consumables: 3,
 } as const;
 
-/** Run the content seed (cromo + vendors + inventory + trampos + loot). */
+/** Run the content seed (cromo + vendors + inventory + trampos + loot + consumíveis). */
 async function seedAll(): Promise<{
   chrome: number;
   vendors: number;
   inventory: number;
   gigs: number;
   loot: number;
+  consumables: number;
 }> {
   const cromos = await seedChrome(db);
   const vendorResult = await seedVendors(db);
   const trampos = await seedGigsFn(db);
   const loot = await seedLoot(db);
+  const consumables = await seedConsumables(db);
   return {
     chrome: cromos,
     vendors: vendorResult.vendors,
     inventory: vendorResult.inventory,
     gigs: trampos,
     loot,
+    consumables,
   };
 }
 
@@ -54,7 +64,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
     // Wipe account + dependent tables (users, characters, vendors, loot_tables
     // CASCADE) and the two catalog tables resetDb deliberately leaves alone.
     await resetDb();
-    await db.raw("TRUNCATE TABLE gigs, chrome_definitions CASCADE");
+    await db.raw("TRUNCATE TABLE gigs, chrome_definitions, consumables CASCADE");
     await resetRounds(); // round 1 active for the round-reset compatibility test
     await seedAll();
   });
@@ -66,16 +76,18 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(await count("vendors")).toBe(CONTENT_COUNTS.vendors);
       expect(await count("vendor_inventory")).toBe(CONTENT_COUNTS.inventory);
       expect(await count("loot_tables")).toBe(CONTENT_COUNTS.loot);
+      expect(await count("consumables")).toBe(CONTENT_COUNTS.consumables);
     });
 
     it("should be idempotent — a second run changes nothing", async () => {
       const first = await seedAll();
       expect(first).toMatchObject({
-        chrome: 5,
+        chrome: 12,
         vendors: 4,
-        inventory: 8,
+        inventory: 18,
         gigs: 19, // upsert processes every template (merge, not insert-only)
         loot: 9,
+        consumables: 3,
       });
 
       expect(await count("gigs")).toBe(CONTENT_COUNTS.gigs);
@@ -83,6 +95,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(await count("vendors")).toBe(CONTENT_COUNTS.vendors);
       expect(await count("vendor_inventory")).toBe(CONTENT_COUNTS.inventory);
       expect(await count("loot_tables")).toBe(CONTENT_COUNTS.loot);
+      expect(await count("consumables")).toBe(CONTENT_COUNTS.consumables);
     });
 
     it("should restore drifted content on re-run (upsert by slug)", async () => {
@@ -139,24 +152,32 @@ describe("ND-054 — seed executor (db/seed)", () => {
         .select("vendor_id", "item_id", "price", "stock")
         .orderBy("vendor_id");
 
-      // 8 rows across the 4 fixed vendors: 5 ferrageiro, 0 despachante, 1 ampola, 2 market.
+      // 18 rows across the 4 fixed vendors: 13 ferrageiro, 0 despachante, 2 ampola, 3 market.
       const perVendor = new Map<string, typeof rows>();
       for (const r of rows) {
         perVendor.set(r.vendor_id, [...(perVendor.get(r.vendor_id) ?? []), r]);
       }
-      expect(perVendor.get("00000000-0000-4000-8000-000000000001")).toHaveLength(5);
+      expect(perVendor.get("00000000-0000-4000-8000-000000000001")).toHaveLength(13);
       expect(perVendor.get("00000000-0000-4000-8000-000000000002") ?? []).toHaveLength(0);
-      expect(perVendor.get("00000000-0000-4000-8000-000000000003")).toHaveLength(1);
-      expect(perVendor.get("00000000-0000-4000-8000-000000000004")).toHaveLength(2);
+      expect(perVendor.get("00000000-0000-4000-8000-000000000003")).toHaveLength(2);
+      expect(perVendor.get("00000000-0000-4000-8000-000000000004")).toHaveLength(3);
 
-      // Doc Fios stocks the 5 starter implants at the content prices.
+      // Doc Fios stocks the 12 implants + freio at the content prices.
       const docFiosItems = perVendor.get("00000000-0000-4000-8000-000000000001")!;
       expect(docFiosItems.map((i) => i.item_id).sort()).toEqual([
+        "freio",
         "gorilla-arms",
         "kiroshi-optics",
+        "medula-reforcada",
         "neural-booster",
+        "neural-scrubber",
+        "os-fury",
+        "os-gazuah",
+        "os-surge",
         "reflex-tuner",
+        "segundo-coracao",
         "subdermal-armor",
+        "tornozelos-fortificados",
       ]);
       expect(docFiosItems.every((i) => i.stock === -1)).toBe(true);
       const [kiroshi] = docFiosItems.filter((i) => i.item_id === "kiroshi-optics");
@@ -255,11 +276,15 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(await count("vendors")).toBe(CONTENT_COUNTS.vendors);
       expect(await count("vendor_inventory")).toBe(CONTENT_COUNTS.inventory);
       expect(await count("loot_tables")).toBe(CONTENT_COUNTS.loot);
+      expect(await count("consumables")).toBe(CONTENT_COUNTS.consumables);
 
-      // Dynamic player tables are wiped.
+      // Dynamic player tables are wiped (issue #28: terapia + consumíveis).
       expect(await count("active_gigs")).toBe(0);
       expect(await count("gig_history")).toBe(0);
       expect(await count("installed_chrome")).toBe(0);
+      expect(await count("therapy_sessions")).toBe(0);
+      expect(await count("character_consumables")).toBe(0);
+      expect(await count("consumable_uses")).toBe(0);
       expect(await count("heat")).toBe(0);
       expect(await count("transaction_log")).toBe(0);
       expect(await count("crews")).toBe(0);

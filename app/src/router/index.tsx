@@ -15,6 +15,8 @@ const DashboardView = lazy(() => import("@/views/DashboardView"));
 const GigBoardView = lazy(() => import("@/views/GigBoardView"));
 const SaideiraView = lazy(() => import("@/views/SaideiraView"));
 const ChromeView = lazy(() => import("@/views/ChromeView"));
+const HumanityView = lazy(() => import("@/views/HumanityView"));
+const OsView = lazy(() => import("@/views/OsView"));
 const VendorsView = lazy(() => import("@/views/VendorsView"));
 const VendorDetailView = lazy(() => import("@/views/VendorDetailView"));
 const PvpView = lazy(() => import("@/views/PvpView"));
@@ -76,6 +78,8 @@ const router = createBrowserRouter([
               { path: "gigs",      element: <Lazy><GigBoardView /></Lazy> },
               { path: "saideira",  element: <Lazy><SaideiraView /></Lazy> },
               { path: "chrome", element: <Lazy><ChromeView /></Lazy> },
+              { path: "humanity", element: <Lazy><HumanityView /></Lazy> },
+              { path: "os", element: <Lazy><OsView /></Lazy> },
               { path: "vendors", element: <Lazy><VendorsView /></Lazy> },
               { path: "vendors/:id", element: <Lazy><VendorDetailView /></Lazy> },
               { path: "pvp", element: <Lazy><PvpView /></Lazy> },

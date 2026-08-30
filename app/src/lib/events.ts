@@ -18,6 +18,10 @@ export const EVENT_TYPE_LABELS: Record<GameEventType, string> = {
   VENDOR_PURCHASE: "Compra em vendedor",
   ABILITY_ACTIVATED: "Habilidade ativada",
   ABILITY_CONSUMED: "Habilidade consumida",
+  // Issue #28 — cromo incompleto (OS, terapia, itens anti-insanidade).
+  OS_ACTIVATED: "SO ativado",
+  THERAPY_COMPLETED: "Terapia concluída",
+  HUMANITY_RESTORED: "Humanidade restaurada",
 };
 
 /** Read a numeric payload key, returning null when absent/not a number. */

@@ -92,6 +92,7 @@ describe("errorHandler", () => {
       error: "RATE_LIMITED",
       message: "Muitas requisições. Aguarde.",
       retryAfter: 60,
+      details: { retryAfter: 60 },
     });
   });
 
@@ -107,6 +108,25 @@ describe("errorHandler", () => {
       error: "COOLDOWN_ACTIVE",
       message: "Ação em cooldown. Aguarde.",
       retryAfter: 5,
+      details: { retryAfter: 5 },
+    });
+  });
+
+  it("should propagate details.nextAvailableAt on a 429 COOLDOWN_ACTIVE", () => {
+    const reply = mockReply();
+    const err = new AppError(429, "COOLDOWN_ACTIVE", "Você já fez terapia nas últimas 24h.", {
+      nextAvailableAt: "2026-08-30T12:00:00.000Z",
+    });
+
+    errorHandler(err, mockRequest, reply);
+
+    expect(reply.status).toHaveBeenCalledWith(429);
+    expect(reply.header).not.toHaveBeenCalled(); // no retryAfter → no header
+    expect(reply.send).toHaveBeenCalledWith({
+      error: "COOLDOWN_ACTIVE",
+      message: "Você já fez terapia nas últimas 24h.",
+      retryAfter: undefined,
+      details: { nextAvailableAt: "2026-08-30T12:00:00.000Z" },
     });
   });
 
@@ -127,6 +147,7 @@ describe("errorHandler", () => {
       error: "CIRCUIT_BREAK",
       message: "Sistema neural sobrecarregado. Retorne em 24 horas.",
       retryAfter: 86_400,
+      details: { retryAfter: 86_400 },
     });
   });
 

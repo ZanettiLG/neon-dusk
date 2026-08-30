@@ -27,6 +27,7 @@ import {
   calculateSuccessChance,
   canTransition,
   getEscapeStat,
+  getEscapeStatKey,
   getPrimaryStatKey,
   getRelevantStats,
   isCooldownExpired,
@@ -41,11 +42,13 @@ import {
   canRunSecondGig,
   computeConsumption,
 } from "../game/abilities";
+import { resolveOsActiveBonus } from "./os-service";
 import { transferEddies } from "../game/economy";
 import { emitEvent } from "../telemetry/emit-event";
 import { db, withTransaction } from "../db";
 import type { Queryable } from "../repositories";
 import { characterRepository as characters } from "../repositories/character-repository";
+import type { CharacterRow } from "../repositories/character-repository";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 import { chromeRepository as chrome } from "../repositories/chrome-repository";
@@ -135,6 +138,24 @@ async function getChromeStatBonus(
   const defIds = installed.map((i) => i.chrome_definition_id);
   const defs = await chrome.listDefinitionsByIds(defIds, q);
   return calculateStatBonus(defs as unknown as ChromeDefinition[]);
+}
+
+/**
+ * Issue #28: OS buffs applied to trampo rolls. SO Surto boosts Reflexes
+ * (+50%) while its 30s window runs — that feeds the success formula when the
+ * relevant stat is reflexes, the escape formula for reflex-based escapes,
+ * and the +25% dodge multiplier on every escape roll. Resolution is shared
+ * with the PvP service (os-service.resolveOsActiveBonus, cycle 2 review).
+ */
+async function getOsGigBonus(
+  q: Queryable,
+  character: CharacterRow,
+): Promise<{ statMultiplier: number; dodgeMultiplier: number }> {
+  const bonus = await resolveOsActiveBonus(character, q);
+  return {
+    statMultiplier: bonus?.reflexesMultiplier ?? 1,
+    dodgeMultiplier: bonus?.dodgeMultiplier ?? 1,
+  };
 }
 
 /**
@@ -271,6 +292,12 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and cannot take trampos.
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     const trampo = await gigs.findById(gigId, trx);
     if (!trampo) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
@@ -379,6 +406,15 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
  */
 export async function doLegwork(characterId: string, gigId: string): Promise<ActiveGig> {
   return withTransaction(async (trx) => {
+    const character = await characters.findById(characterId, trx);
+    if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
+
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and cannot run trampo actions.
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
@@ -412,6 +448,16 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
     const trampo = await gigs.findById(active.gigId, trx);
     if (!trampo) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
+    const character = await characters.findById(characterId, trx);
+    if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
+
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and cannot run trampo actions. Gate fires before the
+    // phase checks so FLATLINED (403) wins over INVALID_PHASE_TRANSITION (409).
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     const skippedLegwork = active.phase === "meet";
     const next =
       active.phase === "meet"
@@ -435,15 +481,16 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       );
     }
 
-    const character = await characters.findById(characterId, trx);
-    if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
-
     const { primary } = getRelevantStats(trampo.type as GigType, toAttributes(character));
     // ponytail: sequential queries, JOIN if latency matters
     const chromeBonus = await getGigSuccessBonus(trx, characterId);
     const chromeStatBonuses = await getChromeStatBonus(trx, characterId);
     const primaryStatKey = getPrimaryStatKey(trampo.type as GigType);
     const chromeStatBonusValue = chromeStatBonuses[primaryStatKey];
+
+    // Issue #28: SO Surto ativo → +50% Reflexes no stat relevante (reflexes).
+    const osBonus = await getOsGigBonus(trx, character);
+    const statMultiplier = primaryStatKey === "reflexes" ? osBonus.statMultiplier : 1;
 
     // Crew bonus: +N percentage points to trampo success (ND-016).
     let crewBonus = 0;
@@ -454,7 +501,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       if (gigBonus) crewBonus = gigBonus.value;
     }
 
-    const baseChance = calculateSuccessChance(primary, chromeBonus, Number(trampo.difficulty), undefined, chromeStatBonusValue);
+    const baseChance = calculateSuccessChance(primary, chromeBonus, Number(trampo.difficulty), undefined, chromeStatBonusValue, statMultiplier);
     const chance = applyLegworkModifier(baseChance, { skippedLegwork, legworkDone });
     // Crew bonus adds percentage points after base chance (value=5 → +0.05).
     const chanceWithCrew = Math.min(0.95, chance + crewBonus / 100);
@@ -523,6 +570,13 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and cannot run trampo actions. Gate fires before any
+    // write (idempotent replay above performs none and stays ungated).
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     const districtHeat = await heat.getForDistrict(characterId, trampo.district, trx);
 
     const { heat: effectiveHeat } = applyHeatDecay(
@@ -531,7 +585,18 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     );
 
     const stat = getEscapeStat(trampo.type as GigType, toAttributes(character));
-    const chance = calculateEscapeChance(stat, Number(trampo.escape_difficulty), effectiveHeat);
+    // Issue #28: SO Surto ativo → +50% Reflexes (escapes baseados em reflexes)
+    // e +25% dodge em toda fuga.
+    const osBonus = await getOsGigBonus(trx, character);
+    const escapeStatKey = getEscapeStatKey(trampo.type as GigType);
+    const statMultiplier = escapeStatKey === "reflexes" ? osBonus.statMultiplier : 1;
+    const chance = calculateEscapeChance(
+      stat,
+      Number(trampo.escape_difficulty),
+      effectiveHeat,
+      statMultiplier,
+      osBonus.dodgeMultiplier,
+    );
     const outcome = rollGigOutcome(chance);
     const heatGenerated = calculateHeat(Number(trampo.heat_generated), (active.executeOutcome ?? "failure") as "success" | "failure");
 
@@ -567,6 +632,18 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
     const active = await queryActiveGig(characterId, trx);
     if (!active) throw new AppError(404, "NO_ACTIVE_GIG", "Nenhum trampo ativo");
     if (active.gigId !== gigId) throw new AppError(409, "GIG_MISMATCH", "Trampo ativo não corresponde");
+
+    const character = await characters.findById(characterId, trx);
+    if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
+
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and can never be paid. Gate fires before the phase check
+    // (FLATLINED 403 wins over INVALID_PHASE_TRANSITION 409) and before any
+    // write — a flatlined character gets no payout, no Moral, no heat.
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     // The wrap_up action is taken while in the escape phase (see the phase
     // machine in game/gigs.ts: escape → wrap_up); wrap_up is terminal and the
     // row is deleted right after, so it is never observed by the client.
@@ -577,9 +654,6 @@ export async function wrapUpGig(characterId: string, gigId: string): Promise<Gig
 
     const trampo = await gigs.findById(active.gigId, trx);
     if (!trampo) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
-
-    const character = await characters.findById(characterId, trx);
-    if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
     // Feature #65: Silver Tongue — habilidade do despachante: +50% de pagamento e +25% de Moral.
     const silverTongue = getSilverTongueBonus(
@@ -718,6 +792,16 @@ export async function abandonGig(
   gigId: string,
 ): Promise<{ outcome: "abandoned"; message: string }> {
   return withTransaction(async (trx) => {
+    const character = await characters.findById(characterId, trx);
+    if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
+
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and cannot take trampo actions. Gate fires before any
+    // write (the abandon deletes the active trampo and records history).
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     // 1. Find active trampo for this character.
     const active = await gigs.findActiveGigByGig(characterId, gigId, trx);
     if (!active) {

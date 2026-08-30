@@ -31,6 +31,13 @@ export interface CharacterRow {
   ability_active_until: Date | null;
   ability_cooldown_until: Date | null;
   crew_id: string | null;
+  os_ability_id: string | null;
+  os_ability_active_until: Date | null;
+  os_ability_uses_today: number;
+  os_ability_used_date: Date | null;
+  is_flatlined: boolean;
+  flatlined_at: Date | null;
+  humanity_updated_at: Date;
   created_at: Date;
   updated_at: Date;
 }
@@ -112,12 +119,32 @@ export interface CharacterRepository {
   ): Promise<{ nil: number; max_nil: number; nil_updated_at: Date } | undefined>;
   /** Humanity decrement guarded by `humanity >= cost` (concurrent install guard). */
   updateHumanityGuarded(id: string, humanity: number, cost: number, q?: Queryable): Promise<void>;
+  /**
+   * Flatline write (issue #28): marks the character as apagado — permanent
+   * for the round, no un-flatline path exists. Written by the cromo install
+   * flow in the same transaction as the humanity decrement that drained
+   * humanity to 0.
+   */
+  updateFlatline(id: string, q?: Queryable): Promise<void>;
+  /**
+   * Humanity restore (therapy/consumable path) — plain write that also bumps
+   * `humanity_updated_at` so the scrubber's lazy regen window restarts.
+   */
+  updateHumanity(id: string, humanity: number, q?: Queryable): Promise<void>;
   /** Recompute the effective NIL max after install/uninstall. */
   updateMaxNil(id: string, maxNil: number, q?: Queryable): Promise<void>;
   /** Role ability activation/consumption timestamps. */
   updateAbilityState(
     id: string,
     state: { activeUntil: Date | null; cooldownUntil: Date | null },
+    q?: Queryable,
+  ): Promise<void>;
+  /** Set (or clear) the installed OS definition (install-time write). */
+  setOsAbilityId(id: string, osAbilityId: string | null, q?: Queryable): Promise<void>;
+  /** OS activation write: expiry + daily-charge counters (UTC-day aware). */
+  updateOsActivation(
+    id: string,
+    state: { activeUntil: Date | null; usesToday: number; usedDate: Date | null },
     q?: Queryable,
   ): Promise<void>;
   /** Set (or clear) the crew affiliation. */
@@ -284,9 +311,21 @@ export function createCharacterRepository(q: Queryable = db): CharacterRepositor
 
     async updateHumanityGuarded(id, humanity, cost, tx = q) {
       await tx("characters")
-        .update({ humanity, updated_at: new Date() })
+        .update({ humanity, humanity_updated_at: new Date(), updated_at: new Date() })
         .where("id", id)
         .where("humanity", ">=", cost);
+    },
+
+    async updateFlatline(id, tx = q) {
+      await tx("characters")
+        .update({ is_flatlined: true, flatlined_at: tx.fn.now(), updated_at: new Date() })
+        .where("id", id);
+    },
+
+    async updateHumanity(id, humanity, tx = q) {
+      await tx("characters")
+        .update({ humanity, humanity_updated_at: new Date(), updated_at: new Date() })
+        .where("id", id);
     },
 
     async updateMaxNil(id, maxNil, tx = q) {
@@ -300,6 +339,23 @@ export function createCharacterRepository(q: Queryable = db): CharacterRepositor
         .update({
           ability_active_until: state.activeUntil,
           ability_cooldown_until: state.cooldownUntil,
+          updated_at: new Date(),
+        })
+        .where("id", id);
+    },
+
+    async setOsAbilityId(id, osAbilityId, tx = q) {
+      await tx("characters")
+        .update({ os_ability_id: osAbilityId, updated_at: new Date() })
+        .where("id", id);
+    },
+
+    async updateOsActivation(id, state, tx = q) {
+      await tx("characters")
+        .update({
+          os_ability_active_until: state.activeUntil,
+          os_ability_uses_today: state.usesToday,
+          os_ability_used_date: state.usedDate,
           updated_at: new Date(),
         })
         .where("id", id);

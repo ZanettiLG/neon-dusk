@@ -177,20 +177,27 @@ describe("Feature #4 — cromo API", () => {
   }
 
   describe("GET /api/chrome", () => {
-    it("should return all 5 active cromo definitions", async () => {
+    it("should return all 12 active cromo definitions", async () => {
       const { accessToken } = await registerAndCreateCharacter();
 
       const res = await fetch(`${base()}/api/chrome`, { headers: authHeader(accessToken) });
 
       expect(res.status).toBe(200);
       const body = await json<ChromeDefinition[]>(res);
-      expect(body).toHaveLength(5);
+      expect(body).toHaveLength(12);
       expect(body.map((d) => d.slug).sort()).toEqual([
         "gorilla-arms",
         "kiroshi-optics",
+        "medula-reforcada",
         "neural-booster",
+        "neural-scrubber",
+        "os-fury",
+        "os-gazuah",
+        "os-surge",
         "reflex-tuner",
+        "segundo-coracao",
         "subdermal-armor",
+        "tornozelos-fortificados",
       ]);
       // Ordered by tier (T1 first) then name.
       expect(body[0].tier).toBe(1);
@@ -261,6 +268,8 @@ describe("Feature #4 — cromo API", () => {
         hpBonus: 0,
         gigSuccessBonus: 0,
         nilMaxBonus: 0,
+        // Issue #28: OS readout ships with the loadout (no OS installed).
+        osAbility: { installed: false, os: null, ability: null },
       });
     });
 
@@ -381,10 +390,11 @@ describe("Feature #4 — cromo API", () => {
       expect(body.error).toBe("HUMANITY_TOO_LOW");
     });
 
-    it("should allow an install that brings humanity to exactly 0 (flatline boundary)", async () => {
+    it("should flatline the character when an install brings humanity to exactly 0 (full flow)", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       // Estalo costs 3 humanity; at 3 humanity the result is exactly 0,
-      // which the game contract allows (cyberpsychosis handles flatline).
+      // which the game contract allows — the install itself is the flatline
+      // trigger (issue #28: flag 1 approved, permanent).
       await db("characters")
         .where("id", characterId)
         .update({ humanity: 3 });
@@ -394,6 +404,58 @@ describe("Feature #4 — cromo API", () => {
       expect(res.status).toBe(201);
       const body = await json<ChromeInstallResponse>(res);
       expect(body.effectiveHumanity).toBe(0);
+
+      // 1. DB state: flatline flag + timestamp set in the same transaction.
+      const [char] = await db("characters")
+        .select("is_flatlined", "flatlined_at")
+        .where("id", characterId);
+      expect(char!.is_flatlined).toBe(true);
+      expect(char!.flatlined_at).not.toBeNull();
+
+      // 2. Flatline gates: therapy, OS activation and consumables all 403.
+      const therapy = await server.post(
+        "/api/therapy",
+        { therapyType: "clinic" },
+        authHeader(accessToken),
+      );
+      expect(therapy.status).toBe(403);
+      expect((await json<ErrorBody>(therapy)).error).toBe("FLATLINED");
+
+      const os = await server.post("/api/os/activate", {}, authHeader(accessToken));
+      expect(os.status).toBe(403);
+      expect((await json<ErrorBody>(os)).error).toBe("FLATLINED");
+
+      const consumable = await server.post(
+        "/api/consumables/use",
+        { itemId: ZERO_ID },
+        authHeader(accessToken),
+      );
+      expect(consumable.status).toBe(403);
+      expect((await json<ErrorBody>(consumable)).error).toBe("FLATLINED");
+
+      // 3. Readout: humanity endpoint reports the apagado terminal state.
+      const humanity = await fetch(`${base()}/api/humanity`, {
+        headers: authHeader(accessToken),
+      });
+      expect(humanity.status).toBe(200);
+      const humanityBody = await json<{ flatlined: boolean; band: string; humanity: number }>(humanity);
+      expect(humanityBody.flatlined).toBe(true);
+      expect(humanityBody.band).toBe("apagado");
+      expect(humanityBody.humanity).toBe(0);
+
+      // 4. Restoration attempts do NOT un-flatline: therapy stays blocked
+      // even though the character is at 0 humanity (permanent loss).
+      const retry = await server.post(
+        "/api/therapy",
+        { therapyType: "attunement" },
+        authHeader(accessToken),
+      );
+      expect(retry.status).toBe(403);
+      expect((await json<ErrorBody>(retry)).error).toBe("FLATLINED");
+      const [after] = await db("characters")
+        .select("is_flatlined")
+        .where("id", characterId);
+      expect(after!.is_flatlined).toBe(true);
     });
 
     it("should return 400 for a missing body", async () => {

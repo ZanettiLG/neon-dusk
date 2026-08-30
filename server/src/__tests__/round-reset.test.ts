@@ -14,7 +14,7 @@ import {
 // ─── buildResetQueries ──────────────────────────────────────────────────────
 
 describe("buildResetQueries", () => {
-  it("returns the 16-step reset sequence in the correct order", () => {
+  it("returns the 19-step reset sequence in the correct order", () => {
     const steps = buildResetQueries();
     expect(steps.map((s) => s.description)).toEqual([
       "capture_round_stats",
@@ -23,6 +23,9 @@ describe("buildResetQueries", () => {
       "wipe_active_gigs",
       "wipe_gig_history",
       "wipe_installed_chrome",
+      "wipe_therapy_sessions",
+      "wipe_character_consumables",
+      "wipe_consumable_uses",
       "wipe_pvp_combats",
       "wipe_heat",
       "wipe_transaction_log",

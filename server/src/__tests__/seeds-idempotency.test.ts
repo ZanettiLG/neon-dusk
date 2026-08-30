@@ -8,21 +8,23 @@ import {
   seedLegends,
   seedRound,
   seedGameParams,
+  seedConsumables,
 } from "../seed/content-seeds";
 
-// #158 DB repository layer — the 7 content seed executors must be idempotent.
+// #158 DB repository layer — the 8 content seed executors must be idempotent.
 // Runs every seed twice against the isolated test stack and asserts the row
 // counts are stable (a second run must not duplicate anything).
 
 const EXPECTED = {
-  chrome: 5,
+  chrome: 12,
   vendors: 4,
-  inventory: 8,
+  inventory: 18,
   gigs: 19,
   loot: 9,
   legends: 5,
   round: 1,
   params: 6,
+  consumables: 3,
 } as const;
 
 async function count(tableName: string): Promise<number> {
@@ -38,6 +40,7 @@ async function runAllSeeds(): Promise<void> {
   await seedLegends(db);
   await seedRound(db);
   await seedGameParams(db);
+  await seedConsumables(db);
 }
 
 describe("content seeds idempotency (#158)", () => {
@@ -46,7 +49,7 @@ describe("content seeds idempotency (#158)", () => {
     // regardless of prior test state. resetDb leaves these alone, so truncate
     // them explicitly (same approach as seed-integration.test.ts).
     await db.raw(
-      "TRUNCATE TABLE gigs, chrome_definitions, vendors, vendor_inventory, loot_tables, legends, rounds, game_params CASCADE",
+      "TRUNCATE TABLE gigs, chrome_definitions, vendors, vendor_inventory, loot_tables, legends, rounds, game_params, consumables CASCADE",
     );
     await runAllSeeds();
   });
@@ -58,6 +61,7 @@ describe("content seeds idempotency (#158)", () => {
     expect(await count("gigs")).toBe(EXPECTED.gigs);
     expect(await count("loot_tables")).toBe(EXPECTED.loot);
     expect(await count("legends")).toBe(EXPECTED.legends);
+    expect(await count("consumables")).toBe(EXPECTED.consumables);
     expect(await count("rounds")).toBe(EXPECTED.round);
     expect(await count("game_params")).toBe(EXPECTED.params);
   });
@@ -73,5 +77,6 @@ describe("content seeds idempotency (#158)", () => {
     expect(await count("legends")).toBe(EXPECTED.legends);
     expect(await count("rounds")).toBe(EXPECTED.round);
     expect(await count("game_params")).toBe(EXPECTED.params);
+    expect(await count("consumables")).toBe(EXPECTED.consumables);
   });
 });

@@ -18,6 +18,9 @@ export function severityFor(eventType: GameEventType): CharacterEventSeverity {
     case "EDDIES_EARNED":
     case "NIL_RESTORED":
     case "ABILITY_ACTIVATED":
+    case "OS_ACTIVATED":
+    case "THERAPY_COMPLETED":
+    case "HUMANITY_RESTORED":
       return "success";
     case "GIG_FAILED":
     case "PVP_DEFEAT":
