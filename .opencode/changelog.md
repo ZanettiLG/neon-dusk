@@ -4,6 +4,18 @@ Histórico de mudanças estruturais no harness de desenvolvimento.
 
 ## 2026-08-30
 ### Trigger
+Issue #2 (run nd-20260830-182437-trampos-followup): o `test-writer` produziu auditoria item-a-item (issue vs cobertura) de alta qualidade — vale virar template obrigatório.
+
+### Change
+- `testing-patterns` skill: nova seção "Handoff de Auditoria Item-a-Item" — tabela obrigatória `critério/requisito → teste(s) que cobrem → status` no handoff do test-writer, com rastreabilidade (path + `it('...')` exato) e tratamento de requisitos órfãos.
+
+### Impact
+Handoffs do test-writer mapeiam cada requisito da issue/design a testes concretos, eliminando "cobertura invisível" e facilitando a auditoria de coverage pelo code-reviewer/pr-reviewer.
+
+---
+
+## 2026-08-30
+### Trigger
 Issue #30 (ND-052): code-reviewer identificou seed GIG_BASE_REWARD duplicado entre migration 0034 e content-seeds (2ª ocorrência do padrão).
 ### Change
 Check fixo no self-review do developer: seeds só em content-seeds, migrations só DDL/índices.

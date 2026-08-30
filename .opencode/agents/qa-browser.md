@@ -33,7 +33,48 @@ Receber uma feature implementada → analisar design doc + código → planejar 
 | **Smoke Test** | Pós-deploy, health check rápido | Fluxos críticos apenas (login, personagem, trampo básico) |
 | **Regression** | Antes de release, com `--regression` | Suíte completa de regressão cross-feature |
 
-## Pipeline de QA (5 Fases)
+## Setup do Ambiente (Obrigatório)
+
+Antes de qualquer QA interativo, o banco de dev deve estar **limpo e semeado**. Banco de dev compartilhado degrada runs de QA/integração (FK violada — ex: 23503 `audit_log` — e deadlocks — ex: 40P01).
+
+O repo NÃO tem um script `db:reset` único. Use o comando composto (rollback total + migrate + seed):
+
+```bash
+# 1. Rollback de TODAS as migrations (limpa o schema)
+npm run db:migrate:rollback -w server -- --all
+
+# 2. Reaplica as migrations
+npm run db:migrate
+
+# 3. Re-semeia os dados canônicos
+npm run db:seed
+```
+
+Se o rollback deixar resíduo (seed sujo/estado inconsistente), recrie o schema do zero:
+
+```bash
+docker compose exec postgres psql -U neondusk -d neondusk \
+  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+npm run db:migrate
+npm run db:seed
+```
+
+> `qa-browser` tem `bash: deny` — o reset é executado pelo `dev-orchestrator`/humano ANTES do spawn. O QA **verifica** que o banco está freshly seeded e reporta `qa-blocked` se não estiver.
+
+## Pipeline de QA (6 Fases)
+
+### Fase 0: PRE-FLIGHT (obrigatório — antes de qualquer teste)
+
+Execute ANTES de montar o Test Plan:
+
+1. **Health-check do MCP agent-browser**:
+   - Rode `agent_browser_doctor` (modo `--quick`) ou, no mínimo, `agent_browser_session_list`.
+   - Se o MCP não estiver injetado, retornar erro, ou o browser não abrir:
+     → reporte **`qa-blocked`** imediatamente com o motivo exato.
+     → NÃO gaste tentativas de browser (zero `open`/`click`/`snapshot`).
+     → Prossiga apenas com **verificação estática** (leitura de código/design doc; grep por regressões óbvias) e **testes automatizados** (suíte já produzida pelo `test-writer`/CI no pipeline — referencie no relatório, não re-execute).
+2. **Reset + seed do banco de dev**:
+   - Ver seção "Setup do Ambiente". Se o banco não estiver freshly seeded, reporte `qa-blocked` e não inicie fluxos interativos que dependem de estado persistente.
 
 ### Fase 1: ANALYZE
 1. Leia o design doc do architect (`.handoff/` ou comentário na issue)
@@ -118,7 +159,7 @@ Gere o relatório final:
 
 ```json
 {
-  "status": "pass|fail|partial",
+  "status": "pass|fail|partial|qa-blocked",
   "run_id": "<run_id>",
   "feature": "<feature name>",
   "mode": "feature|smoke|regression",
@@ -217,6 +258,8 @@ Quando invocado pelo `dev-orchestrator` (padrão, GitHub é default):
 5. Se passou, adicione label `qa-passed`
 
 ## Self-Checks (Antes do Handoff)
+- [ ] Fase 0 (pre-flight) executada: MCP agent-browser disponível e banco de dev resetado/semeado
+- [ ] Se MCP/banco indisponível: reportei `qa-blocked` imediatamente com o motivo, sem gastar tentativas de browser
 - [ ] Todos os happy paths testados (mínimo 1 por fluxo da feature)
 - [ ] Todos os error paths testados (validação, auth, rate-limit, server errors)
 - [ ] Edge cases cobertos: estados vazios, valores limite, duplo clique, reload durante operação
@@ -235,6 +278,7 @@ Quando invocado pelo `dev-orchestrator` (padrão, GitHub é default):
 - Use `agent_browser_snapshot` para encontrar elementos (preferível a seletores CSS frágeis)
 - Para cada `click`/`fill`, verifique antes que o elemento está visible + enabled
 - Se o servidor não estiver rodando, reporte como `blocked` e NÃO tente iniciar servidor
+- Se o MCP agent-browser estiver indisponível (pre-flight falhar), reporte `qa-blocked` e NÃO gaste tentativas de browser — caia para verificação estática + testes automatizados
 - Testes de PWA: verifique service worker registration + cache
 - Em modo smoke/regression, reuse sessão de browser quando possível para velocidade
 - Reporte timeouts como `blocked` (não como `fail` — falha de infra não é falha de feature)

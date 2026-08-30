@@ -234,6 +234,23 @@ render(<MemoryRouter initialEntries={['/gigs/42']}><GigPage /></MemoryRouter>)
 | Routes (API handlers) | 60%+ |
 | UI components | 40%+ |
 
+## Handoff de Auditoria Item-a-Item (test-writer — obrigatório)
+
+O handoff do `test-writer` DEVE incluir uma tabela que mapeie cada critério/requisito da feature aos testes que o cobrem e seu status. Formato obrigatório:
+
+```markdown
+| Critério / Requisito | Teste(s) que cobrem | Status |
+|---|---|---|
+| <requisito da issue/design doc> | `tests/<path>.test.ts → it('...')` | ✅ / ❌ / ⚠️ |
+| <edge case específico> | `tests/<path>.test.ts → it('...')` | ✅ / ❌ / ⚠️ |
+```
+
+Regras:
+- **Item-a-item**: cada requisito da issue/design doc tem pelo menos uma linha — nenhum requisito sem teste mapeado.
+- **Path + nome do teste**: aponte o arquivo E o `it('...')` exato (rastreável, não só "coberto por testes de serviço").
+- **Status real**: ✅ (passando), ❌ (falhando — com motivo), ⚠️ (cobertura parcial/indireta — explique o gap).
+- **Requisito órfão**: se um requisito não tem teste, marque ⚠️ e justifique (fora de escopo? impossível de testar? delegado a QA browser?).
+
 ## Anti-Padrões
 - ❌ Testar implementação (mock interno) em vez de comportamento (input/output)
 - ❌ Testes frágeis com `setTimeout` ou datas hardcoded

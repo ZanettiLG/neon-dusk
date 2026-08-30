@@ -4,6 +4,20 @@ Histórico de mudanças nos agentes de desenvolvimento.
 
 ## 2026-08-30
 ### Trigger
+Issue #2 (run nd-20260830-182437-trampos-followup): 2ª/3ª ocorrência de `qa-blocked` por MCP agent-browser indisponível (gasto de um subagente inteiro para descobrir que o browser não estava disponível) e banco de dev compartilhado degradando runs de QA/integração (FK 23503 em audit_log + deadlock 40P01 em testes via-API).
+
+### Change
+- `qa-browser`: nova Fase 0 (PRE-FLIGHT) obrigatória antes do Test Plan — health-check do MCP agent-browser (`agent_browser_doctor --quick` ou `agent_browser_session_list`); se indisponível, reporta `qa-blocked` imediatamente com o motivo, sem gastar tentativas de browser, caindo para verificação estática + testes automatizados.
+- `qa-browser`: nova seção "Setup do Ambiente" — reset+seed obrigatório do banco de dev antes de QA interativo (comando composto: `db:migrate:rollback --all` + `db:migrate` + `db:seed`, com fallback de drop de schema).
+- `qa-browser`: status enum do REPORT ganha `qa-blocked`; Self-Checks e Regras atualizados para refletir o pre-flight.
+
+### Impact
+QA deixa de gastar um subagente inteiro para descobrir MCP indisponível — reporta `qa-blocked` no pre-flight. Banco de dev limpo/semeado antes de cada run reduz FK violadas e deadlocks em QA/integração.
+
+---
+
+## 2026-08-30
+### Trigger
 Issue #30 (ND-052): code-reviewer identificou seed GIG_BASE_REWARD duplicado entre migration 0034 e content-seeds (2ª ocorrência do padrão — a 1ª foi na issue #48).
 ### Change
 Adicionado check #47 ao self-review do developer: seeds de dados de jogo vivem SOMENTE em `content-seeds.ts`/`DEFAULT_PARAMS` (upsert idempotente) — migrations fazem apenas DDL/índices; nenhum INSERT de seed em migration. Total de checks: 46 → 47.
