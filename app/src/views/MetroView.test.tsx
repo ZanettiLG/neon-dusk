@@ -63,6 +63,16 @@ const ORIGINS: Origin[] = [
   "o_ponto",
 ];
 
+const STATIONS: [Origin, string][] = [
+  ["a_paraiso", "A Paraíso"],
+  ["o_fervo", "O Fervo"],
+  ["o_fluxo", "O Fluxo"],
+  ["a_quebrada", "A Quebrada"],
+  ["babilonia", "Babilônia"],
+  ["as_mortas", "As Mortas"],
+  ["o_ponto", "O Ponto"],
+];
+
 describe("MetroView", () => {
   beforeEach(() => {
     mocks.api.get.mockReset();
@@ -181,5 +191,45 @@ describe("MetroView", () => {
 
     const paraiso = screen.getByRole("button", { name: "Estação A Paraíso" });
     expect(within(paraiso).queryByText("VOCÊ ESTÁ AQUI")).not.toBeInTheDocument();
+  });
+
+  it("should cancel a pending crossing when the view unmounts", async () => {
+    vi.useFakeTimers();
+    mocks.api.get.mockResolvedValue(vendors);
+
+    const { unmount } = render(<MetroView />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole("button", { name: "Estação O Fervo" }));
+    expect(useMetroStore.getState().traveling).toBe(true);
+
+    unmount();
+
+    // The module-level crossing timer must be cleared — advancing it after
+    // unmount must not swap the district.
+    act(() => {
+      vi.advanceTimersByTime(METRO_TRAVEL_MS);
+    });
+
+    const s = useMetroStore.getState();
+    expect(s.traveling).toBe(false);
+    expect(s.currentDistrict).toBe("a_paraiso");
+  });
+
+  it("should render the map without origin or current markers when the character has no origin", async () => {
+    useAuthStore.setState({ character: null });
+    mocks.api.get.mockResolvedValue([]);
+
+    render(<MetroView />);
+
+    await screen.findByRole("img", { name: "Mapa do metrô de São Paulo 2087" });
+
+    // Banner falls back to the hub (Babilônia).
+    expect(screen.getByText(/BABILÔNIA/)).toBeInTheDocument();
+
+    for (const [origin, label] of STATIONS) {
+      const station = screen.getByRole("button", { name: `Estação ${label}` });
+      expect(station, `${origin} station`).not.toHaveAttribute("data-origin");
+      expect(station).not.toHaveAttribute("data-current");
+    }
   });
 });

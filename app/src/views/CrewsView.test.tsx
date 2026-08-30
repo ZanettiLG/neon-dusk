@@ -100,6 +100,14 @@ describe("CrewsView", () => {
     expect(screen.getByText("Falha ao carregar bondes")).toBeInTheDocument();
   });
 
+  it("should show an empty state when no crews exist", () => {
+    useCrewStore.setState({ crews: [] });
+
+    renderView();
+
+    expect(screen.getByText("Nenhum bonde fundado ainda.")).toBeInTheDocument();
+  });
+
   it("should gate crew creation behind SC 25", () => {
     useAuthStore.setState({ character: character(10) });
 
