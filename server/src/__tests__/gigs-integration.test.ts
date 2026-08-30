@@ -215,7 +215,10 @@ describe("ND-011 — trampos service & API", () => {
       const board = await listAvailableGigs(characterId);
       const entry = board.gigs.find((g) => g.id === farma.id)!;
       expect(entry.cooldownRemaining).toBeGreaterThan(0);
-      expect(entry.cooldownRemaining).toBeLessThanOrEqual(600); // 10-min cooldown
+      // Tolerance 601, not 600: `completed_at` is stamped by the Postgres
+      // clock while the service computes the remainder on the JS clock; a
+      // ~1s DB-ahead skew survives Math.ceil (600 001 ms → 601 s).
+      expect(entry.cooldownRemaining).toBeLessThanOrEqual(601); // 10-min cooldown
     });
 
     it("should report 0 cooldown once the cooldown window has elapsed", async () => {
@@ -390,6 +393,23 @@ describe("ND-011 — trampos service & API", () => {
       expect(char!.nil).toBe(100); // NIL untouched on rollback
     });
 
+    it("should throw 403 FLATLINED for an apagado character and roll back", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      await expect(acceptGig(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 403,
+        code: "FLATLINED",
+      });
+      // Gate fires before any write: no active trampo, NIL untouched.
+      expect(await getActiveGig(characterId)).toBeNull();
+      const [char] = await db("characters").select("nil").where("id", characterId);
+      expect(char!.nil).toBe(100);
+    });
+
     it("should throw 400 GIG_COOLDOWN when the same trampo was completed recently", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
@@ -519,6 +539,20 @@ describe("ND-011 — trampos service & API", () => {
       await expect(executeGig(characterId, farma.id)).rejects.toMatchObject({
         statusCode: 409,
         code: "LEGWORK_IN_PROGRESS",
+      });
+    });
+
+    it("should throw 403 FLATLINED for an apagado character", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      await expect(executeGig(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 403,
+        code: "FLATLINED",
       });
     });
 
@@ -994,6 +1028,23 @@ describe("ND-011 — trampos service & API", () => {
       });
       expect(res.statusCode).toBe(400);
       expect((res.json() as ErrorBody).error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 403 FLATLINED for an apagado character", async () => {
+      const { accessToken: token, characterId } = await registerApiUser();
+      const farma = await farmaGig();
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      const res = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/accept`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(403);
+      expect((res.json() as ErrorBody).error).toBe("FLATLINED");
     });
 
     it("should return 404 GIG_NOT_FOUND for an unknown trampo", async () => {

@@ -25,8 +25,10 @@ export async function getHumanityInfo(characterId: string): Promise<HumanityInfo
 
   const scrubberInstalled = await chrome.isInstalledBySlug(characterId, SCRUBBER_SLUG);
 
-  // Lazy regen: computed on read, never persisted by this endpoint.
-  const regen = scrubberInstalled
+  // Lazy regen: computed on read, never persisted by this endpoint. A
+  // flatlined (apagado) character is permanently lost (04-sistemas §4) —
+  // the scrubber must never pull them back above 0, so regen is skipped.
+  const regen = scrubberInstalled && !character.is_flatlined
     ? applyScrubberRegen(character.humanity, character.humanity_updated_at, SCRUBBER_REGEN_CAP)
     : { humanity: character.humanity, regenApplied: 0, nextRegenAt: null };
 

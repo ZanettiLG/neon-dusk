@@ -167,6 +167,41 @@ describe("Issue #28 — Humanidade API", () => {
       expect(body.flatlinedAt).toBe(flatlinedAt.toISOString());
     });
 
+    it("should never regen humanity for a flatlined character, even with the scrubber installed", async () => {
+      const { accessToken, characterId } = await registerAndCreateCharacter();
+      const [scrubber] = await db("chrome_definitions")
+        .select("id")
+        .where("slug", "neural-scrubber")
+        .limit(1);
+      const install = await server.post(
+        "/api/chrome/install",
+        { chromeDefinitionId: scrubber!.id, vendorId: DOC_FIOS_ID },
+        authHeader(accessToken),
+      );
+      expect(install.status).toBe(201);
+
+      // Flatline with 3 full 24h windows elapsed — the scrubber would regen
+      // +3 if the readout ignored the apagado state (the display bug under
+      // review: humanity > 0 and band ≠ apagado for a flatlined character).
+      await db("characters")
+        .where("id", characterId)
+        .update({
+          humanity: 0,
+          is_flatlined: true,
+          flatlined_at: new Date(),
+          humanity_updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        });
+
+      const body = await getHumanity(accessToken);
+
+      expect(body.humanity).toBe(0); // permanent loss — scrubber regen skipped
+      expect(body.band).toBe("apagado");
+      expect(body.flatlined).toBe(true);
+      expect(body.scrubber.installed).toBe(true);
+      expect(body.scrubber.pendingRegen).toBe(0);
+      expect(body.scrubber.nextRegenAt).toBeNull();
+    });
+
     it("should report the scrubber as installed with lazy regen pending", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       // Install the Neural Scrubber (test price 300, costs 15 humanity).

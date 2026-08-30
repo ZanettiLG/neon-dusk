@@ -292,6 +292,12 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and cannot take trampos.
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     const trampo = await gigs.findById(gigId, trx);
     if (!trampo) throw new AppError(404, "GIG_NOT_FOUND", "Trampo não encontrado");
 
@@ -458,6 +464,12 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
 
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
+
+    // Issue #28: flatline enforcement — an Apagado character is permanently
+    // lost (docs §4) and cannot run trampo actions.
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
 
     const { primary } = getRelevantStats(trampo.type as GigType, toAttributes(character));
     // ponytail: sequential queries, JOIN if latency matters

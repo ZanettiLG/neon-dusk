@@ -150,6 +150,12 @@ export async function executeAttack(
   if (!attackerRow) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
   const attackerId = attackerRow.id;
 
+  // Issue #28: flatline enforcement — an Apagado character is permanently
+  // lost (docs §4) and cannot attack.
+  if (attackerRow.is_flatlined) {
+    throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+  }
+
   if (targetId === attackerId) {
     throw new AppError(400, "CANNOT_ATTACK_SELF", "Você não pode atacar a si mesmo");
   }
@@ -164,6 +170,12 @@ export async function executeAttack(
 
     const defender = await characters.findByIdForUpdate(targetId, trx);
     if (!defender) throw new AppError(404, "TARGET_NOT_FOUND", "Personagem alvo não encontrado");
+
+    // Issue #28: an Apagado defender is permanently lost (docs §4) — no
+    // combat, no loot farm on a dead character.
+    if (defender.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Alvo apagado. Sem ações permitidas.");
+    }
 
     if (isImmune(new Date(defender.created_at))) {
       throw new AppError(400, "TARGET_IMMUNE", "Este jogador está imune a ataques");
