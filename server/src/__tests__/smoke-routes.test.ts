@@ -172,6 +172,22 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect(res.status).toBe(200);
   });
 
+  // ─── Issue #28: OS / Humanidade / Terapia / Consumíveis (JWT) ─────────────
+  it("GET /api/os/status → 200 (JWT)", async () => {
+    const res = await server.get("/api/os/status", headers);
+    expect(res.status).toBe(200);
+  });
+
+  it("GET /api/humanity → 200 (JWT)", async () => {
+    const res = await server.get("/api/humanity", headers);
+    expect(res.status).toBe(200);
+  });
+
+  it("GET /api/consumables → 200 (JWT)", async () => {
+    const res = await server.get("/api/consumables", headers);
+    expect(res.status).toBe(200);
+  });
+
   // ─── `/api/gigs` (JWT) ──────────────────────────────────────────────────────────
   it("GET `/api/gigs` → 200 (JWT)", async () => {
     const res = await server.get("/api/gigs", headers);

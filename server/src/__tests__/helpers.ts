@@ -53,8 +53,14 @@ export function authHeader(token: string): { Authorization: string } {
 
 /** Wipe account + economy data so test runs are repeatable regardless of order. */
 export async function resetDb(): Promise<void> {
+  // Issue #28 tables are listed explicitly (they cascade from `characters`
+  // anyway, but the intent is documented): therapy_sessions, the consumable
+  // inventory and the usage log. The `consumables` catalog is seeded data and
+  // survives (same as chrome_definitions).
   const truncate = () =>
-    db.raw("TRUNCATE TABLE users, characters, vendors, loot_tables CASCADE");
+    db.raw(
+      "TRUNCATE TABLE users, characters, vendors, loot_tables, therapy_sessions, character_consumables, consumable_uses CASCADE",
+    );
 
   let attempt = 0;
   for (;;) {
