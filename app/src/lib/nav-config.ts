@@ -26,6 +26,7 @@ export const SECONDARY_NAV: NavItem[] = [
   { to: "/vendors", label: "Vendedores" },
   { to: "/economy", label: "Economia" },
   { to: "/crews", label: "Bondes" },
+  { to: "/metro", label: "Metrô" },
   { to: "/humanity", label: "Humanidade" },
   { to: "/admin", label: "Admin" },
 ];

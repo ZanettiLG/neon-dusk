@@ -1,10 +1,15 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   ITEM_ID_LABELS,
   ITEM_TYPE_LABELS,
   ROLE_LABELS,
   VENDOR_TYPE_LABELS,
+  ORIGIN_LABELS,
 } from "@/lib/labels";
+import { DISTRICT_GLYPHS } from "@/lib/district-meta";
 
 // Labels user-facing da marca (#145): nomes de IP de terceiros (Cyberpunk RED)
 // substituídos por marca própria PT-BR. Tokens internos (enum lowercase) não
@@ -52,5 +57,33 @@ describe("ITEM_ID_LABELS", () => {
 
   it('should map access-chip to "Chip Frio"', () => {
     expect(ITEM_ID_LABELS["access-chip"]).toBe("Chip Frio");
+  });
+});
+
+// Curadoria (#7): os 7 distritos são canônicos em 02-mundo-e-universo.md
+// (§Distritos). Parseia o doc — drift de naming no mapa local quebra o teste
+// em vez de passar silenciosamente (mesmo padrão do icons.test.ts, que valida
+// contra docs/design/asset-manifest.json). Path resolvido de import.meta.url,
+// nunca process.cwd().
+const DOC_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../docs/definicoes-de-produto/02-mundo-e-universo.md",
+);
+const distritosSection =
+  readFileSync(DOC_PATH, "utf8")
+    .split("## ")
+    .find((s) => s.startsWith("Distritos")) ?? "";
+const canonicalDistricts = [...distritosSection.matchAll(/^\| \*\*([^*]+)\*\* \|/gm)].map(
+  (m) => m[1],
+);
+
+describe("ORIGIN_LABELS (curadoria)", () => {
+  it("should match the 7 canonical district names from 02-mundo-e-universo.md", () => {
+    expect(canonicalDistricts).toHaveLength(7);
+    expect(Object.values(ORIGIN_LABELS)).toEqual(canonicalDistricts);
+  });
+
+  it("should give every canonical district a two-letter glyph", () => {
+    expect(Object.keys(DISTRICT_GLYPHS).sort()).toEqual(Object.keys(ORIGIN_LABELS).sort());
   });
 });

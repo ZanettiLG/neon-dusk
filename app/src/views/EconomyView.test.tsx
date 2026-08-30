@@ -94,4 +94,18 @@ describe("EconomyView", () => {
     // Balance and transactions both surface the same error message.
     expect((await screen.findAllByText("Falha ao carregar saldo")).length).toBeGreaterThan(0);
   });
+
+  it("should show an empty state when there are no transactions", async () => {
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/economy/balance") return Promise.resolve(balance);
+      if (url === "/api/economy/transactions") {
+        return Promise.resolve({ transactions: [], nextCursor: null });
+      }
+      return Promise.resolve({});
+    });
+
+    render(<EconomyView />);
+
+    expect(await screen.findByText("Nenhuma transação registrada.")).toBeInTheDocument();
+  });
 });

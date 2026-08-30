@@ -23,6 +23,7 @@ const PvpView = lazy(() => import("@/views/PvpView"));
 const EconomyView = lazy(() => import("@/views/EconomyView"));
 const CrewsView = lazy(() => import("@/views/CrewsView"));
 const CrewDetailView = lazy(() => import("@/views/CrewDetailView"));
+const MetroView = lazy(() => import("@/views/MetroView"));
 const AdminPanel = lazy(() => import("@/views/admin/AdminPanel"));
 const IconGalleryView = lazy(() => import("@/views/IconGalleryView"));
 
@@ -86,6 +87,7 @@ const router = createBrowserRouter([
               { path: "economy", element: <Lazy><EconomyView /></Lazy> },
               { path: "crews", element: <Lazy><CrewsView /></Lazy> },
               { path: "crews/:id", element: <Lazy><CrewDetailView /></Lazy> },
+              { path: "metro", element: <Lazy><MetroView /></Lazy> },
             ],
           },
           {

@@ -90,4 +90,12 @@ describe("VendorsView", () => {
 
     expect(await screen.findByText("Falha ao carregar vendedores")).toBeInTheDocument();
   });
+
+  it("should show an empty state when no vendors exist", async () => {
+    mocks.api.get.mockResolvedValue([]);
+
+    renderView();
+
+    expect(await screen.findByText("Nenhum vendedor disponível.")).toBeInTheDocument();
+  });
 });

@@ -4,6 +4,7 @@ import { Suspense, lazy, type ReactNode } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { create } from "zustand";
 import { useAuthStore } from "@/stores/auth";
+import { useMetroStore } from "@/stores/metro";
 import { RequireAuth } from "@/components/guards/RequireAuth";
 import { RequireCharacter } from "@/components/guards/RequireCharacter";
 import type {
@@ -24,6 +25,7 @@ const PvpView = lazy(() => import("@/views/PvpView"));
 const EconomyView = lazy(() => import("@/views/EconomyView"));
 const CrewsView = lazy(() => import("@/views/CrewsView"));
 const CrewDetailView = lazy(() => import("@/views/CrewDetailView"));
+const MetroView = lazy(() => import("@/views/MetroView"));
 
 function Lazy({ children }: { children: ReactNode }) {
   return <Suspense fallback={<span>▌ loading...</span>}>{children}</Suspense>;
@@ -149,6 +151,7 @@ function renderAt(entry: string) {
             <Route path="/economy" element={<Lazy><EconomyView /></Lazy>} />
             <Route path="/crews" element={<Lazy><CrewsView /></Lazy>} />
             <Route path="/crews/:id" element={<Lazy><CrewDetailView /></Lazy>} />
+            <Route path="/metro" element={<Lazy><MetroView /></Lazy>} />
           </Route>
         </Route>
         <Route path="/login" element={<LoginProbe />} />
@@ -162,6 +165,9 @@ describe("router: new views", () => {
   beforeEach(() => {
     useAuthStore.setState(useAuthStore.getInitialState());
     useCrewStore.setState({ ...storeMocks.initial });
+    // Metro store singleton + module-level crossing timer must not leak.
+    useMetroStore.getState().cancelTravel();
+    useMetroStore.setState(useMetroStore.getInitialState());
     mocks.api.get.mockReset();
     // Default: empty data per endpoint so every direct-fetch view settles.
     mocks.api.get.mockImplementation((url: string) => {
@@ -281,5 +287,16 @@ describe("router: new views", () => {
 
     expect(await screen.findByText("As Gralhas")).toBeInTheDocument();
     expect(await screen.findByText("[GRL]")).toBeInTheDocument();
+  });
+
+  it("should render MetroView at /metro", async () => {
+    useAuthStore.setState({ accessToken: "at", character });
+
+    renderAt("/metro");
+
+    expect(await screen.findByText(/METRÔ/)).toBeInTheDocument();
+    expect(
+      await screen.findByRole("img", { name: "Mapa do metrô de São Paulo 2087" }),
+    ).toBeInTheDocument();
   });
 });
