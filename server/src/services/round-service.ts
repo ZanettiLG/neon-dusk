@@ -24,6 +24,7 @@ import type { Queryable } from "../repositories";
 import { characterRepository as characters } from "../repositories/character-repository";
 import { legendRepository as legends } from "../repositories/legend-repository";
 import { roundRepository as rounds } from "../repositories/round-repository";
+import { getGameParam } from "../repositories/game-param-repository";
 
 /** ms in one day (ROUND_DURATION_DAYS is expressed in days). */
 const DAY_MS = 86_400_000;
@@ -138,9 +139,16 @@ async function inductLegends(tx: Queryable, roundNumber: number): Promise<number
  * the countdown runs down to startedAt + ROUND_DURATION_DAYS; during the
  * intermission (next round scheduled but not started) the response reports
  * `status: "intermission"` with `intermissionUntil` set.
+ *
+ * The duration is read from game_params (admin-tunable, ND-052) with the env
+ * value as fallback — the countdown the players see must match what the
+ * round-check cron enforces, or an admin change would desync the two.
  */
 export async function getCurrentRound(): Promise<RoundInfoResponse> {
-  const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
+  const durationDays = Number(
+    await getGameParam("ROUND_DURATION_DAYS", String(env.ROUND_DURATION_DAYS)),
+  );
+  const durationMs = durationDays * DAY_MS;
   const now = Date.now();
 
   const active = await rounds.findActive();

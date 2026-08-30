@@ -2,6 +2,7 @@ import { describe, it, expect, afterAll, beforeEach, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { db } from "../db";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
+import { invalidateGameParamCache } from "../repositories/game-param-repository";
 import { getCurrentRound, getRoundHistory, performRoundReset } from "../services/round-service";
 import { checkAndReset } from "../cron/round-check";
 import { AppError } from "../middleware/error-handler";
@@ -107,6 +108,30 @@ describe("ND-017 — Round service (integration)", () => {
       expect(info.timeRemainingSeconds).toBe(0);
       expect(info.intermissionUntil).toBeNull();
     });
+
+    it("should use the game_params ROUND_DURATION_DAYS for the countdown (ND-052)", async () => {
+      // The admin-tunable duration drives the endsAt the players see — a
+      // 7-day round started 3 days ago ends 4 days out (not 11).
+      await db("game_params")
+        .insert({ key: "ROUND_DURATION_DAYS", value: "7" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("ROUND_DURATION_DAYS");
+      const started = new Date(Date.now() - 3 * DAY_MS);
+      await db("rounds").where("round_number", 1).update({ started_at: started });
+
+      try {
+        const info = await getCurrentRound();
+
+        expect(info.status).toBe("active");
+        expect(info.endsAt).toBe(new Date(started.getTime() + 7 * DAY_MS).toISOString());
+        expect(info.timeRemainingSeconds).toBeGreaterThan(4 * DAY_MS / 1000 - 60);
+        expect(info.timeRemainingSeconds).toBeLessThanOrEqual(4 * DAY_MS / 1000);
+      } finally {
+        await db("game_params").where("key", "ROUND_DURATION_DAYS").del();
+        invalidateGameParamCache("ROUND_DURATION_DAYS");
+      }
+    });
   });
 
   // ─── checkAndReset (round-check cron) ──────────────────────────────────────
@@ -138,6 +163,55 @@ describe("ND-017 — Round service (integration)", () => {
       expect(allRounds).toHaveLength(2);
       expect(allRounds[0]).toMatchObject({ round_number: 1, status: "ended" });
       expect(allRounds[1]).toMatchObject({ round_number: 2, status: "active" });
+    });
+
+    it("should honor a game_params ROUND_DURATION_DAYS override when deciding to reset (ND-052)", async () => {
+      // The round duration is admin-tunable — a 1-day round that started 2
+      // days ago must trigger a reset even though the env default is 14 days.
+      await db("game_params")
+        .insert({ key: "ROUND_DURATION_DAYS", value: "1" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("ROUND_DURATION_DAYS");
+      await db("rounds")
+        .where("round_number", 1)
+        .update({ started_at: new Date(Date.now() - 2 * DAY_MS) });
+
+      try {
+        await checkAndReset(app);
+
+        const allRounds = await db("rounds").select("*").orderBy("round_number");
+        expect(allRounds).toHaveLength(2);
+        expect(allRounds[0]).toMatchObject({ round_number: 1, status: "ended" });
+        expect(allRounds[1]).toMatchObject({ round_number: 2, status: "active" });
+      } finally {
+        await db("game_params").where("key", "ROUND_DURATION_DAYS").del();
+        invalidateGameParamCache("ROUND_DURATION_DAYS");
+      }
+    });
+
+    it("should NOT reset when the game_params ROUND_DURATION_DAYS is longer than the elapsed time (ND-052)", async () => {
+      // Control case: with the duration raised to 30 days, a round started 20
+      // days ago is still inside the window — no reset.
+      await db("game_params")
+        .insert({ key: "ROUND_DURATION_DAYS", value: "30" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("ROUND_DURATION_DAYS");
+      await db("rounds")
+        .where("round_number", 1)
+        .update({ started_at: new Date(Date.now() - 20 * DAY_MS) });
+
+      try {
+        await checkAndReset(app);
+
+        const allRounds = await db("rounds").select("*").orderBy("round_number");
+        expect(allRounds).toHaveLength(1);
+        expect(allRounds[0]).toMatchObject({ round_number: 1, status: "active" });
+      } finally {
+        await db("game_params").where("key", "ROUND_DURATION_DAYS").del();
+        invalidateGameParamCache("ROUND_DURATION_DAYS");
+      }
     });
   });
 

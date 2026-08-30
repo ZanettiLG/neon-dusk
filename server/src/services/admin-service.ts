@@ -13,6 +13,8 @@ import { transactionRepository as transactions } from "../repositories/transacti
 import { gameEventRepository as gameEvents } from "../repositories/game-event-repository";
 import { gameParamRepository as gameParams } from "../repositories/game-param-repository";
 import { auditRepository as audit } from "../repositories/audit-repository";
+import { roundRepository as rounds } from "../repositories/round-repository";
+import { DEFAULT_PARAMS } from "../seed/content-seeds";
 
 // Neon Dusk — Admin service (ND-052)
 // ============================================================================
@@ -25,10 +27,7 @@ import { auditRepository as audit } from "../repositories/audit-repository";
 // ---------------------------------------------------------------------------
 
 /** Derive a PlayerStatus from ban flag + batched circuit-break state. */
-function resolveStatus(
-  isBanned: boolean,
-  cbResult: string | null,
-): AdminPlayer["status"] {
+function resolveStatus(isBanned: boolean, cbResult: string | null): AdminPlayer["status"] {
   if (isBanned) return "banned";
   if (cbResult !== null) return "circuit_broken";
   return "active";
@@ -121,10 +120,7 @@ export async function banPlayer(
 /**
  * Unban a character by ID. Sets is_banned = false, logs to audit.
  */
-export async function unbanPlayer(
-  characterId: string,
-  adminUserId: string,
-): Promise<void> {
+export async function unbanPlayer(characterId: string, adminUserId: string): Promise<void> {
   const updated = await characters.updateBan(characterId, false);
 
   if (!updated) {
@@ -146,27 +142,65 @@ export async function unbanPlayer(
 // ---------------------------------------------------------------------------
 
 /**
- * Economy overview: aggregate balances, top faucets/sinks, DAU, hourly activity.
+ * Start of the inflation window: the current round's started_at, falling
+ * back to a 24h window when no round is active (degenerate pre-seed state).
  */
-export async function getEconomy(): Promise<AdminEconomy> {
-  const [
-    eddiesInCirculation,
-    faucets,
-    sinks,
-    dailyActiveCharacters,
-    transactions24h,
-    hourly,
-  ] = await Promise.all([
-    transactions.sumBalances(),
-    transactions.topFaucets24h(),
-    transactions.topSinks24h(),
-    gameEvents.countDistinctActors(24),
-    transactions.count24h(),
-    gameEvents.listHourlyCounts(24),
+async function inflationWindowStart(): Promise<Date> {
+  const active = await rounds.findActive();
+  return active ? new Date(active.started_at) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Round inflation rate: (faucets − sinks) / circulating supply over the
+ * current round (0 when the supply is 0). Faucets/sinks buckets follow the
+ * real transaction_type enum (see ECONOMY_FAUCET_TYPES/SINK_TYPES in the
+ * transaction repository); the ratio is rounded to 4 decimals so API
+ * consumers can compare it deterministically.
+ *
+ * @param supply — circulating supply (sum of wallet balances), computed once
+ *                 by the caller so getEconomy does not query it twice.
+ */
+async function computeInflation(supply: number): Promise<{
+  inflation: number;
+  faucetsTotal: number;
+  sinksTotal: number;
+}> {
+  const since = await inflationWindowStart();
+  const [faucetsTotal, sinksTotal] = await Promise.all([
+    transactions.sumFaucetsSince(since),
+    transactions.sumSinksSince(since),
   ]);
 
+  // Division by zero guard: no wallets → no supply → no inflation.
+  const inflation = supply > 0 ? (faucetsTotal - sinksTotal) / supply : 0;
   return {
-    eddiesInCirculation,
+    inflation: Math.round(inflation * 10_000) / 10_000,
+    faucetsTotal,
+    sinksTotal,
+  };
+}
+
+/**
+ * Economy overview: aggregate balances, round inflation, top faucets/sinks,
+ * DAU, hourly activity.
+ */
+export async function getEconomy(): Promise<AdminEconomy> {
+  // Supply is resolved first so computeInflation reuses it — sumBalances
+  // runs once per request instead of twice (reviewer finding, ND-052).
+  const circulation = await transactions.sumBalances();
+  const [faucets, sinks, dailyActiveCharacters, transactions24h, hourly, inflation] =
+    await Promise.all([
+      transactions.topFaucets24h(),
+      transactions.topSinks24h(),
+      gameEvents.countDistinctActors(24),
+      transactions.count24h(),
+      gameEvents.listHourlyCounts(24),
+      computeInflation(circulation),
+    ]);
+
+  return {
+    eddiesInCirculation: circulation,
+    ...inflation,
     topFaucets24h: faucets.map((f) => ({ source: f.source, amount: f.amount })),
     topSinks24h: sinks.map((s) => ({ source: s.source, amount: s.amount })),
     dailyActiveCharacters,
@@ -216,27 +250,57 @@ export async function getTransactions(
 // Game params
 // ---------------------------------------------------------------------------
 
+/**
+ * Params whose values must be valid positive numbers. Derived from the
+ * canonical DEFAULT_PARAMS (seed/content-seeds.ts) — every current tunable is
+ * numeric, and a new param added there is validated by default (fail-closed:
+ * a string param would surface as a loud 400 instead of a silent NaN).
+ * Keys not derived here keep the plain string validation.
+ */
+const NUMERIC_PARAM_KEYS = new Set(Object.keys(DEFAULT_PARAMS));
+
+/**
+ * Numeric params whose value must also be an integer (counts — a fractional
+ * crew size would break size-based crew bonuses).
+ */
+const INTEGER_PARAM_KEYS = new Set(["MAX_CREW_SIZE"]);
+
 /** Get all game params as a flat record. */
 export async function getParams(): Promise<Record<string, string>> {
   return gameParams.get();
 }
 
-/** Update game params. Only existing keys can be updated. Logs old→new diffs. */
+/**
+ * Update game params. Only existing keys can be updated. Numeric params are
+ * validated before any write — a NaN value (e.g. `Number("abc")`) would
+ * corrupt payout/cooldown math downstream. Logs old→new diffs.
+ */
 export async function updateParams(
   params: Record<string, string>,
   adminUserId: string,
 ): Promise<Record<string, string>> {
-  const existingKeys = new Set(
-    (await gameParams.list()).map((r) => r.key),
-  );
+  const existingKeys = new Set((await gameParams.list()).map((r) => r.key));
 
   const unknownKeys = Object.keys(params).filter((k) => !existingKeys.has(k));
   if (unknownKeys.length > 0) {
-    throw new AppError(
-      400,
-      "UNKNOWN_PARAMS",
-      `Unknown game param keys: ${unknownKeys.join(", ")}`,
-    );
+    throw new AppError(400, "UNKNOWN_PARAMS", `Unknown game param keys: ${unknownKeys.join(", ")}`);
+  }
+
+  // Numeric validation (qa-browser finding ND-052): reject NaN/zero/negative
+  // values before anything is persisted.
+  for (const [key, value] of Object.entries(params)) {
+    if (!NUMERIC_PARAM_KEYS.has(key)) continue;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      throw new AppError(
+        400,
+        "VALIDATION_ERROR",
+        `O parâmetro ${key} deve ser um número positivo.`,
+      );
+    }
+    if (INTEGER_PARAM_KEYS.has(key) && !Number.isInteger(numeric)) {
+      throw new AppError(400, "VALIDATION_ERROR", `O parâmetro ${key} deve ser um número inteiro.`);
+    }
   }
 
   // Read current values for diffing.

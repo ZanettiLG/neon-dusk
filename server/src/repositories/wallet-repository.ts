@@ -1,16 +1,18 @@
 import { db, type Queryable } from "../db";
 import { AppError } from "../middleware/error-handler";
 import type { WalletState } from "../game/economy";
+import { getGameParam } from "./game-param-repository";
 
 // Neon Dusk — Wallet repository (#158 DB repository layer)
 // ============================================================================
 // Carteiras de grana com optimistic locking (version CAS). O `ensure` semeia
-// o capital inicial de 500 grana + a entrada de auditoria ADMIN_ADJUSTMENT
+// o capital inicial (500 grana por padrão — tunável via game_params
+// INITIAL_BALANCE, ND-052) + a entrada de auditoria ADMIN_ADJUSTMENT
 // exatamente uma vez, sobrevivendo à corrida SELECT-depois-INSERT via
 // ON CONFLICT DO NOTHING.
 
 /** Seed capital granted when a character's wallet is first created. */
-const INITIAL_BALANCE = 500;
+const INITIAL_BALANCE_DEFAULT = "500";
 
 /** Database row shape for the `character_wallets` table (snake_case columns). */
 export interface WalletRow {
@@ -91,14 +93,20 @@ export function createWalletRepository(q: Queryable = db): WalletRepository {
         return toWalletState(existing[0] as WalletRow);
       }
 
+      // ND-052: the seed capital is a tunable game param (fallback 500). The
+      // 30s cache makes this read cheap even on the hot wallet path.
+      const initialBalance = Number(
+        await getGameParam("INITIAL_BALANCE", INITIAL_BALANCE_DEFAULT, tx),
+      );
+
       // Create wallet with seed capital. Concurrent requests may both reach
       // this INSERT (SELECT-then-INSERT race); ON CONFLICT DO NOTHING makes
       // the loser a no-op instead of a UNIQUE(character_id) violation.
       const insertResult = await tx("character_wallets")
         .insert({
           character_id: characterId,
-          balance: INITIAL_BALANCE,
-          lifetime_earned: INITIAL_BALANCE,
+          balance: initialBalance,
+          lifetime_earned: initialBalance,
           escrow: 0,
           lifetime_spent: 0,
           version: 0,
@@ -128,9 +136,9 @@ export function createWalletRepository(q: Queryable = db): WalletRepository {
       await tx("transaction_log").insert({
         character_id: characterId,
         type: "ADMIN_ADJUSTMENT",
-        amount: INITIAL_BALANCE,
+        amount: initialBalance,
         balance_before: 0,
-        balance_after: INITIAL_BALANCE,
+        balance_after: initialBalance,
         source: "Initial seed capital",
         reference_type: "system",
       });

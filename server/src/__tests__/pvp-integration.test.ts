@@ -6,6 +6,7 @@ import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, registerTestUser, type TestServer } from "./helpers";
 import { db } from "../db";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
+import { invalidateGameParamCache } from "../repositories/game-param-repository";
 import { rateLimitConfig } from "../lib/rate-limit";
 import { LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
 import type {
@@ -347,6 +348,32 @@ describe("ND-014 — PvP combat API", () => {
 
       expect(status).toBe(400);
       expect((body as ErrorBody).error).toBe("INSUFFICIENT_NIL");
+    });
+
+    it("should charge the game_params PVP_NIL_COST when it differs from the default (ND-052)", async () => {
+      // The NIL cost is admin-tunable — raise it to 30 and verify the attack
+      // spends the new amount (not the hardcoded 20).
+      await db("game_params")
+        .insert({ key: "PVP_NIL_COST", value: "30" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("PVP_NIL_COST");
+
+      try {
+        const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS, nil: 100 });
+        const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
+        await seedWallet(defender.characterId, 500);
+
+        const { status, body } = await attack(attacker, defender.characterId);
+        expect(status).toBe(200);
+        expect((body as PvpCombatResult).won).toBe(true);
+
+        const attackerRow = await getCharacter(attacker.characterId);
+        expect(attackerRow.nil).toBe(70); // 100 − 30 (param), not 80
+      } finally {
+        await db("game_params").where("key", "PVP_NIL_COST").del();
+        invalidateGameParamCache("PVP_NIL_COST");
+      }
     });
 
     it("should reject attacking yourself (400 CANNOT_ATTACK_SELF)", async () => {

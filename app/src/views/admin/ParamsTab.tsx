@@ -7,6 +7,7 @@ const PARAM_LABELS: Record<string, string> = {
   GIG_COOLDOWN_MINUTES: "Cooldown de trampos (minutos)",
   PVP_NIL_COST: "Custo de NIL no PvP",
   INITIAL_BALANCE: "Saldo Inicial (Grana)",
+  GIG_BASE_REWARD: "Recompensa Mínima de Trampos (G$)",
   MAX_CREW_SIZE: "Tamanho Máx. do Bonde",
 };
 
@@ -44,8 +45,7 @@ export default function ParamsTab() {
     }
   };
 
-  const hasChanges =
-    JSON.stringify(values) !== JSON.stringify(params);
+  const hasChanges = JSON.stringify(values) !== JSON.stringify(params);
 
   if (paramsLoading && Object.keys(params).length === 0) {
     return <div className="text-nd-text-secondary text-sm">Carregando...</div>;
@@ -53,9 +53,7 @@ export default function ParamsTab() {
 
   return (
     <div className="max-w-lg">
-      {paramsError && (
-        <div className="text-nd-magenta text-sm mb-4">{paramsError}</div>
-      )}
+      {paramsError && <div className="text-nd-magenta text-sm mb-4">{paramsError}</div>}
 
       <div className="space-y-4">
         {Object.keys(PARAM_LABELS).map((key) => (
@@ -82,11 +80,7 @@ export default function ParamsTab() {
         >
           {paramsSaving ? "Salvando..." : "Salvar"}
         </button>
-        {saved && (
-          <span className="text-nd-green text-sm font-mono">
-            ✓ Parâmetros salvos
-          </span>
-        )}
+        {saved && <span className="text-nd-green text-sm font-mono">✓ Parâmetros salvos</span>}
       </div>
 
       {/* Round Reset (ND-018) — server-side trigger via x-api-key */}
@@ -96,12 +90,12 @@ export default function ParamsTab() {
           ⚠ Zona de Perigo
         </h4>
         <p className="text-nd-text-secondary text-xs">
-          Resetar a rodada zera Grana, Moral e progresso de todos os jogadores.
-          Lendas são preservadas. Execute via API com x-api-key:
+          Resetar a rodada zera Grana, Moral e progresso de todos os jogadores. Lendas são
+          preservadas. Execute via API com x-api-key:
         </p>
         <code className="block bg-nd-bg border border-nd-cyan/10 rounded px-3 py-2 text-xs font-mono text-nd-text-secondary break-all">
-          curl -X POST http://localhost:3000/api/round/trigger-reset \
-          -H "x-api-key: $ADMIN_API_KEY"
+          curl -X POST http://localhost:3000/api/round/trigger-reset \ -H "x-api-key:
+          $ADMIN_API_KEY"
         </code>
       </div>
     </div>

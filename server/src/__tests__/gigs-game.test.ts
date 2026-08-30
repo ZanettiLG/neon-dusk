@@ -40,7 +40,10 @@ describe("getRelevantStats", () => {
   it("should return 0 for a missing attribute key instead of undefined", () => {
     const attrs = { ...FULL_ATTRS } as Partial<Attributes>;
     delete attrs.body;
-    expect(getRelevantStats("extraction", attrs as Attributes)).toEqual({ primary: 0, secondary: 5 });
+    expect(getRelevantStats("extraction", attrs as Attributes)).toEqual({
+      primary: 0,
+      secondary: 5,
+    });
   });
 });
 
@@ -167,7 +170,10 @@ describe("applyLegworkModifier", () => {
 
   it("should apply penalty even to floored chances", () => {
     // Base floor is 0.05; skip penalty pushes it to 0.04 (fp-tolerant)
-    expect(applyLegworkModifier(0.05, { skippedLegwork: true, legworkDone: false })).toBeCloseTo(0.04, 4);
+    expect(applyLegworkModifier(0.05, { skippedLegwork: true, legworkDone: false })).toBeCloseTo(
+      0.04,
+      4,
+    );
   });
 
   it("should apply bonus even when base is below floor (already floored by caller)", () => {
@@ -247,6 +253,22 @@ describe("calculatePayout", () => {
 
   it("should ignore explicit false modifiers", () => {
     expect(calculatePayout(1000, { legworkBonus: false, successBonus: false })).toBe(1000);
+  });
+
+  // ND-052: GIG_BASE_REWARD floor — the global minimum payout base.
+  it("should not bind the GIG_BASE_REWARD floor when the template pays more", () => {
+    // Template base 800 > floor 100 → unchanged.
+    expect(calculatePayout(800, { legworkBonus: true, successBonus: true }, 100)).toBe(1056);
+  });
+
+  it("should raise the base to the GIG_BASE_REWARD floor when the template pays less", () => {
+    // Template base 50 < floor 100 → effective base 100 (100 × 1.32 = 132).
+    expect(calculatePayout(50, { legworkBonus: true, successBonus: true }, 100)).toBe(132);
+  });
+
+  it("should keep zero-reward trampos at zero even with a GIG_BASE_REWARD floor", () => {
+    expect(calculatePayout(0, { legworkBonus: true, successBonus: true }, 100)).toBe(0);
+    expect(calculatePayout(-50, { successBonus: true }, 100)).toBe(0);
   });
 });
 
