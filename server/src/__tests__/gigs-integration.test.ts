@@ -18,6 +18,7 @@ import {
   wrapUpGig,
 } from "../services/gig-service";
 import { seedGigs } from "../seed/content-seeds";
+import { invalidateGameParamCache } from "../repositories/game-param-repository";
 import { LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
 import type {
   ActiveGig,
@@ -240,6 +241,40 @@ describe("ND-011 — trampos service & API", () => {
       const board = await listAvailableGigs(characterId);
       const entry = board.gigs.find((g) => g.id === farma.id)!;
       expect(entry.cooldownRemaining).toBe(0);
+    });
+
+    it("should apply the game_params GIG_COOLDOWN_MINUTES floor on top of template cooldowns (ND-052)", async () => {
+      // The global cooldown floor is admin-tunable — raise it to 60 min and
+      // verify the board reports the raised cooldown (not the 10-min template).
+      await db("game_params")
+        .insert({ key: "GIG_COOLDOWN_MINUTES", value: "60" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("GIG_COOLDOWN_MINUTES");
+
+      try {
+        const { characterId } = await insertTestCharacter();
+        const farma = await farmaGig(); // template cooldown 10 min
+        await db("gig_history").insert({
+          character_id: characterId,
+          gig_id: farma.id,
+          outcome: "success",
+          phases_completed: ["meet", "execute", "escape", "wrap_up"],
+          payout: 500,
+          street_cred_gained: 2,
+          heat_accumulated: 5,
+          district: farma.district,
+        });
+
+        const board = await listAvailableGigs(characterId);
+        const entry = board.gigs.find((g) => g.id === farma.id)!;
+        // 60-min floor → ~3600s remaining; the 10-min template would be ≤ 601s.
+        expect(entry.cooldownRemaining).toBeGreaterThan(3000);
+        expect(entry.cooldownRemaining).toBeLessThanOrEqual(3601);
+      } finally {
+        await db("game_params").where("key", "GIG_COOLDOWN_MINUTES").del();
+        invalidateGameParamCache("GIG_COOLDOWN_MINUTES");
+      }
     });
 
     it("should throw 404 NO_CHARACTER for an unknown character", async () => {
@@ -733,6 +768,33 @@ describe("ND-011 — trampos service & API", () => {
         balance_after: 1160,
         reference_type: "gig",
       });
+    });
+
+    it("should raise the payout base to the game_params GIG_BASE_REWARD floor (ND-052)", async () => {
+      // The global payout floor is admin-tunable — set it above the template
+      // reward (500) and verify wrapUpGig pays the floored amount.
+      await db("game_params")
+        .insert({ key: "GIG_BASE_REWARD", value: "800" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("GIG_BASE_REWARD");
+
+      try {
+        const { characterId } = await insertTestCharacter();
+        const farma = await farmaGig(); // reward 500
+        await acceptGig(characterId, farma.id);
+        await forceEscapePhase(characterId, { outcome: "success" });
+
+        const res = await wrapUpGig(characterId, farma.id);
+
+        // floor 800 × 1.2 (legwork) × 1.1 (success) = 1056 — not 660.
+        expect(res.outcome).toBe("success");
+        expect(res.payout).toBe(1056);
+        expect(res.newBalance).toBe(1556); // 500 seed + 1056
+      } finally {
+        await db("game_params").where("key", "GIG_BASE_REWARD").del();
+        invalidateGameParamCache("GIG_BASE_REWARD");
+      }
     });
 
     it("should pay nothing and double the heat when the execute roll failed", async () => {

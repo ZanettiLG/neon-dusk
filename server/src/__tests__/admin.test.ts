@@ -278,6 +278,31 @@ describe("ND-052 — admin panel API", () => {
       });
       expect(res.status).toBe(404);
     });
+
+    it("should return 400 when the ban reason is empty", async () => {
+      const admin = await createAdminUser(`admin-${Date.now()}-noreason@test.com`);
+      const ts = Date.now();
+      const { characterId } = await insertTestCharacter({
+        email: `noreason-${ts}@test.com`,
+        name: `NoReason-${ts}`,
+      });
+
+      const res = await fetch(
+        `http://127.0.0.1:${server.port}/api/admin/players/${characterId}/ban`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeader(admin.accessToken),
+          },
+          body: JSON.stringify({ reason: "" }),
+        },
+      );
+
+      expect(res.status).toBe(400);
+      const body = await json<ErrorBody>(res);
+      expect(body.error).toBe("VALIDATION_ERROR");
+    });
   });
 
   describe("GET /api/admin/economy", () => {
@@ -457,6 +482,23 @@ describe("ND-052 — admin panel API", () => {
       const body = await json<ErrorBody>(res);
       expect(body.error).toBe("UNKNOWN_PARAMS");
     });
+
+    it("should reject non-string param values", async () => {
+      const admin = await createAdminUser(`admin-${Date.now()}-nonstr@test.com`);
+
+      const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
+        },
+        body: JSON.stringify({ params: { PVP_NIL_COST: 25 } }), // number, not string
+      });
+
+      expect(res.status).toBe(400);
+      const body = await json<ErrorBody>(res);
+      expect(body.error).toBe("VALIDATION_ERROR");
+    });
   });
 
   describe("GET /api/admin/audit", () => {
@@ -615,5 +657,46 @@ describe("ND-052 — admin panel API", () => {
         expect(res.status).toBe(403);
       });
     }
+
+    it("should return 403 for non-admin on POST ban/unban and PATCH params", async () => {
+      const player = await createPlayerUser(`player-${Date.now()}-write@test.com`);
+      const ts = Date.now();
+      const { characterId } = await insertTestCharacter({
+        email: `write-${ts}@test.com`,
+        name: `WriteTarget-${ts}`,
+      });
+
+      const banRes = await fetch(
+        `http://127.0.0.1:${server.port}/api/admin/players/${characterId}/ban`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeader(player.accessToken),
+          },
+          body: JSON.stringify({ reason: "test" }),
+        },
+      );
+      expect(banRes.status).toBe(403);
+
+      const unbanRes = await fetch(
+        `http://127.0.0.1:${server.port}/api/admin/players/${characterId}/unban`,
+        {
+          method: "POST",
+          headers: authHeader(player.accessToken),
+        },
+      );
+      expect(unbanRes.status).toBe(403);
+
+      const patchRes = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(player.accessToken),
+        },
+        body: JSON.stringify({ params: { MAX_CREW_SIZE: "5" } }),
+      });
+      expect(patchRes.status).toBe(403);
+    });
   });
 });

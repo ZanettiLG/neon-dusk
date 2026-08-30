@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { db } from "../db";
 import {
@@ -81,5 +81,25 @@ describe("getGameParam (ND-052)", () => {
     const adminUserId = await insertAdminUser();
     await gameParams.set(KEY, "11", adminUserId);
     expect(await getGameParam(KEY, "42")).toBe("11");
+  });
+
+  it("should re-read from the DB once the 30s TTL expires", async () => {
+    // Only Date is faked — setTimeout/setInterval stay real so the pg driver's
+    // internal timers keep working while Date.now() is controllable.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      await insertParam("7");
+      expect(await getGameParam(KEY, "42")).toBe("7"); // DB read → cached
+
+      await updateParamRaw("9");
+      // Within the 30s window the cache still serves the value read earlier.
+      expect(await getGameParam(KEY, "42")).toBe("7");
+
+      // Advance the clock past the TTL — the next read must hit the DB again.
+      vi.setSystemTime(new Date(Date.now() + 30_001));
+      expect(await getGameParam(KEY, "42")).toBe("9");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

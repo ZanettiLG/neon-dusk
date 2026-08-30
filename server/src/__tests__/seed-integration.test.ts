@@ -10,6 +10,7 @@ import {
 } from "../seed/content-seeds";
 import { performRoundReset } from "../services/round-service";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
+import { invalidateGameParamCache } from "../repositories/game-param-repository";
 
 // ND-054 — seed executor integration tests. Real Postgres on the isolated
 // test stack (docker-compose.test.yml). These tests run the ACTUAL seed
@@ -338,6 +339,31 @@ describe("ND-054 — seed executor (db/seed)", () => {
         .select("id")
         .where("character_id", characterId);
       expect(logs).toHaveLength(1);
+    });
+
+    it("should seed a new wallet with a game_params INITIAL_BALANCE override (ND-052)", async () => {
+      // The seed capital is admin-tunable — a raised INITIAL_BALANCE must be
+      // honored by wallets.ensure (not the hardcoded 500).
+      await db("game_params")
+        .insert({ key: "INITIAL_BALANCE", value: "750" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("INITIAL_BALANCE");
+
+      try {
+        const { characterId } = await insertTestCharacter();
+
+        const wallet = await db.transaction(async (trx) => wallets.ensure(characterId, trx));
+
+        expect(wallet).toMatchObject({ balance: 750, lifetimeEarned: 750 });
+        const [log] = await db("transaction_log")
+          .select("*")
+          .where("character_id", characterId);
+        expect(log).toMatchObject({ type: "ADMIN_ADJUSTMENT", amount: 750 });
+      } finally {
+        await db("game_params").where("key", "INITIAL_BALANCE").del();
+        invalidateGameParamCache("INITIAL_BALANCE");
+      }
     });
   });
 });
