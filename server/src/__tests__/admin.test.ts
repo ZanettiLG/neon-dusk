@@ -12,6 +12,7 @@ import {
   registerTestUser,
 } from "./helpers";
 import { db } from "../db";
+import { ECONOMY_FAUCET_TYPES, ECONOMY_SINK_TYPES } from "../repositories/transaction-repository";
 import type {
   AdminPlayersResponse,
   AdminEconomy,
@@ -393,15 +394,45 @@ describe("ND-052 — admin panel API", () => {
       expect(res.status).toBe(200);
       const body = await json<AdminEconomy>(res);
 
-      expect(body.faucetsTotal).toBe(700); // 600 GIG_PAYOUT + 100 PVP_REWARD
-      expect(body.sinksTotal).toBe(200); // 200 VENDOR_PURCHASE
+      // The shared singleFork DB accumulates transactions from other suites,
+      // so absolute totals are not stable — recompute the expected sums over
+      // the same round window and buckets the API uses, then compare exactly.
+      const [activeRound] = await db("rounds")
+        .select("started_at")
+        .where("status", "active")
+        .limit(1);
+      const windowStart =
+        activeRound && activeRound.started_at
+          ? (activeRound.started_at as Date)
+          : new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      const [faucetRow] = await db("transaction_log")
+        .select(db.raw("coalesce(sum(amount), 0)::int as total"))
+        .whereIn("type", [...ECONOMY_FAUCET_TYPES])
+        .where("created_at", ">=", windowStart);
+      const expectedFaucets = Number((faucetRow as { total: number }).total ?? 0);
+
+      const [sinkRow] = await db("transaction_log")
+        .select(db.raw("coalesce(abs(sum(amount)), 0)::int as total"))
+        .whereIn("type", [...ECONOMY_SINK_TYPES])
+        .where("created_at", ">=", windowStart);
+      const expectedSinks = Number((sinkRow as { total: number }).total ?? 0);
+
+      // Our fixture (600 + 100 faucets, 200 sink) must be part of the sums —
+      // proves the inserted rows are inside the window.
+      expect(expectedFaucets).toBeGreaterThanOrEqual(700);
+      expect(expectedSinks).toBeGreaterThanOrEqual(200);
+
+      expect(body.faucetsTotal).toBe(expectedFaucets);
+      expect(body.sinksTotal).toBe(expectedSinks);
+
       // Supply includes wallets created by other tests in the shared DB —
       // compute the expected ratio from the live supply.
       const [supplyRow] = await db("character_wallets").select(
         db.raw("coalesce(sum(balance), 0)::int as total"),
       );
       const supply = Number((supplyRow as { total: number }).total ?? 0);
-      expect(body.inflation).toBeCloseTo((700 - 200) / supply, 4);
+      expect(body.inflation).toBeCloseTo((expectedFaucets - expectedSinks) / supply, 4);
     });
   });
 
@@ -481,6 +512,65 @@ describe("ND-052 — admin panel API", () => {
       expect(res.status).toBe(400);
       const body = await json<ErrorBody>(res);
       expect(body.error).toBe("UNKNOWN_PARAMS");
+    });
+
+    it("should reject non-numeric values for numeric params", async () => {
+      await ensureGameParams();
+      const admin = await createAdminUser(`admin-${Date.now()}-numnum@test.com`);
+
+      // "abc" → Number("abc") = NaN — must be rejected before persisting.
+      const badRes = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
+        },
+        body: JSON.stringify({ params: { GIG_BASE_REWARD: "abc" } }),
+      });
+      expect(badRes.status).toBe(400);
+      const badBody = await json<ErrorBody>(badRes);
+      expect(badBody.error).toBe("VALIDATION_ERROR");
+
+      // The rejected value must not have been persisted.
+      const [row] = await db("game_params").select("value").where("key", "GIG_BASE_REWARD");
+      expect((row as { value: string } | undefined)?.value).toBe("100");
+
+      // Zero and fractional counts are also invalid.
+      const zeroRes = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
+        },
+        body: JSON.stringify({ params: { INITIAL_BALANCE: "0" } }),
+      });
+      expect(zeroRes.status).toBe(400);
+
+      const fracRes = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
+        },
+        body: JSON.stringify({ params: { MAX_CREW_SIZE: "4.5" } }),
+      });
+      expect(fracRes.status).toBe(400);
+
+      // A valid numeric value passes and persists.
+      const goodRes = await fetch(`http://127.0.0.1:${server.port}/api/admin/params`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeader(admin.accessToken),
+        },
+        body: JSON.stringify({ params: { GIG_BASE_REWARD: "150" } }),
+      });
+      expect(goodRes.status).toBe(200);
+      const goodBody = await json<Record<string, string>>(goodRes);
+      expect(goodBody.GIG_BASE_REWARD).toBe("150");
+
+      // Restore the canonical value so later assertions stay deterministic.
+      await ensureGameParams();
     });
 
     it("should reject non-string param values", async () => {

@@ -245,12 +245,37 @@ export async function getTransactions(
 // Game params
 // ---------------------------------------------------------------------------
 
+/**
+ * Params whose values must be valid positive numbers (every tunable in the
+ * current DEFAULT_PARAMS is numeric — see seed/content-seeds.ts). Keys not in
+ * this set keep the plain string validation.
+ */
+const NUMERIC_PARAM_KEYS = new Set([
+  "ROUND_DURATION_DAYS",
+  "NIL_REGEN_MINUTES",
+  "GIG_COOLDOWN_MINUTES",
+  "PVP_NIL_COST",
+  "INITIAL_BALANCE",
+  "GIG_BASE_REWARD",
+  "MAX_CREW_SIZE",
+]);
+
+/**
+ * Numeric params whose value must also be an integer (counts — a fractional
+ * crew size would break size-based crew bonuses).
+ */
+const INTEGER_PARAM_KEYS = new Set(["MAX_CREW_SIZE"]);
+
 /** Get all game params as a flat record. */
 export async function getParams(): Promise<Record<string, string>> {
   return gameParams.get();
 }
 
-/** Update game params. Only existing keys can be updated. Logs old→new diffs. */
+/**
+ * Update game params. Only existing keys can be updated. Numeric params are
+ * validated before any write — a NaN value (e.g. `Number("abc")`) would
+ * corrupt payout/cooldown math downstream. Logs old→new diffs.
+ */
 export async function updateParams(
   params: Record<string, string>,
   adminUserId: string,
@@ -260,6 +285,23 @@ export async function updateParams(
   const unknownKeys = Object.keys(params).filter((k) => !existingKeys.has(k));
   if (unknownKeys.length > 0) {
     throw new AppError(400, "UNKNOWN_PARAMS", `Unknown game param keys: ${unknownKeys.join(", ")}`);
+  }
+
+  // Numeric validation (qa-browser finding ND-052): reject NaN/zero/negative
+  // values before anything is persisted.
+  for (const [key, value] of Object.entries(params)) {
+    if (!NUMERIC_PARAM_KEYS.has(key)) continue;
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      throw new AppError(
+        400,
+        "VALIDATION_ERROR",
+        `O parâmetro ${key} deve ser um número positivo.`,
+      );
+    }
+    if (INTEGER_PARAM_KEYS.has(key) && !Number.isInteger(numeric)) {
+      throw new AppError(400, "VALIDATION_ERROR", `O parâmetro ${key} deve ser um número inteiro.`);
+    }
   }
 
   // Read current values for diffing.
