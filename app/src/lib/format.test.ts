@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  formatCountdown,
-  formatDuration,
-  formatEds,
-  formatRelativeTime,
-} from "@/lib/format";
+import { formatCountdown, formatDuration, formatEds, formatRelativeTime } from "@/lib/format";
 
 describe("formatEds", () => {
   it("formats with pt-BR grouping", () => {
@@ -19,6 +14,11 @@ describe("formatDuration", () => {
   it("renders days + hours", () => {
     expect(formatDuration(90_000)).toBe("1d 1h");
     expect(formatDuration(2 * 86_400 + 5 * 3600)).toBe("2d 5h");
+  });
+
+  it("omits the hour unit when hours are zero", () => {
+    expect(formatDuration(86_400)).toBe("1d");
+    expect(formatDuration(2 * 86_400)).toBe("2d");
   });
 
   it("renders hours only below a day", () => {

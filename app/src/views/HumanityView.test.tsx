@@ -3,7 +3,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import HumanityView from "@/views/HumanityView";
 import { useHumanityStore } from "@/stores/humanity";
-import type { HumanityInfo } from "@neon-dusk/shared";
+import { useConsumablesStore } from "@/stores/consumables";
+import type { ConsumablesResponse, HumanityInfo } from "@neon-dusk/shared";
 
 // Issue #28 — Humanidade view render tests. The view reads the Zustand
 // humanity store (info/loading/error + fetch/undergoTherapy); tests drive the
@@ -43,12 +44,59 @@ function info(overrides: Partial<HumanityInfo> = {}): HumanityInfo {
       lastCompletedAt: null,
       nextAvailableAt: null,
       cooldownRemainingMs: 0,
-      clinic: { therapyType: "clinic", costMin: 5000, costMax: 20000, restoreMin: 10, restoreMax: 20 },
-      attunement: { therapyType: "attunement", costMin: 2500, costMax: 10000, restoreMin: 5, restoreMax: 10 },
+      clinic: {
+        therapyType: "clinic",
+        costMin: 5000,
+        costMax: 20000,
+        restoreMin: 10,
+        restoreMax: 20,
+      },
+      attunement: {
+        therapyType: "attunement",
+        costMin: 2500,
+        costMax: 10000,
+        restoreMin: 5,
+        restoreMax: 10,
+      },
     },
     ...overrides,
   };
 }
+
+// Canonical consumables fixture (mirrors server/src/content/consumables.ts).
+// `id` follows the real API contract (UUID — validated by z.string().uuid()).
+const sampleItems: ConsumablesResponse["items"] = [
+  {
+    id: "a1b2c3d4-0000-4000-8000-000000000001",
+    slug: "estabilizador",
+    name: "Estabilizador",
+    tier: 1,
+    restoreAmount: 5,
+    cooldownHours: 0,
+    ownedQuantity: 1,
+    nextAvailableAt: null,
+  },
+  {
+    id: "a1b2c3d4-0000-4000-8000-000000000002",
+    slug: "freio",
+    name: "Freio",
+    tier: 2,
+    restoreAmount: 10,
+    cooldownHours: 12,
+    ownedQuantity: 2,
+    nextAvailableAt: null,
+  },
+  {
+    id: "a1b2c3d4-0000-4000-8000-000000000003",
+    slug: "choque",
+    name: "Choque",
+    tier: 3,
+    restoreAmount: 15,
+    cooldownHours: 24,
+    ownedQuantity: 0,
+    nextAvailableAt: null,
+  },
+];
 
 describe("HumanityView", () => {
   beforeEach(() => {
@@ -70,6 +118,18 @@ describe("HumanityView", () => {
         humanityAfter: 60,
         completedAt: "2026-08-30T12:00:00.000Z",
       }),
+    });
+    // Consumables panel (issue #48): seeded with items so the internal .map
+    // never hits the mocked `{}` GET payload; fetch is a no-op (the view's
+    // api mock does not serve /api/consumables).
+    useConsumablesStore.setState({
+      items: sampleItems,
+      loading: false,
+      error: null,
+      useError: null,
+      usingItemId: null,
+      lastUse: null,
+      fetch: async () => {},
     });
   });
 
@@ -93,7 +153,9 @@ describe("HumanityView", () => {
 
     await user.click(screen.getByRole("button", { name: "Sessão (Clínica)" }));
 
-    expect(await screen.findByText(/Sessão concluída: -G\$ 5000, \+10 de humanidade/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Sessão concluída: -G\$ 5000, \+10 de humanidade/),
+    ).toBeInTheDocument();
   });
 
   it("should surface the therapy error", async () => {
@@ -126,5 +188,26 @@ describe("HumanityView", () => {
     render(<HumanityView />);
 
     expect(screen.getAllByText(/loading/).length).toBeGreaterThan(0);
+  });
+
+  it("should use a consumable through the 2-step confirmation", async () => {
+    useHumanityStore.setState({ info: info(), loading: false, error: null });
+    mocks.api.post.mockResolvedValue({
+      humanityBefore: 50,
+      humanityAfter: 55,
+      restored: 5,
+      costEddies: 0,
+      nextAvailableAt: null,
+    });
+    const user = userEvent.setup();
+
+    render(<HumanityView />);
+
+    await user.click(screen.getAllByRole("button", { name: "Usar" })[0]);
+    await user.click(screen.getByRole("button", { name: "Confirmar uso?" }));
+
+    expect(
+      await screen.findByText("Estabilizador: +5 de humanidade (50 → 55)."),
+    ).toBeInTheDocument();
   });
 });
