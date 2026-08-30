@@ -14,6 +14,7 @@ import { gameEventRepository as gameEvents } from "../repositories/game-event-re
 import { gameParamRepository as gameParams } from "../repositories/game-param-repository";
 import { auditRepository as audit } from "../repositories/audit-repository";
 import { roundRepository as rounds } from "../repositories/round-repository";
+import { DEFAULT_PARAMS } from "../seed/content-seeds";
 
 // Neon Dusk — Admin service (ND-052)
 // ============================================================================
@@ -155,15 +156,17 @@ async function inflationWindowStart(): Promise<Date> {
  * real transaction_type enum (see ECONOMY_FAUCET_TYPES/SINK_TYPES in the
  * transaction repository); the ratio is rounded to 4 decimals so API
  * consumers can compare it deterministically.
+ *
+ * @param supply — circulating supply (sum of wallet balances), computed once
+ *                 by the caller so getEconomy does not query it twice.
  */
-async function computeInflation(): Promise<{
+async function computeInflation(supply: number): Promise<{
   inflation: number;
   faucetsTotal: number;
   sinksTotal: number;
 }> {
   const since = await inflationWindowStart();
-  const [supply, faucetsTotal, sinksTotal] = await Promise.all([
-    transactions.sumBalances(),
+  const [faucetsTotal, sinksTotal] = await Promise.all([
     transactions.sumFaucetsSince(since),
     transactions.sumSinksSince(since),
   ]);
@@ -182,15 +185,17 @@ async function computeInflation(): Promise<{
  * DAU, hourly activity.
  */
 export async function getEconomy(): Promise<AdminEconomy> {
-  const [circulation, faucets, sinks, dailyActiveCharacters, transactions24h, hourly, inflation] =
+  // Supply is resolved first so computeInflation reuses it — sumBalances
+  // runs once per request instead of twice (reviewer finding, ND-052).
+  const circulation = await transactions.sumBalances();
+  const [faucets, sinks, dailyActiveCharacters, transactions24h, hourly, inflation] =
     await Promise.all([
-      transactions.sumBalances(),
       transactions.topFaucets24h(),
       transactions.topSinks24h(),
       gameEvents.countDistinctActors(24),
       transactions.count24h(),
       gameEvents.listHourlyCounts(24),
-      computeInflation(),
+      computeInflation(circulation),
     ]);
 
   return {
@@ -246,19 +251,13 @@ export async function getTransactions(
 // ---------------------------------------------------------------------------
 
 /**
- * Params whose values must be valid positive numbers (every tunable in the
- * current DEFAULT_PARAMS is numeric — see seed/content-seeds.ts). Keys not in
- * this set keep the plain string validation.
+ * Params whose values must be valid positive numbers. Derived from the
+ * canonical DEFAULT_PARAMS (seed/content-seeds.ts) — every current tunable is
+ * numeric, and a new param added there is validated by default (fail-closed:
+ * a string param would surface as a loud 400 instead of a silent NaN).
+ * Keys not derived here keep the plain string validation.
  */
-const NUMERIC_PARAM_KEYS = new Set([
-  "ROUND_DURATION_DAYS",
-  "NIL_REGEN_MINUTES",
-  "GIG_COOLDOWN_MINUTES",
-  "PVP_NIL_COST",
-  "INITIAL_BALANCE",
-  "GIG_BASE_REWARD",
-  "MAX_CREW_SIZE",
-]);
+const NUMERIC_PARAM_KEYS = new Set(Object.keys(DEFAULT_PARAMS));
 
 /**
  * Numeric params whose value must also be an integer (counts — a fractional

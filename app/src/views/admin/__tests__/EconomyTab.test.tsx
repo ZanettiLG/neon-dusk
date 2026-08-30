@@ -60,14 +60,14 @@ describe("EconomyTab", () => {
     renderView();
 
     expect(screen.getByText("Grana em Circulação")).toBeInTheDocument();
-    expect(screen.getByText("12.345")).toBeInTheDocument();
+    expect(screen.getByText("G$ 12.345")).toBeInTheDocument();
     // ND-052: round inflation + faucet/sink totals.
     expect(screen.getByText("Inflação (rodada)")).toBeInTheDocument();
     expect(screen.getByText("3,0%")).toBeInTheDocument();
     expect(screen.getByText("Faucets (rodada)")).toBeInTheDocument();
-    expect(screen.getByText("700")).toBeInTheDocument();
+    expect(screen.getByText("G$ 700")).toBeInTheDocument();
     expect(screen.getByText("Sinks (rodada)")).toBeInTheDocument();
-    expect(screen.getByText("200")).toBeInTheDocument();
+    expect(screen.getByText("G$ 200")).toBeInTheDocument();
     expect(screen.getByText("Ativos (24h)")).toBeInTheDocument();
     expect(screen.getByText("Transações (24h)")).toBeInTheDocument();
     expect(screen.getByText("Top Faucet")).toBeInTheDocument();

@@ -434,6 +434,72 @@ describe("ND-052 — admin panel API", () => {
       const supply = Number((supplyRow as { total: number }).total ?? 0);
       expect(body.inflation).toBeCloseTo((expectedFaucets - expectedSinks) / supply, 4);
     });
+
+    it("should fall back to a 24h inflation window when no round is active", async () => {
+      const admin = await createAdminUser(`admin-${Date.now()}-w24h@test.com`);
+      const { characterId } = await insertTestCharacter({
+        email: `w24h-${Date.now()}@test.com`,
+        name: `Window24-${Date.now()}`,
+      });
+      await db("character_wallets").insert({
+        character_id: characterId,
+        balance: 1110,
+        escrow: 0,
+        lifetime_earned: 1110,
+        lifetime_spent: 0,
+        version: 0,
+      });
+      // Faucet older than the 24h fallback window — must NOT be counted.
+      await db("transaction_log").insert({
+        character_id: characterId,
+        type: "GIG_PAYOUT",
+        amount: 999,
+        balance_before: 0,
+        balance_after: 999,
+        source: "corrida-antiga",
+        created_at: new Date(Date.now() - 30 * 60 * 60 * 1000),
+      });
+      // Fresh faucet — inside the window.
+      await db("transaction_log").insert({
+        character_id: characterId,
+        type: "GIG_PAYOUT",
+        amount: 111,
+        balance_before: 999,
+        balance_after: 1110,
+        source: "corrida-recente",
+        created_at: new Date(),
+      });
+
+      // No active round → inflationWindowStart falls back to the last 24h.
+      const [activeBefore] = await db("rounds")
+        .select("round_number")
+        .where("status", "active")
+        .limit(1);
+      await db("rounds").del();
+      try {
+        const res = await fetch(`http://127.0.0.1:${server.port}/api/admin/economy`, {
+          headers: authHeader(admin.accessToken),
+        });
+        expect(res.status).toBe(200);
+        const body = await json<AdminEconomy>(res);
+
+        // The API must equal the 24h-window sum — the 30h-old row (999) is
+        // excluded; a full-history window would include it and break this.
+        const [recent] = await db("transaction_log")
+          .select(db.raw("coalesce(sum(amount), 0)::int as total"))
+          .whereIn("type", [...ECONOMY_FAUCET_TYPES])
+          .where("created_at", ">=", new Date(Date.now() - 24 * 60 * 60 * 1000));
+        expect(body.faucetsTotal).toBe(Number((recent as { total: number }).total ?? 0));
+        expect(body.faucetsTotal).toBeGreaterThanOrEqual(111);
+        expect(Number.isFinite(body.inflation)).toBe(true);
+      } finally {
+        // Restore an active round for the rest of the suite.
+        await db("rounds").insert({
+          round_number: (activeBefore as { round_number: number } | undefined)?.round_number ?? 1,
+          started_at: new Date(),
+        });
+      }
+    });
   });
 
   describe("GET /api/admin/transactions", () => {

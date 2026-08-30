@@ -392,6 +392,33 @@ describe("ND-011 — trampos service & API", () => {
       expect(char!.nil).toBe(5);
     });
 
+    it("should honor the game_params NIL_REGEN_MINUTES override in the accept NIL spend (ND-052)", async () => {
+      // The regen interval is admin-tunable — set it to 1 min so a 6-minute-old
+      // snapshot regenerates 6 NIL on accept (vs 1 with the 5-min default).
+      await db("game_params")
+        .insert({ key: "NIL_REGEN_MINUTES", value: "1" })
+        .onConflict("key")
+        .merge(["value"]);
+      invalidateGameParamCache("NIL_REGEN_MINUTES");
+
+      try {
+        const { characterId } = await insertTestCharacter();
+        const farma = await farmaGig(); // nil cost 10
+        await db("characters")
+          .where("id", characterId)
+          .update({ nil: 50, nil_updated_at: new Date(Date.now() - 6 * 60 * 1000) });
+
+        const res = await acceptGig(characterId, farma.id);
+
+        // 50 + floor(6min / 1min) × 1 regen − 10 cost = 46
+        // (with the 5-min default it would be 50 + 1 − 10 = 41).
+        expect(res.nilRemaining).toBe(46);
+      } finally {
+        await db("game_params").where("key", "NIL_REGEN_MINUTES").del();
+        invalidateGameParamCache("NIL_REGEN_MINUTES");
+      }
+    });
+
     it("should throw 403 INSUFFICIENT_STREET_CRED for a T2 trampo below SC 5 and roll back", async () => {
       const { characterId } = await insertTestCharacter();
       const bagre = await gigByName("Bagre Ensaboado"); // T2, SC 5
@@ -562,9 +589,7 @@ describe("ND-011 — trampos service & API", () => {
         code: "FLATLINED",
       });
       // Gate fires before any write: phase unchanged, NIL untouched.
-      const [active] = await db("active_gigs")
-        .select("phase")
-        .where("character_id", characterId);
+      const [active] = await db("active_gigs").select("phase").where("character_id", characterId);
       expect(active!.phase).toBe("meet");
       const [char] = await db("characters").select("nil").where("id", characterId);
       expect(char!.nil).toBe(90);
@@ -703,9 +728,7 @@ describe("ND-011 — trampos service & API", () => {
         code: "FLATLINED",
       });
       // Gate fires before any write: still in the execute phase, NIL untouched.
-      const [active] = await db("active_gigs")
-        .select("phase")
-        .where("character_id", characterId);
+      const [active] = await db("active_gigs").select("phase").where("character_id", characterId);
       expect(active!.phase).toBe("execute");
       const [char] = await db("characters").select("nil").where("id", characterId);
       expect(char!.nil).toBe(90);
@@ -733,9 +756,7 @@ describe("ND-011 — trampos service & API", () => {
       expect(await getActiveGig(characterId)).toBeNull();
 
       // History entry recorded.
-      const [history] = await db("gig_history")
-        .select("*")
-        .where("character_id", characterId);
+      const [history] = await db("gig_history").select("*").where("character_id", characterId);
       expect(history).toMatchObject({
         gig_id: farma.id,
         outcome: "success",
@@ -811,9 +832,7 @@ describe("ND-011 — trampos service & API", () => {
       expect(res.heatAccumulated).toBe(10); // 5 × 2
       expect(res.newBalance).toBe(500); // no credit
 
-      const [history] = await db("gig_history")
-        .select("*")
-        .where("character_id", characterId);
+      const [history] = await db("gig_history").select("*").where("character_id", characterId);
       expect(history.outcome).toBe("failure");
       expect(history.payout).toBe(0);
     });
@@ -828,9 +847,7 @@ describe("ND-011 — trampos service & API", () => {
       const res = await wrapUpGig(characterId, farma.id);
 
       expect(res.streetCredGained).toBe(1);
-      const [char] = await db("characters")
-        .select("street_cred")
-        .where("id", characterId);
+      const [char] = await db("characters").select("street_cred").where("id", characterId);
       expect(char!.street_cred).toBe(100);
     });
 
@@ -895,9 +912,7 @@ describe("ND-011 — trampos service & API", () => {
       });
       // Gate fires before any write: no payout, no Moral, no heat, no history —
       // the active trampo stays open and the wallet is never credited.
-      const [char] = await db("characters")
-        .select("street_cred", "nil")
-        .where("id", characterId);
+      const [char] = await db("characters").select("street_cred", "nil").where("id", characterId);
       expect(char!.street_cred).toBe(0);
       expect(char!.nil).toBe(90);
       const [wallet] = await db("character_wallets")
@@ -909,9 +924,7 @@ describe("ND-011 — trampos service & API", () => {
         .where("character_id", characterId)
         .andWhere("type", "GIG_PAYOUT");
       expect(payouts).toHaveLength(0);
-      const heatRows = await db("heat")
-        .select("*")
-        .where("character_id", characterId);
+      const heatRows = await db("heat").select("*").where("character_id", characterId);
       expect(heatRows).toHaveLength(0);
       expect(await getActiveGig(characterId)).not.toBeNull();
       const history = await db("gig_history").select("*").where("character_id", characterId);
@@ -929,9 +942,7 @@ describe("ND-011 — trampos service & API", () => {
 
       expect(res.outcome).toBe("abandoned");
       expect(await getActiveGig(characterId)).toBeNull();
-      const [history] = await db("gig_history")
-        .select("*")
-        .where("character_id", characterId);
+      const [history] = await db("gig_history").select("*").where("character_id", characterId);
       expect(history).toMatchObject({
         gig_id: farma.id,
         outcome: "abandoned",

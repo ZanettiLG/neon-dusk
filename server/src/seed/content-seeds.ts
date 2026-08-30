@@ -215,7 +215,12 @@ export async function seedRound(knex: Knex): Promise<void> {
   });
 }
 
-const DEFAULT_PARAMS: Record<string, string> = {
+/**
+ * Canonical default game params (admin-tunable knobs, ND-052). Every key is
+ * numeric — the admin service derives its numeric-validation set from this
+ * object's keys, so a new tunable is validated by default.
+ */
+export const DEFAULT_PARAMS: Record<string, string> = {
   ROUND_DURATION_DAYS: "14",
   NIL_REGEN_MINUTES: "5",
   GIG_COOLDOWN_MINUTES: "10",

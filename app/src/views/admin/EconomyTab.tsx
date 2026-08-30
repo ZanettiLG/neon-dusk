@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { useAdminStore } from "@/stores/admin";
+import { formatEds } from "@/lib/format";
 
 /**
  * Economy dashboard tab (ND-052). Big-number cards (including round
@@ -41,11 +42,7 @@ export default function EconomyTab() {
     <div>
       {/* Big-number cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card
-          label="Grana em Circulação"
-          value={economy.eddiesInCirculation.toLocaleString()}
-          unit="G$"
-        />
+        <Card label="Grana em Circulação" value={formatEds(economy.eddiesInCirculation)} />
         <Card
           label="Inflação (rodada)"
           value={inflationLabel}
@@ -59,16 +56,14 @@ export default function EconomyTab() {
             </span>
           }
         />
-        <Card label="Faucets (rodada)" value={economy.faucetsTotal.toLocaleString()} unit="G$" />
-        <Card label="Sinks (rodada)" value={economy.sinksTotal.toLocaleString()} unit="G$" />
+        <Card label="Faucets (rodada)" value={formatEds(economy.faucetsTotal)} />
+        <Card label="Sinks (rodada)" value={formatEds(economy.sinksTotal)} />
         <Card label="Ativos (24h)" value={String(economy.dailyActiveCharacters)} />
         <Card label="Transações (24h)" value={String(economy.transactions24h)} />
         <Card
           label="Top Faucet"
           value={
-            economy.topFaucets24h.length > 0
-              ? `G$ ${economy.topFaucets24h[0].amount.toLocaleString()}`
-              : "—"
+            economy.topFaucets24h.length > 0 ? formatEds(economy.topFaucets24h[0].amount) : "—"
           }
           sub={economy.topFaucets24h[0]?.source}
         />
@@ -113,7 +108,7 @@ export default function EconomyTab() {
               className="flex justify-between py-1 border-b border-nd-cyan/5 text-sm"
             >
               <span className="text-nd-text font-mono">{f.source}</span>
-              <span className="text-nd-green font-mono">+G$ {f.amount.toLocaleString()}</span>
+              <span className="text-nd-green font-mono">+{formatEds(f.amount)}</span>
             </div>
           ))}
         </div>
@@ -128,7 +123,7 @@ export default function EconomyTab() {
               className="flex justify-between py-1 border-b border-nd-cyan/5 text-sm"
             >
               <span className="text-nd-text font-mono">{s.source}</span>
-              <span className="text-nd-magenta font-mono">-G$ {s.amount.toLocaleString()}</span>
+              <span className="text-nd-magenta font-mono">-{formatEds(s.amount)}</span>
             </div>
           ))}
         </div>

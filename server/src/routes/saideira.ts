@@ -24,6 +24,7 @@ import { characterRepository as characters } from "../repositories/character-rep
 import { crewRepository as crews } from "../repositories/crew-repository";
 import { legendRepository as legends } from "../repositories/legend-repository";
 import { roundRepository as rounds } from "../repositories/round-repository";
+import { getGameParam } from "../repositories/game-param-repository";
 
 // Neon Dusk — Saideira Hub routes (ND-015, ND-053)
 // ============================================================================
@@ -109,7 +110,12 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
 
     // Round data comes from the rounds table (ND-017): the active round's
     // number + end time, and the last reset timestamp (most recent ended).
-    const durationMs = env.ROUND_DURATION_DAYS * DAY_MS;
+    // ND-052: the duration is the admin-tunable game param (fallback env) —
+    // the hub countdown must match the round-check cron and the round API.
+    const durationDays = Number(
+      await getGameParam("ROUND_DURATION_DAYS", String(env.ROUND_DURATION_DAYS)),
+    );
+    const durationMs = durationDays * DAY_MS;
     const active = await rounds.findActive();
     const lastEnded = await rounds.findLastEnded();
 
