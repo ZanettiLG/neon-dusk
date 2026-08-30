@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { GigChanceModifier } from "@neon-dusk/shared";
 
 /** Server-resolved roll outcome (issue #140). */
 export interface RollTheaterOutcome {
@@ -6,6 +7,14 @@ export interface RollTheaterOutcome {
   /** Raw roll 0–1. Values < 0 are the idempotent-retry sentinel (no roll happened). */
   roll: number;
   successChance: number;
+}
+
+/** Chance chain behind the execution roll, as explained in the verdict (issue #2). */
+export interface ChanceBreakdown {
+  /** Base chance before legwork/crew modifiers (stat + cromo only). */
+  baseChance: number;
+  /** Applied deltas — zero-delta entries already omitted by the server. */
+  modifiers: GigChanceModifier[];
 }
 
 interface RollTheaterProps {
@@ -17,6 +26,8 @@ interface RollTheaterProps {
   copy: string;
   /** Fired when the user clicks "continuar" at the end of the sequence. */
   onComplete: () => void;
+  /** Execution chance chain (EXECUÇÃO only — the escape roll has no breakdown). */
+  chanceBreakdown?: ChanceBreakdown;
 }
 
 type Stage = "rolling" | "reveal" | "verdict" | "copy" | "done";
@@ -54,7 +65,13 @@ function reducedMotion(): boolean {
  * "continuar" (user-dismissed, never auto). The `roll < 0` sentinel skips the
  * numeric stages and shows only ✓/✗ {label} SUCESSO/FALHA + copy.
  */
-export default function RollTheater({ label, outcome, copy, onComplete }: RollTheaterProps) {
+export default function RollTheater({
+  label,
+  outcome,
+  copy,
+  onComplete,
+  chanceBreakdown,
+}: RollTheaterProps) {
   const isSentinel = outcome.roll < 0;
   const [stage, setStage] = useState<Stage>(isSentinel ? "copy" : "rolling");
 
@@ -91,9 +108,7 @@ export default function RollTheater({ label, outcome, copy, onComplete }: RollTh
       )}
 
       {stage === "reveal" && (
-        <p className="font-data text-4xl text-nd-text animate-glitch">
-          {outcome.roll.toFixed(2)}
-        </p>
+        <p className="font-data text-4xl text-nd-text animate-glitch">{outcome.roll.toFixed(2)}</p>
       )}
 
       {showVerdictLine && (
@@ -104,6 +119,15 @@ export default function RollTheater({ label, outcome, copy, onComplete }: RollTh
           {stage === "verdict" && (
             <p className={`font-data text-sm ${verdictColor}`}>
               ROLL {outcome.roll.toFixed(2)} ({rollPct}%) vs CHANCE {chancePct}%
+            </p>
+          )}
+          {stage === "verdict" && chanceBreakdown && chanceBreakdown.modifiers.length > 0 && (
+            <p className={`font-data text-sm ${verdictColor}`}>
+              base {Math.round(chanceBreakdown.baseChance * 100)}% → {chancePct}% (
+              {chanceBreakdown.modifiers
+                .map((m) => `${m.deltaPp > 0 ? "+" : ""}${m.deltaPp}% ${m.label}`)
+                .join(", ")}
+              )
             </p>
           )}
         </div>

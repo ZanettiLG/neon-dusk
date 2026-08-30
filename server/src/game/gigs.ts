@@ -1,4 +1,4 @@
-import type { Attributes } from "@neon-dusk/shared";
+import type { Attributes, GigChanceModifier } from "@neon-dusk/shared";
 
 // Neon Dusk — Trampo game logic (pure functions, no DB access)
 // ============================================================================
@@ -188,6 +188,51 @@ export function applyLegworkModifier(baseChance: number, modifiers: LegworkModif
   if (modifiers.skippedLegwork) return Math.min(SUCCESS_CAP, baseChance * LEGWORK_SKIP_MULTIPLIER);
   if (modifiers.legworkDone) return Math.min(SUCCESS_CAP, baseChance * LEGWORK_MULTIPLIER);
   return baseChance;
+}
+
+/**
+ * Build the final execution chance with the full modifier breakdown shown in
+ * the verdict (issue #2 follow-up): legwork (skip penalty / done bonus) first,
+ * then the crew percentage-point bonus, each capped at `SUCCESS_CAP`.
+ *
+ * The returned `modifiers` list mirrors the chain the player sees: label +
+ * percentage-point delta, with zero-delta entries omitted (e.g. legwork done
+ * at the 0.95 cap produces no visible change). `failure` and `abandoned`
+ * outcomes never reach this function — it only explains success rolls.
+ *
+ * @param baseChance  - Raw chance from `calculateSuccessChance` (stat + cromo).
+ * @param legwork     - Legwork state (skipped or completed).
+ * @param crewBonusPp - Crew gig_success bonus in percentage points (0 when no crew).
+ * @returns `{ finalChance, modifiers }` — finalChance capped at `SUCCESS_CAP`.
+ *
+ * @edgecases `crewBonusPp ≤ 0` adds no "Bonde" modifier.
+ *            Deltas swallowed by the cap round to 0 and are omitted.
+ *            Both legwork flags true → skipped wins (same precedence as
+ *            `applyLegworkModifier`); the label follows the winner.
+ */
+export function buildChanceBreakdown(
+  baseChance: number,
+  legwork: LegworkModifiers,
+  crewBonusPp: number,
+): { finalChance: number; modifiers: GigChanceModifier[] } {
+  const afterLegwork = applyLegworkModifier(baseChance, legwork);
+  const finalChance = Math.min(SUCCESS_CAP, afterLegwork + crewBonusPp / 100);
+
+  const modifiers: GigChanceModifier[] = [];
+  const legworkDeltaPp = Math.round((afterLegwork - baseChance) * 100);
+  if (legworkDeltaPp !== 0) {
+    if (legwork.skippedLegwork) {
+      modifiers.push({ label: "Executar direto", deltaPp: legworkDeltaPp });
+    } else if (legwork.legworkDone) {
+      modifiers.push({ label: "Legwork", deltaPp: legworkDeltaPp });
+    }
+  }
+  const crewDeltaPp = Math.round((finalChance - afterLegwork) * 100);
+  if (crewBonusPp > 0 && crewDeltaPp !== 0) {
+    modifiers.push({ label: "Bonde", deltaPp: crewDeltaPp });
+  }
+
+  return { finalChance, modifiers };
 }
 
 /**

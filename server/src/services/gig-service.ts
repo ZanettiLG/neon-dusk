@@ -19,7 +19,7 @@ import { NIL_REGEN_RATE } from "@neon-dusk/shared";
 import { AppError } from "../middleware/error-handler";
 import {
   applyHeatDecay,
-  applyLegworkModifier,
+  buildChanceBreakdown,
   calculateEscapeChance,
   calculateHeat,
   calculatePayout,
@@ -582,11 +582,15 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       chromeStatBonusValue,
       statMultiplier,
     );
-    const chance = applyLegworkModifier(baseChance, { skippedLegwork, legworkDone });
-    // Crew bonus adds percentage points after base chance (value=5 → +0.05).
-    const chanceWithCrew = Math.min(0.95, chance + crewBonus / 100);
+    // Issue #2: the verdict explains the chance chain — legwork (skip/done)
+    // then crew bonus, each capped at 0.95. Zero-delta modifiers are omitted.
+    const { finalChance, modifiers } = buildChanceBreakdown(
+      baseChance,
+      { skippedLegwork, legworkDone },
+      crewBonus,
+    );
 
-    const outcome = rollGigOutcome(chanceWithCrew);
+    const outcome = rollGigOutcome(finalChance);
     // ND-052: GIG_BASE_REWARD raises the payout base when a template pays
     // below the global floor (no-op at the 100 seed — templates pay ≥ 500).
     const actualPayout = outcome.success
@@ -621,6 +625,8 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
         success: outcome.success,
         roll: outcome.roll,
         successChance: outcome.successChance,
+        baseChance,
+        modifiers,
       },
     };
   });

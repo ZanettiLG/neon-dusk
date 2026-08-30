@@ -134,7 +134,11 @@ export interface GigRepository {
    * NOTHING — a concurrent accept loses the race here). Returns undefined
    * when the character already has an active trampo.
    */
-  openActiveGig(characterId: string, gigId: string, q?: Queryable): Promise<ActiveGigRow | undefined>;
+  openActiveGig(
+    characterId: string,
+    gigId: string,
+    q?: Queryable,
+  ): Promise<ActiveGigRow | undefined>;
   /** Delete one active trampo (acceptGig rollback path). */
   deleteActiveGig(id: string, q?: Queryable): Promise<void>;
   /** Count the character's active trampos (Long Haul check). */
@@ -167,7 +171,12 @@ export interface GigRepository {
   /** Append a gig_history row. */
   insertHistory(entry: GigHistoryInsert, q?: Queryable): Promise<void>;
   /** History page (joined with templates), +1 row for pagination detection. */
-  listHistory(characterId: string, limit: number, cursor: string | undefined, q?: Queryable): Promise<GigHistoryJoinedRow[]>;
+  listHistory(
+    characterId: string,
+    limit: number,
+    cursor: string | undefined,
+    q?: Queryable,
+  ): Promise<GigHistoryJoinedRow[]>;
 }
 
 export function createGigRepository(q: Queryable = db): GigRepository {
@@ -205,9 +214,7 @@ export function createGigRepository(q: Queryable = db): GigRepository {
     },
 
     async countActiveGigs(characterId, tx = q) {
-      const rows = await tx("active_gigs")
-        .count("* as count")
-        .where("character_id", characterId);
+      const rows = await tx("active_gigs").count("* as count").where("character_id", characterId);
       return Number((rows[0] as { count?: string | number } | undefined)?.count ?? 0);
     },
 
@@ -238,10 +245,16 @@ export function createGigRepository(q: Queryable = db): GigRepository {
     },
 
     async listLastCompletions(characterId, tx = q) {
-      return (await tx("gig_history")
-        .select({ gigId: "gig_id", lastAt: q.raw("max(completed_at)") })
-        .where("character_id", characterId)
-        .groupBy("gig_id")) as unknown as Array<{ gigId: string; lastAt: Date }>;
+      return (
+        (await tx("gig_history")
+          .select({ gigId: "gig_id", lastAt: tx.raw("max(completed_at)") })
+          .where("character_id", characterId)
+          // Issue #2: abandoned trampos never start cooldowns — only real
+          // completions (success/failure) count. Failure keeps its cooldown
+          // (anti-farm), per the follow-up design.
+          .whereNot("outcome", "abandoned")
+          .groupBy("gig_id")) as unknown as Array<{ gigId: string; lastAt: Date }>
+      );
     },
 
     async findLastCompletion(characterId, gigId, tx = q) {
@@ -249,6 +262,7 @@ export function createGigRepository(q: Queryable = db): GigRepository {
         .select("completed_at as lastAt")
         .where("character_id", characterId)
         .where("gig_id", gigId)
+        .whereNot("outcome", "abandoned")
         .orderBy("completed_at", "desc")
         .limit(1);
       return rows.length ? (rows[0] as { lastAt: Date }) : null;

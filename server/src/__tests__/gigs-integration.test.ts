@@ -674,6 +674,42 @@ describe("ND-011 — trampos service & API", () => {
         code: "INVALID_PHASE_TRANSITION",
       });
     });
+
+    // Issue #2: the execute verdict explains the chance chain — base chance +
+    // legwork/crew modifiers. Skip-legwork on the default test character
+    // (reflexes 4 vs difficulty 14) caps the base at 0.95, then ×0.8 → 0.76.
+    it("should report the base chance and 'Executar direto' -19pp when skipping legwork", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+
+      const res = await executeGig(characterId, farma.id);
+
+      expect(res.outcome.baseChance).toBeCloseTo(0.95, 5);
+      expect(res.outcome.modifiers).toContainEqual({ label: "Executar direto", deltaPp: -19 });
+      expect(res.outcome.successChance).toBeCloseTo(0.76, 5);
+    });
+
+    // reflexes 1 (spread kept at 22) → base 5/14 ≈ 0.357 below the cap, so the
+    // +20% legwork bonus is visible: ×1.2 ≈ 0.429 → delta +7pp.
+    it("should report the 'Legwork' +7pp modifier after the legwork timer elapsed", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig(); // legworkMinutes 5
+      await db("characters")
+        .where("id", characterId)
+        .update({ body: 5, reflexes: 1, intelligence: 4, technical: 5, cool: 7 });
+      await acceptGig(characterId, farma.id);
+      await doLegwork(characterId, farma.id);
+      await db("active_gigs")
+        .where("character_id", characterId)
+        .update({ legwork_started_at: new Date(Date.now() - 6 * 60_000) });
+
+      const res = await executeGig(characterId, farma.id);
+
+      expect(res.outcome.baseChance).toBeCloseTo(5 / 14, 5);
+      expect(res.outcome.modifiers).toContainEqual({ label: "Legwork", deltaPp: 7 });
+      expect(res.outcome.successChance).toBeCloseTo((5 / 14) * 1.2, 5);
+    });
   });
 
   describe("escapeGig", () => {
@@ -970,6 +1006,69 @@ describe("ND-011 — trampos service & API", () => {
       expect(history).toHaveLength(0);
       const [char] = await db("characters").select("nil").where("id", characterId);
       expect(char!.nil).toBe(90);
+    });
+  });
+
+  // ─── Issue #2 follow-up: abandoned trampos must NOT start cooldowns ──────
+  // Abandoning is a dodge, not a completion — the despachante may be angry,
+  // but the same trampo stays available. Failure keeps its cooldown (anti-farm).
+
+  describe("abandon cooldown follow-up (issue #2)", () => {
+    it("should report 0 cooldown on the board after abandoning a trampo", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+      await abandonGig(characterId, farma.id);
+
+      const board = await listAvailableGigs(characterId);
+      const entry = board.gigs.find((g) => g.id === farma.id)!;
+      expect(entry.cooldownRemaining).toBe(0);
+    });
+
+    it("should allow re-accepting immediately after abandoning (no GIG_COOLDOWN)", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+      await abandonGig(characterId, farma.id);
+
+      const res = await acceptGig(characterId, farma.id);
+      expect(res.activeGig.gigName).toBe("Corre da Farmácia");
+    });
+
+    it("should report 0 cooldown on getGigDetail after abandoning", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+      await abandonGig(characterId, farma.id);
+
+      const detail = await getGigDetail(characterId, farma.id);
+      expect(detail.cooldownRemaining).toBe(0);
+    });
+
+    it("should keep the cooldown after a failure (anti-farm regression)", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await db("gig_history").insert({
+        character_id: characterId,
+        gig_id: farma.id,
+        outcome: "failure",
+        phases_completed: ["meet", "execute", "escape", "wrap_up"],
+        payout: 0,
+        street_cred_gained: 0,
+        heat_accumulated: 10,
+        district: farma.district,
+        completed_at: new Date(), // just now — the 10-min cooldown is running
+      });
+
+      const board = await listAvailableGigs(characterId);
+      const entry = board.gigs.find((g) => g.id === farma.id)!;
+      expect(entry.cooldownRemaining).toBeGreaterThan(0);
+
+      await expect(acceptGig(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 400,
+        code: "GIG_COOLDOWN",
+      });
+      expect(await getActiveGig(characterId)).toBeNull();
     });
   });
 
