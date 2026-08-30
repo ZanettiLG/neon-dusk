@@ -117,6 +117,8 @@ export default function ActiveGigPanel() {
 
   // Fresh (undismissed) roll response → theater replaces the phase content.
   // The escape roll is the most recent action, so it takes precedence.
+  // Only the EXECUÇÃO theater carries the chance breakdown (issue #2) — the
+  // escape response has no baseChance/modifiers to explain.
   const theater = lastEscape
     ? {
         label: "FUGA",
@@ -130,6 +132,10 @@ export default function ActiveGigPanel() {
           outcome: lastExecute.outcome,
           copy: gigCopy("execute", lastExecute.outcome.success),
           dismiss: () => setLastExecute(null),
+          chanceBreakdown: {
+            baseChance: lastExecute.outcome.baseChance,
+            modifiers: lastExecute.outcome.modifiers,
+          },
         }
       : null;
 
@@ -151,12 +157,7 @@ export default function ActiveGigPanel() {
       </div>
 
       {/* Phase indicator — 5 steps */}
-      <PhaseStepper
-        phases={phases}
-        currentIndex={currentIndex}
-        errorIndex={errorIndex}
-        size="sm"
-      />
+      <PhaseStepper phases={phases} currentIndex={currentIndex} errorIndex={errorIndex} size="sm" />
 
       {/* Phase content (or the roll theater over it) */}
       {theater ? (
@@ -165,13 +166,15 @@ export default function ActiveGigPanel() {
           outcome={theater.outcome}
           copy={theater.copy}
           onComplete={theater.dismiss}
+          chanceBreakdown={"chanceBreakdown" in theater ? theater.chanceBreakdown : undefined}
         />
       ) : (
         <>
           {trampo.phase === "meet" && (
             <div className="space-y-3">
               <p className="text-nd-text-secondary text-sm">
-                Cupim aperta tua mão e fala baixo: "{"Boa escolha, moleque. Não vacila, não morre, me traz o resultado."}"
+                Cupim aperta tua mão e fala baixo: "
+                {"Boa escolha, moleque. Não vacila, não morre, me traz o resultado."}"
               </p>
               <div className="flex flex-wrap gap-2">
                 <button

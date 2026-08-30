@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GigTier, GigType } from "@neon-dusk/shared";
 import { GIG_TIERS, GIG_TYPES } from "@neon-dusk/shared";
 import { useGigStore } from "@/stores/gig";
@@ -6,34 +6,11 @@ import GigCard from "@/components/GigCard";
 import ActiveGigPanel from "@/components/ActiveGigPanel";
 import FixerPortrait from "@/components/FixerPortrait";
 import DistrictBanner from "@/components/DistrictBanner";
+import { Tab } from "@/components/ui";
 import { GIG_TYPE_LABELS } from "@/lib/labels";
 
 type TierFilter = "all" | GigTier;
 type TypeFilter = "all" | GigType;
-
-/** Reusable filter tab. */
-function Tab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      className={`font-data text-[11px] uppercase tracking-widest border rounded-terminal px-3 py-1 transition-colors ${
-        active
-          ? "border-nd-cyan text-nd-cyan bg-nd-cyan/10"
-          : "border-nd-cyan/20 text-nd-text-secondary hover:border-nd-cyan/50"
-      }`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
 
 /**
  * Despachante Cupim's trampo board — the first contact with the underworld. Lists the
@@ -84,8 +61,8 @@ export default function GigBoardView() {
               CUPIM <span className="text-nd-text-secondary">//</span> O PORTEIRO
             </h2>
             <p className="text-nd-text-secondary text-sm mt-1">
-              Babilônia — tudo tem preço. Inclusive você. Primeiro despachante do corre, trampo de rua,
-              entrega quente e dinheiro na mão.
+              Babilônia — tudo tem preço. Inclusive você. Primeiro despachante do corre, trampo de
+              rua, entrega quente e dinheiro na mão.
             </p>
           </div>
         </div>
@@ -95,10 +72,18 @@ export default function GigBoardView() {
         {/* Loop de rua do Cupim: vocativo → status → pacto. */}
         <div className="space-y-1 border-l-2 border-nd-purple/40 pl-3">
           <p className="font-data text-[11px] text-nd-text-secondary">
-            "{"Salve, mano. Firmeza? Babilônia não perdoa quem vacila. Traz o resultado que a grana tá no jeito."}"
+            "
+            {
+              "Salve, mano. Firmeza? Babilônia não perdoa quem vacila. Traz o resultado que a grana tá no jeito."
+            }
+            "
           </p>
           <p className="font-data text-[11px] text-nd-purple/70">
-            "{"Mano, preciso que você entregue esse pacote antes que o dono perceba que sumiu. Corre!"}"
+            "
+            {
+              "Mano, preciso que você entregue esse pacote antes que o dono perceba que sumiu. Corre!"
+            }
+            "
           </p>
         </div>
       </div>
@@ -107,24 +92,24 @@ export default function GigBoardView() {
       {hasActiveGig && <ActiveGigPanel />}
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2" role="tablist">
         <span className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary mr-1">
           Filtro
         </span>
-        <Tab active={tier === "all"} onClick={() => setTier("all")}>
+        <Tab state={tier === "all" ? "active" : "inactive"} onClick={() => setTier("all")}>
           Todos
         </Tab>
         {GIG_TIERS.map((t) => (
-          <Tab key={t} active={tier === t} onClick={() => setTier(t)}>
+          <Tab key={t} state={tier === t ? "active" : "inactive"} onClick={() => setTier(t)}>
             {t.toUpperCase()}
           </Tab>
         ))}
         <span className="w-px h-4 bg-nd-cyan/20 mx-1" aria-hidden="true"></span>
-        <Tab active={type === "all"} onClick={() => setType("all")}>
+        <Tab state={type === "all" ? "active" : "inactive"} onClick={() => setType("all")}>
           Todos tipos
         </Tab>
         {GIG_TYPES.map((t) => (
-          <Tab key={t} active={type === t} onClick={() => setType(t)}>
+          <Tab key={t} state={type === t ? "active" : "inactive"} onClick={() => setType(t)}>
             {GIG_TYPE_LABELS[t]}
           </Tab>
         ))}

@@ -51,7 +51,14 @@ describe("RollTheater", () => {
     const onComplete = vi.fn();
     const outcome: RollTheaterOutcome = { success: true, roll: 0.42, successChance: 0.65 };
 
-    render(<RollTheater label="EXECUÇÃO" outcome={outcome} copy="Serviço limpo." onComplete={onComplete} />);
+    render(
+      <RollTheater
+        label="EXECUÇÃO"
+        outcome={outcome}
+        copy="Serviço limpo."
+        onComplete={onComplete}
+      />,
+    );
 
     // rolling stage
     expect(screen.getByText(/ROLLING/i)).toBeInTheDocument();
@@ -172,6 +179,86 @@ describe("RollTheater", () => {
     act(() => vi.advanceTimersByTime(0)); // copy → done
     expect(screen.getByText("Serviço limpo.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /continuar/i })).toBeInTheDocument();
+  });
+
+  it("should render the chance breakdown in the verdict stage", () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+    render(
+      <RollTheater
+        label="EXECUÇÃO"
+        outcome={{ success: false, roll: 0.9, successChance: 0.76 }}
+        copy="Deu ruim."
+        onComplete={vi.fn()}
+        chanceBreakdown={{
+          baseChance: 0.95,
+          modifiers: [{ label: "Executar direto", deltaPp: -19 }],
+        }}
+      />,
+    );
+    runToVerdict();
+    // base chance → final chance, with the signed delta + label in parentheses.
+    expect(screen.getByText(/base 95% → 76% \(-19% Executar direto\)/)).toBeInTheDocument();
+    // The verdict line and the breakdown share the failure color.
+    expect(screen.getByText(/base 95% → 76% \(-19% Executar direto\)/)).toHaveClass(
+      "text-nd-magenta",
+    );
+  });
+
+  it("should render multiple breakdown modifiers joined by comma", () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+    render(
+      <RollTheater
+        label="EXECUÇÃO"
+        outcome={{ success: true, roll: 0.4, successChance: 0.81 }}
+        copy="Serviço limpo."
+        onComplete={vi.fn()}
+        chanceBreakdown={{
+          baseChance: 0.95,
+          modifiers: [
+            { label: "Executar direto", deltaPp: -19 },
+            { label: "Bonde", deltaPp: 5 },
+          ],
+        }}
+      />,
+    );
+    runToVerdict();
+    expect(
+      screen.getByText(/base 95% → 81% \(-19% Executar direto, \+5% Bonde\)/),
+    ).toBeInTheDocument();
+  });
+
+  it("should not render the breakdown when modifiers is empty", () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+    render(
+      <RollTheater
+        label="EXECUÇÃO"
+        outcome={{ success: true, roll: 0.4, successChance: 0.95 }}
+        copy="Serviço limpo."
+        onComplete={vi.fn()}
+        chanceBreakdown={{ baseChance: 0.95, modifiers: [] }}
+      />,
+    );
+    runToVerdict();
+    expect(screen.getByText(/ROLL 0\.40 \(40%\) vs CHANCE 95%/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^base /)).not.toBeInTheDocument();
+  });
+
+  it("should not render the breakdown when the prop is absent", () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+    render(
+      <RollTheater
+        label="EXECUÇÃO"
+        outcome={{ success: true, roll: 0.4, successChance: 0.95 }}
+        copy="Serviço limpo."
+        onComplete={vi.fn()}
+      />,
+    );
+    runToVerdict();
+    expect(screen.queryByText(/^base /)).not.toBeInTheDocument();
   });
 
   it("should not warn about act() when unmounting mid-sequence", () => {

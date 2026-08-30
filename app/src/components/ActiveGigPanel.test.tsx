@@ -7,9 +7,9 @@ import { useGigStore } from "@/stores/gig";
 /** Escape-phase active trampo (post-POST /escape). */
 function escapePhaseGig(overrides: Record<string, unknown> = {}) {
   return {
-          id: "ag-1",
-          gigId: "g-1",
-          gigName: "Corre da Farmácia",
+    id: "ag-1",
+    gigId: "g-1",
+    gigName: "Corre da Farmácia",
     gigType: "delivery",
     gigTier: "t1",
     phase: "escape",
@@ -77,6 +77,7 @@ describe("ActiveGigPanel", () => {
 
   afterEach(() => {
     window.matchMedia = originalMatchMedia as typeof window.matchMedia;
+    vi.useRealTimers();
   });
 
   it("renders without error when activeGig is null", () => {
@@ -309,7 +310,9 @@ describe("ActiveGigPanel", () => {
     fireEvent.click(await screen.findByRole("button", { name: /continuar/i }));
 
     // Phase came from the escape response — wrap-up action shown, stale fugir button gone.
-    expect(await screen.findByRole("button", { name: /concluir trampo \(receber\)/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /concluir trampo \(receber\)/i }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /fugir/i })).not.toBeInTheDocument();
     // Sentinel roll (-1) must not render "(rolou -1 vs 0%)".
     expect(screen.queryByText(/rolou/i)).not.toBeInTheDocument();
@@ -327,6 +330,48 @@ describe("ActiveGigPanel", () => {
     render(<ActiveGigPanel />);
     // The escape phase shows the wrap-up action instead of a second escape roll
     expect(screen.queryByRole("button", { name: /fugir/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /concluir trampo \(receber\)/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /concluir trampo \(receber\)/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("passes the chance breakdown from the execute response to the EXECUÇÃO theater (issue #2)", async () => {
+    vi.useFakeTimers();
+    useGigStore.setState({
+      board: {
+        gigs: [],
+        activeGig: escapePhaseGig({
+          phase: "meet",
+          executeOutcome: null,
+          escapeOutcome: null,
+          actualPayout: null,
+        }),
+      },
+    });
+    // Server-resolved skip-legwork execution: base 0.95 → 0.76 (Executar direto -19pp).
+    mocks.api.post.mockResolvedValueOnce({
+      activeGig: escapePhaseGig({
+        phase: "execute",
+        executeOutcome: "failure",
+        escapeOutcome: null,
+        actualPayout: 0,
+      }),
+      outcome: {
+        success: false,
+        roll: 0.9,
+        successChance: 0.76,
+        baseChance: 0.95,
+        modifiers: [{ label: "Executar direto", deltaPp: -19 }],
+      },
+    });
+
+    render(<ActiveGigPanel />);
+    fireEvent.click(screen.getByRole("button", { name: /executar direto/i }));
+    await act(async () => {}); // settle the POST → theater opens
+
+    // Advance the theater stage machine to the verdict (rolling 1400 → reveal 500).
+    act(() => vi.advanceTimersByTime(1400));
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByText(/base 95% → 76% \(-19% Executar direto\)/)).toBeInTheDocument();
   });
 });

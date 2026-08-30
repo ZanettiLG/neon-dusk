@@ -4,7 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { create } from "zustand";
 import { MemoryRouter } from "react-router-dom";
 import SaideiraView from "@/views/SaideiraView";
-import type { Character, ChatMessage, CrewLeaderboardResponse, LegendsResponse } from "@neon-dusk/shared";
+import type {
+  Character,
+  ChatMessage,
+  CrewLeaderboardResponse,
+  LegendsResponse,
+} from "@neon-dusk/shared";
 
 // Mock the stores as controllable Zustand singletons (same pattern as
 // Leaderboard.test.tsx): components subscribe to state we set per test, and
@@ -108,7 +113,7 @@ describe("SaideiraView", () => {
     expect(screen.getByText("⚡ ACESSO RESTRITO")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /VER MINHA MORAL/ })).toBeInTheDocument();
     // The tabs must NOT be reachable while gated.
-    expect(screen.queryByRole("button", { name: /chat/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /chat/i })).not.toBeInTheDocument();
     expect(
       screen.queryByText((content) => content.includes("O BAR QUE NUNCA FECHA")),
     ).not.toBeInTheDocument();
@@ -131,10 +136,12 @@ describe("SaideiraView", () => {
     renderView();
 
     // Header text is split across elements ("SAIDEIRA" + <span>//</span> + rest).
-    expect(screen.getByText((content) => content.includes("O BAR QUE NUNCA FECHA"))).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Chat" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ranking" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Lendas" })).toBeInTheDocument();
+    expect(
+      screen.getByText((content) => content.includes("O BAR QUE NUNCA FECHA")),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Chat" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Ranking" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Lendas" })).toBeInTheDocument();
     expect(screen.queryByText("⚡ ACESSO RESTRITO")).not.toBeInTheDocument();
   });
 
@@ -160,7 +167,7 @@ describe("SaideiraView", () => {
     useAuthStore.setState({ character: character(15) });
 
     renderView();
-    await userEvent.setup().click(screen.getByRole("button", { name: "Lendas" }));
+    await userEvent.setup().click(screen.getByRole("tab", { name: "Lendas" }));
 
     expect(screen.getByText("MENU DE LENDAS")).toBeInTheDocument();
     expect(screen.getByText(/Nenhuma lenda ainda/)).toBeInTheDocument();

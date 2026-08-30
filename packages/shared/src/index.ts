@@ -735,9 +735,25 @@ export interface GigAcceptResponse {
   nilRemaining: number;
 }
 
+/** One success-chance delta explained to the player (in percentage points). */
+export interface GigChanceModifier {
+  /** Human-readable source: "Executar direto" | "Legwork" | "Bonde". */
+  label: string;
+  /** Percentage-point delta (negative = penalty, positive = bonus). */
+  deltaPp: number;
+}
+
 export interface GigExecuteResponse {
   activeGig: ActiveGig;
-  outcome: { success: boolean; roll: number; successChance: number };
+  outcome: {
+    success: boolean;
+    roll: number;
+    successChance: number;
+    /** Base chance before legwork/crew modifiers (stat + cromo only). */
+    baseChance: number;
+    /** Chance deltas applied on top of the base — zero-delta entries omitted. */
+    modifiers: GigChanceModifier[];
+  };
 }
 
 export interface GigEscapeResponse {
