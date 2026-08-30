@@ -87,6 +87,10 @@ export default function MetroMap({
           const isOrigin = origin === originDistrict;
           const isCurrent = origin === currentDistrict;
           const count = vendorsByDistrict[origin] ?? 0;
+          // The vendor count is announced with the station (the badge itself
+          // stays aria-hidden — it only duplicates the label visually).
+          const countSuffix =
+            count > 0 ? `, ${count} ${count === 1 ? "vendedor" : "vendedores"}` : "";
           const disabled = traveling;
 
           return (
@@ -94,7 +98,7 @@ export default function MetroMap({
               key={origin}
               role="button"
               tabIndex={0}
-              aria-label={`Estação ${label}`}
+              aria-label={`Estação ${label}${countSuffix}`}
               aria-disabled={disabled || undefined}
               className="cursor-pointer"
               data-origin={isOrigin ? "true" : undefined}
@@ -167,14 +171,26 @@ export default function MetroMap({
                 </text>
               )}
 
-              {/* Vendor badge: Grana icon + count (decorative — aria-hidden). */}
+              {/* Vendor badge: Grana icon + count. Centered on the station's
+                  right side (x+27, y) — the ONE position for every case: it
+                  clears the "VOCÊ ESTÁ AQUI" band (y-24.5..y-15.5), the
+                  pt-BR label (y+14..y+22) and the birth ring (r=14) while
+                  staying inside the 400×300 viewBox for the eastern stations.
+                  Solid nd-bg fill keeps the chip legible over line crossings.
+                  The count is announced via the station aria-label, so the
+                  badge itself is aria-hidden (visual duplication only). */}
               {count > 0 && (
                 <g
-                  transform={`translate(${x + 24} ${y - 18})`}
+                  transform={`translate(${x + 27} ${y})`}
                   data-testid={`metro-vendors-${origin}`}
                   aria-hidden="true"
                 >
-                  <circle r={12} fill="none" strokeWidth="1" className="stroke-nd-gold/60" />
+                  <circle
+                    r={12}
+                    fill="none"
+                    strokeWidth="1"
+                    className="fill-nd-bg stroke-nd-gold/60"
+                  />
                   <g
                     transform="translate(-7 -6)"
                     dangerouslySetInnerHTML={{ __html: GRANA_ICON }}

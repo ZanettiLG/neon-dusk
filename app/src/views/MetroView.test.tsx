@@ -135,6 +135,11 @@ describe("MetroView", () => {
     ).toBeInTheDocument();
     expect(within(screen.getByTestId("metro-vendors-o_fervo")).getByText("1")).toBeInTheDocument();
     expect(screen.queryByTestId("metro-vendors-a_paraiso")).not.toBeInTheDocument();
+
+    // The count is also announced in the station accessible name.
+    expect(
+      screen.getByRole("button", { name: "Estação Babilônia, 1 vendedor" }),
+    ).toBeInTheDocument();
   });
 
   it("should highlight the character origin station on mount", async () => {
@@ -165,7 +170,7 @@ describe("MetroView", () => {
       screen.getByRole("img", { name: "Mapa do metrô de São Paulo 2087" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Estação O Fervo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Estação O Fervo, 1 vendedor" }));
 
     // Boarding beat on the lilac line.
     expect(screen.getByText("▌ EMBARCANDO NA LINHA 4-LILÁS...")).toBeInTheDocument();
@@ -185,7 +190,7 @@ describe("MetroView", () => {
     expect(useMetroStore.getState().currentDistrict).toBe("o_fervo");
 
     expect(screen.getByText(/O FERVO/)).toBeInTheDocument();
-    const fervo = screen.getByRole("button", { name: "Estação O Fervo" });
+    const fervo = screen.getByRole("button", { name: "Estação O Fervo, 1 vendedor" });
     expect(fervo).toHaveAttribute("data-current", "true");
     expect(within(fervo).getByText("VOCÊ ESTÁ AQUI")).toBeInTheDocument();
 
@@ -199,7 +204,7 @@ describe("MetroView", () => {
 
     const { unmount } = render(<MetroView />);
     await act(async () => {});
-    fireEvent.click(screen.getByRole("button", { name: "Estação O Fervo" }));
+    fireEvent.click(screen.getByRole("button", { name: "Estação O Fervo, 1 vendedor" }));
     expect(useMetroStore.getState().traveling).toBe(true);
 
     unmount();

@@ -81,6 +81,37 @@ describe("MetroMap", () => {
     expect(screen.queryByTestId("metro-vendors-o_ponto")).not.toBeInTheDocument();
   });
 
+  it("should announce the vendor count in the station aria-label", () => {
+    renderMap({ vendorsByDistrict: { o_fervo: 2, babilonia: 1 } });
+
+    // Plural and singular forms — the badge itself is aria-hidden, so the
+    // count must be reachable through the accessible name.
+    expect(
+      screen.getByRole("button", { name: "Estação O Fervo, 2 vendedores" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Estação Babilônia, 1 vendedor" }),
+    ).toBeInTheDocument();
+
+    // Districts without vendors keep the plain station name.
+    expect(screen.getByRole("button", { name: "Estação A Paraíso" })).toBeInTheDocument();
+  });
+
+  it("should keep the vendor badge clear of the current-district marker", () => {
+    renderMap({ currentDistrict: "o_fervo", vendorsByDistrict: { o_fervo: 2 } });
+
+    const fervo = screen.getByRole("button", { name: "Estação O Fervo, 2 vendedores" });
+    expect(within(fervo).getByText("VOCÊ ESTÁ AQUI")).toBeInTheDocument();
+
+    // Geometry contract: the badge is vertically centered on the station
+    // (x+27, y — o_fervo sits at 200,235). The marker band is y-24.5..y-15.5
+    // and the badge spans y-12..y+12 — no overlap, even when both render.
+    expect(screen.getByTestId("metro-vendors-o_fervo")).toHaveAttribute(
+      "transform",
+      "translate(227 235)",
+    );
+  });
+
   it("should mark the origin district with a ring and the current district with a fill", () => {
     renderMap({ originDistrict: "a_paraiso", currentDistrict: "babilonia" });
 

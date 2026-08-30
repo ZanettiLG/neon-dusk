@@ -140,5 +140,19 @@ describe("useMetroStore", () => {
 
       expect(useMetroStore.getState().traveling).toBe(false);
     });
+
+    it("should ignore a second travelTo while traveling (keep the first destination)", () => {
+      useMetroStore.getState().travelTo("o_ponto");
+      useMetroStore.getState().travelTo("babilonia");
+
+      expect(useMetroStore.getState().traveling).toBe(true);
+
+      // The original timer must survive — the ride lands on the FIRST pick.
+      vi.advanceTimersByTime(METRO_TRAVEL_MS);
+
+      const s = useMetroStore.getState();
+      expect(s.traveling).toBe(false);
+      expect(s.currentDistrict).toBe("o_ponto");
+    });
   });
 });
