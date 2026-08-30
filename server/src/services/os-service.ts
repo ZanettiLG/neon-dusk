@@ -1,5 +1,5 @@
-import type { OsActivateResponse, OsStatus } from "@neon-dusk/shared";
-import { OS_ABILITIES } from "../game/os-abilities";
+import type { OsAbilitySlug, OsActivateResponse, OsStatus } from "@neon-dusk/shared";
+import { OS_ABILITIES, getOsActiveBonus, type OsActiveBonus } from "../game/os-abilities";
 import {
   canActivateOs,
   computeOsActiveUntil,
@@ -10,8 +10,10 @@ import {
 import { AppError } from "../middleware/error-handler";
 import { emitEvent } from "../telemetry/emit-event";
 import { withTransaction } from "../db";
+import type { Queryable } from "../repositories";
 import { characterRepository as characters } from "../repositories/character-repository";
 import { chromeRepository as chrome } from "../repositories/chrome-repository";
+import type { CharacterRow } from "../repositories/character-repository";
 
 // Neon Dusk — OS service (install state + daily-charge activation)
 // ============================================================================
@@ -57,6 +59,31 @@ async function buildOsStatus(characterId: string): Promise<OsStatus> {
       resetsAt: new Date(startOfUtcDay(now).getTime() + 86_400_000).toISOString(),
     },
   };
+}
+
+/**
+ * Shared OS active-bonus resolution (issue #28 review, cycle 2): maps the
+ * installed OS definition (os_ability_id) to its slug and applies the pure
+ * window check from game/os-abilities. Used by the trampo and PvP services
+ * so the slug lookup + active check live in exactly one place.
+ *
+ * @param character - A characters row (os_ability_id + os_ability_active_until).
+ * @param q         - Queryable (transaction-scoped when called inside one).
+ * @returns The active multipliers, or null when no OS is installed, the
+ *          definition is unknown, the OS is inert or the window expired.
+ */
+export async function resolveOsActiveBonus(
+  character: CharacterRow,
+  q?: Queryable,
+): Promise<OsActiveBonus | null> {
+  if (!character.os_ability_id) return null;
+  const slug = await chrome.findSlugById(character.os_ability_id, q);
+  if (!slug) return null;
+
+  return getOsActiveBonus(
+    slug as OsAbilitySlug,
+    character.os_ability_active_until ? new Date(character.os_ability_active_until) : null,
+  );
 }
 
 /**

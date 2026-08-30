@@ -26,7 +26,6 @@ const REDIS_TEST_DB = "redis://localhost:56379/7";
 
 // Fixed id from migration 0004 (Doc Fios, Babilônia).
 const DOC_FIOS_ID = "00000000-0000-4000-8000-000000000001";
-const ZERO_ID = "00000000-0000-0000-0000-000000000000";
 
 const OS_INVENTORY: { itemId: string; price: number }[] = [
   { itemId: "os-fury", price: 300 },

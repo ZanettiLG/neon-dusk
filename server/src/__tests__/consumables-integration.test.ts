@@ -46,6 +46,13 @@ interface ErrorBody {
   details?: { path: (string | number)[]; message: string }[];
 }
 
+/** 429 cooldown error shape — details carries the unlock time (ND-053). */
+interface CooldownErrorBody {
+  error: string;
+  message: string;
+  details?: { nextAvailableAt?: string | null };
+}
+
 describe("Issue #28 — Itens anti-insanidade API", () => {
   let app: FastifyInstance;
   let server: Awaited<ReturnType<typeof startTestServer>>;
@@ -258,11 +265,14 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
 
       const res = await useItem(accessToken, await consumableId("freio"));
 
-      // ND-053: the global error-handler maps COOLDOWN_ACTIVE to 429.
+      // ND-053: the global error-handler maps COOLDOWN_ACTIVE to 429 and
+      // propagates details.nextAvailableAt (issue #28 review, cycle 2).
       expect(res.status).toBe(429);
-      const body = await json<ErrorBody>(res);
+      const body = await json<CooldownErrorBody>(res);
       expect(body.error).toBe("COOLDOWN_ACTIVE");
       expect(body.message).toContain("cooldown");
+      expect(body.details?.nextAvailableAt).toBeTruthy();
+      expect(new Date(body.details!.nextAvailableAt!).getTime()).toBeGreaterThan(Date.now());
     });
 
     it("should return 429 COOLDOWN_ACTIVE for a T3 item used twice within its 24h cooldown", async () => {
@@ -277,8 +287,9 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
       const res = await useItem(accessToken, await consumableId("choque"));
 
       expect(res.status).toBe(429);
-      const body = await json<ErrorBody>(res);
+      const body = await json<CooldownErrorBody>(res);
       expect(body.error).toBe("COOLDOWN_ACTIVE");
+      expect(body.details?.nextAvailableAt).toBeTruthy();
     });
 
     it("should return 403 FLATLINED for an apagado character", async () => {

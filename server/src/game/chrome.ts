@@ -72,8 +72,9 @@ export function validateSlotAvailability(slot: ChromeSlot, installedInSlot: numb
 
 /**
  * True when installing an implant (cost) keeps humanity at or above 0.
- * Reaching exactly 0 is allowed here — flatline handling belongs to the
- * cyberpsychosis system.
+ * Reaching exactly 0 is allowed here — the install path is the flatline
+ * trigger (issue #28): hitting 0 sets `is_flatlined` in the same transaction
+ * as the humanity decrement (0 humanity = apagado, permanent for the round).
  */
 export function validateHumanityAfterInstall(currentHumanity: number, humanityCost: number): boolean {
   return currentHumanity - humanityCost >= 0;

@@ -88,7 +88,7 @@ describe("Issue #28 — Terapia API", () => {
   }
 
   describe("POST /api/therapy", () => {
-    it("should run a clinic session: restore 10-20, debit eddies, record the session", async () => {
+    it("should run a clinic session: restore 10-20, debit funds, record the session", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       await topUpWallet(accessToken, characterId);
       await db("characters").where("id", characterId).update({ humanity: 50 });
@@ -140,7 +140,7 @@ describe("Issue #28 — Terapia API", () => {
       });
     });
 
-    it("should run an attunement session: restore 5-10, debit eddies", async () => {
+    it("should run an attunement session: restore 5-10, debit funds", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       await topUpWallet(accessToken, characterId);
       await db("characters").where("id", characterId).update({ humanity: 50 });
@@ -178,7 +178,7 @@ describe("Issue #28 — Terapia API", () => {
       expect(body.restored).toBe(5); // 95 → 100
     });
 
-    it("should reject a second session within the shared 24h cooldown", async () => {
+    it("should reject a second session within the shared 24h cooldown (429 COOLDOWN_ACTIVE)", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       await topUpWallet(accessToken, characterId);
       await db("characters").where("id", characterId).update({ humanity: 50 });
@@ -196,10 +196,12 @@ describe("Issue #28 — Terapia API", () => {
         authHeader(accessToken),
       );
 
-      expect(res.status).toBe(400);
-      const body = await json<ErrorBody>(res);
-      expect(body.error).toBe("THERAPY_COOLDOWN");
-      expect(body.details).toHaveProperty("nextAvailableAt");
+      // ND-053: therapy uses the COOLDOWN_ACTIVE/429 convention (issue #28
+      // review, cycle 2) with the unlock time in details.nextAvailableAt.
+      expect(res.status).toBe(429);
+      const body = await json<{ error: string; message: string; details?: { nextAvailableAt?: string | null } }>(res);
+      expect(body.error).toBe("COOLDOWN_ACTIVE");
+      expect(body.details?.nextAvailableAt).toBeTruthy();
     });
 
     it("should return 400 INSUFFICIENT_EDDIES when the wallet cannot cover the session", async () => {

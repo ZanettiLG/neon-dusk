@@ -37,35 +37,41 @@ export async function listConsumables(characterId: string): Promise<ConsumablesR
 
   const ownedByConsumable = new Map(owned.map((row) => [row.consumable_id, row]));
 
-  const items = await Promise.all(
-    catalog.map(async (c) => {
-      const own = ownedByConsumable.get(c.id);
-      let nextAvailableAt: string | null = null;
+  // Per-item cooldown lookup batched in ONE query (issue #28 review, cycle 2 —
+  // the previous per-item findLastUse loop was N+1).
+  const cooldownItems = catalog.filter((c) => c.cooldown_hours > 0);
+  const lastUses = await consumables.findLastUses(
+    characterId,
+    cooldownItems.map((c) => c.id),
+  );
 
-      if (c.cooldown_hours > 0) {
-        const lastUse = await consumables.findLastUse(characterId, c.id);
-        if (lastUse) {
-          const availableAt = new Date(
-            lastUse.used_at.getTime() + c.cooldown_hours * 60 * 60 * 1000,
-          );
-          if (availableAt.getTime() > Date.now()) {
-            nextAvailableAt = availableAt.toISOString();
-          }
+  const items = catalog.map((c) => {
+    const own = ownedByConsumable.get(c.id);
+    let nextAvailableAt: string | null = null;
+
+    if (c.cooldown_hours > 0) {
+      const lastUse = lastUses.get(c.id);
+      if (lastUse) {
+        const availableAt = new Date(
+          lastUse.getTime() + c.cooldown_hours * 60 * 60 * 1000,
+        );
+        if (availableAt.getTime() > Date.now()) {
+          nextAvailableAt = availableAt.toISOString();
         }
       }
+    }
 
-      return {
-        id: c.id,
-        slug: c.slug,
-        name: c.name,
-        tier: c.tier,
-        restoreAmount: c.restore_amount,
-        cooldownHours: c.cooldown_hours,
-        ownedQuantity: own ? own.quantity : 0,
-        nextAvailableAt,
-      };
-    }),
-  );
+    return {
+      id: c.id,
+      slug: c.slug,
+      name: c.name,
+      tier: c.tier,
+      restoreAmount: c.restore_amount,
+      cooldownHours: c.cooldown_hours,
+      ownedQuantity: own ? own.quantity : 0,
+      nextAvailableAt,
+    };
+  });
 
   return { items };
 }
@@ -74,7 +80,8 @@ export async function listConsumables(characterId: string): Promise<ConsumablesR
  * POST /api/consumables/use — consume one owned item to restore humanity.
  *
  * Error codes: 403 FLATLINED | 404 CONSUMABLE_NOT_FOUND |
- * 400 NOT_OWNED / BAND_TOO_HIGH / COOLDOWN_ACTIVE / DIMINISHING_RETURNS_EXHAUSTED.
+ * 429 COOLDOWN_ACTIVE (details.nextAvailableAt) |
+ * 400 NOT_OWNED / BAND_TOO_HIGH / DIMINISHING_RETURNS_EXHAUSTED.
  */
 export async function useConsumable(
   characterId: string,
@@ -124,7 +131,10 @@ export async function useConsumable(
         case "BAND_TOO_HIGH":
           throw new AppError(400, "BAND_TOO_HIGH", "Sua humanidade está alta demais para isso (máx. 70).");
         case "COOLDOWN_ACTIVE":
-          throw new AppError(400, "COOLDOWN_ACTIVE", "Este item ainda está em cooldown.", {
+          // ND-053: 429 (not 400) — the cooldown convention shared by the
+          // anti-cheat middleware, therapy and PvP. The unlock time rides in
+          // details.nextAvailableAt (propagated by the error-handler).
+          throw new AppError(429, "COOLDOWN_ACTIVE", "Este item ainda está em cooldown.", {
             nextAvailableAt: itemCooldownUntil?.toISOString() ?? null,
           });
         case "DIMINISHING_RETURNS_EXHAUSTED":

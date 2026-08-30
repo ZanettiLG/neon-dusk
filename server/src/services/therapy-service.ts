@@ -20,7 +20,8 @@ import { therapyRepository as therapy } from "../repositories/therapy-repository
 /**
  * POST /api/therapy — undergo a therapy session (clínica or sintonia).
  *
- * Error codes: 400 THERAPY_COOLDOWN, 400 INSUFFICIENT_EDDIES, 403 FLATLINED.
+ * Error codes: 429 COOLDOWN_ACTIVE (details.nextAvailableAt),
+ * 400 INSUFFICIENT_EDDIES, 403 FLATLINED.
  */
 export async function undergoTherapy(
   characterId: string,
@@ -42,7 +43,10 @@ export async function undergoTherapy(
       THERAPY_COOLDOWN_MS,
     );
     if (!cooldown.canUndergo) {
-      throw new AppError(400, "THERAPY_COOLDOWN", "Você já fez terapia nas últimas 24h.", {
+      // ND-053: 429 COOLDOWN_ACTIVE — same convention as consumables, PvP and
+      // the anti-cheat middleware (issue #28 review, cycle 2). The unlock time
+      // rides in details.nextAvailableAt.
+      throw new AppError(429, "COOLDOWN_ACTIVE", "Você já fez terapia nas últimas 24h.", {
         nextAvailableAt: cooldown.nextAvailableAt?.toISOString() ?? null,
       });
     }

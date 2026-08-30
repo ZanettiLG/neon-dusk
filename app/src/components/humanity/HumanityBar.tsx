@@ -38,10 +38,14 @@ export default function HumanityBar({ info, loading, error, onRetry }: HumanityB
   if (!info) return null;
 
   const bandLabel = BAND_LABELS[info.band] ?? info.band;
+  // Band tones (issue #28 review, cycle 2): borderline gets its own tone
+  // (gold/âmbar) instead of sharing magenta with cyberpsycho — the label
+  // stays the primary channel, color the reinforcement. Apagado keeps
+  // magenta (terminal state, same family as cyberpsycho).
   const bandTone =
     info.band === "integro"
       ? "text-nd-green"
-      : info.band === "instavel"
+      : info.band === "instavel" || info.band === "borderline"
         ? "text-nd-gold"
         : info.band === "apagado"
           ? "text-nd-magenta"

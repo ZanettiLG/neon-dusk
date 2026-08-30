@@ -143,7 +143,6 @@ const PT_BR_ERRORS: Record<string, string> = {
   OS_ALREADY_ACTIVE: "O efeito do SO já está ativo.",
   OS_NO_USES_LEFT: "Sem ativações restantes hoje. Reset à meia-noite UTC.",
   FLATLINED: "Personagem apagado. Sem ações permitidas.",
-  THERAPY_COOLDOWN: "Você já fez terapia nas últimas 24h.",
   INSUFFICIENT_EDDIES: "Grana insuficiente.",
 
   // Itens anti-insanidade (issue #28)

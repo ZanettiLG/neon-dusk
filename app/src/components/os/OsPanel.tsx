@@ -18,12 +18,30 @@ export default function OsPanel() {
 
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  // Live countdown of the active effect window — ticks every second while
+  // the OS is active (issue #28 review, cycle 2: the old render-time
+  // computation never updated).
+  const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {
     mountedRef.current = true;
     void fetch();
     return () => { mountedRef.current = false; };
   }, [fetch]);
+
+  useEffect(() => {
+    const activeUntil = status?.ability?.isActive ? status.ability.activeUntil : null;
+    if (!activeUntil) {
+      setSecondsLeft(0);
+      return;
+    }
+    const tick = () => {
+      setSecondsLeft(Math.max(0, Math.ceil((new Date(activeUntil).getTime() - Date.now()) / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [status?.ability?.isActive, status?.ability?.activeUntil]);
 
   async function onActivate() {
     setActionError(null);
@@ -71,9 +89,6 @@ export default function OsPanel() {
   }
 
   const { os, ability } = status;
-  const secondsLeft = ability.isActive && ability.activeUntil
-    ? Math.max(0, Math.ceil((new Date(ability.activeUntil).getTime() - Date.now()) / 1000))
-    : 0;
 
   return (
     <div className="card border-nd-cyan/20 space-y-3">

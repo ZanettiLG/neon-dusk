@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import OsPanel from "@/components/os/OsPanel";
 import { useOsStore } from "@/stores/os";
@@ -150,6 +150,44 @@ describe("OsPanel", () => {
 
     expect(screen.getByRole("button", { name: "Efeito ativo" })).toBeDisabled();
     expect(screen.getByText(/Efeito ativo — encerra em/)).toBeInTheDocument();
+  });
+
+  it("should tick the active-effect countdown every second (issue #28 review)", () => {
+    vi.useFakeTimers();
+    try {
+      const base = Date.now(); // fake clock — same base for the fixture
+      useOsStore.setState({
+        status: furyStatus({
+          ability: {
+            isActive: true,
+            activeUntil: new Date(base + 30_000).toISOString(),
+            usesRemaining: 2,
+            usedToday: 1,
+            maxUsesPerDay: 3,
+            durationSeconds: 60,
+            inert: false,
+            resetsAt: "2026-08-31T00:00:00.000Z",
+          },
+        }),
+        loading: false,
+        error: null,
+      });
+
+      render(<OsPanel />);
+
+      expect(screen.getByText(/encerra em 30s/)).toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByText(/encerra em 29s/)).toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(29_000);
+      });
+      // Window expired — countdown floors at 0 and stays there.
+      expect(screen.getByText(/encerra em 0s/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("should disable the button when the daily charges are exhausted", () => {

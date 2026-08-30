@@ -14,7 +14,6 @@ import type {
   GigType,
   GigWrapupResponse,
   Role,
-  OsAbilitySlug,
 } from "@neon-dusk/shared";
 import { NIL_REGEN_INTERVAL_MS, NIL_REGEN_RATE } from "@neon-dusk/shared";
 import { AppError } from "../middleware/error-handler";
@@ -43,12 +42,13 @@ import {
   canRunSecondGig,
   computeConsumption,
 } from "../game/abilities";
-import { getOsActiveBonus } from "../game/os-abilities";
+import { resolveOsActiveBonus } from "./os-service";
 import { transferEddies } from "../game/economy";
 import { emitEvent } from "../telemetry/emit-event";
 import { db, withTransaction } from "../db";
 import type { Queryable } from "../repositories";
 import { characterRepository as characters } from "../repositories/character-repository";
+import type { CharacterRow } from "../repositories/character-repository";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 import { chromeRepository as chrome } from "../repositories/chrome-repository";
@@ -144,19 +144,14 @@ async function getChromeStatBonus(
  * Issue #28: OS buffs applied to trampo rolls. SO Surto boosts Reflexes
  * (+50%) while its 30s window runs — that feeds the success formula when the
  * relevant stat is reflexes, the escape formula for reflex-based escapes,
- * and the +25% dodge multiplier on every escape roll.
+ * and the +25% dodge multiplier on every escape roll. Resolution is shared
+ * with the PvP service (os-service.resolveOsActiveBonus, cycle 2 review).
  */
 async function getOsGigBonus(
   q: Queryable,
-  characterId: string,
-  osAbilityId: string | null,
-  osActiveUntil: Date | null,
+  character: CharacterRow,
 ): Promise<{ statMultiplier: number; dodgeMultiplier: number }> {
-  if (!osAbilityId) return { statMultiplier: 1, dodgeMultiplier: 1 };
-  const slug = await chrome.findSlugById(osAbilityId, q);
-  if (!slug) return { statMultiplier: 1, dodgeMultiplier: 1 };
-
-  const bonus = getOsActiveBonus(slug as OsAbilitySlug, osActiveUntil);
+  const bonus = await resolveOsActiveBonus(character, q);
   return {
     statMultiplier: bonus?.reflexesMultiplier ?? 1,
     dodgeMultiplier: bonus?.dodgeMultiplier ?? 1,
@@ -472,12 +467,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
     const chromeStatBonusValue = chromeStatBonuses[primaryStatKey];
 
     // Issue #28: SO Surto ativo → +50% Reflexes no stat relevante (reflexes).
-    const osBonus = await getOsGigBonus(
-      trx,
-      characterId,
-      character.os_ability_id,
-      character.os_ability_active_until ? new Date(character.os_ability_active_until) : null,
-    );
+    const osBonus = await getOsGigBonus(trx, character);
     const statMultiplier = primaryStatKey === "reflexes" ? osBonus.statMultiplier : 1;
 
     // Crew bonus: +N percentage points to trampo success (ND-016).
@@ -568,12 +558,7 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     const stat = getEscapeStat(trampo.type as GigType, toAttributes(character));
     // Issue #28: SO Surto ativo → +50% Reflexes (escapes baseados em reflexes)
     // e +25% dodge em toda fuga.
-    const osBonus = await getOsGigBonus(
-      trx,
-      characterId,
-      character.os_ability_id,
-      character.os_ability_active_until ? new Date(character.os_ability_active_until) : null,
-    );
+    const osBonus = await getOsGigBonus(trx, character);
     const escapeStatKey = getEscapeStatKey(trampo.type as GigType);
     const statMultiplier = escapeStatKey === "reflexes" ? osBonus.statMultiplier : 1;
     const chance = calculateEscapeChance(

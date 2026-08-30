@@ -6,7 +6,6 @@ import type {
   PvpHistoryResponse,
   PvpTarget,
   Role,
-  OsAbilitySlug,
 } from "@neon-dusk/shared";
 import { AppError } from "../middleware/error-handler";
 import {
@@ -20,14 +19,13 @@ import {
   resolveCombat,
 } from "../game/pvp";
 import { getCombatTranceBonus } from "../game/abilities";
-import { getOsActiveBonus } from "../game/os-abilities";
+import { resolveOsActiveBonus } from "./os-service";
 import { transferEddies, type WalletState } from "../game/economy";
 import { instrument } from "../telemetry/instrument";
 import { invalidateLeaderboardCache } from "../lib/leaderboard-cache";
 import { withTransaction } from "../db";
 import type { Queryable } from "../repositories";
 import { characterRepository as characters } from "../repositories/character-repository";
-import type { CharacterRow } from "../repositories/character-repository";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 import { chromeRepository as chrome } from "../repositories/chrome-repository";
@@ -69,26 +67,6 @@ function startOfDayUTC(now: Date = new Date()): Date {
 async function loadChromePower(characterId: string, q?: Queryable): Promise<number> {
   const rows = await chrome.listInstalledBonuses(characterId, q);
   return calculateChromePower(rows);
-}
-
-/**
- * Issue #28: active OS multipliers (SO Fúria/Surto) for a locked character.
- * Resolves the installed OS slug via os_ability_id; null when no OS is
- * installed, inert or outside its effect window.
- */
-async function loadOsActiveBonus(
-  character: CharacterRow,
-  q?: Queryable,
-): Promise<{ bodyMultiplier?: number; reflexesMultiplier?: number } | null> {
-  if (!character.os_ability_id) return null;
-  const slug = await chrome.findSlugById(character.os_ability_id, q);
-  if (!slug) return null;
-
-  const bonus = getOsActiveBonus(
-    slug as OsAbilitySlug,
-    character.os_ability_active_until ? new Date(character.os_ability_active_until) : null,
-  );
-  return bonus;
 }
 
 /** Number of times `attackerId` hit `defenderId` since the start of the week. */
@@ -209,8 +187,9 @@ export async function executeAttack(
     const grieferPenalty = isGriefLimited(weeklyAttacks);
 
     // Resolve the fight (game logic incl. bicho role multiplier + crit).
-    const attackerOs = await loadOsActiveBonus(attacker, trx);
-    const defenderOs = await loadOsActiveBonus(defender, trx);
+    // OS multipliers come from the shared resolver (issue #28 review, cycle 2).
+    const attackerOs = await resolveOsActiveBonus(attacker, trx);
+    const defenderOs = await resolveOsActiveBonus(defender, trx);
     const { winner, attackerPower, defenderPower } = resolveCombat({
       attacker: {
         body: attacker.body,

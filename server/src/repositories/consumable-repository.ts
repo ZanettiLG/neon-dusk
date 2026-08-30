@@ -60,6 +60,12 @@ export interface ConsumableRepository {
   decrementQuantity(characterId: string, consumableId: string, q?: Queryable): Promise<boolean>;
   /** Most recent use of one item (per-item cooldown lookup). */
   findLastUse(characterId: string, consumableId: string, q?: Queryable): Promise<Pick<ConsumableUseRow, "used_at"> | null>;
+  /**
+   * Most recent use per item, batched (issue #28 review, cycle 2 — kills the
+   * N+1 in listConsumables). Map: consumable_id → last used_at; items without
+   * any use are absent.
+   */
+  findLastUses(characterId: string, consumableIds: string[], q?: Queryable): Promise<Map<string, Date>>;
   /** Uses of ANY item since `since` (rolling 24h global counter). */
   countUsesInWindow(characterId: string, since: Date, q?: Queryable): Promise<number>;
   /** Append one usage log row. */
@@ -155,6 +161,21 @@ export function createConsumableRepository(q: Queryable = db): ConsumableReposit
         .orderBy("used_at", "desc")
         .limit(1);
       return rows.length ? (rows[0] as Pick<ConsumableUseRow, "used_at">) : null;
+    },
+
+    async findLastUses(characterId, consumableIds, tx = q) {
+      if (consumableIds.length === 0) return new Map();
+      const rows = await tx("consumable_uses")
+        .select("consumable_id")
+        .max({ used_at: "used_at" })
+        .where("character_id", characterId)
+        .whereIn("consumable_id", consumableIds)
+        .groupBy("consumable_id");
+      const map = new Map<string, Date>();
+      for (const row of rows as Array<{ consumable_id: string; used_at: Date | string }>) {
+        map.set(row.consumable_id, row.used_at instanceof Date ? row.used_at : new Date(row.used_at));
+      }
+      return map;
     },
 
     async countUsesInWindow(characterId, since, tx = q) {

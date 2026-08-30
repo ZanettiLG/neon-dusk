@@ -120,6 +120,13 @@ export interface CharacterRepository {
   /** Humanity decrement guarded by `humanity >= cost` (concurrent install guard). */
   updateHumanityGuarded(id: string, humanity: number, cost: number, q?: Queryable): Promise<void>;
   /**
+   * Flatline write (issue #28): marks the character as apagado — permanent
+   * for the round, no un-flatline path exists. Written by the cromo install
+   * flow in the same transaction as the humanity decrement that drained
+   * humanity to 0.
+   */
+  updateFlatline(id: string, q?: Queryable): Promise<void>;
+  /**
    * Humanity restore (therapy/consumable path) — plain write that also bumps
    * `humanity_updated_at` so the scrubber's lazy regen window restarts.
    */
@@ -307,6 +314,12 @@ export function createCharacterRepository(q: Queryable = db): CharacterRepositor
         .update({ humanity, humanity_updated_at: new Date(), updated_at: new Date() })
         .where("id", id)
         .where("humanity", ">=", cost);
+    },
+
+    async updateFlatline(id, tx = q) {
+      await tx("characters")
+        .update({ is_flatlined: true, flatlined_at: tx.fn.now(), updated_at: new Date() })
+        .where("id", id);
     },
 
     async updateHumanity(id, humanity, tx = q) {

@@ -38,7 +38,9 @@ import type {
 // implant insert → atomic humanity decrement. The UPDATE's WHERE guard
 // (`humanity >= cost`) re-validates the cost against the row's current
 // humanity at write time, so concurrent installs that both read the same
-// value can never overwrite each other's deduction.
+// value can never overwrite each other's deduction. When the decrement
+// drains humanity to 0, the same transaction marks the character as
+// flatlined (issue #28) — the install path is the flatline trigger.
 
 /** DB row → API shape (snake → camel; strips is_active internals). */
 function toPublicDefinition(row: ChromeDefinitionRow): ChromeDefinition {
@@ -58,8 +60,10 @@ function toPublicDefinition(row: ChromeDefinitionRow): ChromeDefinition {
 /**
  * Install cromo bought from a ferrageiro. Validates the implant, the vendor
  * stock, the slot capacity and the humanity cost, then atomically debits the
- * wallet and records the implant + audit entry. Returns the new loadout entry,
- * the effective humanity and the post-purchase wallet balance.
+ * wallet and records the implant + audit entry. When the humanity cost
+ * drains the character to exactly 0, the same transaction marks them as
+ * flatlined (apagado — permanent for the round). Returns the new loadout
+ * entry, the effective humanity and the post-purchase wallet balance.
  */
 export async function installChrome(
   characterId: string,
@@ -189,6 +193,15 @@ export async function installChrome(
     const effectiveHumanity = character.humanity - effectiveHumanityCost;
     if (effectiveHumanityCost > 0) {
       await characters.updateHumanityGuarded(characterId, effectiveHumanity, effectiveHumanityCost, trx);
+    }
+
+    // Issue #28: flatline trigger — an install that drains humanity to 0
+    // apaga the character PERMANENTLY for the round (flag 1 approved: no
+    // restore path exists; therapy/consumables are blocked by the 403 gates).
+    // Same transaction as the humanity decrement — no window where a
+    // zero-humanity character is still actionable.
+    if (effectiveHumanity <= 0) {
+      await characters.updateFlatline(characterId, trx);
     }
 
     // Feature #65: consume Overclock after successful install.
