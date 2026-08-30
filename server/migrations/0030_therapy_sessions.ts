@@ -28,7 +28,7 @@ export async function up(knex: Knex): Promise<void> {
     table.integer("humanity_before").notNullable();
     table.integer("humanity_after").notNullable();
     table.specificType("completed_at", "timestamptz").notNullable().defaultTo(knex.fn.now());
-    table.timestamp("created_at").defaultTo(knex.fn.now()).notNullable();
+    table.specificType("created_at", "timestamptz").defaultTo(knex.fn.now()).notNullable();
   });
 
   await knex.raw(
@@ -50,6 +50,7 @@ export async function up(knex: Knex): Promise<void> {
 export async function down(knex: Knex): Promise<void> {
   await knex.raw(`DROP INDEX IF EXISTS "idx_therapy_sessions_character_completed"`);
   await knex.raw(`DROP TABLE IF EXISTS "therapy_sessions" CASCADE`);
-  await knex.raw(`DROP TYPE IF EXISTS "therapy_type"`);
+  // Schema-qualified to match the CREATE TYPE/table.specificType("public.") pattern.
+  await knex.raw(`DROP TYPE IF EXISTS public.therapy_type`);
   // transaction_type: ADD VALUE is irreversible (see 0028 note) — no-op.
 }

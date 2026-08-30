@@ -559,5 +559,33 @@ describe("economy service", () => {
         });
       }
     });
+
+    it("should return 403 FLATLINED for an apagado character and not debit", async () => {
+      const { characterId, vendorId } = await seedStore();
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      await expect(
+        buyFromVendor(characterId, vendorId, "weapon", "nova-9", 1),
+      ).rejects.toMatchObject({
+        statusCode: 403,
+        code: "FLATLINED",
+      });
+      // Gate fires before any write: wallet untouched, no audit entry, stock kept.
+      const [wallet] = await db("character_wallets")
+        .select("balance", "version")
+        .where("character_id", characterId);
+      expect(wallet).toMatchObject({ balance: 500, version: 0 });
+      const purchases = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "VENDOR_PURCHASE");
+      expect(purchases).toHaveLength(0);
+      const [row] = await db("vendor_inventory")
+        .select("stock")
+        .where("vendor_id", vendorId);
+      expect(row!.stock).toBe(5);
+    });
   });
 });

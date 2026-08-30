@@ -263,6 +263,14 @@ export async function buyFromVendor(
   }
 
   return withTransaction(async (trx) => {
+    // Gate: an Apagado character is permanently lost (docs §4) and cannot
+    // spend. Fires before the vendor lookup and before any wallet write.
+    const character = await characters.findById(characterId, trx);
+    if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     // 1. Get vendor item
     const item = await vendors.findStockItem(vendorId, itemType, itemId, trx);
 

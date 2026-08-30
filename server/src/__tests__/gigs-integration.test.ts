@@ -6,6 +6,7 @@ import { envSchema } from "../env";
 import { insertTestCharacter, resetDb } from "./helpers";
 import { db } from "../db";
 import {
+  abandonGig,
   acceptGig,
   doLegwork,
   escapeGig,
@@ -512,6 +513,27 @@ describe("ND-011 — trampos service & API", () => {
         code: "INVALID_PHASE_TRANSITION",
       });
     });
+
+    it("should throw 403 FLATLINED for an apagado character without transitioning", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id); // NIL 100 → 90
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      await expect(doLegwork(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 403,
+        code: "FLATLINED",
+      });
+      // Gate fires before any write: phase unchanged, NIL untouched.
+      const [active] = await db("active_gigs")
+        .select("phase")
+        .where("character_id", characterId);
+      expect(active!.phase).toBe("meet");
+      const [char] = await db("characters").select("nil").where("id", characterId);
+      expect(char!.nil).toBe(90);
+    });
   });
 
   describe("executeGig", () => {
@@ -630,6 +652,28 @@ describe("ND-011 — trampos service & API", () => {
         statusCode: 404,
         code: "NO_ACTIVE_GIG",
       });
+    });
+
+    it("should throw 403 FLATLINED for an apagado character without rolling", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+      await executeGig(characterId, farma.id); // meet → execute
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      await expect(escapeGig(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 403,
+        code: "FLATLINED",
+      });
+      // Gate fires before any write: still in the execute phase, NIL untouched.
+      const [active] = await db("active_gigs")
+        .select("phase")
+        .where("character_id", characterId);
+      expect(active!.phase).toBe("execute");
+      const [char] = await db("characters").select("nil").where("id", characterId);
+      expect(char!.nil).toBe(90);
     });
   });
 
@@ -772,6 +816,87 @@ describe("ND-011 — trampos service & API", () => {
         statusCode: 404,
         code: "NO_ACTIVE_GIG",
       });
+    });
+
+    it("should throw 403 FLATLINED for an apagado character and pay nothing", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+      await forceEscapePhase(characterId, { outcome: "success" });
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      await expect(wrapUpGig(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 403,
+        code: "FLATLINED",
+      });
+      // Gate fires before any write: no payout, no Moral, no heat, no history —
+      // the active trampo stays open and the wallet is never credited.
+      const [char] = await db("characters")
+        .select("street_cred", "nil")
+        .where("id", characterId);
+      expect(char!.street_cred).toBe(0);
+      expect(char!.nil).toBe(90);
+      const [wallet] = await db("character_wallets")
+        .select("balance", "lifetime_earned")
+        .where("character_id", characterId);
+      expect(wallet).toBeUndefined(); // never ensured past the gate
+      const payouts = await db("transaction_log")
+        .select("*")
+        .where("character_id", characterId)
+        .andWhere("type", "GIG_PAYOUT");
+      expect(payouts).toHaveLength(0);
+      const heatRows = await db("heat")
+        .select("*")
+        .where("character_id", characterId);
+      expect(heatRows).toHaveLength(0);
+      expect(await getActiveGig(characterId)).not.toBeNull();
+      const history = await db("gig_history").select("*").where("character_id", characterId);
+      expect(history).toHaveLength(0);
+    });
+  });
+
+  describe("abandonGig", () => {
+    it("should abandon the active trampo and record history", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+
+      const res = await abandonGig(characterId, farma.id);
+
+      expect(res.outcome).toBe("abandoned");
+      expect(await getActiveGig(characterId)).toBeNull();
+      const [history] = await db("gig_history")
+        .select("*")
+        .where("character_id", characterId);
+      expect(history).toMatchObject({
+        gig_id: farma.id,
+        outcome: "abandoned",
+        phases_completed: ["meet"],
+        district: "Babilônia",
+      });
+    });
+
+    it("should throw 403 FLATLINED for an apagado character and keep the trampo", async () => {
+      const { characterId } = await insertTestCharacter();
+      const farma = await farmaGig();
+      await acceptGig(characterId, farma.id);
+      await db("characters")
+        .where("id", characterId)
+        .update({ is_flatlined: true, flatlined_at: new Date() });
+
+      await expect(abandonGig(characterId, farma.id)).rejects.toMatchObject({
+        statusCode: 403,
+        code: "FLATLINED",
+      });
+      // Gate fires before any write: trampo still active, no history row,
+      // NIL untouched.
+      expect(await getActiveGig(characterId)).not.toBeNull();
+      const history = await db("gig_history").select("*").where("character_id", characterId);
+      expect(history).toHaveLength(0);
+      const [char] = await db("characters").select("nil").where("id", characterId);
+      expect(char!.nil).toBe(90);
     });
   });
 
