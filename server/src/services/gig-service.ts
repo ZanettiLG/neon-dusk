@@ -14,6 +14,7 @@ import type {
   GigType,
   GigWrapupResponse,
   Role,
+  OsAbilitySlug,
 } from "@neon-dusk/shared";
 import { NIL_REGEN_INTERVAL_MS, NIL_REGEN_RATE } from "@neon-dusk/shared";
 import { AppError } from "../middleware/error-handler";
@@ -27,6 +28,7 @@ import {
   calculateSuccessChance,
   canTransition,
   getEscapeStat,
+  getEscapeStatKey,
   getPrimaryStatKey,
   getRelevantStats,
   isCooldownExpired,
@@ -41,6 +43,7 @@ import {
   canRunSecondGig,
   computeConsumption,
 } from "../game/abilities";
+import { getOsActiveBonus } from "../game/os-abilities";
 import { transferEddies } from "../game/economy";
 import { emitEvent } from "../telemetry/emit-event";
 import { db, withTransaction } from "../db";
@@ -135,6 +138,29 @@ async function getChromeStatBonus(
   const defIds = installed.map((i) => i.chrome_definition_id);
   const defs = await chrome.listDefinitionsByIds(defIds, q);
   return calculateStatBonus(defs as unknown as ChromeDefinition[]);
+}
+
+/**
+ * Issue #28: OS buffs applied to trampo rolls. SO Surto boosts Reflexes
+ * (+50%) while its 30s window runs — that feeds the success formula when the
+ * relevant stat is reflexes, the escape formula for reflex-based escapes,
+ * and the +25% dodge multiplier on every escape roll.
+ */
+async function getOsGigBonus(
+  q: Queryable,
+  characterId: string,
+  osAbilityId: string | null,
+  osActiveUntil: Date | null,
+): Promise<{ statMultiplier: number; dodgeMultiplier: number }> {
+  if (!osAbilityId) return { statMultiplier: 1, dodgeMultiplier: 1 };
+  const slug = await chrome.findSlugById(osAbilityId, q);
+  if (!slug) return { statMultiplier: 1, dodgeMultiplier: 1 };
+
+  const bonus = getOsActiveBonus(slug as OsAbilitySlug, osActiveUntil);
+  return {
+    statMultiplier: bonus?.reflexesMultiplier ?? 1,
+    dodgeMultiplier: bonus?.dodgeMultiplier ?? 1,
+  };
 }
 
 /**
@@ -445,6 +471,15 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
     const primaryStatKey = getPrimaryStatKey(trampo.type as GigType);
     const chromeStatBonusValue = chromeStatBonuses[primaryStatKey];
 
+    // Issue #28: SO Surto ativo → +50% Reflexes no stat relevante (reflexes).
+    const osBonus = await getOsGigBonus(
+      trx,
+      characterId,
+      character.os_ability_id,
+      character.os_ability_active_until ? new Date(character.os_ability_active_until) : null,
+    );
+    const statMultiplier = primaryStatKey === "reflexes" ? osBonus.statMultiplier : 1;
+
     // Crew bonus: +N percentage points to trampo success (ND-016).
     let crewBonus = 0;
     if (character.crew_id) {
@@ -454,7 +489,7 @@ export async function executeGig(characterId: string, gigId: string): Promise<Gi
       if (gigBonus) crewBonus = gigBonus.value;
     }
 
-    const baseChance = calculateSuccessChance(primary, chromeBonus, Number(trampo.difficulty), undefined, chromeStatBonusValue);
+    const baseChance = calculateSuccessChance(primary, chromeBonus, Number(trampo.difficulty), undefined, chromeStatBonusValue, statMultiplier);
     const chance = applyLegworkModifier(baseChance, { skippedLegwork, legworkDone });
     // Crew bonus adds percentage points after base chance (value=5 → +0.05).
     const chanceWithCrew = Math.min(0.95, chance + crewBonus / 100);
@@ -531,7 +566,23 @@ export async function escapeGig(characterId: string, gigId: string): Promise<Gig
     );
 
     const stat = getEscapeStat(trampo.type as GigType, toAttributes(character));
-    const chance = calculateEscapeChance(stat, Number(trampo.escape_difficulty), effectiveHeat);
+    // Issue #28: SO Surto ativo → +50% Reflexes (escapes baseados em reflexes)
+    // e +25% dodge em toda fuga.
+    const osBonus = await getOsGigBonus(
+      trx,
+      characterId,
+      character.os_ability_id,
+      character.os_ability_active_until ? new Date(character.os_ability_active_until) : null,
+    );
+    const escapeStatKey = getEscapeStatKey(trampo.type as GigType);
+    const statMultiplier = escapeStatKey === "reflexes" ? osBonus.statMultiplier : 1;
+    const chance = calculateEscapeChance(
+      stat,
+      Number(trampo.escape_difficulty),
+      effectiveHeat,
+      statMultiplier,
+      osBonus.dodgeMultiplier,
+    );
     const outcome = rollGigOutcome(chance);
     const heatGenerated = calculateHeat(Number(trampo.heat_generated), (active.executeOutcome ?? "failure") as "success" | "failure");
 

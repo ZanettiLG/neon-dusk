@@ -8,6 +8,7 @@ import { characterRepository as characters } from "../repositories/character-rep
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 import { vendorRepository as vendors } from "../repositories/vendor-repository";
+import { consumableRepository as consumables } from "../repositories/consumable-repository";
 import type { TransactionRow } from "../repositories/transaction-repository";
 
 // Neon Dusk — Economy service (orchestration over the pure game logic)
@@ -351,6 +352,17 @@ export async function buyFromVendor(
         );
         const restored = Math.min(character.max_nil, current + NIL_SYN_CAFE_AMOUNT);
         await characters.updateNilSet(characterId, restored, trx);
+      }
+    }
+
+// 11. Issue #28: sanity consumables (itens anti-insanidade) grant inventory
+//     — ON CONFLICT quantity + 1 (ADR 28-C: preço em vendor_inventory,
+//     efeito no catálogo consumables). Pingado e ampolas legadas não existem
+//     no catálogo consumables, então o grant é pulado para eles.
+    if (itemType === "CONSUMABLE" && itemId !== "syn-cafe") {
+      const consumable = await consumables.findActiveBySlug(itemId, trx);
+      if (consumable) {
+        await consumables.addQuantity(characterId, consumable.id, quantity, trx);
       }
     }
 

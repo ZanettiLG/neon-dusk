@@ -134,6 +134,23 @@ const PT_BR_ERRORS: Record<string, string> = {
   SLOT_FULL: "Slot de cromo ocupado.",
   HUMANITY_TOO_LOW: "Humanidade insuficiente para este implante.",
   INSTALLED_CHROME_NOT_FOUND: "Implante instalado não encontrado.",
+  OS_ALREADY_INSTALLED: "Você já tem um SO instalado nesta rodada.",
+  OS_PERMANENT: "O SO é permanente por rodada. Troque no reset.",
+
+  // OS / Humanidade / Terapia (issue #28)
+  NO_OS_INSTALLED: "Nenhum SO instalado. Visite um ferrageiro.",
+  OS_INERT: "Este SO não tem habilidade ativa nesta rodada.",
+  OS_ALREADY_ACTIVE: "O efeito do SO já está ativo.",
+  OS_NO_USES_LEFT: "Sem ativações restantes hoje. Reset à meia-noite UTC.",
+  FLATLINED: "Personagem apagado. Sem ações permitidas.",
+  THERAPY_COOLDOWN: "Você já fez terapia nas últimas 24h.",
+  INSUFFICIENT_EDDIES: "Grana insuficiente.",
+
+  // Itens anti-insanidade (issue #28)
+  CONSUMABLE_NOT_FOUND: "Item não encontrado.",
+  NOT_OWNED: "Você não tem este item no inventário.",
+  BAND_TOO_HIGH: "Sua humanidade está alta demais para isso (máx. 70).",
+  DIMINISHING_RETURNS_EXHAUSTED: "Máximo de 3 usos por 24h atingido.",
 
   // Trampos
   GIG_NOT_FOUND: "Trampo não encontrado.",

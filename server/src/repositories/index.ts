@@ -27,6 +27,14 @@ import {
   createGameParamRepository,
   type GameParamRepository,
 } from "./game-param-repository";
+import {
+  createConsumableRepository,
+  type ConsumableRepository,
+} from "./consumable-repository";
+import {
+  createTherapyRepository,
+  type TherapyRepository,
+} from "./therapy-repository";
 
 // Neon Dusk — Repositories barrel (#158 DB repository layer)
 // ============================================================================
@@ -55,6 +63,8 @@ export interface Repositories {
   rounds: RoundRepository;
   audit: AuditRepository;
   gameParams: GameParamRepository;
+  consumables: ConsumableRepository;
+  therapy: TherapyRepository;
 }
 
 /**
@@ -79,6 +89,8 @@ export function createRepositories(q: Queryable = db): Repositories {
     rounds: createRoundRepository(q),
     audit: createAuditRepository(q),
     gameParams: createGameParamRepository(q),
+    consumables: createConsumableRepository(q),
+    therapy: createTherapyRepository(q),
   };
 }
 

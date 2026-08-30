@@ -25,6 +25,7 @@ import { characterRepository as characters } from "../repositories/character-rep
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 import { chromeRepository as chrome } from "../repositories/chrome-repository";
+import { getOsStatus } from "./os-service";
 import type {
   ChromeDefinitionRow,
   InstalledChromeRow,
@@ -80,6 +81,12 @@ export async function installChrome(
     const character = await characters.findById(characterId, trx);
     if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
 
+    // Issue #28: flatline enforcement — an Apagado character cannot install
+    // cromo (flag 1 approved: permanent loss, consumables are the only net).
+    if (character.is_flatlined) {
+      throw new AppError(403, "FLATLINED", "Personagem apagado. Sem ações permitidas.");
+    }
+
     // Feature #65: Overclock — 50% discount + 0 humanity cost for gambiarristas.
     const overclockActive = getOverclockBonus(
       character.role as Role,
@@ -92,6 +99,15 @@ export async function installChrome(
 
     if (loadout.some((row) => row.definitionId === chromeDefinitionId)) {
       throw new AppError(409, "ALREADY_INSTALLED", "Cromo já instalado");
+    }
+
+    // Issue #28: one OS per round — the operating_system slot is exclusive
+    // and permanent; a second OS install is rejected.
+    if (definition.slot === "operating_system") {
+      const osInstalled = loadout.some((row) => row.slot === "operating_system");
+      if (osInstalled) {
+        throw new AppError(409, "OS_ALREADY_INSTALLED", "Você já tem um SO instalado nesta rodada.");
+      }
     }
 
     // 5. Slot capacity (one definition per install, so counts never double)
@@ -163,6 +179,12 @@ export async function installChrome(
       trx,
     );
 
+    // Issue #28: an OS install mirrors the definition into os_ability_id
+    // (the OS activation state lives on characters — ADR 1).
+    if (definition.slot === "operating_system") {
+      await characters.setOsAbilityId(characterId, definition.id, trx);
+    }
+
     // Atomic humanity decrement — zero when overclock is active.
     const effectiveHumanity = character.humanity - effectiveHumanityCost;
     if (effectiveHumanityCost > 0) {
@@ -212,6 +234,11 @@ export async function uninstallChrome(
   // a foreign id indistinguishable from a missing one (404 either way).
   const row = await chrome.findInstalledById(installedChromeId, characterId);
   if (!row) throw new AppError(404, "INSTALLED_CHROME_NOT_FOUND", "Cromo instalado não encontrado");
+
+  // Issue #28: the OS is permanent for the round — removal only via reset.
+  if (row.slot === "operating_system") {
+    throw new AppError(400, "OS_PERMANENT", "O SO é permanente por rodada. Troque no reset.");
+  }
 
   const character = await characters.findById(characterId);
   if (!character) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
@@ -290,6 +317,8 @@ export async function listInstalledChrome(characterId: string): Promise<Installe
     hpBonus: calculateHpBonus(definitions),
     gigSuccessBonus: calculateGigSuccessBonus(definitions),
     nilMaxBonus: calculateNilMaxBonus(definitions),
+    // Issue #28: installed OS activation readout (null-safe read).
+    osAbility: await getOsStatus(characterId),
   };
 }
 

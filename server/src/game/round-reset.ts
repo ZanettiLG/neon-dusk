@@ -106,10 +106,14 @@ SELECT
       description: "end_current_round",
       sql: `UPDATE "rounds" SET "status" = 'ended', "ended_at" = now() WHERE "status" = 'active'`,
     },
-    // 4-13. Wipe per-round state (order: trampos → cromo → pvp → heat → audit → crews).
+    // 4-16. Wipe per-round state (order: trampos → cromo → therapy → consumables
+    //       → pvp → heat → audit → crews).
     { description: "wipe_active_gigs", sql: `DELETE FROM "active_gigs"` },
     { description: "wipe_gig_history", sql: `DELETE FROM "gig_history"` },
     { description: "wipe_installed_chrome", sql: `DELETE FROM "installed_chrome"` },
+    { description: "wipe_therapy_sessions", sql: `DELETE FROM "therapy_sessions"` },
+    { description: "wipe_character_consumables", sql: `DELETE FROM "character_consumables"` },
+    { description: "wipe_consumable_uses", sql: `DELETE FROM "consumable_uses"` },
     { description: "wipe_pvp_combats", sql: `DELETE FROM "pvp_combats"` },
     { description: "wipe_heat", sql: `DELETE FROM "heat"` },
     { description: "wipe_transaction_log", sql: `DELETE FROM "transaction_log"` },
@@ -120,18 +124,20 @@ SELECT
       sql: `UPDATE "characters" SET "crew_id" = NULL, "updated_at" = now()`,
     },
     { description: "wipe_crews", sql: `DELETE FROM "crews"` },
-    // 14. Economy reset — wallets zeroed, optimistic-lock version bumped.
+    // 17. Economy reset — wallets zeroed, optimistic-lock version bumped.
     {
       description: "zero_wallets",
       sql: `UPDATE "character_wallets" SET "balance" = 0, "escrow" = 0, "lifetime_earned" = 0, "lifetime_spent" = 0, "version" = "version" + 1, "updated_at" = now()`,
     },
-    // 15. Character reset — SC 0 (max_street_cred_achieved persists), base
-    //     attributes, NIL 100, humanity 100, activity clock reset.
+    // 18. Character reset — SC 0 (max_street_cred_achieved persists), base
+    //     attributes, NIL 100, humanity 100, OS uninstalled, flatline cleared,
+    //     activity clock reset. (Issue #28: OS is permanent per round — the
+    //     reset is the only way to swap it.)
     {
       description: RESET_CHARACTERS_STEP,
-      sql: `UPDATE "characters" SET "street_cred" = 0, "body" = 3, "reflexes" = 3, "intelligence" = 3, "technical" = 3, "cool" = 3, "nil" = 100, "nil_updated_at" = now(), "humanity" = 100, "last_activity_at" = now(), "updated_at" = now()`,
+      sql: `UPDATE "characters" SET "street_cred" = 0, "body" = 3, "reflexes" = 3, "intelligence" = 3, "technical" = 3, "cool" = 3, "nil" = 100, "nil_updated_at" = now(), "humanity" = 100, "humanity_updated_at" = now(), "is_flatlined" = false, "flatlined_at" = NULL, "os_ability_id" = NULL, "os_ability_active_until" = NULL, "os_ability_uses_today" = 0, "os_ability_used_date" = NULL, "last_activity_at" = now(), "updated_at" = now()`,
     },
-    // 16. Open the next round after the intermission gap. COALESCE guards the
+    // 19. Open the next round after the intermission gap. COALESCE guards the
     //     degenerate empty-table case.
     {
       description: "start_next_round",

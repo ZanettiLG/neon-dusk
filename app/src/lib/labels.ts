@@ -72,10 +72,13 @@ export const GIG_PHASE_LABELS: Record<GigPhase, string> = {
 export const CHROME_SLOT_LABELS: Record<string, string> = {
   frontal_cortex: "Córtex Frontal",
   ocular: "Ocular",
+  operating_system: "Sistema Operacional",
   arms: "Braços",
   skeleton: "Esqueleto",
   nervous_system: "Sistema Nervoso",
+  circulatory: "Circulatório",
   integumentary: "Tegumentar",
+  legs: "Pernas",
 };
 
 // Vendor types (ND-010)
@@ -101,6 +104,10 @@ export const ITEM_ID_LABELS: Record<string, string> = {
   "syn-cafe": "Pingado",
   "combat-stim": "Porrada",
   "access-chip": "Chip Frio",
+  // Issue #28: itens anti-insanidade (nomes diegéticos curtos).
+  estabilizador: "Estabilizador",
+  freio: "Freio",
+  choque: "Choque",
 };
 
 // Banca abilities (04-sistemas-e-progressao.md §2) — canonical display names.
@@ -110,4 +117,13 @@ export const ABILITY_LABELS: Record<AbilityType, string> = {
   overclock: "Overclock",
   silver_tongue: "Silver Tongue",
   long_haul: "Long Haul",
+};
+
+// Humanidade bands (04-sistemas-e-progressao.md §4) — canonical PT labels.
+export const BAND_LABELS: Record<string, string> = {
+  integro: "Íntegro",
+  instavel: "Instável",
+  borderline: "Borderline",
+  cyberpsycho: "Cyberpsycho",
+  apagado: "Apagado",
 };

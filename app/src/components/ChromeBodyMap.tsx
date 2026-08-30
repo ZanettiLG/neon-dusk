@@ -7,8 +7,8 @@ interface ChromeBodyMapProps {
 }
 
 /**
- * Body-slot map: all 6 cromo slots with count/capacity and the short names of
- * installed implants. Empty slots render dimmed.
+ * Body-slot map: all 9 cromo slots (issue #28) with count/capacity and the
+ * short names of installed implants. Empty slots render dimmed.
  */
 export default function ChromeBodyMap({ installed }: ChromeBodyMapProps) {
   return (

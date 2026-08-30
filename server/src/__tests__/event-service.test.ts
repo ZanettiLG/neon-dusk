@@ -24,10 +24,14 @@ const SEVERITY_MAP: [GameEventType, CharacterEventSeverity][] = [
   ["VENDOR_PURCHASE", "info"],
   ["ABILITY_ACTIVATED", "success"],
   ["ABILITY_CONSUMED", "info"],
+  // Issue #28 — cromo incompleto (OS, terapia, itens anti-insanidade).
+  ["OS_ACTIVATED", "success"],
+  ["THERAPY_COMPLETED", "success"],
+  ["HUMANITY_RESTORED", "success"],
 ];
 
 describe("severityFor", () => {
-  it("should map every one of the 13 event types to its exact severity", () => {
+  it("should map every one of the 16 event types to its exact severity", () => {
     for (const [type, expected] of SEVERITY_MAP) {
       expect(severityFor(type)).toBe(expected);
     }

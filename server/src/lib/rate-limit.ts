@@ -23,7 +23,10 @@ export type ActionType =
   | "character_create"
   | "vendor_purchase"
   | "stim_use"
-  | "gig_abandon";
+  | "gig_abandon"
+  | "os_activate"
+  | "therapy"
+  | "consumable_use";
 
 /** Per-action rate limit configuration. */
 export interface RateLimitEntry {
@@ -46,6 +49,9 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
   vendor_purchase:  { max: 1000, windowMs: 60_000 },
   stim_use:         { max: 500,  windowMs: 30_000 },
   gig_abandon:      { max: 500,  windowMs: 60_000 },
+  os_activate:      { max: 60,   windowMs: 3_600_000 },
+  therapy:          { max: 100,  windowMs: 3_600_000 },
+  consumable_use:   { max: 100,  windowMs: 3_600_000 },
 } as const;
 
 /** Circuit-breaker config — mutable so tests can tune the threshold. */

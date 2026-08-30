@@ -177,20 +177,27 @@ describe("Feature #4 — cromo API", () => {
   }
 
   describe("GET /api/chrome", () => {
-    it("should return all 5 active cromo definitions", async () => {
+    it("should return all 12 active cromo definitions", async () => {
       const { accessToken } = await registerAndCreateCharacter();
 
       const res = await fetch(`${base()}/api/chrome`, { headers: authHeader(accessToken) });
 
       expect(res.status).toBe(200);
       const body = await json<ChromeDefinition[]>(res);
-      expect(body).toHaveLength(5);
+      expect(body).toHaveLength(12);
       expect(body.map((d) => d.slug).sort()).toEqual([
         "gorilla-arms",
         "kiroshi-optics",
+        "medula-reforcada",
         "neural-booster",
+        "neural-scrubber",
+        "os-fury",
+        "os-gazuah",
+        "os-surge",
         "reflex-tuner",
+        "segundo-coracao",
         "subdermal-armor",
+        "tornozelos-fortificados",
       ]);
       // Ordered by tier (T1 first) then name.
       expect(body[0].tier).toBe(1);
@@ -261,6 +268,8 @@ describe("Feature #4 — cromo API", () => {
         hpBonus: 0,
         gigSuccessBonus: 0,
         nilMaxBonus: 0,
+        // Issue #28: OS readout ships with the loadout (no OS installed).
+        osAbility: { installed: false, os: null, ability: null },
       });
     });
 

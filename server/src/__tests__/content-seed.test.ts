@@ -135,8 +135,8 @@ describe("GIG_TEMPLATES (content/gig-templates.ts)", () => {
 // ─── CHROME_DEFINITIONS ────────────────────────────────────────────────────
 
 describe("CHROME_DEFINITIONS (content/chrome-definitions.ts)", () => {
-  it("should contain 5 entries", () => {
-    expect(CHROME_DEFINITIONS).toHaveLength(5);
+  it("should contain 12 entries", () => {
+    expect(CHROME_DEFINITIONS).toHaveLength(12);
   });
 
   it("should give every entry a kebab-case unique slug (the stable id)", () => {
@@ -153,9 +153,9 @@ describe("CHROME_DEFINITIONS (content/chrome-definitions.ts)", () => {
     }
   });
 
-  it("should keep tier at 1-2 and costs positive", () => {
+  it("should keep tier at 1-3 and costs positive", () => {
     for (const c of CHROME_DEFINITIONS) {
-      expect([1, 2]).toContain(c.tier);
+      expect([1, 2, 3]).toContain(c.tier);
       expect(c.humanityCost).toBeGreaterThan(0);
       expect(c.basePrice).toBeGreaterThan(0);
       expect(c.name.trim().length).toBeGreaterThan(0);
@@ -219,9 +219,9 @@ describe("VENDOR_SEED (content/vendor-inventories.ts)", () => {
     }
   });
 
-  it("should carry 8 inventory rows total (5 ferrageiro, 0 despachante, 1 ampola, 2 black market)", () => {
+  it("should carry 18 inventory rows total (13 ferrageiro, 0 despachante, 2 ampola, 3 black market)", () => {
     const counts = VENDOR_SEED.map((v) => v.inventory.length);
-    expect(counts).toEqual([5, 0, 1, 2]);
+    expect(counts).toEqual([13, 0, 2, 3]);
   });
 });
 

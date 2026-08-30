@@ -3,9 +3,10 @@ import { render, screen } from "@testing-library/react";
 import ChromeBodyMap from "@/components/ChromeBodyMap";
 import type { ChromeSlot, InstalledChromeRecord } from "@neon-dusk/shared";
 
-// ND-139 — ChromeBodyMap: all 6 body slots with count/capacity, implant names
-// in filled slots, dimmed placeholders in empty ones. Empty/loading states are
-// handled by the DashboardView, not this component.
+// ND-139 — ChromeBodyMap: all 9 body slots (issue #28 added operating_system,
+// circulatory, legs) with count/capacity, implant names in filled slots,
+// dimmed placeholders in empty ones. Empty/loading states are handled by the
+// DashboardView, not this component.
 
 function chromeRecord(installedId: string, name: string, slot: ChromeSlot): InstalledChromeRecord {
   return {
@@ -32,16 +33,19 @@ const SEEDED_LOADOUT: InstalledChromeRecord[] = [
 ];
 
 describe("ChromeBodyMap", () => {
-  it("should render all 6 slot labels", () => {
+  it("should render all 9 slot labels", () => {
     render(<ChromeBodyMap installed={[]} />);
 
     for (const label of [
       "Córtex Frontal",
       "Ocular",
+      "Sistema Operacional",
       "Braços",
       "Esqueleto",
       "Sistema Nervoso",
+      "Circulatório",
       "Tegumentar",
+      "Pernas",
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
@@ -54,7 +58,8 @@ describe("ChromeBodyMap", () => {
     expect(screen.getAllByText("0/2")).toHaveLength(2); // ocular + skeleton
     expect(screen.getByText("1/2")).toBeInTheDocument(); // arms
     expect(screen.getByText("1/3")).toBeInTheDocument(); // nervous_system
-    expect(screen.getByText("0/3")).toBeInTheDocument(); // integumentary
+    expect(screen.getAllByText("0/3")).toHaveLength(2); // circulatory + integumentary
+    expect(screen.getAllByText("0/1")).toHaveLength(2); // operating_system + legs
   });
 
   it("should show implant names in filled slots", () => {
@@ -69,9 +74,9 @@ describe("ChromeBodyMap", () => {
   it("should dim empty slots and render a placeholder dash", () => {
     render(<ChromeBodyMap installed={SEEDED_LOADOUT} />);
 
-    // Ocular, Esqueleto and Tegumentar are empty → 3 dashes.
+    // Ocular, Esqueleto, Circulatório, Tegumentar, SO e Pernas estão vazios → 6 dashes.
     const dashes = screen.getAllByText("—");
-    expect(dashes).toHaveLength(3);
+    expect(dashes).toHaveLength(6);
     for (const dash of dashes) {
       // The dash span is a direct child of the slot card div.
       expect(dash.closest("div")).toHaveClass("opacity-60", "border-nd-cyan/10");

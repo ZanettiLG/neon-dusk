@@ -42,6 +42,7 @@ describe("Drawer", () => {
     expect(screen.getByRole("link", { name: "Vendedores" })).toHaveAttribute("href", "/vendors");
     expect(screen.getByRole("link", { name: "Economia" })).toHaveAttribute("href", "/economy");
     expect(screen.getByRole("link", { name: "Bondes" })).toHaveAttribute("href", "/crews");
+    expect(screen.getByRole("link", { name: "Humanidade" })).toHaveAttribute("href", "/humanity");
     expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
   });
 
@@ -64,7 +65,7 @@ describe("Drawer", () => {
       </MemoryRouter>,
     );
 
-    const last = screen.getByRole("link", { name: "Bondes" });
+    const last = screen.getByRole("link", { name: "Humanidade" });
     const close = screen.getByRole("button", { name: "Fechar menu" });
     // Initial focus lands on the first focusable in DOM order (the close
     // button) — the same element used as the trap's first boundary.
@@ -88,7 +89,7 @@ describe("Drawer", () => {
     );
 
     const close = screen.getByRole("button", { name: "Fechar menu" });
-    const last = screen.getByRole("link", { name: "Bondes" });
+    const last = screen.getByRole("link", { name: "Humanidade" });
     // Initial focus is the first focusable, so a Shift+Tab cannot land on a
     // boundary the trap does not watch: it cycles to the last item inside.
     expect(document.activeElement).toBe(close);

@@ -134,7 +134,7 @@ export function meetsStatRequirements(
 /**
  * Calculate trampo execution success probability.
  *
- * Formula: `((stat + chromeStatBonus) × STAT_SCALING + chromeBonus + skillBonus) / difficulty`,
+ * Formula: `((stat + chromeStatBonus) × statMultiplier × STAT_SCALING + chromeBonus + skillBonus) / difficulty`,
  * clamped to [0.05, 0.95].
  * Conforme 03-mecanicas-core.md §3 (Fórmula de sucesso) and ND-011 balance fix.
  *
@@ -143,6 +143,7 @@ export function meetsStatRequirements(
  * @param difficulty      - The trampo's difficulty rating (1-100 range).
  * @param skillBonus      - Optional flat bonus from player skill perks (defaults to 0).
  * @param chromeStatBonus - Attribute bonus from installed cromo for the relevant stat (defaults to 0).
+ * @param statMultiplier  - Issue #28: active OS stat boost (SO Surto ×1.5 Reflexes).
  * @returns Probability in range [0.05, 0.95].
  *
  * @edgecases `difficulty ≤ 0` would cause division by zero → capped at 0.95.
@@ -154,9 +155,10 @@ export function calculateSuccessChance(
   difficulty: number,
   skillBonus?: number,
   chromeStatBonus?: number,
+  statMultiplier: number = 1,
 ): number {
   if (difficulty <= 0) return SUCCESS_CAP;
-  const effectiveStat = stat + (chromeStatBonus ?? 0);
+  const effectiveStat = (stat + (chromeStatBonus ?? 0)) * statMultiplier;
   const raw = (effectiveStat * STAT_SCALING + chromeBonus + (skillBonus ?? 0)) / difficulty;
   return Math.min(SUCCESS_CAP, Math.max(SUCCESS_FLOOR, raw));
 }
@@ -256,12 +258,15 @@ export function calculateHeat(baseHeat: number, outcome: "success" | "failure"):
 /**
  * Calculate escape success chance with district heat penalty.
  *
- * Formula: `stat / (escapeDifficulty × heatMultiplier)`, clamped to [0.05, 0.95].
+ * Formula: `(stat × statMultiplier) / (escapeDifficulty × heatMultiplier) × dodgeMultiplier`,
+ * clamped to [0.05, 0.95].
  * `heatMultiplier = 1 + (heatAmount / 100)`, so every 100 heat doubles the difficulty.
  *
  * @param stat             - The relevant escape attribute value.
  * @param escapeDifficulty - The trampo's escape difficulty.
  * @param heatAmount       - Current heat in the district.
+ * @param statMultiplier   - Issue #28: active OS stat boost (SO Surto ×1.5 Reflexes).
+ * @param dodgeMultiplier  - Issue #28: active OS dodge bonus (SO Surto ×1.25).
  * @returns Probability in range [0.05, 0.95].
  *
  * @edgecases `escapeDifficulty ≤ 0` → capped at 0.95.
@@ -272,10 +277,14 @@ export function calculateEscapeChance(
   stat: number,
   escapeDifficulty: number,
   heatAmount: number,
+  statMultiplier: number = 1,
+  dodgeMultiplier: number = 1,
 ): number {
   if (escapeDifficulty <= 0) return SUCCESS_CAP;
   const heatMultiplier = 1 + Math.max(0, heatAmount) / HEAT_DIVISOR;
-  const raw = (stat * STAT_SCALING) / (escapeDifficulty * heatMultiplier);
+  const raw =
+    ((stat * statMultiplier * STAT_SCALING) / (escapeDifficulty * heatMultiplier)) *
+    dodgeMultiplier;
   return Math.min(SUCCESS_CAP, Math.max(SUCCESS_FLOOR, raw));
 }
 
@@ -363,6 +372,17 @@ export function canTransition(currentPhase: string, action: string): string | nu
 export function getEscapeStat(gigType: GigType, attrs: Attributes): number {
   const key = ESCAPE_STATS[gigType];
   return (attrs as unknown as Record<string, number>)[key] ?? 0;
+}
+
+/**
+ * The attribute KEY used for escape rolls per trampo type.
+ * Extraction/delivery escape on Reflexes, sabotage on Cool.
+ *
+ * @param gigType - The trampo archetype.
+ * @returns The attribute key (never null for valid GigType).
+ */
+export function getEscapeStatKey(gigType: GigType): keyof Attributes {
+  return ESCAPE_STATS[gigType];
 }
 
 /**

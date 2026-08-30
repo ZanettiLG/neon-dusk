@@ -14,6 +14,10 @@ import { roundRoutes } from "./round";
 import { adminMetricsRoutes } from "../telemetry/admin-metrics";
 import { adminRoutes } from "./admin";
 import { abilitiesRoutes } from "./abilities";
+import { osRoutes } from "./os";
+import { humanityRoutes } from "./humanity";
+import { therapyRoutes } from "./therapy";
+import { consumableRoutes } from "./consumables";
 
 export interface ApiRoutesOptions {
   redis: Redis;
@@ -38,4 +42,12 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(adminRoutes);
   // Role abilities — /api/abilities/*
   await app.register(abilitiesRoutes);
+  // OS (issue #28) — /api/os/*
+  await app.register(osRoutes);
+  // Humanidade (issue #28) — /api/humanity
+  await app.register(humanityRoutes);
+  // Terapia (issue #28) — /api/therapy
+  await app.register(therapyRoutes);
+  // Itens anti-insanidade (issue #28) — /api/consumables
+  await app.register(consumableRoutes);
 }

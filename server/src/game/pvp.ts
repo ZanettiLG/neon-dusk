@@ -16,6 +16,11 @@ export interface CombatPowerInput {
   role: Role;
   /** Feature #65: true when the bicho's Combat Trance ability is active. */
   tranceActive?: boolean;
+  /**
+   * Issue #28: active OS multipliers (SO Fúria +50% Body, SO Surto +50%
+   * Reflexes). Applied on top of the trance boost, each rounded up.
+   */
+  osBonus?: { bodyMultiplier?: number; reflexesMultiplier?: number } | null;
   rng?: () => number;
 }
 
@@ -122,15 +127,34 @@ export function calculateChromePower(
  *            can trigger even at very low base values.
  */
 export function calculateCombatPower(input: CombatPowerInput): number {
-  const { body, reflexes, chromePower, role, tranceActive = false, rng = Math.random } = input;
+  const {
+    body,
+    reflexes,
+    chromePower,
+    role,
+    tranceActive = false,
+    osBonus = null,
+    rng = Math.random,
+  } = input;
 
   const randomBonus =
     Math.floor(rng() * (RANDOM_BONUS_MAX - RANDOM_BONUS_MIN + 1)) +
     RANDOM_BONUS_MIN;
 
   // Feature #65: Combat Trance boosts body + reflexes before the bicho multiplier.
-  const effectiveBody = tranceActive && role === "bicho" ? Math.ceil(body * 1.25) : body;
-  const effectiveReflexes = tranceActive && role === "bicho" ? Math.ceil(reflexes * 1.25) : reflexes;
+  // Issue #28: active OS multipliers stack multiplicatively on top (Fúria/Surto).
+  let effectiveBody = body;
+  let effectiveReflexes = reflexes;
+  if (tranceActive && role === "bicho") {
+    effectiveBody = Math.ceil(effectiveBody * 1.25);
+    effectiveReflexes = Math.ceil(effectiveReflexes * 1.25);
+  }
+  if (osBonus?.bodyMultiplier) {
+    effectiveBody = Math.ceil(effectiveBody * osBonus.bodyMultiplier);
+  }
+  if (osBonus?.reflexesMultiplier) {
+    effectiveReflexes = Math.ceil(effectiveReflexes * osBonus.reflexesMultiplier);
+  }
 
   let base = effectiveBody + effectiveReflexes + chromePower + randomBonus;
 

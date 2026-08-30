@@ -3,9 +3,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import ChromeBodyMapSvg from "@/components/chrome/ChromeBodyMapSvg";
 import type { ChromeSlot, InstalledChromeRecord } from "@neon-dusk/shared";
 
-// Issue #10 — body-map interativo: 6 hit-areas por slot, ocupação anunciada,
-// teclado (Enter/Space), slot cheio desabilitado e legenda HTML como canal
-// textual (cor nunca é o único canal).
+// Issue #10 — body-map interativo: 9 hit-areas por slot (issue #28 adicionou
+// operating_system, circulatory e legs), ocupação anunciada, teclado
+// (Enter/Space), slot cheio desabilitado e legenda HTML como canal textual
+// (cor nunca é o único canal).
 
 function chromeRecord(installedId: string, name: string, slot: ChromeSlot): InstalledChromeRecord {
   return {
@@ -31,17 +32,20 @@ const LOADOUT: InstalledChromeRecord[] = [
 ];
 
 describe("ChromeBodyMapSvg", () => {
-  it("should render 6 hit-areas, one per cromo slot", () => {
+  it("should render 9 hit-areas, one per cromo slot", () => {
     render(<ChromeBodyMapSvg installed={[]} selectedSlot={null} onSelectSlot={vi.fn()} />);
 
-    expect(screen.getAllByRole("button")).toHaveLength(6);
+    expect(screen.getAllByRole("button")).toHaveLength(9);
     for (const label of [
       "Córtex Frontal",
       "Ocular",
+      "Sistema Operacional",
       "Braços",
       "Esqueleto",
       "Sistema Nervoso",
+      "Circulatório",
       "Tegumentar",
+      "Pernas",
     ]) {
       expect(screen.getByRole("button", { name: new RegExp(`^${label} — `) })).toBeInTheDocument();
     }
@@ -107,14 +111,19 @@ describe("ChromeBodyMapSvg", () => {
 
     // Document order = paint order (later siblings capture pointer events
     // first). The torso polygon covers skeleton/nervous_system geometry, so it
-    // must come FIRST; the smaller slots render on top of it.
+    // must come FIRST; the smaller slots render on top of it. Issue #28 added
+    // legs (under the torso), circulatory (over the spine) and the OS deck
+    // (over the ocular zone).
     const labels = screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(labels[0]).toMatch(/^Tegumentar — /);
-    expect(labels[1]).toMatch(/^Sistema Nervoso — /);
-    expect(labels[2]).toMatch(/^Esqueleto — /);
-    expect(labels[3]).toMatch(/^Ocular — /);
-    expect(labels[4]).toMatch(/^Córtex Frontal — /);
+    expect(labels[0]).toMatch(/^Pernas — /);
+    expect(labels[1]).toMatch(/^Tegumentar — /);
+    expect(labels[2]).toMatch(/^Sistema Nervoso — /);
+    expect(labels[3]).toMatch(/^Esqueleto — /);
+    expect(labels[4]).toMatch(/^Circulatório — /);
     expect(labels[5]).toMatch(/^Braços — /);
+    expect(labels[6]).toMatch(/^Ocular — /);
+    expect(labels[7]).toMatch(/^Sistema Operacional — /);
+    expect(labels[8]).toMatch(/^Córtex Frontal — /);
   });
 
   it("should render the legenda HTML com contagens and implant names (text channel)", () => {

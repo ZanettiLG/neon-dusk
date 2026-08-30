@@ -36,6 +36,17 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
       { itemType: "CHROME", itemId: "kiroshi-optics", price: 1800, stock: -1 },
       { itemType: "CHROME", itemId: "gorilla-arms", price: 5000, stock: -1 },
       { itemType: "CHROME", itemId: "subdermal-armor", price: 4000, stock: -1 },
+      // Issue #28: skeleton / circulatory / legs
+      { itemType: "CHROME", itemId: "medula-reforcada", price: 4000, stock: -1 },
+      { itemType: "CHROME", itemId: "segundo-coracao", price: 5500, stock: -1 },
+      { itemType: "CHROME", itemId: "tornozelos-fortificados", price: 4500, stock: -1 },
+      // Issue #28: OS (permanentes por rodada) + Neural Scrubber
+      { itemType: "CHROME", itemId: "os-gazuah", price: 20000, stock: -1 },
+      { itemType: "CHROME", itemId: "os-fury", price: 15000, stock: -1 },
+      { itemType: "CHROME", itemId: "os-surge", price: 15000, stock: -1 },
+      { itemType: "CHROME", itemId: "neural-scrubber", price: 22000, stock: -1 },
+      // Issue #28: itens anti-insanidade — T2 (cooldown 12h)
+      { itemType: "CONSUMABLE", itemId: "freio", price: 18000, stock: -1 },
     ],
   },
 
@@ -60,6 +71,8 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
       "Traficante de ampolas no coração do Fervo. Preços baixos, qualidade duvidosa.",
     inventory: [
       { itemType: "CONSUMABLE", itemId: "syn-cafe", price: 50, stock: -1 },
+      // Issue #28: itens anti-insanidade — T1 (sem cooldown)
+      { itemType: "CONSUMABLE", itemId: "estabilizador", price: 7500, stock: -1 },
     ],
   },
 
@@ -74,6 +87,8 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
     inventory: [
       { itemType: "CONSUMABLE", itemId: "combat-stim", price: 300, stock: -1 },
       { itemType: "LOOT", itemId: "access-chip", price: 5000, stock: 3 },
+      // Issue #28: itens anti-insanidade — T3 (cooldown 24h)
+      { itemType: "CONSUMABLE", itemId: "choque", price: 30000, stock: -1 },
     ],
   },
 ];
