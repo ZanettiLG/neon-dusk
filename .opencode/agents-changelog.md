@@ -4,6 +4,18 @@ Histórico de mudanças nos agentes de desenvolvimento.
 
 ## 2026-08-29
 ### Trigger
+Issue #28: gate FLATLINED esquecido em startLegwork (encontrado no re-review ciclo 3) — padrão recorrente de gates de estado em endpoints mutantes.
+
+### Change
+Adicionado check ao self-review do developer: "Gates de estado de personagem (FLATLINED, etc.) presentes em TODOS os endpoints mutantes (POST/PUT/DELETE) com teste 403".
+
+### Impact
+Previne esquecimento de gates de estado em rotas novas; reduz ciclos de review.
+
+---
+
+## 2026-08-29
+### Trigger
 Decisão humana: aplicar mapping otimizado de modelos (pesquisa deep-researcher, cenário −42.5% de consumo).
 
 ### Change
