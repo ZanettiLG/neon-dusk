@@ -47,9 +47,10 @@ vi.mock("@/stores/humanity", () => ({
 }));
 
 // Canonical catalog fixture (mirrors server/src/content/consumables.ts).
+// `id` follows the real API contract (UUID — validated by z.string().uuid()).
 const sampleItems: ConsumablesResponse["items"] = [
   {
-    id: "estabilizador",
+    id: "a1b2c3d4-0000-4000-8000-000000000001",
     slug: "estabilizador",
     name: "Estabilizador",
     tier: 1,
@@ -59,7 +60,7 @@ const sampleItems: ConsumablesResponse["items"] = [
     nextAvailableAt: null,
   },
   {
-    id: "freio",
+    id: "a1b2c3d4-0000-4000-8000-000000000002",
     slug: "freio",
     name: "Freio",
     tier: 2,
@@ -69,7 +70,7 @@ const sampleItems: ConsumablesResponse["items"] = [
     nextAvailableAt: null,
   },
   {
-    id: "choque",
+    id: "a1b2c3d4-0000-4000-8000-000000000003",
     slug: "choque",
     name: "Choque",
     tier: 3,
@@ -126,17 +127,21 @@ describe("useConsumablesStore", () => {
       if (url === "/api/consumables") {
         return Promise.resolve({
           items: sampleItems.map((item) =>
-            item.id === "estabilizador" ? { ...item, ownedQuantity: 0 } : item,
+            item.id === "a1b2c3d4-0000-4000-8000-000000000001"
+              ? { ...item, ownedQuantity: 0 }
+              : item,
           ),
         });
       }
       return Promise.resolve(undefined);
     });
 
-    const result = await useConsumablesStore.getState().useItem("estabilizador");
+    const result = await useConsumablesStore
+      .getState()
+      .useItem("a1b2c3d4-0000-4000-8000-000000000001");
 
     expect(mocks.api.post).toHaveBeenCalledWith("/api/consumables/use", {
-      itemId: "estabilizador",
+      itemId: "a1b2c3d4-0000-4000-8000-000000000001",
     });
     expect(result).toEqual(useResponse);
     const s = useConsumablesStore.getState();
@@ -154,9 +159,9 @@ describe("useConsumablesStore", () => {
       new mocks.ApiError(429, "COOLDOWN_ACTIVE", "Ação em cooldown.", { nextAvailableAt: unlock }),
     );
 
-    await expect(useConsumablesStore.getState().useItem("freio")).rejects.toBeInstanceOf(
-      mocks.ApiError,
-    );
+    await expect(
+      useConsumablesStore.getState().useItem("a1b2c3d4-0000-4000-8000-000000000002"),
+    ).rejects.toBeInstanceOf(mocks.ApiError);
 
     const s = useConsumablesStore.getState();
     expect(s.useError).toEqual({
@@ -174,7 +179,9 @@ describe("useConsumablesStore", () => {
   it("should normalize non-ApiError failures to UNKNOWN_ERROR", async () => {
     mocks.api.post.mockRejectedValue(new Error("boom"));
 
-    await expect(useConsumablesStore.getState().useItem("choque")).rejects.toThrow("boom");
+    await expect(
+      useConsumablesStore.getState().useItem("a1b2c3d4-0000-4000-8000-000000000003"),
+    ).rejects.toThrow("boom");
 
     expect(useConsumablesStore.getState().useError).toEqual({
       code: "UNKNOWN_ERROR",
@@ -193,23 +200,20 @@ describe("useConsumablesStore", () => {
     ["UNAUTHORIZED", 401, "Sessão expirada. Faça login novamente."],
     ["FLATLINED", 403, "Personagem apagado. Sem ações permitidas."],
     ["VALIDATION_ERROR", 400, "Dados inválidos. Verifique os campos."],
-  ])(
-    "should set a structured %s error and re-throw",
-    async (code, status, message) => {
-      mocks.api.post.mockRejectedValue(new mocks.ApiError(status, code, message));
+  ])("should set a structured %s error and re-throw", async (code, status, message) => {
+    mocks.api.post.mockRejectedValue(new mocks.ApiError(status, code, message));
 
-      await expect(useConsumablesStore.getState().useItem("estabilizador")).rejects.toBeInstanceOf(
-        mocks.ApiError,
-      );
+    await expect(
+      useConsumablesStore.getState().useItem("a1b2c3d4-0000-4000-8000-000000000001"),
+    ).rejects.toBeInstanceOf(mocks.ApiError);
 
-      const s = useConsumablesStore.getState();
-      expect(s.useError).toEqual({ code, message, nextAvailableAt: null });
-      expect(s.usingItemId).toBeNull();
-      expect(s.lastUse).toBeNull();
-      expect(mocks.hudRefresh).not.toHaveBeenCalled();
-      expect(mocks.humanityFetch).not.toHaveBeenCalled();
-    },
-  );
+    const s = useConsumablesStore.getState();
+    expect(s.useError).toEqual({ code, message, nextAvailableAt: null });
+    expect(s.usingItemId).toBeNull();
+    expect(s.lastUse).toBeNull();
+    expect(mocks.hudRefresh).not.toHaveBeenCalled();
+    expect(mocks.humanityFetch).not.toHaveBeenCalled();
+  });
 
   it("should still resolve with the use result when the post-use refetch fails", async () => {
     mocks.api.post.mockResolvedValue(useResponse);
@@ -217,7 +221,9 @@ describe("useConsumablesStore", () => {
     // (sets `error`), so the use still resolves and the success feedback shows.
     mocks.api.get.mockRejectedValue(new Error("api down"));
 
-    const result = await useConsumablesStore.getState().useItem("estabilizador");
+    const result = await useConsumablesStore
+      .getState()
+      .useItem("a1b2c3d4-0000-4000-8000-000000000001");
 
     expect(result).toEqual(useResponse);
     const s = useConsumablesStore.getState();

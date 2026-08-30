@@ -22,9 +22,18 @@ interface ConsumablesState {
   error: string | null;
   /** Item with a use POST in flight (null when idle). */
   usingItemId: string | null;
-  /** Structured error of the last use attempt (null after a success). */
+  /**
+   * Structured error of the last use attempt (null after a success).
+   * Only the most recent attempt is kept — a follow-up use (success or new
+   * failure) overwrites the previous feedback. Mitigated in the UI by the
+   * 2-step inline confirmation, which serializes uses one at a time.
+   */
   useError: ConsumableUseError | null;
-  /** Result of the last successful use (null until the first use). */
+  /**
+   * Result of the last successful use (null until the first use). Like
+   * `useError`, only the most recent use is retained; consecutive uses
+   * overwrite the earlier success feedback (per-card in the panel).
+   */
   lastUse: ConsumableUseResponse | null;
 
   /** GET /api/consumables — catalog + owned stock + per-item cooldowns. */

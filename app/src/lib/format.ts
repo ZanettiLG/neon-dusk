@@ -24,12 +24,14 @@ export function formatEds(amount: number): string {
   return `G$ ${amount.toLocaleString("pt-BR")}`;
 }
 
-/** Seconds → "Xd Yh" (drops days when zero, e.g. 90000 → "1d 1h", 3600 → "1h").
- * Used by round-reset countdowns. */
+/** Seconds → "Xd Yh" with zero units omitted (e.g. 90000 → "1d 1h",
+ *  86400 → "1d", 3600 → "1h", 0 → "0h"). Used by round-reset countdowns and
+ *  the consumables cooldown readout (issue #48). */
 export function formatDuration(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
   const d = Math.floor(s / 86_400);
   const h = Math.floor((s % 86_400) / 3600);
-  if (d > 0) return `${d}d ${h}h`;
+  if (d > 0 && h > 0) return `${d}d ${h}h`;
+  if (d > 0) return `${d}d`;
   return `${h}h`;
 }

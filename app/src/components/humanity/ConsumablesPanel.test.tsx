@@ -52,9 +52,10 @@ vi.mock("@/stores/humanity", () => ({
 }));
 
 // Canonical catalog fixture (mirrors server/src/content/consumables.ts).
+// `id` follows the real API contract (UUID — validated by z.string().uuid()).
 const sampleItems: ConsumablesResponse["items"] = [
   {
-    id: "estabilizador",
+    id: "a1b2c3d4-0000-4000-8000-000000000001",
     slug: "estabilizador",
     name: "Estabilizador",
     tier: 1,
@@ -64,7 +65,7 @@ const sampleItems: ConsumablesResponse["items"] = [
     nextAvailableAt: null,
   },
   {
-    id: "freio",
+    id: "a1b2c3d4-0000-4000-8000-000000000002",
     slug: "freio",
     name: "Freio",
     tier: 2,
@@ -74,7 +75,7 @@ const sampleItems: ConsumablesResponse["items"] = [
     nextAvailableAt: null,
   },
   {
-    id: "choque",
+    id: "a1b2c3d4-0000-4000-8000-000000000003",
     slug: "choque",
     name: "Choque",
     tier: 3,
@@ -184,10 +185,10 @@ describe("ConsumablesPanel", () => {
     expect(mocks.api.post).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Confirmar uso?" })).toBeInTheDocument();
 
-    // 2nd click fires the use with the correct itemId.
+    // 2nd click fires the use with the correct itemId (UUID contract).
     await user.click(screen.getByRole("button", { name: "Confirmar uso?" }));
     expect(mocks.api.post).toHaveBeenCalledWith("/api/consumables/use", {
-      itemId: "estabilizador",
+      itemId: "a1b2c3d4-0000-4000-8000-000000000001",
     });
     // The confirmation resets after the call.
     expect(screen.queryByRole("button", { name: "Confirmar uso?" })).not.toBeInTheDocument();

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { HumanityInfo } from "@neon-dusk/shared";
 import ActionButton from "@/components/ui/ActionButton";
 import Panel from "@/components/ui/Panel";
+import { formatDuration } from "@/lib/format";
 import { useCountdownTo } from "@/lib/useCountdownTo";
 import { useConsumablesStore } from "@/stores/consumables";
 
@@ -103,7 +104,7 @@ export default function ConsumablesPanel({ info }: ConsumablesPanelProps) {
           const showError = failedItemId === item.id && useError !== null;
           const errorMessage =
             useError?.code === "COOLDOWN_ACTIVE" && useError.nextAvailableAt
-              ? `Este item ainda está em cooldown. Disponível em ${formatCooldown(errorUnlockSeconds)}.`
+              ? `Este item ainda está em cooldown. Disponível em ${formatDuration(errorUnlockSeconds)}.`
               : useError?.message;
           const buttonChildren = outOfStock
             ? "Sem estoque"
@@ -165,14 +166,4 @@ export default function ConsumablesPanel({ info }: ConsumablesPanelProps) {
       </div>
     </Panel>
   );
-}
-
-/** Seconds → "12h" / "1d 3h" (days without hours when hours are zero). */
-function formatCooldown(totalSeconds: number): string {
-  const s = Math.max(0, Math.floor(totalSeconds));
-  const d = Math.floor(s / 86_400);
-  const h = Math.floor((s % 86_400) / 3600);
-  if (d > 0 && h > 0) return `${d}d ${h}h`;
-  if (d > 0) return `${d}d`;
-  return `${h}h`;
 }
