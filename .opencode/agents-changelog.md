@@ -2,6 +2,19 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-31
+### Trigger
+Issue #53 (run nd-20260831-003232-design-tokens): (1) 2 arquivos perderam EOF newline sem o prettier check escopado ao diff pegar — `tailwind.config.js`/`d.ts` na 1ª rodada e `tokens.ts` + `generate-tokens-css.test.ts` na 2ª (o pr-reviewer pegou); arquivos que perdem o trailing newline passam despercebidos se o arquivo já estava na lista de "dívida" pré-existente. (2) O doc `docs/design/05-design-tokens.md` ficou stale em 3 pontos (§7 animações, §14 artefatos, §15 D5) quando a implementação resolveu D5 — 2ª ocorrência do padrão "docs de design não acompanham a implementação".
+
+### Change
+- Adicionado check #49 ao self-review do developer: "EOF newline verificado em TODOS os arquivos tocados pelo diff (arquivos que perdem o trailing newline falham o passo — `git diff --check` ou verificação explícita de newline final)".
+- Adicionado check #50 ao self-review do developer: "Docs de design (`docs/design/`) atualizados na MESMA PR quando a implementação toca divergências registradas (§15) ou muda o que o doc descreve (§7/§14)". Total de checks: 48 → 50.
+
+### Impact
+Arquivos que perdem o trailing newline deixam de escapar quando já constavam como débito pré-existente (o prettier check #48 só reportava violação nova sem pegar perda de newline em arquivos de dívida); docs de design passam a acompanhar a implementação na mesma PR, eliminando o ciclo extra de correção apontado pelo reviewer.
+
+---
+
 ## 2026-08-30
 ### Trigger
 Issue #7 (run nd-20260830-224523-economia-bondes-metro): o self-review do developer reportou "router/index.tsx sinalizado — débito pré-existente (283 arquivos)", mas 2 arquivos NOVOS da feature (MetroCrossing.test.tsx, DistrictBanner.test.tsx) também falhavam prettier (newline final ausente) e passaram despercebidos até o reviewer apontar.

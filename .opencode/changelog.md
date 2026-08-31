@@ -2,6 +2,18 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-31
+### Trigger
+Issue #53 (run nd-20260831-003232-design-tokens): 2 arquivos perderam EOF newline sem o prettier check pegar (2ª ocorrência); doc 05-design-tokens.md ficou stale quando D5 foi resolvido no código (2ª ocorrência).
+
+### Change
+Self-review do developer expandido de 48 → 50 checks: (1) EOF newline verificado em TODOS os arquivos tocados pelo diff; (2) docs de design (`docs/design/`) atualizados na MESMA PR quando a implementação toca divergências registradas (§15) ou muda o que o doc descreve (§7/§14).
+
+### Impact
+Previne escapes de arquivos sem trailing newline (não mascarados por débito pré-existente) e mantém docs de design sincronizados com a implementação na mesma PR.
+
+---
+
 ## 2026-08-30
 ### Trigger
 Issue #7 (run nd-20260830-224523-economia-bondes-metro): (1) `qa-blocked` por tooling (MCP agent-browser fora do ar) deixou lacunas unit-testáveis (findLineFor transferência, originFromDistrictString com dados reais) só adiadas para o E2E; (2) defeito de colisão visual badge/"VOCÊ ESTÁ AQUI" passou por toda a verificação estática por ser puramente visual.

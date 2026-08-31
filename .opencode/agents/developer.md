@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (48 checks)
+7. Self-review (50 checks)
 8. Handoff do código implementado
 
-## Self-Review (48 checks)
+## Self-Review (50 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -80,6 +80,8 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Formatação de duração/countdown reutiliza utilitários de `@/lib/format` (`formatDuration`, `formatCountdown`, `formatRelativeTime`, `formatEds`) — helper local de formatação só se o formato for genuinamente novo e não coberto
 - [ ] Seeds de dados de jogo vivem SOMENTE em `content-seeds.ts`/`DEFAULT_PARAMS` (upsert idempotente) — migrations fazem apenas DDL/índices. Nenhum INSERT de seed em migration
 - [ ] Prettier rodado APENAS nos arquivos tocados pelo diff da feature — violação INTRODUZIDA falha o passo (débito pré-existente é reportado separadamente, não mascara violações novas)
+- [ ] EOF newline verificado em TODOS os arquivos tocados pelo diff (arquivos que perdem o trailing newline falham o passo — `git diff --check` ou verificação explícita de newline final)
+- [ ] Docs de design (`docs/design/`) atualizados na MESMA PR quando a implementação toca divergências registradas (§15) ou muda o que o doc descreve (§7/§14)
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino
