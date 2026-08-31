@@ -1,5 +1,5 @@
 # Neon Dusk — app image (2 stages: build -> nginx).
-# Build context is the repo ROOT (see .github/workflows/deploy.yml).
+# Build context is the repo ROOT (see docker-compose.yml / scripts/deploy-staging.sh).
 
 # Stage 1: Build
 FROM node:22-alpine AS build

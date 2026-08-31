@@ -11,7 +11,7 @@
 - [ ] `docker-compose.test.yml` — isolated test stack on separate ports
 - [ ] `docker-compose.prod.yml` — production-grade config
 - [ ] Health check endpoint (`/api/health`) — DB + Redis connectivity verified
-- [ ] CI/CD pipeline — GitHub Actions workflows passing
+- [ ] Lint + typecheck + testes rodando localmente antes do deploy
 - [ ] Rollback plan — redeploy previous image tag
 - [ ] Database backups — automated daily pg_dump
 

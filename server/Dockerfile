@@ -1,5 +1,5 @@
 # Neon Dusk — server image (3 stages: deps -> build -> production).
-# Build context is the repo ROOT (see .github/workflows/deploy.yml), so every
+# Build context is the repo ROOT (see docker-compose.yml / scripts/deploy-staging.sh), so every
 # COPY path below is relative to the monorepo root.
 
 # Stage 1: Production dependencies
