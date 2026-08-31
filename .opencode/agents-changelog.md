@@ -2,6 +2,19 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-08-31 — N1: grep de referências residuais ampliado para remoções de infra (issue #59)
+
+### Trigger
+Issue #59 (run nd-20260831-142617-remove-ci-cd): o code-reviewer apontou que a validação de "referências residuais" do test-writer foi estreita demais — um grep por nomes literais (`ci.yml|deploy.yml`) perdeu 3 referências reais: um checkbox em `docs/BETA_CHECKLIST.md` ("CI/CD pipeline — GitHub Actions workflows passing") e comentários em `app/Dockerfile`/`server/Dockerfile` que citavam `.github/workflows/deploy.yml`.
+
+### Change
+- `test-writer` (agent): self-check 11 → 12 itens. Adicionado: em mudanças que removem arquivos de infra/config (ex.: workflows, scripts), o grep de referências residuais inclui padrões semânticos além dos nomes literais dos arquivos — `workflow|GitHub Actions|\.github/|CI/CD` no repo inteiro (excluindo node_modules, .git, .opencode e changelogs históricos).
+
+### Impact
+Esperado: remoções de infra/config deixam de vazar referências residuais por caminhos que não citam o nome literal do arquivo removido (ex.: "GitHub Actions", `.github/workflows/`), eliminando o ciclo extra de correção apontado pelo reviewer.
+
+---
+
 ## 2026-08-31
 ### Trigger
 Issue #54 (run nd-20260831-025336-componentes-base): (1) o LoadingState skeleton ficou silencioso para AT (`aria-busy` em div sem role) — 2º caso do tipo (o 1º foi na issue #53/Data Display View); (2) o comentário "issue #134" (inexistente) passou no `check-terminologia` — refs de issue em comentários de código não são validadas.
