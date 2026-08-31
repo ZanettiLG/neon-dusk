@@ -103,6 +103,7 @@ export async function getAttackableTargets(
     return {
       targets: [],
       nilCost: Number(await getGameParam("PVP_NIL_COST", PVP_NIL_COST_FALLBACK)),
+      cooldownSeconds: PVP_COOLDOWN_S,
     };
   }
 
@@ -142,7 +143,7 @@ export async function getAttackableTargets(
     });
   }
 
-  return { targets, nilCost };
+  return { targets, nilCost, cooldownSeconds: PVP_COOLDOWN_S };
 }
 
 /**

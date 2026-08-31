@@ -142,6 +142,35 @@ describe("RoundResetOverlay", () => {
     expect(screen.queryByText("APAGÃO")).not.toBeInTheDocument();
   });
 
+  it("shows the blackout again for a new round after a previous dismiss", async () => {
+    // D7: "nova rodada ativa limpa e rearma" — the dismiss is per-round, so a
+    // NEW round entering intermission must re-show the overlay.
+    localStorage.setItem("nd:round-dismissed", "3");
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/round")
+        return Promise.resolve({ ...intermissionRound, roundNumber: 4 });
+      return Promise.resolve(history);
+    });
+
+    render(<RoundResetOverlay />);
+
+    expect(await screen.findByText("APAGÃO")).toBeInTheDocument();
+    expect(screen.getByText("RODADA 4 ENCERRADA")).toBeInTheDocument();
+  });
+
+  it("ignores a corrupted dismissed-round value in localStorage", async () => {
+    localStorage.setItem("nd:round-dismissed", "not-a-number");
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/round") return Promise.resolve(intermissionRound);
+      return Promise.resolve(history);
+    });
+
+    render(<RoundResetOverlay />);
+
+    // readDismissedRound returns null for non-finite values → overlay shows.
+    expect(await screen.findByText("APAGÃO")).toBeInTheDocument();
+  });
+
   it("auto-dismisses when the round returns to active on the next poll", async () => {
     vi.useFakeTimers();
     let roundCalls = 0;

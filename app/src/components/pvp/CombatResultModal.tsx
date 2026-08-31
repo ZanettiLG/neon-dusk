@@ -27,7 +27,7 @@ export default function CombatResultModal({ result, open, onClose }: CombatResul
           Poder: {result.attackerPower} vs {result.defenderPower}
         </p>
         <p className="text-nd-gold">
-          Saque: G$ {result.lootAmount}
+          {result.won ? "Saque" : "Perda"}: G$ {result.lootAmount}
           {result.grieferPenalty ? " (grief)" : ""}
         </p>
         <p className="text-nd-text">

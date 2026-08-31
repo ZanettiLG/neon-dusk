@@ -59,6 +59,7 @@ const character: Character = {
 
 const attackable: PvpAttackableResponse = {
   nilCost: 20,
+  cooldownSeconds: 15,
   targets: [
     {
       characterId: "c2",
@@ -176,6 +177,7 @@ describe("PvpView", () => {
       if (url === "/api/pvp/attackable")
         return Promise.resolve({
           nilCost: 20,
+          cooldownSeconds: 15,
           targets: [
             {
               characterId: "c3",
@@ -218,7 +220,8 @@ describe("PvpView", () => {
     // The target appears both on the list card and on the confirm card.
     expect(screen.getAllByText("Raven").length).toBeGreaterThan(0);
     expect(screen.getByText("Custo: 20 NIL")).toBeInTheDocument();
-    expect(screen.getByText(/Risco: saque 1% · -5% Moral/)).toBeInTheDocument();
+    // noobShield cuts the target's Moral loss only — the attacker's loot stays 10%.
+    expect(screen.getByText(/Risco: -10% do saldo \(~G\$ 100\) · -5% Moral/)).toBeInTheDocument();
   });
 
   it("should POST the attack on confirm and open the result modal", async () => {

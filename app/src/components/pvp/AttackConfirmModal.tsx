@@ -7,13 +7,12 @@ import { useHudStore } from "@/stores/hud";
 import { useStreetCredStore } from "@/stores/street-cred";
 import type { PvpTarget } from "@neon-dusk/shared";
 
-/** Attack cooldown, in seconds — mirrors PVP_COOLDOWN_S in pvp-service. */
-const PVP_COOLDOWN_S = 15;
-
 export interface AttackConfirmModalProps {
   target: PvpTarget;
   /** NIL charged per attack (game param PVP_NIL_COST from the attackable list). */
   nilCost: number;
+  /** Attack cooldown in seconds (from GET /api/pvp/attackable). */
+  cooldownSeconds: number;
   open: boolean;
   onClose: () => void;
   /** Performs the POST /api/pvp/attack — the parent owns the request. */
@@ -31,6 +30,7 @@ export interface AttackConfirmModalProps {
 export default function AttackConfirmModal({
   target,
   nilCost,
+  cooldownSeconds,
   open,
   onClose,
   onConfirm,
@@ -50,14 +50,13 @@ export default function AttackConfirmModal({
       ? 0
       : character.body + character.reflexes + (statBonus?.body ?? 0) + (statBonus?.reflexes ?? 0);
 
-  // Loss risks: 10% of the balance (or 1% loot when the target is shielded /
-  // the caller is already griefing it) + 5% Moral (min 1) + the cooldown.
+  // Loss risks: 10% of the balance (1% loot when the caller is already
+  // griefing the target — noobShield only cuts the target's Moral loss) +
+  // 5% Moral (min 1) + the cooldown.
   const saque = target.griefRisk
     ? "saque 1% (grief)"
-    : target.noobShield
-      ? "saque 1%"
-      : `-10% do saldo (~${formatEds(Math.floor((balance ?? 0) * 0.1))})`;
-  const risk = `Risco: ${saque} · -5% Moral (mín. 1) · cooldown ${PVP_COOLDOWN_S}s`;
+    : `-10% do saldo (~${formatEds(Math.floor((balance ?? 0) * 0.1))})`;
+  const risk = `Risco: ${saque} · -5% Moral (mín. 1) · cooldown ${cooldownSeconds}s`;
 
   return (
     <Modal

@@ -28,6 +28,7 @@ export default function PvpView() {
   // Targets
   const [targets, setTargets] = useState<PvpTarget[]>([]);
   const [nilCost, setNilCost] = useState(0);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [targetsLoading, setTargetsLoading] = useState(true);
   const [targetsError, setTargetsError] = useState<string | null>(null);
 
@@ -53,6 +54,7 @@ export default function PvpView() {
       if (!mountedRef.current) return;
       setTargets(res.targets);
       setNilCost(res.nilCost);
+      setCooldownSeconds(res.cooldownSeconds);
     } catch (e) {
       if (!mountedRef.current) return;
       setTargetsError(e instanceof Error ? e.message : "Falha ao carregar alvos");
@@ -209,6 +211,7 @@ export default function PvpView() {
         <AttackConfirmModal
           target={confirmTarget}
           nilCost={nilCost}
+          cooldownSeconds={cooldownSeconds}
           open
           onClose={() => setConfirmTarget(null)}
           onConfirm={() => void confirmAttack()}

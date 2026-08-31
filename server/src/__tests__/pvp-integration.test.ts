@@ -208,6 +208,7 @@ describe("ND-014 — PvP combat API", () => {
       expect(res.status).toBe(200);
       const body = await json<PvpAttackableResponse>(res);
       expect(body.nilCost).toBe(20); // PVP_NIL_COST fallback
+      expect(body.cooldownSeconds).toBe(15); // PVP_COOLDOWN_S
       const ids = body.targets.map((t) => t.characterId);
       expect(ids).toContain(inHigh.characterId);
       expect(ids).toContain(inLow.characterId);
@@ -270,6 +271,8 @@ describe("ND-014 — PvP combat API", () => {
       const body = await json<PvpAttackableResponse>(res);
       expect(body.targets).toEqual([]);
       expect(body.nilCost).toBe(20);
+      // The cooldown branch still quotes the cooldown for the confirm modal.
+      expect(body.cooldownSeconds).toBe(15);
     });
 
     it("should flag griefRisk on targets already hit 3+ times this week", async () => {

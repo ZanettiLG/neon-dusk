@@ -45,7 +45,7 @@ describe("CombatResultModal", () => {
 
     expect(screen.getByText("DERROTA")).toBeInTheDocument();
     expect(screen.getByText("Moral: -1 → 29")).toBeInTheDocument();
-    expect(screen.getByText("Saque: G$ 100")).toBeInTheDocument();
+    expect(screen.getByText("Perda: G$ 100")).toBeInTheDocument();
     expect(screen.getByText("Saldo: G$ 900")).toBeInTheDocument();
   });
 

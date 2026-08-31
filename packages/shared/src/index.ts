@@ -854,6 +854,8 @@ export interface PvpAttackableResponse {
   targets: PvpTarget[];
   /** NIL cost per attack (game param PVP_NIL_COST, default 20). */
   nilCost: number;
+  /** Attack cooldown in seconds (PVP_COOLDOWN_S, default 15). */
+  cooldownSeconds: number;
 }
 
 /** One row of the GET /api/pvp/history list. */
