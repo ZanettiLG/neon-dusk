@@ -16,6 +16,10 @@ interface GigState {
   board: GigBoardResponse | null;
   boardLoading: boolean;
   boardError: string | null;
+  /** Active trampo readout (GET /api/gigs/active) — dashboard widget source of truth. */
+  activeGig: ActiveGig | null;
+  activeGigLoading: boolean;
+  activeGigError: string | null;
   history: GigHistoryResponse | null;
   historyLoading: boolean;
   historyError: string | null;
@@ -24,6 +28,7 @@ interface GigState {
   lastWrapup: GigWrapupResponse | null;
 
   fetchBoard: () => Promise<void>;
+  fetchActiveGig: () => Promise<void>;
   acceptGig: (id: string) => Promise<ActiveGig>;
   doLegwork: (id: string) => Promise<ActiveGig>;
   executeGig: (id: string) => Promise<GigExecuteResponse>;
@@ -35,13 +40,17 @@ interface GigState {
 
 /**
  * Trampos store (singleton Zustand) — quadro do Despachante Cupim, o loop de 5 fases do
- * trampo ativo e o histórico paginado por cursor. Ações de fase patcheiam `board.activeGig`
- * straight from the server response; wrap up clears it and refreshes the board.
+ * trampo ativo e o histórico paginado por cursor. Ações de fase patcheiam
+ * `board.activeGig` e o espelho `activeGig` direto da resposta do servidor;
+ * wrap up limpa ambos e refresca o quadro.
  */
 export const useGigStore = create<GigState>((set, get) => ({
   board: null,
   boardLoading: false,
   boardError: null,
+  activeGig: null,
+  activeGigLoading: false,
+  activeGigError: null,
   history: null,
   historyLoading: false,
   historyError: null,
@@ -60,11 +69,33 @@ export const useGigStore = create<GigState>((set, get) => ({
     }
   },
 
+  /**
+   * Fetch the character's active trampo (GET /api/gigs/active — null when none).
+   * No-op without a character (the endpoint 404s otherwise). Kept separate from
+   * `board.activeGig` so the dashboard widget never needs the full board.
+   */
+  fetchActiveGig: async () => {
+    if (!useAuthStore.getState().character) return;
+    set({ activeGigLoading: true, activeGigError: null });
+    try {
+      set({ activeGig: await api.get<ActiveGig | null>("/api/gigs/active") });
+    } catch (err) {
+      set({
+        activeGigError: err instanceof Error ? err.message : "Falha ao carregar trampo ativo",
+      });
+    } finally {
+      set({ activeGigLoading: false });
+    }
+  },
+
   acceptGig: async (id) => {
     set({ actionLoading: true, actionError: null, lastWrapup: null });
     try {
       const res = await api.post<{ activeGig: ActiveGig }>(`/api/gigs/${id}/accept`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig: res.activeGig } : null }));
+      set((s) => ({
+        board: s.board ? { ...s.board, activeGig: res.activeGig } : null,
+        activeGig: res.activeGig,
+      }));
       // NIL was spent — keep the dashboard bar honest.
       void useAuthStore.getState().fetchNil();
       return res.activeGig;
@@ -80,7 +111,7 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       const activeGig = await api.post<ActiveGig>(`/api/gigs/${id}/legwork`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig } : null }));
+      set((s) => ({ board: s.board ? { ...s.board, activeGig } : null, activeGig }));
       return activeGig;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao iniciar legwork" });
@@ -94,7 +125,10 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       const res = await api.post<GigExecuteResponse>(`/api/gigs/${id}/execute`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig: res.activeGig } : null }));
+      set((s) => ({
+        board: s.board ? { ...s.board, activeGig: res.activeGig } : null,
+        activeGig: res.activeGig,
+      }));
       return res;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao executar" });
@@ -108,7 +142,10 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       const res = await api.post<GigEscapeResponse>(`/api/gigs/${id}/escape`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig: res.activeGig } : null }));
+      set((s) => ({
+        board: s.board ? { ...s.board, activeGig: res.activeGig } : null,
+        activeGig: res.activeGig,
+      }));
       return res;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha na fuga" });
@@ -122,7 +159,11 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       const res = await api.post<GigWrapupResponse>(`/api/gigs/${id}/wrapup`, {});
-      set((s) => ({ lastWrapup: res, board: s.board ? { ...s.board, activeGig: null } : null }));
+      set((s) => ({
+        lastWrapup: res,
+        board: s.board ? { ...s.board, activeGig: null } : null,
+        activeGig: null,
+      }));
       // Payout/street-cred changed — refresh the board so cooldowns reflect
       // the completed trampo (best-effort; the wrapup already resolved).
       void get().fetchBoard();
@@ -143,7 +184,10 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       await api.post(`/api/gigs/${id}/abandon`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig: null } : null }));
+      set((s) => ({
+        board: s.board ? { ...s.board, activeGig: null } : null,
+        activeGig: null,
+      }));
       void get().fetchBoard();
       // NIL is refunded — keep the dashboard bar honest.
       void useAuthStore.getState().fetchNil();

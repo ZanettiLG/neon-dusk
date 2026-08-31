@@ -192,7 +192,12 @@ export const useAuthStore = create<AuthState>()(
           set({ nilStatus: res.status });
           return res;
         } catch (err) {
-          set({ nilError: err instanceof ApiError ? err.message : "Falha ao usar Pingado" });
+          // Cooldown is not a failure: the caller reads retryAfterSeconds off the
+          // thrown ApiError and drives its own cooldown state. Keep nilError
+          // clean so a stale "Pingado em cooldown" never outlives the cooldown.
+          if (!(err instanceof ApiError && err.code === "NIL_STIM_COOLDOWN")) {
+            set({ nilError: err instanceof ApiError ? err.message : "Falha ao usar Pingado" });
+          }
           throw err;
         } finally {
           set({ nilLoading: false });

@@ -1,23 +1,31 @@
 import { Link } from "react-router-dom";
 
+const ACTIONS = [
+  { to: "/gigs", label: "Trampos" },
+  { to: "/saideira", label: "Saideira" },
+  { to: "/chrome", label: "Cromo" },
+  { to: "/pvp", label: "PvP" },
+  { to: "/vendors", label: "Vendedores" },
+] as const;
+
 /**
- * Compact row of 1-tap shortcuts to the main corredor loops.
+ * Compact grid of 1-tap shortcuts to the main corredor loops (issue #56).
+ * Token-based chips (`chip-tap` enforces the 44px touch target on coarse
+ * pointers) — no legacy hand-rolled button styling.
  */
 export default function QuickActions() {
   return (
-    <div className="flex flex-wrap gap-2">
-      <Link to="/gigs" className="btn-neon text-xs px-3 py-2">
-        Trampos
-      </Link>
-      <Link to="/saideira" className="btn-neon text-xs px-3 py-2">
-        Saideira
-      </Link>
-      <Link to="/chrome" className="btn-neon text-xs px-3 py-2">
-        Cromo
-      </Link>
-      <Link to="/pvp" className="btn-neon text-xs px-3 py-2">
-        PvP
-      </Link>
-    </div>
+    <nav aria-label="Ações rápidas" className="grid grid-cols-2 gap-2">
+      {ACTIONS.map((action) => (
+        <Link
+          key={action.to}
+          to={action.to}
+          className="chip-tap btn-neon w-full justify-between text-xs"
+        >
+          <span>{action.label}</span>
+          <span aria-hidden="true">▸</span>
+        </Link>
+      ))}
+    </nav>
   );
 }

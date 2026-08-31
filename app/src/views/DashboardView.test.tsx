@@ -4,11 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import DashboardView from "@/views/DashboardView";
 import { useAuthStore } from "@/stores/auth";
+import { useStreetCredStore } from "@/stores/street-cred";
+import { useHudStore } from "@/stores/hud";
+import { useGigStore } from "@/stores/gig";
 import type {
   Character,
   CharacterEventsResponse,
   InstalledChromeResponse,
   NilStatus,
+  StreetCredInfo,
   User,
 } from "@neon-dusk/shared";
 
@@ -71,6 +75,14 @@ const nilStatus: NilStatus = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
+const streetCredInfo: StreetCredInfo = {
+  score: 40,
+  title: "Pro",
+  maxAchieved: 40,
+  nextThreshold: { score: 50, title: "Corredor" },
+  scToNext: 10,
+};
+
 const installedChrome: InstalledChromeResponse = {
   installed: [],
   effectiveHumanity: 97,
@@ -86,13 +98,15 @@ const eventsResponse: CharacterEventsResponse = {
   nextCursor: null,
 };
 
-/** Route the mocked GET by path — new dashboard endpoints get real fixtures. */
+/** Route the mocked GET by path — every dashboard widget gets a real fixture. */
 function mockApiGet(nil: NilStatus = nilStatus) {
   mocks.api.get.mockImplementation((path: string) => {
     if (path === "/api/characters/me/nil") return Promise.resolve(nil);
     if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
     if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
-    return Promise.resolve(nil); // /api/round + leaderboard fallback
+    if (path === "/api/gigs/active") return Promise.resolve(null);
+    if (path === "/api/street-cred") return Promise.resolve(streetCredInfo);
+    return Promise.resolve(nil); // /api/round + hud endpoints + leaderboard fallback
   });
 }
 
@@ -110,11 +124,14 @@ function renderDashboard() {
 describe("DashboardView", () => {
   beforeEach(() => {
     useAuthStore.setState(useAuthStore.getInitialState());
+    useStreetCredStore.setState(useStreetCredStore.getInitialState());
+    useHudStore.setState(useHudStore.getInitialState());
+    useGigStore.setState(useGigStore.getInitialState());
     mocks.api.get.mockReset();
     mocks.api.post.mockReset();
   });
 
-  it("should render the character card, NIL bar and attributes", async () => {
+  it("should render the identity header, widgets and attributes", async () => {
     mockApiGet();
     useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
     renderDashboard();
@@ -125,10 +142,17 @@ describe("DashboardView", () => {
     expect(screen.getByText("fixer@neondusk.gg")).toBeInTheDocument();
     expect(screen.getByText("Desconectar")).toBeInTheDocument();
 
-    // NIL readout fetched on mount.
-    expect(await screen.findByText("80 / 100")).toBeInTheDocument();
+    // NIL widget: panel title, meter and live regen countdown.
+    expect(await screen.findByRole("meter", { name: "NIL" })).toHaveAttribute(
+      "aria-valuenow",
+      "80",
+    );
     expect(screen.getByText("NIL // CARGA NEURAL")).toBeInTheDocument();
     expect(screen.getByText(/Próximo \+1 em/)).toBeInTheDocument();
+
+    // Moral widget: live readout with the next threshold.
+    expect(await screen.findByText("Pro")).toBeInTheDocument();
+    expect(screen.getByText("Próximo: Corredor (+10)")).toBeInTheDocument();
 
     // Attribute grid.
     expect(screen.getByText("Body")).toBeInTheDocument();
@@ -136,12 +160,17 @@ describe("DashboardView", () => {
     expect(mocks.api.get).toHaveBeenCalledWith("/api/characters/me/nil");
 
     // Feature #139 sections: humanity bar, body map empty, event feed empty, quick actions.
-    expect(await screen.findByText("97 / 100")).toBeInTheDocument();
+    expect(await screen.findByRole("meter", { name: "Humanidade" })).toHaveAttribute(
+      "aria-valuenow",
+      "97",
+    );
     expect(screen.getByText("Nenhum cromo instalado")).toBeInTheDocument();
     expect(screen.getByText("Nenhum evento recente.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "PvP" })).toHaveAttribute("href", "/pvp");
     expect(mocks.api.get).toHaveBeenCalledWith("/api/chrome/installed");
     expect(mocks.api.get).toHaveBeenCalledWith("/api/characters/me/events");
+    expect(mocks.api.get).toHaveBeenCalledWith("/api/gigs/active");
+    expect(mocks.api.get).toHaveBeenCalledWith("/api/street-cred");
   });
 
   it("should show the empty state when no character is linked", async () => {
@@ -170,7 +199,10 @@ describe("DashboardView", () => {
     const pingado = await screen.findByRole("button", { name: "PINGADO" });
     await userEvent.setup().click(pingado);
 
-    expect(await screen.findByText("100 / 100")).toBeInTheDocument();
+    expect(await screen.findByRole("meter", { name: "NIL" })).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
     expect(await screen.findByText("NIL CHEIO")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/characters/me/nil/use-stim", {});
   });
@@ -181,8 +213,8 @@ describe("DashboardView", () => {
     renderDashboard();
 
     // The shared mock also rejects the leaderboard fetch, so the message may
-    // appear more than once — assert the NIL span specifically exists.
-    const nilError = await screen.findAllByText("NIL indisponível");
+    // appear more than once — assert the NIL widget shows it at least once.
+    const nilError = await screen.findAllByText(/NIL indisponível/);
     expect(nilError.length).toBeGreaterThan(0);
   });
 
@@ -191,17 +223,61 @@ describe("DashboardView", () => {
       if (path === "/api/characters/me/nil") return Promise.reject(new Error("network down"));
       if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
       if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
-      return Promise.resolve(nilStatus); // /api/round + leaderboard fallback
+      if (path === "/api/gigs/active") return Promise.resolve(null);
+      if (path === "/api/street-cred") return Promise.resolve(streetCredInfo);
+      return Promise.resolve(nilStatus); // /api/round + hud endpoints + leaderboard fallback
     });
     useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
     renderDashboard();
 
     // Degraded state: PT-BR error line instead of the contradictory 0 / 0 +
     // "crítico" band + "NIL CHEIO" trio.
-    expect(await screen.findByText("NIL indisponível")).toBeInTheDocument();
+    expect(await screen.findByText(/NIL indisponível/)).toBeInTheDocument();
     expect(screen.queryByText("NIL CHEIO")).not.toBeInTheDocument();
     expect(screen.queryByText("0 / 0")).not.toBeInTheDocument();
     expect(screen.queryByText("crítico")).not.toBeInTheDocument();
+  });
+
+  it("shows the round badge when /api/round succeeds", async () => {
+    mocks.api.get.mockImplementation((path: string) => {
+      if (path === "/api/round") {
+        return Promise.resolve({
+          roundNumber: 7,
+          startedAt: "2026-08-01T00:00:00.000Z",
+          endsAt: "2026-08-15T00:00:00.000Z",
+          timeRemainingSeconds: 86400,
+          status: "active",
+          intermissionUntil: null,
+        });
+      }
+      if (path === "/api/characters/me/nil") return Promise.resolve(nilStatus);
+      if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
+      if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
+      if (path === "/api/gigs/active") return Promise.resolve(null);
+      if (path === "/api/street-cred") return Promise.resolve(streetCredInfo);
+      return Promise.resolve(nilStatus);
+    });
+    useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
+    renderDashboard();
+
+    expect(await screen.findByText("ROUND 7 // ATIVO")).toBeInTheDocument();
+  });
+
+  it("hides the round badge when /api/round fails", async () => {
+    mocks.api.get.mockImplementation((path: string) => {
+      if (path === "/api/round") return Promise.reject(new Error("round down"));
+      if (path === "/api/characters/me/nil") return Promise.resolve(nilStatus);
+      if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
+      if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
+      if (path === "/api/gigs/active") return Promise.resolve(null);
+      if (path === "/api/street-cred") return Promise.resolve(streetCredInfo);
+      return Promise.resolve(nilStatus);
+    });
+    useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
+    renderDashboard();
+
+    expect(await screen.findByText("Ghost")).toBeInTheDocument();
+    expect(screen.queryByText(/ROUND \d+ \/\//)).not.toBeInTheDocument();
   });
 
   it("should log out and navigate to /login", async () => {
