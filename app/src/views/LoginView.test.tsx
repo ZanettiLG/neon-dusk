@@ -110,6 +110,15 @@ describe("LoginView", () => {
     expect(await screen.findByText("CREATE CHARACTER PAGE")).toBeInTheDocument();
   });
 
+  it("should render the store error fallback when there is no form error", () => {
+    useAuthStore.setState({ error: "Sessão expirada, autentique-se novamente" });
+    renderLogin();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Sessão expirada, autentique-se novamente",
+    );
+  });
+
   it("should show the error message and stay on the page when login fails", async () => {
     mocks.api.post.mockRejectedValue(new Error("Credenciais inválidas"));
     renderLogin();

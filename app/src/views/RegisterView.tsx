@@ -13,6 +13,7 @@ const EMAIL_RE = /^(?!\.)(?!.*\.\.)([A-Z0-9_'+\-.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9
 function passwordError(password: string): string | null {
   if (password.length === 0) return null;
   if (password.length < 8) return "A senha precisa de pelo menos 8 caracteres.";
+  // defense: mirror do server .max(72); inalcançável via UI (maxLength trunca)
   if (password.length > 72) return "A senha pode ter no máximo 72 caracteres.";
   if (!/[A-Z]/.test(password)) return "Inclua ao menos uma letra maiúscula.";
   if (!/[0-9]/.test(password)) return "Inclua ao menos um número.";
