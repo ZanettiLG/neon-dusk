@@ -128,4 +128,40 @@ describe("Modal", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).not.toHaveBeenCalled();
   });
+
+  it("should not close on overlay click when closeOnOverlay=false", () => {
+    const onClose = vi.fn();
+    render(
+      <Modal open closeOnOverlay={false} onClose={onClose}>
+        conteúdo
+      </Modal>,
+    );
+    const overlay = document.querySelector('[aria-hidden="true"]') as HTMLElement;
+    expect(overlay).not.toBeNull();
+    fireEvent.click(overlay);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("should apply size classes", () => {
+    const { rerender } = render(
+      <Modal open size="sm" onClose={vi.fn()}>
+        conteúdo
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-sm");
+
+    rerender(
+      <Modal open size="md" onClose={vi.fn()}>
+        conteúdo
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-md");
+
+    rerender(
+      <Modal open size="lg" onClose={vi.fn()}>
+        conteúdo
+      </Modal>,
+    );
+    expect(screen.getByRole("dialog")).toHaveClass("max-w-lg");
+  });
 });
