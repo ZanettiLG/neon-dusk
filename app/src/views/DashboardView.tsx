@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type {
   AttributeKey,
+  Character,
   CharacterEvent,
   CharacterEventsResponse,
   InstalledChromeResponse,
@@ -10,17 +11,21 @@ import type {
 } from "@neon-dusk/shared";
 import { ATTRIBUTE_KEYS, BASE_ATTRIBUTES, SOFT_CAP } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
+import { useHudStore } from "@/stores/hud";
 import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS } from "@/lib/labels";
-import { formatCountdown } from "@/lib/format";
 import { api } from "@/api/client";
 import Leaderboard from "@/components/Leaderboard";
 import CharacterAvatar from "@/components/CharacterAvatar";
-import ResourceBar from "@/components/ResourceBar";
 import ChromeBodyMap from "@/components/ChromeBodyMap";
 import EventLog from "@/components/ui/EventLog";
 import type { EventLogEntry } from "@/components/ui/types";
-import QuickActions from "@/components/QuickActions";
+import { ErrorState, LoadingState, MetricBar, Panel } from "@/components/ui";
 import { formatEventMessage } from "@/lib/events";
+import NilWidget from "@/components/dashboard/NilWidget";
+import MoralWidget from "@/components/dashboard/MoralWidget";
+import FundsWidget from "@/components/dashboard/FundsWidget";
+import ActiveGigWidget from "@/components/dashboard/ActiveGigWidget";
+import QuickActionsWidget from "@/components/dashboard/QuickActionsWidget";
 
 /** Translate round status to Portuguese display label. */
 const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
@@ -29,49 +34,24 @@ const ROUND_STATUS_LABEL: Record<RoundStatus, string> = {
   intermission: "INTERVALO",
 };
 
+/** Attribute value color: magenta past soft cap, cyan past base, default otherwise. */
+function attributeHighlight(character: Character | null, key: AttributeKey): string {
+  const value = character?.[key] ?? 0;
+  if (value >= SOFT_CAP) return "text-nd-magenta";
+  if (value > BASE_ATTRIBUTES) return "text-nd-cyan";
+  return "text-nd-text";
+}
+
 /**
- * Corredor dashboard: character card (avatar, attributes), NIL bar with live
- * regen countdown, Pingado (ampola), humanity + cromo body map, recent event
- * feed, quick actions, leaderboard and logout (port of DashboardView.vue).
+ * Identity panel: avatar, codinome, banca · origem and the live round badge
+ * (GET /api/round, best-effort — a failure simply hides the badge).
  */
-export default function DashboardView() {
-  const navigate = useNavigate();
+function IdentityPanel() {
   const character = useAuthStore((s) => s.character);
-  const user = useAuthStore((s) => s.user);
-  const nilStatus = useAuthStore((s) => s.nilStatus);
-  const nilLoading = useAuthStore((s) => s.nilLoading);
-  const nilError = useAuthStore((s) => s.nilError);
-  const fetchNil = useAuthStore((s) => s.fetchNil);
-  const useStim = useAuthStore((s) => s.useStim);
-  const logout = useAuthStore((s) => s.logout);
-
-  const attributeHighlight = (key: AttributeKey) =>
-    (character?.[key] ?? 0) >= SOFT_CAP
-      ? "text-nd-magenta"
-      : (character?.[key] ?? 0) > BASE_ATTRIBUTES
-        ? "text-nd-cyan"
-        : "text-nd-text";
-
-  // --- NIL (Feature #2) — live regen countdown ----------------------------------
-
-  const [countdown, setCountdown] = useState(0);
-  const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // --- Humanidade + cromo body map (Feature #139) --------------------------------
-
-  const [installed, setInstalled] = useState<InstalledChromeResponse | null>(null);
-  const [installedLoading, setInstalledLoading] = useState(true);
-  const [installedError, setInstalledError] = useState<string | null>(null);
-
-  // --- Recent event feed (Feature #139) -----------------------------------------
-
-  const [events, setEvents] = useState<CharacterEvent[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(true);
-  const [eventsError, setEventsError] = useState<string | null>(null);
-
   const [roundInfo, setRoundInfo] = useState<RoundInfoResponse | null>(null);
 
   useEffect(() => {
+    if (!character) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -84,12 +64,90 @@ export default function DashboardView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [character]);
 
-  // Humanity + body map come from the single /api/chrome/installed fetch.
+  if (!character) return null;
+
+  const roundStatus = roundInfo ? ROUND_STATUS_LABEL[roundInfo.status] : null;
+
+  return (
+    <Panel>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <CharacterAvatar origin={character.origin} size="md" />
+          <div>
+            <h3 className="font-heading text-3xl text-nd-gold">{character.name}</h3>
+            <p className="text-nd-text-secondary font-data text-sm mt-1">
+              {ROLE_LABELS[character.role]} · Origem: {ORIGIN_LABELS[character.origin]}
+            </p>
+          </div>
+        </div>
+        {roundInfo && roundStatus && (
+          <span className="self-start font-data text-xs uppercase tracking-widest border border-nd-cyan/40 text-nd-cyan rounded-terminal px-2 py-1">
+            ROUND {roundInfo.roundNumber} // {roundStatus}
+          </span>
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+/** Five attribute cells with soft-cap highlight (issue #56 — kept from the legacy card). */
+function AttributesPanel() {
+  const character = useAuthStore((s) => s.character);
+  if (!character) return null;
+
+  return (
+    <Panel title="ATRIBUTOS">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {ATTRIBUTE_KEYS.map((key) => (
+          <div
+            key={key}
+            className={`bg-nd-bg/60 border rounded-terminal p-3 text-center transition-colors ${
+              character[key] >= SOFT_CAP
+                ? "border-nd-gold/40 shadow-neon-gold"
+                : "border-nd-cyan/20"
+            }`}
+          >
+            <div className="text-nd-text-secondary text-xs font-data uppercase tracking-wider">
+              {ATTRIBUTE_LABELS[key]}
+            </div>
+            <div className={`font-data text-3xl mt-1 ${attributeHighlight(character, key)}`}>
+              {character[key]}
+            </div>
+            {character[key] >= SOFT_CAP && (
+              <div
+                className="text-nd-gold/60 text-nd-micro font-data mt-1 leading-tight"
+                title="Após 15, cada ponto custa 2"
+              >
+                SOFT CAP
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+/**
+ * Humanidade + cromo body map. Humanity prefers the band-aware HUD store
+ * readout (GET /api/humanity) and falls back to the cromo snapshot; the body
+ * map comes from GET /api/chrome/installed (best-effort fetch).
+ */
+function HumanityChromePanel() {
+  const character = useAuthStore((s) => s.character);
+  const hudHumanity = useHudStore((s) => s.humanity);
+  const [installed, setInstalled] = useState<InstalledChromeResponse | null>(null);
+  const [installedLoading, setInstalledLoading] = useState(true);
+  const [installedError, setInstalledError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+
   useEffect(() => {
     if (!character) return;
     let cancelled = false;
+    setInstalledLoading(true);
+    setInstalledError(null);
     void (async () => {
       try {
         const data = await api.get<InstalledChromeResponse>("/api/chrome/installed");
@@ -103,11 +161,45 @@ export default function DashboardView() {
     return () => {
       cancelled = true;
     };
-  }, [character]);
+  }, [character, retryKey]);
+
+  const humanity = hudHumanity ?? installed?.effectiveHumanity ?? null;
+
+  return (
+    <Panel title="HUMANIDADE // CROMO">
+      <div className="space-y-4">
+        {humanity !== null ? (
+          <MetricBar resource="humanity" value={humanity} max={100} label="Humanidade" />
+        ) : (
+          <LoadingState variant="inline" label="humanidade" />
+        )}
+        {installedLoading ? (
+          <LoadingState variant="inline" label="cromo" />
+        ) : installedError ? (
+          <ErrorState message={installedError} onRetry={() => setRetryKey((k) => k + 1)} />
+        ) : (installed?.installed ?? []).length === 0 ? (
+          <p className="text-nd-text-secondary text-sm font-data">Nenhum cromo instalado</p>
+        ) : (
+          <ChromeBodyMap installed={installed?.installed ?? []} />
+        )}
+      </div>
+    </Panel>
+  );
+}
+
+/** Recent character event feed (GET /api/characters/me/events, best-effort). */
+function EventsPanel() {
+  const character = useAuthStore((s) => s.character);
+  const [events, setEvents] = useState<CharacterEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!character) return;
     let cancelled = false;
+    setEventsLoading(true);
+    setEventsError(null);
     void (async () => {
       try {
         const data = await api.get<CharacterEventsResponse>("/api/characters/me/events");
@@ -121,65 +213,43 @@ export default function DashboardView() {
     return () => {
       cancelled = true;
     };
-  }, [character]);
+  }, [character, retryKey]);
 
-  function syncCountdown(): void {
-    setCountdown(useAuthStore.getState().nilStatus?.nextTickSeconds ?? 0);
-  }
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      await fetchNil();
-      if (cancelled) return;
-      syncCountdown();
-      countdownTimer.current = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev > 0) return prev - 1;
-          // Regen tick landed — refresh to display the accrued NIL.
-          const nil = useAuthStore.getState().nilStatus;
-          if (nil?.regenerating) {
-            void useAuthStore.getState().fetchNil();
-            return nil.nextTickSeconds;
-          }
-          return prev;
-        });
-      }, 1000);
-    })();
-    return () => {
-      cancelled = true;
-      if (countdownTimer.current) {
-        clearInterval(countdownTimer.current);
-        countdownTimer.current = null;
-      }
-    };
-  }, [fetchNil]);
-
-  async function onUseStim(): Promise<void> {
-    try {
-      await useStim();
-      syncCountdown();
-    } catch {
-      // error already surfaced through nilError
-    }
-  }
-
-  async function onLogout(): Promise<void> {
-    await logout();
-    navigate("/login");
-  }
-
-  const nilEtaText = nilStatus?.regenerating
-    ? `Próximo +1 em ${formatCountdown(countdown)}`
-    : "NIL CHEIO";
-
-  // Map CharacterEvent[] → EventLogEntry[] for the shared ui/EventLog (#54).
   const eventEntries: EventLogEntry[] = events.map((e) => ({
     id: e.id,
     severity: e.severity,
     title: formatEventMessage(e.eventType, e.payload),
     timestamp: e.createdAt,
   }));
+
+  return (
+    <Panel
+      title="REGISTRO DE EVENTOS"
+      status={eventsLoading ? "loading" : eventsError ? "error" : "default"}
+      errorMessage="Falha ao carregar eventos"
+      onRetry={() => setRetryKey((k) => k + 1)}
+    >
+      <EventLog events={eventEntries} emptyMessage="Nenhum evento recente." />
+    </Panel>
+  );
+}
+
+/**
+ * Corredor dashboard: composition shell over the design-system widgets (NIL,
+ * Moral, Grana, Trampo ativo, Ações rápidas) plus the identity header, attribute
+ * grid, humanity/cromo, event feed and leaderboard. Every widget fetches its own
+ * data best-effort — one failure never takes the panel down (issue #56).
+ */
+export default function DashboardView() {
+  const navigate = useNavigate();
+  const character = useAuthStore((s) => s.character);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  async function onLogout(): Promise<void> {
+    await logout();
+    navigate("/login");
+  }
 
   return (
     <div className="py-8 space-y-6">
@@ -198,125 +268,23 @@ export default function DashboardView() {
 
       {character ? (
         <>
-          <div className="card space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <CharacterAvatar origin={character.origin} size="md" />
-                <div>
-                  <h3 className="font-heading text-3xl text-nd-gold">{character.name}</h3>
-                  <p className="text-nd-text-secondary font-data text-sm mt-1">
-                    {ROLE_LABELS[character.role]} · Origem: {ORIGIN_LABELS[character.origin]}
-                  </p>
-                </div>
-              </div>
-              {roundInfo && (
-                <span className="self-start font-data text-xs uppercase tracking-widest border border-nd-cyan/40 text-nd-cyan rounded-terminal px-2 py-1">
-                  ROUND {roundInfo.roundNumber} // {ROUND_STATUS_LABEL[roundInfo.status]}
-                </span>
-              )}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="md:col-span-2 xl:col-span-3">
+              <IdentityPanel />
             </div>
-
-            {/* NIL — neural load bar (Feature #2) */}
-            {nilStatus ? (
-              <>
-                <ResourceBar
-                  resource="nil"
-                  label="NIL // CARGA NEURAL"
-                  value={nilStatus.current}
-                  max={nilStatus.max}
-                  etaText={nilEtaText}
-                  action={
-                    <div className="flex flex-col items-end gap-1">
-                      <button
-                        className="btn-neon text-xs px-3 py-1"
-                        disabled={nilLoading || !nilStatus.regenerating}
-                        onClick={() => void onUseStim()}
-                      >
-                        PINGADO
-                      </button>
-                      <span className="text-[10px] font-data text-nd-text-secondary">
-                        Brinde gratuito — 1h cooldown
-                      </span>
-                    </div>
-                  }
-                />
-                {nilError && <span className="text-nd-magenta text-xs font-data">{nilError}</span>}
-              </>
-            ) : nilLoading || !nilError ? (
-              <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>
-            ) : (
-              <p className="text-nd-magenta text-sm font-data">NIL indisponível</p>
-            )}
-
-            {/* Humanidade + cromo body map (Feature #139) */}
-            <div className="space-y-2">
-              <h4 className="font-data text-xs uppercase tracking-widest text-nd-text-secondary">
-                HUMANIDADE // CROMO
-              </h4>
-              {installedLoading ? (
-                <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>
-              ) : installedError ? (
-                <p className="text-nd-magenta text-sm font-data">{installedError}</p>
-              ) : (
-                <>
-                  <ResourceBar
-                    resource="humanity"
-                    label="HUMANIDADE"
-                    value={installed?.effectiveHumanity ?? 100}
-                    max={100}
-                  />
-                  {(installed?.installed ?? []).length === 0 ? (
-                    <p className="text-nd-text-secondary text-sm font-data">Nenhum cromo instalado</p>
-                  ) : (
-                    <ChromeBodyMap installed={installed?.installed ?? []} />
-                  )}
-                </>
-              )}
+            <NilWidget />
+            <MoralWidget />
+            <FundsWidget />
+            <ActiveGigWidget />
+            <QuickActionsWidget />
+            <EventsPanel />
+            <div className="md:col-span-2 xl:col-span-3">
+              <AttributesPanel />
             </div>
-
-            {/* Recent event feed (Feature #139) */}
-            <div className="space-y-2">
-              <h4 className="font-data text-xs uppercase tracking-widest text-nd-text-secondary">
-                REGISTRO DE EVENTOS
-              </h4>
-              {eventsLoading ? (
-                <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>
-              ) : eventsError ? (
-                <p className="text-nd-magenta text-sm font-data">{eventsError}</p>
-              ) : (
-                <EventLog events={eventEntries} emptyMessage="Nenhum evento recente." />
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                {ATTRIBUTE_KEYS.map((key) => (
-                  <div
-                    key={key}
-                    className={`bg-nd-bg/60 border rounded-terminal p-3 text-center transition-colors ${
-                      character[key] >= SOFT_CAP
-                        ? "border-nd-gold/40 shadow-neon-gold"
-                        : "border-nd-cyan/20"
-                    }`}
-                  >
-                    <div className="text-nd-text-secondary text-xs font-data uppercase tracking-wider">
-                      {ATTRIBUTE_LABELS[key]}
-                    </div>
-                    <div className={`font-data text-3xl mt-1 ${attributeHighlight(key)}`}>
-                      {character[key]}
-                    </div>
-                    {character[key] >= SOFT_CAP && (
-                      <div className="text-nd-gold/60 text-[10px] font-data mt-1 leading-tight" title="Após 15, cada ponto custa 2">
-                        SOFT CAP
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+            <div className="md:col-span-2 xl:col-span-3">
+              <HumanityChromePanel />
             </div>
           </div>
-
-          <QuickActions />
 
           <p className="text-nd-text-secondary text-xs font-data">
             <Link to="/gigs" className="text-nd-purple hover:text-nd-cyan transition-colors">

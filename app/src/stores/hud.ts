@@ -1,15 +1,13 @@
 import { create } from "zustand";
 import { api } from "@/api/client";
-import type {
-  EconomyBalanceResponse,
-  InstalledChromeResponse,
-  OsStatus,
-} from "@neon-dusk/shared";
+import type { EconomyBalanceResponse, InstalledChromeResponse, OsStatus } from "@neon-dusk/shared";
 
 interface HudState {
   /** Wallet balance (G$). Null while unloaded or after a failed refresh. */
   balance: number | null;
   balanceError: string | null;
+  /** Grana committed to pending deals (unspendable). Null while unloaded. */
+  escrow: number | null;
   /** Effective humanity after installed cromo (0–100). Null while unloaded. */
   humanity: number | null;
   humanityError: string | null;
@@ -40,6 +38,7 @@ function numField(value: unknown, key: string): number | null {
 export const useHudStore = create<HudState>((set) => ({
   balance: null,
   balanceError: null,
+  escrow: null,
   humanity: null,
   humanityError: null,
   os: null,
@@ -53,24 +52,20 @@ export const useHudStore = create<HudState>((set) => ({
     ]);
 
     const humanityInfo =
-      humanityRes.status === "fulfilled"
-        ? numField(humanityRes.value, "humanity")
-        : null;
+      humanityRes.status === "fulfilled" ? numField(humanityRes.value, "humanity") : null;
     const chromeHumanity =
-      chromeRes.status === "fulfilled"
-        ? numField(chromeRes.value, "effectiveHumanity")
-        : null;
+      chromeRes.status === "fulfilled" ? numField(chromeRes.value, "effectiveHumanity") : null;
     const humanity = humanityInfo ?? chromeHumanity;
 
     set({
-      balance:
-        balanceRes.status === "fulfilled" ? balanceRes.value.balance : null,
+      balance: balanceRes.status === "fulfilled" ? numField(balanceRes.value, "balance") : null,
       balanceError:
         balanceRes.status === "rejected"
           ? balanceRes.reason instanceof Error
             ? balanceRes.reason.message
             : "Falha ao carregar grana"
           : null,
+      escrow: balanceRes.status === "fulfilled" ? numField(balanceRes.value, "escrow") : null,
       humanity,
       humanityError:
         humanity === null
@@ -84,8 +79,7 @@ export const useHudStore = create<HudState>((set) => ({
                 : "Falha ao carregar humanidade"
               : null
           : null,
-      os:
-        osRes.status === "fulfilled" && osRes.value ? osRes.value : null,
+      os: osRes.status === "fulfilled" && osRes.value ? osRes.value : null,
     });
   },
 }));
