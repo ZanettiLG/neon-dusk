@@ -4,6 +4,19 @@ Histórico de mudanças nos agentes de desenvolvimento.
 
 ## 2026-08-31
 ### Trigger
+Issue #54 (run nd-20260831-025336-componentes-base): (1) o LoadingState skeleton ficou silencioso para AT (`aria-busy` em div sem role) — 2º caso do tipo (o 1º foi na issue #53/Data Display View); (2) o comentário "issue #134" (inexistente) passou no `check-terminologia` — refs de issue em comentários de código não são validadas.
+
+### Change
+- Adicionado check #51 ao self-review do developer: "Estados de loading têm anúncio acessível: `role="status"` (ou texto sr-only) no wrapper — skeleton silencioso falha o passo".
+- Adicionado check #52 ao self-review do developer: "Refs de issue em comentários de código (`#N`) referenciam issues existentes (abertas ou fechadas) — `gh issue view N` confirma; nunca cite issue inexistente". Total de checks: 50 → 52.
+
+### Impact
+Skeletons de loading deixam de ser silenciosos para leitores de tela (anúncio acessível obrigatório no wrapper); refs de issue inexistentes deixam de passar despercebidas no self-review — validadas contra issues reais antes do handoff.
+
+---
+
+## 2026-08-31
+### Trigger
 Issue #53 (run nd-20260831-003232-design-tokens): (1) 2 arquivos perderam EOF newline sem o prettier check escopado ao diff pegar — `tailwind.config.js`/`d.ts` na 1ª rodada e `tokens.ts` + `generate-tokens-css.test.ts` na 2ª (o pr-reviewer pegou); arquivos que perdem o trailing newline passam despercebidos se o arquivo já estava na lista de "dívida" pré-existente. (2) O doc `docs/design/05-design-tokens.md` ficou stale em 3 pontos (§7 animações, §14 artefatos, §15 D5) quando a implementação resolveu D5 — 2ª ocorrência do padrão "docs de design não acompanham a implementação".
 
 ### Change

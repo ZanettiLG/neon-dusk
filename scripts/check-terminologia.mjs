@@ -6,6 +6,11 @@
 // OU nas strings de código (extensão #145 — user-facing only: chaves internas
 // de schema/API e enum lowercase continuam permitidas).
 // Zero dependências: node scripts/check-terminologia.mjs
+// Escopo: o guard valida TERMINOLOGIA (IP de terceiros banido), NÃO refs de
+// issue. Refs de issue em comentários (`#N`) não são validadas aqui — exigiria
+// `gh` + rede (quebra o contrato zero-dependência) e colidiria com os
+// marcadores de auditoria internos (#145/#148/#169...). Validação de ref de
+// issue é regra de review no self-review do developer (check #52 do developer.md).
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 

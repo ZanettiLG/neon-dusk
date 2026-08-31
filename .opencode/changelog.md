@@ -4,6 +4,19 @@ Histórico de mudanças estruturais no harness de desenvolvimento.
 
 ## 2026-08-31
 ### Trigger
+Issue #54 (run nd-20260831-025336-componentes-base): o guard de classes arbitrárias (tokens-usage.test.ts) é convenção de review, não automação de lint — avaliada a viabilidade de virar regra de lint; e refs de issue em comentários não são validadas pelo guard de terminologia.
+
+### Change
+- **Avaliado e NÃO aplicado (dívida consciente)**: adicionar `eslint-plugin-tailwindcss` (`no-arbitrary-value`) para banir arbitrary values no core. Não é trivial: exige nova dependência + `npm install` (mexe em lockfile/node_modules), o plugin não está instalado, e a regra bane TODOS os arbitrary values globalmente (sem escopo "core vs não-core" nativo — ~733 matches de bracket em `app/src` hoje, alto risco de falsos positivos + manutenção de allowlist contínua). Mantido como convenção de review + teste dedicado (`tokens-usage.test.ts`).
+- `scripts/check-terminologia.mjs`: nota de escopo no header — o guard valida TERMINOLOGIA, NÃO refs de issue (`#N`); validação de ref exigiria `gh` + rede (quebra o contrato zero-dependência) e colidiria com marcadores de auditoria internos (#145/#148/#169...). Refs de issue são regra de review no self-review do developer (check #52).
+
+### Impact
+Sem churn de dependência/lint (linter atual permanece intacto); a convenção de classes arbitrárias segue como review + teste, e a limitação do guard de terminologia fica documentada — evitando confusão futura ("por que o check não pega 'issue #134'?").
+
+---
+
+## 2026-08-31
+### Trigger
 Issue #53 (run nd-20260831-003232-design-tokens): 2 arquivos perderam EOF newline sem o prettier check pegar (2ª ocorrência); doc 05-design-tokens.md ficou stale quando D5 foi resolvido no código (2ª ocorrência).
 
 ### Change

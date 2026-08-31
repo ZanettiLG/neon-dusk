@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (50 checks)
+7. Self-review (52 checks)
 8. Handoff do código implementado
 
-## Self-Review (50 checks)
+## Self-Review (52 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -82,6 +82,8 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Prettier rodado APENAS nos arquivos tocados pelo diff da feature — violação INTRODUZIDA falha o passo (débito pré-existente é reportado separadamente, não mascara violações novas)
 - [ ] EOF newline verificado em TODOS os arquivos tocados pelo diff (arquivos que perdem o trailing newline falham o passo — `git diff --check` ou verificação explícita de newline final)
 - [ ] Docs de design (`docs/design/`) atualizados na MESMA PR quando a implementação toca divergências registradas (§15) ou muda o que o doc descreve (§7/§14)
+- [ ] Estados de loading têm anúncio acessível: `role="status"` (ou texto sr-only) no wrapper — skeleton silencioso falha o passo (aria-busy em div sem role não anuncia nada para AT)
+- [ ] Refs de issue em comentários de código (`#N`) referenciam issues existentes (abertas ou fechadas) — `gh issue view N` confirma; nunca cite issue inexistente
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino
