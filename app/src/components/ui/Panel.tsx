@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import Skeleton from "./Skeleton";
 import type { DataStatus } from "./types";
+import EmptyState from "./EmptyState";
+import ErrorState from "./ErrorState";
+import LoadingState from "./LoadingState";
 
 export interface PanelProps {
   variant?: "default" | "alert" | "danger" | "highlight";
@@ -21,13 +23,23 @@ export interface PanelProps {
 const VARIANTS = {
   default: { frame: "", marker: "", markerClass: "" },
   alert: { frame: "border-nd-gold/40 shadow-neon-gold", marker: "⚠", markerClass: "text-nd-gold" },
-  danger: { frame: "border-nd-magenta/40 shadow-neon-magenta", marker: "!", markerClass: "text-nd-magenta" },
-  highlight: { frame: "border-nd-purple/40 shadow-neon-purple", marker: "◆", markerClass: "text-nd-purple" },
+  danger: {
+    frame: "border-nd-magenta/40 shadow-neon-magenta",
+    marker: "!",
+    markerClass: "text-nd-magenta",
+  },
+  highlight: {
+    frame: "border-nd-purple/40 shadow-neon-purple",
+    marker: "◆",
+    markerClass: "text-nd-purple",
+  },
 } as const;
 
 /**
  * Base content container: `.card` visual with four data states
  * (loading skeleton, error + retry, empty message, default children).
+ * The states delegate to LoadingState/ErrorState/EmptyState (issue #54) so
+ * the loading/error/empty look stays consistent across the library.
  */
 export default function Panel({
   variant = "default",
@@ -58,24 +70,11 @@ export default function Panel({
       )}
 
       {status === "loading" ? (
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-1/3" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-3 w-2/3" />
-        </div>
+        <LoadingState skeletonClassName="h-3" />
       ) : status === "error" ? (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-nd-magenta text-sm font-data">✗ {errorMessage ?? "Erro ao carregar."}</p>
-          {onRetry && (
-            <button type="button" className="btn-neon text-xs px-3 py-1" onClick={onRetry}>
-              Tentar de novo
-            </button>
-          )}
-        </div>
+        <ErrorState message={errorMessage} onRetry={onRetry} />
       ) : status === "empty" ? (
-        <p className="text-nd-text-secondary text-sm font-data">
-          {emptyMessage ?? "Nada por aqui."}
-        </p>
+        <EmptyState message={emptyMessage ?? "Nada por aqui."} />
       ) : (
         children
       )}

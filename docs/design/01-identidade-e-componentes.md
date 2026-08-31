@@ -2,16 +2,25 @@
 
 ## Vocabulário de componentes
 
-| Componente | Função | Estado |
-|---|---|---|
-| Panel | Superfície elevada com borda de terminal | normal, alerta, perigo, destaque |
-| MetricBar | Barra de recurso (NIL, Humanidade, progresso, dificuldade) | valor, cor por faixa, label, contagem |
-| ActionButton | Ação primária grande e legível | ativo, loading, cooldown, bloqueado + motivo |
-| EventLog | Timeline de eventos com timestamp | severidade, resultado, custo, retry |
-| StatusBadge | Tier, tipo, estado | cor por semântica, sempre com texto |
-| OutcomeChip | Resultado de rolagem (roll vs. chance) | sucesso, falha, crítica |
-| Tab | Navegação local | ativo, inativo, disabled |
-| PhaseStepper | Fases do trampo (Meet, Legwork, Execute, Escape, Wrap Up) | concluída, atual, pendente |
+| Componente   | Função                                                     | Estado                                       |
+| ------------ | ---------------------------------------------------------- | -------------------------------------------- |
+| Panel        | Superfície elevada com borda de terminal                   | normal, alerta, perigo, destaque             |
+| MetricBar    | Barra de recurso (NIL, Humanidade, progresso, dificuldade) | valor, cor por faixa, label, contagem        |
+| ActionButton | Ação primária grande e legível                             | ativo, loading, cooldown, bloqueado + motivo |
+| EventLog     | Timeline de eventos com timestamp                          | severidade, resultado, custo, retry          |
+| StatusBadge  | Tier, tipo, estado                                         | cor por semântica, sempre com texto          |
+| OutcomeChip  | Resultado de rolagem (roll vs. chance)                     | sucesso, falha, crítica                      |
+| Tab          | Navegação local                                            | ativo, inativo, disabled                     |
+| PhaseStepper | Fases do trampo (Meet, Legwork, Execute, Escape, Wrap Up)  | concluída, atual, pendente                   |
+| Button       | Ação base com variantes (primária, perigo, ouro, fantasma) | ativo, loading, disabled                     |
+| Input        | Campo de texto com label, erro e dica                      | normal, erro, disabled                       |
+| Modal        | Diálogo modal com foco preso                               | aberto, fechado                              |
+| Tabs         | Navegação por abas com painéis (roving tabindex)           | selecionada, inativa, disabled               |
+| TabPanel     | Painel de conteúdo de uma aba                              | visível, oculto                              |
+| Table        | Tabela de dados com estados                                | dados, loading, erro, vazio                  |
+| EmptyState   | Estado vazio reutilizável                                  | mensagem, ação                               |
+| LoadingState | Estado de carregamento                                     | skeleton, inline                             |
+| ErrorState   | Estado de erro com retry                                   | erro, retry                                  |
 
 ## Shell mobile
 
