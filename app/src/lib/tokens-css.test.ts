@@ -43,6 +43,12 @@ describe("buildTokensCss", () => {
     }
   });
 
+  it("should emit exactly 29 custom properties (10 cores + 2 raios + 5 sombras + 4 durações + 3 z + touch + scanline + 3 foco)", () => {
+    const css = buildTokensCss(tokens);
+    const vars = css.match(/^\s+--nd-[^:]+:/gm) ?? [];
+    expect(vars).toHaveLength(29);
+  });
+
   it("should still emit the structural :root wrapper when categories are empty", () => {
     const css = buildTokensCss({
       colors: {},

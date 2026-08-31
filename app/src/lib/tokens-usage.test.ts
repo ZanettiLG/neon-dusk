@@ -369,6 +369,25 @@ describe("scanFiles (synthetic files)", () => {
     expect(labels).toContain("z-N");
   });
 
+  it("should flag every banned hardcode pattern (duration, hex, rgb, min-h, arbitrary)", () => {
+    const file = write(
+      "Hardcodes.tsx",
+      [
+        "style={{ background: '#ff2020' }}",
+        "style={{ color: 'rgba(255, 32, 32, 0.25)' }}",
+        'className="duration-500"',
+        'className="min-h-[44px] min-w-[44px]"',
+        'className="w-[240px]"',
+      ].join("\n") + "\n",
+    );
+    const labels = scanFiles([file]).map((v) => v.label);
+    expect(labels).toContain("hex literal");
+    expect(labels).toContain("rgb()/rgba()");
+    expect(labels).toContain("duration-N");
+    expect(labels).toContain("min-h/min-w-[44px]");
+    expect(labels).toContain("arbitrary value");
+  });
+
   it("should honor the per-file hardcode allowlist", () => {
     const file = write("ChromeBodyMapSvg.tsx", 'className="w-full max-w-[240px] mx-auto"\n');
     expect(scanFiles([file])).toEqual([]);
