@@ -20,7 +20,7 @@ export default function RankUpCelebration() {
           </p>
           <h2 className="font-heading text-3xl text-nd-gold animate-glitch">{rankUp.title}</h2>
           <p className="font-data text-xs text-nd-text">
-            Moral {rankUp.score} — degrau dos {rankUp.threshold}
+            Moral {rankUp.score} — degrau de {rankUp.threshold}
           </p>
           <p className="text-nd-text-secondary text-sm italic">“{carcaraQuoteFor(rankUp.score)}”</p>
         </div>

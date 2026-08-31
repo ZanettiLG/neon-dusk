@@ -1,6 +1,6 @@
 # ADR 0002 — Rank-up de Moral no frontend (detecção + celebração)
 
-**Status**: proposto
+**Status**: aceito
 **Data**: 2026-08-31
 **Issue**: #9
 

@@ -33,7 +33,7 @@ describe("RankUpCelebration", () => {
     render(<RankUpCelebration />);
     expect(screen.getByText("RANK-UP // MORAL")).toBeInTheDocument();
     expect(screen.getByText("Pro")).toBeInTheDocument();
-    expect(screen.getByText("Moral 30 — degrau dos 25")).toBeInTheDocument();
+    expect(screen.getByText("Moral 30 — degrau de 25")).toBeInTheDocument();
     expect(screen.getByText(/Bem-vindo ao jogo de verdade/)).toBeInTheDocument();
   });
 

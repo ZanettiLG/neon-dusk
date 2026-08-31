@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useSaideiraStore, type ChatBlockCode, type ConnectionStatus } from "@/stores/saideira";
+import {
+  useSaideiraStore,
+  type ChatBlock,
+  type ChatBlockCode,
+  type ConnectionStatus,
+} from "@/stores/saideira";
 import { useAuthStore } from "@/stores/auth";
 import { formatRelativeTime } from "@/lib/format";
 import { useCountdownTo } from "@/lib/useCountdownTo";
@@ -76,9 +81,9 @@ export default function ChatBox() {
     trimmed.length > 0 && trimmed.length <= MAX_MESSAGE_LENGTH && !sendLoading && !chatBlock;
 
   /** Block copy with the countdown interpolated (static for CIRCUIT_BREAK). */
-  function blockMessage(): string {
-    const copy = BLOCK_COPY[chatBlock!.code];
-    return chatBlock!.code === "CIRCUIT_BREAK" ? copy : copy.replace("{n}", String(secondsLeft));
+  function blockMessage(block: ChatBlock): string {
+    const copy = BLOCK_COPY[block.code];
+    return block.code === "CIRCUIT_BREAK" ? copy : copy.replace("{n}", String(secondsLeft));
   }
 
   async function onSubmit(): Promise<void> {
@@ -113,7 +118,7 @@ export default function ChatBox() {
 
       {chatBlock && (
         <div className="mb-3 border border-nd-gold/30 rounded-terminal bg-nd-gold/5 px-3 py-2">
-          <p className="font-data text-xs text-nd-gold">{blockMessage()}</p>
+          <p className="font-data text-xs text-nd-gold">{blockMessage(chatBlock)}</p>
         </div>
       )}
 

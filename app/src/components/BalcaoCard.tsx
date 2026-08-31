@@ -13,12 +13,13 @@ const CARCARA_QUOTES: Record<number, string> = {
   10: "Me lembra do que eu fiz pra chegar aqui. Já foi o que você quer ser — e pagou o preço.",
 };
 
+const CARCARA_TIERS = Object.keys(CARCARA_QUOTES)
+  .map(Number)
+  .sort((a, b) => b - a);
+
 /** Quote for the highest ladder tier at or below `score` (floor: entry line). */
 export function carcaraQuoteFor(score: number): string {
-  const tiers = Object.keys(CARCARA_QUOTES)
-    .map(Number)
-    .sort((a, b) => b - a);
-  for (const tier of tiers) {
+  for (const tier of CARCARA_TIERS) {
     if (score >= tier) return CARCARA_QUOTES[tier];
   }
   return CARCARA_QUOTES[10];
