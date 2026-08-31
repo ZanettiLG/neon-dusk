@@ -2,6 +2,19 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-08-31 — N1: Convenção de teste DRY_RUN para shell scripts em testing-patterns
+
+### Trigger
+Run nd-20260831-151058-deploy-prod-script (issue #61): o code-reviewer observou que o padrão de teste DRY_RUN por string-match de stdout (usado para `scripts/deploy-prod.sh`) é frágil e não está documentado — sugeriu registrar a convenção na skill `testing-patterns`.
+
+### Change
+- `testing-patterns` skill: nova seção "Testando scripts shell com DRY_RUN" — (a) scripts de infra expõem `DRY_RUN=1` (wrapper que imprime `+ <cmd>` sem executar) + hooks de estado (`PREVIOUS_*_IMAGE`, `FORCE_SMOKE_FAIL`); (b) testes via `node --test` + child_process chamam o script com env controlado; (c) asserts usam `indexOf` ordenado sobre comandos canônicos (nunca acoplar à formatação `+ ` ou quebras de linha); (d) cobrir happy path, rollback/falha, no-op e pre-flight. Referencia `scripts/__tests__/deploy-prod.test.mjs` como exemplo real.
+
+### Impact
+Desenvolvedores e test-writer passam a usar `indexOf` ordenado em vez de acoplar à formatação de stdout, reduzindo testes frágeis em scripts de infra e documentando o padrão já validado na issue #61.
+
+---
+
 ## 2026-08-31
 ### Trigger
 Issue #54 (run nd-20260831-025336-componentes-base): o guard de classes arbitrárias (tokens-usage.test.ts) é convenção de review, não automação de lint — avaliada a viabilidade de virar regra de lint; e refs de issue em comentários não são validadas pelo guard de terminologia.
