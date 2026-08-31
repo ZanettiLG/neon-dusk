@@ -238,6 +238,48 @@ describe("DashboardView", () => {
     expect(screen.queryByText("crítico")).not.toBeInTheDocument();
   });
 
+  it("shows the round badge when /api/round succeeds", async () => {
+    mocks.api.get.mockImplementation((path: string) => {
+      if (path === "/api/round") {
+        return Promise.resolve({
+          roundNumber: 7,
+          startedAt: "2026-08-01T00:00:00.000Z",
+          endsAt: "2026-08-15T00:00:00.000Z",
+          timeRemainingSeconds: 86400,
+          status: "active",
+          intermissionUntil: null,
+        });
+      }
+      if (path === "/api/characters/me/nil") return Promise.resolve(nilStatus);
+      if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
+      if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
+      if (path === "/api/gigs/active") return Promise.resolve(null);
+      if (path === "/api/street-cred") return Promise.resolve(streetCredInfo);
+      return Promise.resolve(nilStatus);
+    });
+    useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
+    renderDashboard();
+
+    expect(await screen.findByText("ROUND 7 // ATIVO")).toBeInTheDocument();
+  });
+
+  it("hides the round badge when /api/round fails", async () => {
+    mocks.api.get.mockImplementation((path: string) => {
+      if (path === "/api/round") return Promise.reject(new Error("round down"));
+      if (path === "/api/characters/me/nil") return Promise.resolve(nilStatus);
+      if (path === "/api/chrome/installed") return Promise.resolve(installedChrome);
+      if (path.startsWith("/api/characters/me/events")) return Promise.resolve(eventsResponse);
+      if (path === "/api/gigs/active") return Promise.resolve(null);
+      if (path === "/api/street-cred") return Promise.resolve(streetCredInfo);
+      return Promise.resolve(nilStatus);
+    });
+    useAuthStore.setState({ accessToken: "at", refreshToken: "rt", user, character });
+    renderDashboard();
+
+    expect(await screen.findByText("Ghost")).toBeInTheDocument();
+    expect(screen.queryByText(/ROUND \d+ \/\//)).not.toBeInTheDocument();
+  });
+
   it("should log out and navigate to /login", async () => {
     mockApiGet();
     mocks.api.post.mockResolvedValue(undefined);

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import type { ActiveGig, Character, NilStatus, StreetCredInfo, User } from "@neon-dusk/shared";
@@ -149,6 +149,79 @@ describe("dashboard widgets", () => {
 
       expect(await screen.findByRole("button", { name: /Pingado em/ })).toBeDisabled();
     });
+
+    it("renders the loading state while NIL is being fetched", () => {
+      useAuthStore.setState({ user, character, nilStatus: null, nilLoading: true, nilError: null });
+      renderWidget(<NilWidget />);
+
+      expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+      expect(screen.queryByRole("button", { name: "PINGADO" })).not.toBeInTheDocument();
+    });
+
+    it("renders the error state with retry when the NIL fetch fails", async () => {
+      mocks.api.get.mockRejectedValue(new Error("network down"));
+      useAuthStore.setState({ user, character, nilStatus: null, nilLoading: false, nilError: null });
+      renderWidget(<NilWidget />);
+
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText(/NIL indisponível/)).toBeInTheDocument();
+
+      mocks.api.get.mockResolvedValue(nilStatus);
+      screen.getByRole("button", { name: "Tentar de novo" }).click();
+
+      expect(await screen.findByRole("meter", { name: "NIL" })).toHaveAttribute(
+        "aria-valuenow",
+        "80",
+      );
+      expect(mocks.api.get).toHaveBeenCalledWith("/api/characters/me/nil");
+    });
+
+    it("falls back to the default cooldown when retryAfterSeconds is missing", async () => {
+      mocks.api.get.mockResolvedValue(nilStatus);
+      mocks.api.post.mockRejectedValue(
+        new mocks.ApiError(400, "NIL_STIM_COOLDOWN", "Pingado em cooldown. Aguarde."),
+      );
+      useAuthStore.setState({ user, character, nilStatus, nilLoading: false, nilError: null });
+      renderWidget(<NilWidget />);
+
+      const pingado = await screen.findByRole("button", { name: "PINGADO" });
+      pingado.click();
+
+      expect(await screen.findByRole("button", { name: /Pingado em 60:00/ })).toBeDisabled();
+    });
+
+    it("ticks the Pingado cooldown down and re-enables the button", async () => {
+      vi.useFakeTimers();
+      try {
+        mocks.api.get.mockResolvedValue(nilStatus);
+        mocks.api.post.mockRejectedValue(
+          new mocks.ApiError(400, "NIL_STIM_COOLDOWN", "Pingado em cooldown. Aguarde.", {
+            retryAfterSeconds: 2,
+          }),
+        );
+        useAuthStore.setState({ user, character, nilStatus, nilLoading: false, nilError: null });
+        renderWidget(<NilWidget />);
+
+        await act(async () => {}); // flush the mount fetch
+        const pingado = screen.getByRole("button", { name: "PINGADO" });
+        pingado.click();
+        await act(async () => {}); // flush the rejected useStim
+
+        expect(screen.getByRole("button", { name: "Pingado em 0:02" })).toBeDisabled();
+
+        await act(async () => {
+          vi.advanceTimersByTime(1000);
+        });
+        expect(screen.getByRole("button", { name: "Pingado em 0:01" })).toBeDisabled();
+
+        await act(async () => {
+          vi.advanceTimersByTime(1000);
+        });
+        expect(screen.getByRole("button", { name: "PINGADO" })).toBeEnabled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe("MoralWidget", () => {
@@ -170,6 +243,32 @@ describe("dashboard widgets", () => {
 
       expect(await screen.findByText(/Dados ao vivo indisponíveis/)).toBeInTheDocument();
     });
+
+    it("renders the loading state while the live readout is being fetched", () => {
+      useAuthStore.setState({ user, character });
+      useStreetCredStore.setState({ info: null, loading: true, error: null });
+      renderWidget(<MoralWidget />);
+
+      expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+    });
+
+    it("falls back to character.streetCred in the score bar when the live readout fails", () => {
+      useAuthStore.setState({ user, character: { ...character, streetCred: 25 } });
+      useStreetCredStore.setState({ info: null, loading: false, error: "api down" });
+      renderWidget(<MoralWidget />);
+
+      expect(screen.getByRole("meter", { name: "Moral" })).toHaveAttribute("aria-valuenow", "25");
+      expect(screen.getByText(/Dados ao vivo indisponíveis/)).toBeInTheDocument();
+    });
+
+    it("shows the unavailable message when there is no character and no readout", () => {
+      useAuthStore.setState({ user, character: null });
+      useStreetCredStore.setState({ info: null, loading: false, error: null });
+      renderWidget(<MoralWidget />);
+
+      expect(screen.getByText("Moral indisponível.")).toBeInTheDocument();
+      expect(mocks.api.get).not.toHaveBeenCalledWith("/api/street-cred");
+    });
   });
 
   describe("FundsWidget", () => {
@@ -187,6 +286,21 @@ describe("dashboard widgets", () => {
 
       expect(screen.getByRole("alert")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+    });
+
+    it("hides the escrow line when escrow is zero", () => {
+      useHudStore.setState({ balance: 1234, escrow: 0, balanceError: null });
+      renderWidget(<FundsWidget />);
+
+      expect(screen.getByText("G$ 1.234")).toBeInTheDocument();
+      expect(screen.queryByText(/empenhados em/)).not.toBeInTheDocument();
+    });
+
+    it("renders the loading state while the wallet is unloaded", () => {
+      useHudStore.setState({ balance: null, escrow: null, balanceError: null });
+      renderWidget(<FundsWidget />);
+
+      expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
     });
   });
 
@@ -207,6 +321,51 @@ describe("dashboard widgets", () => {
 
       expect(await screen.findByText("Nenhum trampo ativo")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Ver quadro" })).toHaveAttribute("href", "/gigs");
+    });
+
+    it("renders the loading state while the active trampo is being fetched", () => {
+      useAuthStore.setState({ user, character });
+      useGigStore.setState({ activeGig: null, activeGigLoading: true, activeGigError: null });
+      renderWidget(<ActiveGigWidget />);
+
+      expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+    });
+
+    it("renders the error state with retry when the active trampo fetch fails", async () => {
+      mocks.api.get.mockRejectedValue(new Error("network down"));
+      useAuthStore.setState({ user, character });
+      useGigStore.setState({ activeGig: null, activeGigLoading: false, activeGigError: null });
+      renderWidget(<ActiveGigWidget />);
+
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText(/Falha ao carregar trampo ativo/)).toBeInTheDocument();
+
+      mocks.api.get.mockResolvedValue(activeGig);
+      screen.getByRole("button", { name: "Tentar de novo" }).click();
+
+      expect(await screen.findByText("Entrega no Fluxo")).toBeInTheDocument();
+      expect(mocks.api.get).toHaveBeenCalledWith("/api/gigs/active");
+    });
+
+    it("does not refetch after a legitimate null response", async () => {
+      mocks.api.get.mockResolvedValue(null);
+      useAuthStore.setState({ user, character });
+      useGigStore.setState({ activeGig: null, activeGigLoading: false, activeGigError: null });
+      renderWidget(<ActiveGigWidget />);
+
+      await waitFor(() => {
+        expect(mocks.api.get).toHaveBeenCalledWith("/api/gigs/active");
+      });
+      await waitFor(() => {
+        expect(useGigStore.getState().activeGigLoading).toBe(false);
+      });
+      expect(mocks.api.get).toHaveBeenCalledTimes(1);
+
+      // Give any buggy refetch loop a chance to fire before asserting stability.
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+      expect(mocks.api.get).toHaveBeenCalledTimes(1);
     });
   });
 
