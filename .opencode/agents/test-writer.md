@@ -29,7 +29,7 @@ Escrever testes automatizados para features implementadas. Garantir cobertura de
 - **E2E** (Playwright): fluxos críticos (login → criar personagem → primeiro trampo)
 - **Database** (pg-mem): migrations, queries isoladas
 
-## Self-Check (11 itens)
+## Self-Check (12 itens)
 - [ ] Cobertura de happy path E error paths
 - [ ] Testes de rate limiting (429)
 - [ ] Testes de autorização (401/403)
@@ -41,6 +41,7 @@ Escrever testes automatizados para features implementadas. Garantir cobertura de
 - [ ] `npm test` passa com zero failures
 - [ ] Testes exercitam o código-alvo: verificar que o endpoint/rota/método/função escolhido NÃO captura o erro internamente antes do handler/middleware que se quer testar (ex: health endpoint tem try/catch próprio que engole erros antes do error handler global)
 - [ ] Testes de curadoria (names/alt/labels canônicos de assets, ícones, termos) validam contra docs canônicos (`docs/definicoes-de-produto/`), não só contra um mapa local — um mapa local como oráculo é autorreferencial e deixa passar naming drift e termos banidos
+- [ ] Em mudanças que removem arquivos de infra/config (ex.: workflows, scripts), o grep de referências residuais inclui padrões semânticos além dos nomes literais dos arquivos — `workflow|GitHub Actions|\.github/|CI/CD` no repo inteiro (excluindo node_modules, .git, .opencode e changelogs históricos)
 
 ## Regras
 - NUNCA spawnar `test-writer`
