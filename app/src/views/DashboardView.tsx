@@ -150,6 +150,9 @@ function HumanityChromePanel() {
     setInstalledError(null);
     void (async () => {
       try {
+        // ponytail: /api/chrome/installed also runs inside the HUD store refresh
+        // on shell mount, so the dashboard doubles up on it. Reusing the hud
+        // store readout here is a future design decision (issue #56 follow-up).
         const data = await api.get<InstalledChromeResponse>("/api/chrome/installed");
         if (!cancelled) setInstalled(data);
       } catch {

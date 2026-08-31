@@ -40,8 +40,9 @@ interface GigState {
 
 /**
  * Trampos store (singleton Zustand) — quadro do Despachante Cupim, o loop de 5 fases do
- * trampo ativo e o histórico paginado por cursor. Ações de fase patcheiam `board.activeGig`
- * straight from the server response; wrap up clears it and refreshes the board.
+ * trampo ativo e o histórico paginado por cursor. Ações de fase patcheiam
+ * `board.activeGig` e o espelho `activeGig` direto da resposta do servidor;
+ * wrap up limpa ambos e refresca o quadro.
  */
 export const useGigStore = create<GigState>((set, get) => ({
   board: null,
@@ -110,7 +111,7 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       const activeGig = await api.post<ActiveGig>(`/api/gigs/${id}/legwork`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig } : null }));
+      set((s) => ({ board: s.board ? { ...s.board, activeGig } : null, activeGig }));
       return activeGig;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao iniciar legwork" });
@@ -124,7 +125,10 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       const res = await api.post<GigExecuteResponse>(`/api/gigs/${id}/execute`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig: res.activeGig } : null }));
+      set((s) => ({
+        board: s.board ? { ...s.board, activeGig: res.activeGig } : null,
+        activeGig: res.activeGig,
+      }));
       return res;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha ao executar" });
@@ -138,7 +142,10 @@ export const useGigStore = create<GigState>((set, get) => ({
     set({ actionLoading: true, actionError: null });
     try {
       const res = await api.post<GigEscapeResponse>(`/api/gigs/${id}/escape`, {});
-      set((s) => ({ board: s.board ? { ...s.board, activeGig: res.activeGig } : null }));
+      set((s) => ({
+        board: s.board ? { ...s.board, activeGig: res.activeGig } : null,
+        activeGig: res.activeGig,
+      }));
       return res;
     } catch (err) {
       set({ actionError: err instanceof Error ? err.message : "Falha na fuga" });

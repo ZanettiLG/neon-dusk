@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth";
 import { ApiError } from "@/api/client";
 import { NIL_SYN_CAFE_COOLDOWN_S } from "@neon-dusk/shared";
-import { formatCountdown } from "@/lib/format";
+import { formatCountdown, formatDuration } from "@/lib/format";
 import { ActionButton, MetricBar, Panel } from "@/components/ui";
 import type { ActionStatus } from "@/components/ui";
 
@@ -24,9 +24,11 @@ export default function NilWidget() {
   // Pingado cooldown (server-gated); 0 = ready.
   const [pingadoCooldownS, setPingadoCooldownS] = useState(0);
 
+  // Mount guard (FundsWidget pattern): the persistent HUD usually hydrated
+  // nilStatus already — skip the duplicate GET when a readout exists.
   useEffect(() => {
-    void fetchNil();
-  }, [fetchNil]);
+    if (!nilStatus && !nilLoading && !nilError) void fetchNil();
+  }, [nilStatus, nilLoading, nilError, fetchNil]);
 
   useEffect(() => {
     setCountdown(nilStatus?.nextTickSeconds ?? 0);
@@ -99,7 +101,7 @@ export default function NilWidget() {
             </ActionButton>
           </div>
           <p className="font-data text-nd-micro text-nd-text-secondary">
-            Brinde gratuito — 1h cooldown
+            Brinde gratuito — {formatDuration(NIL_SYN_CAFE_COOLDOWN_S)} cooldown
           </p>
         </div>
       )}

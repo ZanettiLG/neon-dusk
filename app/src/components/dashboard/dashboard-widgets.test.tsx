@@ -222,6 +222,59 @@ describe("dashboard widgets", () => {
         vi.useRealTimers();
       }
     });
+
+    it("clears the cooldown error when the Pingado cooldown expires (cooldown is not a failure)", async () => {
+      vi.useFakeTimers();
+      try {
+        mocks.api.get.mockResolvedValue(nilStatus);
+        mocks.api.post.mockRejectedValue(
+          new mocks.ApiError(400, "NIL_STIM_COOLDOWN", "Pingado em cooldown. Aguarde.", {
+            retryAfterSeconds: 2,
+          }),
+        );
+        useAuthStore.setState({ user, character, nilStatus, nilLoading: false, nilError: null });
+        renderWidget(<NilWidget />);
+
+        await act(async () => {}); // flush the mount render
+        screen.getByRole("button", { name: "PINGADO" }).click();
+        await act(async () => {}); // flush the rejected useStim
+
+        // During cooldown: countdown button, no error alert anywhere.
+        expect(screen.getByRole("button", { name: "Pingado em 0:02" })).toBeDisabled();
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        expect(useAuthStore.getState().nilError).toBeNull();
+
+        await act(async () => {
+          vi.advanceTimersByTime(2000);
+        });
+        expect(screen.getByRole("button", { name: "PINGADO" })).toBeEnabled();
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("refetches once when the regen countdown hits zero (no fetch loop)", async () => {
+      mocks.api.get.mockResolvedValue(nilStatus);
+      const zeroTick: NilStatus = { ...nilStatus, nextTickSeconds: 0, regenerating: true };
+      useAuthStore.setState({
+        user,
+        character,
+        nilStatus: zeroTick,
+        nilLoading: false,
+        nilError: null,
+      });
+      renderWidget(<NilWidget />);
+
+      await waitFor(() => {
+        expect(mocks.api.get).toHaveBeenCalledWith("/api/characters/me/nil");
+      });
+      // Give any buggy refetch loop a chance to fire before asserting stability.
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+      expect(mocks.api.get).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("MoralWidget", () => {
@@ -345,6 +398,17 @@ describe("dashboard widgets", () => {
 
       expect(await screen.findByText("Entrega no Fluxo")).toBeInTheDocument();
       expect(mocks.api.get).toHaveBeenCalledWith("/api/gigs/active");
+    });
+
+    it("keeps the stale trampo visible when the refetch fails", async () => {
+      mocks.api.get.mockRejectedValue(new Error("network down"));
+      useAuthStore.setState({ user, character });
+      useGigStore.setState({ activeGig, activeGigLoading: false, activeGigError: "stale" });
+      renderWidget(<ActiveGigWidget />);
+
+      // Stale data + error → default status: data branch wins, no alert.
+      expect(await screen.findByText("Entrega no Fluxo")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
     it("does not refetch after a legitimate null response", async () => {
