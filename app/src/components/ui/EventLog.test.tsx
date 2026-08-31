@@ -48,12 +48,17 @@ describe("EventLog", () => {
     expect(screen.getByText("Sem eventos registrados.")).toBeInTheDocument();
   });
 
-  it("should show error banner and trigger onRetryAll", async () => {
+  it("should show the default error banner and trigger onRetryAll", async () => {
     const onRetryAll = vi.fn();
     render(<EventLog status="error" onRetryAll={onRetryAll} />);
-    expect(screen.getByRole("alert")).toHaveTextContent("Falha ao carregar eventos.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Erro ao carregar.");
     await userEvent.setup().click(screen.getByRole("button", { name: "Tentar de novo" }));
     expect(onRetryAll).toHaveBeenCalledTimes(1);
+  });
+
+  it("should show the custom errorMessage when provided", () => {
+    render(<EventLog status="error" errorMessage="Falha na rede." />);
+    expect(screen.getByRole("alert")).toHaveTextContent("Falha na rede.");
   });
 
   it("should trigger per-entry onRetry", async () => {

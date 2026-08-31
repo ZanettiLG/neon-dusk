@@ -173,7 +173,7 @@ export default function DashboardView() {
     ? `Próximo +1 em ${formatCountdown(countdown)}`
     : "NIL CHEIO";
 
-  // Map CharacterEvent[] → EventLogEntry[] for the shared ui/EventLog (#134).
+  // Map CharacterEvent[] → EventLogEntry[] for the shared ui/EventLog (#54).
   const eventEntries: EventLogEntry[] = events.map((e) => ({
     id: e.id,
     severity: e.severity,

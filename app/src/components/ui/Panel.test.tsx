@@ -19,10 +19,11 @@ describe("Panel", () => {
     expect(screen.getByRole("button", { name: "ação" })).toBeInTheDocument();
   });
 
-  it("should show skeleton and aria-busy while loading", () => {
+  it("should show skeleton with aria-busy and role=status while loading", () => {
     render(<Panel title="Painel" status="loading" />);
     const section = screen.getByRole("heading", { name: "Painel" }).closest("section");
     expect(section).toHaveAttribute("aria-busy", "true");
+    expect(section).toHaveAttribute("role", "status");
     // Skeleton lines are aria-hidden decorative divs with the pulse class.
     expect(section!.querySelectorAll(".animate-pulse-neon").length).toBe(3);
   });

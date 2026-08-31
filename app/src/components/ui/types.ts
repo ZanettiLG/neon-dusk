@@ -1,7 +1,26 @@
-/** Shared types for the base UI component library (issue #134). */
+import type { ReactNode } from "react";
+
+/** Shared types for the base UI component library (issue #54). */
 
 /** Generic data-fetch state for containers (Panel, MetricBar, EventLog). */
 export type DataStatus = "default" | "loading" | "error" | "empty";
+
+/** Responsive breakpoints used by hideBelow-style column/row visibility. */
+export type Breakpoint = "sm" | "md" | "lg";
+
+/** One column of a Table (issue #54). */
+export interface TableColumn<T> {
+  /** Stable column id (used as React key). */
+  key: string;
+  /** Header cell content. */
+  header: ReactNode;
+  /** Cell renderer for one row. */
+  cell: (row: T) => ReactNode;
+  /** Hide this column below a breakpoint (applies `hidden sm|md|lg:table-cell`). */
+  hideBelow?: Breakpoint;
+  /** Extra classes applied to both th and td cells. */
+  className?: string;
+}
 
 /** Interactive action state for buttons. */
 export type ActionStatus = "default" | "loading" | "cooldown" | "blocked" | "error";
