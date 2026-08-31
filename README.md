@@ -77,7 +77,7 @@ ssh vps && cd /opt/neon-dusk && git pull && ./scripts/deploy-prod.sh
 ```
 
 O script puxa imagens, roda migrations, sobe a stack, smoke-testa (`/` e
-`/api/health`) e faz rollback automático se algo falhar. As imagens GHCR
+`/api/health`) e faz rollback automático se o smoke test falhar. As imagens GHCR
 atualizam apenas via build manual (o job `build-and-push` foi removido) —
 use `DRY_RUN=1` para simular o fluxo sem executar.
 

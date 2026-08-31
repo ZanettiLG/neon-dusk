@@ -12,7 +12,10 @@
 #
 # Known gaps: GHCR images only refresh via a manual build (build-and-push was
 # removed); if the FIRST deploy fails the rollback is a no-op (recovery is
-# manual); if migrate fails, stop — do NOT `up -d` until the migration is fixed.
+# manual); if migrate fails, stop — do NOT `up -d` until the migration is fixed;
+# the one-shot DB reset warning from the original workflow (#158) was dropped as
+# obsolete — a first deploy onto a pre-#158 DB fails at migrate with a cryptic
+# knex error (README covers the upgrade path).
 set -euo pipefail
 
 REGISTRY=ghcr.io/zan-ia
@@ -20,7 +23,7 @@ REGISTRY=ghcr.io/zan-ia
 # run(): execute a command, or print it and return 0 when DRY_RUN=1.
 run() {
   if [ "${DRY_RUN:-0}" = "1" ]; then
-    echo "+ $*"
+    printf '+ %s\n' "$*"
     return 0
   fi
   "$@"

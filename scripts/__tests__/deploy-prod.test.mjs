@@ -40,7 +40,8 @@ test('should exit 0 and run commands in order when DRY_RUN=1', () => {
   const order = [
     'up -d --wait postgres redis', // [1/6] infra
     'pull', // [2/6]
-    'migrate:latest', // [3/6]
+    '--workdir /app/server', // [3/6] migrate roda no server image
+    '/app/node_modules/.bin/knex --knexfile knexfile.ts migrate:latest', // [3/6] knex CLI
     'up -d --remove-orphans', // [4/6]
     'curl -sf http://localhost/ -o /dev/null', // [5/6] smoke app
     'curl -sf http://localhost/api/health -o /dev/null', // [5/6] smoke api
