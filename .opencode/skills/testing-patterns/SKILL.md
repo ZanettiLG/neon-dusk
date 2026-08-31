@@ -266,6 +266,17 @@ Features que renderizam diagramas, mapas ou overlays visuais (badges, marcadores
 - Planos E2E de features com overlays/diagramas visuais DEVEM incluir um passo explícito de verificação de sobreposição/colisão entre elementos sobrepostos — conferir (via screenshot + snapshot) se badges, marcadores e labels não se sobrepõem de forma ilegível nem cobrem informação crítica.
 - O passo deve cobrir pelo menos os breakpoints responsivos relevantes (móvel e desktop) quando o posicionamento varia com o viewport.
 
+## Testando scripts shell com DRY_RUN
+
+Scripts de infraestrutura (deploy, migrate, backup) são testados sem execução real via um modo `DRY_RUN=1` que imprime os comandos canônicos em vez de rodá-los. Convenção:
+
+- **(a) O script expõe `DRY_RUN=1`** — um wrapper `run()` imprime `+ <cmd>` e retorna 0 sem executar. Expõe também hooks de estado para forçar caminhos: `PREVIOUS_*_IMAGE` (rollback manual) e `FORCE_SMOKE_FAIL=1` (forçar falha do smoke test). Zero docker real.
+- **(b) Testes via `node --test` + `child_process`** — `execFileSync('bash', [SCRIPT])` com env controlado num tempdir (cria `.env.production` quando o pre-flight exige). Sem Vitest/fixtures: `node --test scripts/__tests__/<script>.test.mjs` roda direto.
+- **(c) Asserts usam `indexOf` ordenado sobre comandos canônicos** — nunca acoplar à formatação `+ ` ou a quebras de linha. Para ordem: `assert.ok(stdout.indexOf(cmd) > prev)` por comando esperado; para ausência: `assert.doesNotMatch`.
+- **(d) Cobrir os quatro caminhos** — happy path (ordem dos comandos), rollback/falha (tags de restore + exit 1), no-op (primeiro deploy sem imagem anterior) e pre-flight (falha clara antes de tocar docker), além de `bash -n` para sintaxe válida.
+
+Exemplo real: `scripts/__tests__/deploy-prod.test.mjs` (issue #61).
+
 ## Anti-Padrões
 - ❌ Testar implementação (mock interno) em vez de comportamento (input/output)
 - ❌ Testes frágeis com `setTimeout` ou datas hardcoded
