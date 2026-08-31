@@ -251,6 +251,21 @@ Regras:
 - **Status real**: ✅ (passando), ❌ (falhando — com motivo), ⚠️ (cobertura parcial/indireta — explique o gap).
 - **Requisito órfão**: se um requisito não tem teste, marque ⚠️ e justifique (fora de escopo? impossível de testar? delegado a QA browser?).
 
+## QA `qa-blocked` por tooling → converter pontos de atenção em unit tests
+
+Quando o `qa-browser` reportar `qa-blocked` por indisponibilidade de tooling (ex: MCP agent-browser fora do ar) e cair para verificação estática, os **pontos de atenção** levantados nessa verificação estática são lacunas reais de cobertura. Regra:
+
+- O `test-writer` DEVE converter cada ponto de atenção **unit-testável** da verificação estática em um item de teste unitário (Vitest), em vez de apenas adiá-lo para o E2E.
+- Exemplos unit-testáveis: funções puras de mapeamento/parse (`originFromDistrictString`, `findLineFor`), fórmulas, validações — qualquer lógica determinística sem dependência de browser.
+- Pontos que dependem exclusivamente de DOM/visual permanecem com o E2E (não forçar teste unitário onde não faz sentido), mas devem ser registrados como follow-up explícito no handoff, não descartados silenciosamente.
+
+## Planos E2E — verificação visual de sobreposição
+
+Features que renderizam diagramas, mapas ou overlays visuais (badges, marcadores, labels, pins, "VOCÊ ESTÁ AQUI") têm um modo de falha que a verificação estática não captura: **colisão/sobreposição visual** entre elementos posicionados. Regra:
+
+- Planos E2E de features com overlays/diagramas visuais DEVEM incluir um passo explícito de verificação de sobreposição/colisão entre elementos sobrepostos — conferir (via screenshot + snapshot) se badges, marcadores e labels não se sobrepõem de forma ilegível nem cobrem informação crítica.
+- O passo deve cobrir pelo menos os breakpoints responsivos relevantes (móvel e desktop) quando o posicionamento varia com o viewport.
+
 ## Anti-Padrões
 - ❌ Testar implementação (mock interno) em vez de comportamento (input/output)
 - ❌ Testes frágeis com `setTimeout` ou datas hardcoded

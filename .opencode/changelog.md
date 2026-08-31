@@ -4,6 +4,19 @@ Histórico de mudanças estruturais no harness de desenvolvimento.
 
 ## 2026-08-30
 ### Trigger
+Issue #7 (run nd-20260830-224523-economia-bondes-metro): (1) `qa-blocked` por tooling (MCP agent-browser fora do ar) deixou lacunas unit-testáveis (findLineFor transferência, originFromDistrictString com dados reais) só adiadas para o E2E; (2) defeito de colisão visual badge/"VOCÊ ESTÁ AQUI" passou por toda a verificação estática por ser puramente visual.
+
+### Change
+- `testing-patterns` skill: nova seção "QA `qa-blocked` por tooling → converter pontos de atenção em unit tests" — quando o QA reportar `qa-blocked` por tooling, os pontos de atenção da verificação estática unit-testáveis devem ser convertidos em itens de teste unitário pelo test-writer, em vez de apenas adiados para o E2E.
+- `testing-patterns` skill: nova seção "Planos E2E — verificação visual de sobreposição" — planos E2E de features com diagramas/overlays visuais devem incluir passo explícito de verificação de sobreposição/colisão entre elementos sobrepostos (badges, marcadores, labels).
+
+### Impact
+Lacunas unit-testáveis deixam de ser adiadas quando o QA está bloqueado por tooling; defeitos visuais de colisão passam a ter cobertura explícita no plano E2E, reduzindo escapes de bugs puramente visuais pela verificação estática.
+
+---
+
+## 2026-08-30
+### Trigger
 Issue #2 (run nd-20260830-182437-trampos-followup): o `test-writer` produziu auditoria item-a-item (issue vs cobertura) de alta qualidade — vale virar template obrigatório.
 
 ### Change

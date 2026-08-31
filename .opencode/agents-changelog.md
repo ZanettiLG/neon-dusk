@@ -4,6 +4,18 @@ Histórico de mudanças nos agentes de desenvolvimento.
 
 ## 2026-08-30
 ### Trigger
+Issue #7 (run nd-20260830-224523-economia-bondes-metro): o self-review do developer reportou "router/index.tsx sinalizado — débito pré-existente (283 arquivos)", mas 2 arquivos NOVOS da feature (MetroCrossing.test.tsx, DistrictBanner.test.tsx) também falhavam prettier (newline final ausente) e passaram despercebidos até o reviewer apontar.
+
+### Change
+Adicionado check #48 ao self-review do developer: "Prettier rodado APENAS nos arquivos tocados pelo diff da feature — violação INTRODUZIDA falha o passo (débito pré-existente é reportado separadamente, não mascara violações novas)". Total de checks: 47 → 48.
+
+### Impact
+Débito pré-existente de prettier deixa de mascarar violações novas em arquivos criados pela feature; o developer passa a rodar prettier escopado ao diff, eliminando o ciclo extra de correção apontado pelo reviewer.
+
+---
+
+## 2026-08-30
+### Trigger
 Issue #2 (run nd-20260830-182437-trampos-followup): 2ª/3ª ocorrência de `qa-blocked` por MCP agent-browser indisponível (gasto de um subagente inteiro para descobrir que o browser não estava disponível) e banco de dev compartilhado degradando runs de QA/integração (FK 23503 em audit_log + deadlock 40P01 em testes via-API).
 
 ### Change
