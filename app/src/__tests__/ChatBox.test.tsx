@@ -10,6 +10,12 @@ const saideiraMocks = vi.hoisted(() => ({
   chatStatus: "connected" as const,
   chatSendLoading: false,
   chatSendError: null as string | null,
+  chatBlock: null as {
+    code: "COOLDOWN_ACTIVE" | "RATE_LIMITED" | "CIRCUIT_BREAK";
+    retryAfterSeconds: number;
+    endsAt: number;
+  } | null,
+  clearChatBlock: vi.fn(),
   sendMessage: vi.fn(),
 }));
 
@@ -62,6 +68,23 @@ describe("ChatBox", () => {
     useSaideiraStore.setState({ chatStatus: "reconnecting" });
     render(<ChatBox />);
     expect(screen.queryByText("Chat indisponível. Tentando reconectar...")).not.toBeInTheDocument();
+  });
+
+  it("shows a gold block banner and disables send while a chat block is active", () => {
+    useSaideiraStore.setState({
+      chatStatus: "connected",
+      chatBlock: {
+        code: "COOLDOWN_ACTIVE",
+        retryAfterSeconds: 60,
+        endsAt: Date.now() + 60_000,
+      },
+      messages: [],
+    });
+    render(<ChatBox />);
+    expect(screen.getByText("O balcão tá fervendo. Respira — 60s.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ENVIAR" })).toBeDisabled();
+    // Input stays enabled — only the send button is blocked.
+    expect(screen.getByPlaceholderText("Diz aí, corredor...")).toBeEnabled();
   });
 
   it("renders messages with character names and crew tags", () => {

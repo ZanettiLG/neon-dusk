@@ -29,6 +29,12 @@ const storeMocks = vi.hoisted(() => {
     chatStatus: "offline" as const,
     chatSendLoading: false,
     chatSendError: null as string | null,
+    chatBlock: null as {
+      code: "COOLDOWN_ACTIVE" | "RATE_LIMITED" | "CIRCUIT_BREAK";
+      retryAfterSeconds: number;
+      endsAt: number;
+    } | null,
+    clearChatBlock: vi.fn(),
     legends: null as LegendsResponse | null,
     legendsLoading: false,
     legendsError: null as string | null,

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api } from "@/api/client";
+import { detectRankUp, type RankUpEvent } from "@/lib/street-cred";
 import type { LeaderboardEntry, StreetCredInfo } from "@neon-dusk/shared";
 
 interface StreetCredState {
@@ -10,6 +11,9 @@ interface StreetCredState {
   leaderboard: LeaderboardEntry[] | null;
   leaderboardLoading: boolean;
   leaderboardError: string | null;
+  /** Title crossing detected on the last fetchSC (null = nothing to celebrate). */
+  rankUp: RankUpEvent | null;
+  clearRankUp: () => void;
 
   fetchSC: () => Promise<void>;
   fetchLeaderboard: (limit?: number) => Promise<void>;
@@ -27,11 +31,15 @@ export const useStreetCredStore = create<StreetCredState>((set) => ({
   leaderboard: null,
   leaderboardLoading: false,
   leaderboardError: null,
+  rankUp: null,
+  clearRankUp: () => set({ rankUp: null }),
 
   fetchSC: async () => {
     set({ loading: true, error: null });
     try {
-      set({ info: await api.get<StreetCredInfo>("/api/street-cred") });
+      const info = await api.get<StreetCredInfo>("/api/street-cred");
+      const event = detectRankUp(info);
+      set(event ? { info, rankUp: event } : { info });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "Falha ao carregar Moral" });
     } finally {

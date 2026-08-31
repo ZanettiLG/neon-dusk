@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/auth";
 import { useSaideiraStore } from "@/stores/saideira";
 import ChatBox from "@/components/ChatBox";
+import BalcaoCard from "@/components/BalcaoCard";
 import LegendsMenu from "@/components/LegendsMenu";
 import CrewLeaderboard from "@/components/CrewLeaderboard";
 import Leaderboard from "@/components/Leaderboard";
@@ -81,6 +82,9 @@ export default function SaideiraView() {
           </div>
         </div>
       </div>
+
+      {/* Carcará's keep — diegetic flavor card (SC >= 10 gate already passed). */}
+      <BalcaoCard />
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center gap-2" role="tablist">

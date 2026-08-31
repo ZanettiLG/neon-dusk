@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { useSaideiraStore, type ConnectionStatus } from "@/stores/saideira";
+import { useSaideiraStore, type ChatBlockCode, type ConnectionStatus } from "@/stores/saideira";
 import { useAuthStore } from "@/stores/auth";
 import { formatRelativeTime } from "@/lib/format";
+import { useCountdownTo } from "@/lib/useCountdownTo";
 
 const MAX_MESSAGE_LENGTH = 500;
+
+/** Diegetic 429 block copy, keyed by server code. `{n}` = seconds left. */
+const BLOCK_COPY: Record<ChatBlockCode, string> = {
+  COOLDOWN_ACTIVE: "O balcão tá fervendo. Respira — {n}s.",
+  RATE_LIMITED: "Cê tá falando rápido demais, corredor. {n}s.",
+  CIRCUIT_BREAK: "Sistema neural sobrecarregado. Volta em 24h.",
+};
 
 const STATUS_CONFIG: Record<
   ConnectionStatus,
@@ -41,11 +49,21 @@ export default function ChatBox() {
   const chatStatus = useSaideiraStore((s) => s.chatStatus);
   const sendLoading = useSaideiraStore((s) => s.chatSendLoading);
   const sendError = useSaideiraStore((s) => s.chatSendError);
+  const chatBlock = useSaideiraStore((s) => s.chatBlock);
+  const clearChatBlock = useSaideiraStore((s) => s.clearChatBlock);
   const sendMessage = useSaideiraStore((s) => s.sendMessage);
   const myName = useAuthStore((s) => s.character?.name ?? null);
 
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const secondsLeft = useCountdownTo(chatBlock?.endsAt ?? null);
+
+  // Lift the block the moment its countdown runs out — the chat accepts sends
+  // again. (chatBlock-gated so a plain null endsAt doesn't clear anything.)
+  useEffect(() => {
+    if (chatBlock && secondsLeft === 0) clearChatBlock();
+  }, [chatBlock, secondsLeft, clearChatBlock]);
 
   // Auto-scroll to the newest message.
   useEffect(() => {
@@ -54,7 +72,14 @@ export default function ChatBox() {
   }, [messages]);
 
   const trimmed = draft.trim();
-  const canSend = trimmed.length > 0 && trimmed.length <= MAX_MESSAGE_LENGTH && !sendLoading;
+  const canSend =
+    trimmed.length > 0 && trimmed.length <= MAX_MESSAGE_LENGTH && !sendLoading && !chatBlock;
+
+  /** Block copy with the countdown interpolated (static for CIRCUIT_BREAK). */
+  function blockMessage(): string {
+    const copy = BLOCK_COPY[chatBlock!.code];
+    return chatBlock!.code === "CIRCUIT_BREAK" ? copy : copy.replace("{n}", String(secondsLeft));
+  }
 
   async function onSubmit(): Promise<void> {
     if (!canSend) return;
@@ -83,6 +108,12 @@ export default function ChatBox() {
           <p className="font-data text-xs text-nd-magenta">
             Chat indisponível. Tentando reconectar...
           </p>
+        </div>
+      )}
+
+      {chatBlock && (
+        <div className="mb-3 border border-nd-gold/30 rounded-terminal bg-nd-gold/5 px-3 py-2">
+          <p className="font-data text-xs text-nd-gold">{blockMessage()}</p>
         </div>
       )}
 
