@@ -280,6 +280,52 @@ describe("tokens", () => {
     expect(tokens.screens.lg).toBe("1024px");
     expect(tokens.transitionDuration["nd-fast"]).toBe("150ms");
   });
+
+  it("should pin the full semantic type scale (issue #53)", () => {
+    expect(tokens.fontSize).toEqual({
+      "nd-micro": ["10px", { lineHeight: "1.2" }],
+      "nd-label": ["11px", { lineHeight: "1.4" }],
+      "nd-body-xs": ["12px", { lineHeight: "1.5" }],
+      "nd-body": ["14px", { lineHeight: "1.5" }],
+      "nd-body-lg": ["16px", { lineHeight: "1.6" }],
+      "nd-title-xs": ["18px", { lineHeight: "1.3" }],
+      "nd-title": ["24px", { lineHeight: "1.25" }],
+      "nd-title-lg": ["30px", { lineHeight: "1.2" }],
+    });
+  });
+
+  it("should pin the full motion duration scale (issue #53)", () => {
+    expect(tokens.transitionDuration).toEqual({
+      "nd-fast": "150ms",
+      "nd-base": "250ms",
+      "nd-slow": "500ms",
+      "nd-slower": "2000ms",
+    });
+  });
+
+  it("should pin the full responsive breakpoint scale (issue #53)", () => {
+    expect(tokens.screens).toEqual({
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+    });
+  });
+
+  it("should pin the glitch and flicker keyframes (issue #53)", () => {
+    expect(tokens.keyframes.glitch).toEqual({
+      "0%": { transform: "translate(0)" },
+      "20%": { transform: "translate(-1px, 1px)" },
+      "40%": { transform: "translate(1px, -1px)" },
+      "60%": { transform: "translate(-1px, 0)" },
+      "80%": { transform: "translate(1px, 0)" },
+      "100%": { transform: "translate(0)" },
+    });
+    expect(tokens.keyframes.flicker).toEqual({
+      "0%, 100%": { opacity: "1" },
+      "50%": { opacity: "0.8" },
+    });
+  });
 });
 
 // Integration: tailwind.config.js consumes tokens.ts. The config is plain ESM

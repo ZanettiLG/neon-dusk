@@ -16,8 +16,9 @@
  * CSS custom properties (`--nd-*`) are skipped so var() references in
  * style.css don't false-positive.
  */
-import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { describe, it, expect, afterAll } from "vitest";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { tokens } from "@/lib/tokens";
 
@@ -292,5 +293,84 @@ describe("unused tokens (warn)", () => {
       console.warn(`  ${unused.join(", ")}`);
     }
     expect(true).toBe(true);
+  });
+});
+
+describe("scanner helpers (synthetic inputs)", () => {
+  it("should strip block, multi-line and line comments before scanning", () => {
+    const lines = [
+      "const a = '#0a0a0a'; // issue #140 — digits-only, never a literal",
+      "/* #ff2020 in a block comment */ const b = 1;",
+      "const c = 2; /* multi-line",
+      "still comment #d4a017 */ const d = 3;",
+    ];
+    const stripped = stripComments(lines);
+    expect(stripped[0]).toBe("const a = '#0a0a0a'; ");
+    expect(stripped[1]).toBe(" const b = 1;");
+    expect(stripped[2]).toBe("const c = 2; ");
+    expect(stripped[3]).toBe(" const d = 3;");
+  });
+
+  it("should extract nd-*/neon-* classes but skip CSS vars, identifiers and scopes", () => {
+    expect(extractTokenClasses("bg-nd-cyan/20 shadow-neon-cyan")).toEqual(["nd-cyan", "neon-cyan"]);
+    expect(extractTokenClasses("text-nd-text-secondary")).toEqual(["nd-text-secondary"]);
+    expect(extractTokenClasses("--nd-focus-color: inherit;")).toEqual([]);
+    expect(extractTokenClasses("background-image: none;")).toEqual([]);
+    expect(extractTokenClasses("import { x } from '@neon-dusk/shared';")).toEqual([]);
+  });
+
+  it("should resolve token-driven utilities and reject non-token ones", () => {
+    expect(resolveTokenUtility("font-heading")).toEqual({ category: "fontFamily", key: "heading" });
+    expect(resolveTokenUtility("rounded-pill")).toEqual({ category: "borderRadius", key: "pill" });
+    expect(resolveTokenUtility("min-h-touch")).toEqual({ category: "minHeight", key: "touch" });
+    expect(resolveTokenUtility("min-w-touch")).toEqual({ category: "minWidth", key: "touch" });
+    expect(resolveTokenUtility("animate-pulse-neon")).toEqual({
+      category: "animation",
+      key: "pulse-neon",
+    });
+    expect(resolveTokenUtility("bg-nd-cyan")).toBeNull();
+    expect(resolveTokenUtility("text-sm")).toBeNull();
+  });
+});
+
+describe("scanFiles (synthetic files)", () => {
+  const sandbox = mkdtempSync(join(tmpdir(), "nd-tokens-scan-"));
+  const write = (name: string, content: string): string => {
+    const p = join(sandbox, name);
+    writeFileSync(p, content, "utf8");
+    return p;
+  };
+
+  afterAll(() => {
+    rmSync(sandbox, { recursive: true, force: true });
+  });
+
+  it("should ignore hex literals and nd-* refs inside comments", () => {
+    const file = write(
+      "Commented.tsx",
+      "// issue #140 — digits-only\n/* #0a0a0a is a palette literal in prose */\nconst x = 1;\n",
+    );
+    expect(scanFiles([file])).toEqual([]);
+  });
+
+  it("should not flag CSS custom properties or package scopes", () => {
+    const file = write(
+      "Vars.tsx",
+      "--nd-focus-color: inherit;\nimport { x } from '@neon-dusk/shared';\n",
+    );
+    expect(scanFiles([file])).toEqual([]);
+  });
+
+  it("should flag unknown nd-* classes and hardcoded values", () => {
+    const file = write("Bad.tsx", 'className="bg-nd-nonexistent text-[10px] z-50"\n');
+    const labels = scanFiles([file]).map((v) => v.label);
+    expect(labels).toContain("token desconhecido");
+    expect(labels).toContain("text-[Npx]");
+    expect(labels).toContain("z-N");
+  });
+
+  it("should honor the per-file hardcode allowlist", () => {
+    const file = write("ChromeBodyMapSvg.tsx", 'className="w-full max-w-[240px] mx-auto"\n');
+    expect(scanFiles([file])).toEqual([]);
   });
 });
