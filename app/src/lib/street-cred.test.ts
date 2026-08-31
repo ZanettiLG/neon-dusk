@@ -60,9 +60,10 @@ describe("detectRankUp", () => {
     expect(window.localStorage.getItem(LAST_SEEN_TITLE_KEY)).toBe("Perna");
   });
 
-  it("returns null on decay (title went down)", () => {
+  it("returns null on decay (title went down) but records the lower title", () => {
     detectRankUp(info(25, "Pro"));
     expect(detectRankUp(info(12, "Perna"))).toBeNull();
+    expect(window.localStorage.getItem(LAST_SEEN_TITLE_KEY)).toBe("Perna");
   });
 
   it("emits one event when crossing a single rung", () => {

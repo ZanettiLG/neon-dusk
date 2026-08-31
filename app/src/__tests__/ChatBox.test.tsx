@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { create } from "zustand";
 import ChatBox from "@/components/ChatBox";
 import type { ChatMessage } from "@neon-dusk/shared";
@@ -85,6 +85,66 @@ describe("ChatBox", () => {
     expect(screen.getByRole("button", { name: "ENVIAR" })).toBeDisabled();
     // Input stays enabled — only the send button is blocked.
     expect(screen.getByPlaceholderText("Diz aí, corredor...")).toBeEnabled();
+  });
+
+  it("shows the RATE_LIMITED copy with the countdown interpolated", () => {
+    useSaideiraStore.setState({
+      chatStatus: "connected",
+      chatBlock: {
+        code: "RATE_LIMITED",
+        retryAfterSeconds: 30,
+        endsAt: Date.now() + 30_000,
+      },
+      messages: [],
+    });
+    render(<ChatBox />);
+    expect(screen.getByText("Cê tá falando rápido demais, corredor. 30s.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ENVIAR" })).toBeDisabled();
+  });
+
+  it("shows the static CIRCUIT_BREAK copy without a countdown", () => {
+    useSaideiraStore.setState({
+      chatStatus: "connected",
+      chatBlock: {
+        code: "CIRCUIT_BREAK",
+        retryAfterSeconds: 86_400,
+        endsAt: Date.now() + 86_400_000,
+      },
+      messages: [],
+    });
+    render(<ChatBox />);
+    expect(screen.getByText("Sistema neural sobrecarregado. Volta em 24h.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ENVIAR" })).toBeDisabled();
+  });
+
+  it("decrements the block countdown and clears the block when it reaches zero", () => {
+    vi.useFakeTimers();
+    try {
+      saideiraMocks.clearChatBlock.mockClear();
+      useSaideiraStore.setState({
+        chatStatus: "connected",
+        chatBlock: {
+          code: "COOLDOWN_ACTIVE",
+          retryAfterSeconds: 60,
+          endsAt: Date.now() + 60_000,
+        },
+        messages: [],
+      });
+      render(<ChatBox />);
+      expect(screen.getByText("O balcão tá fervendo. Respira — 60s.")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByText("O balcão tá fervendo. Respira — 59s.")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(59_000);
+      });
+      expect(saideiraMocks.clearChatBlock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders messages with character names and crew tags", () => {
