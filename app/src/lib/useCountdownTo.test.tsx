@@ -41,4 +41,26 @@ describe("useCountdownTo", () => {
     const { result: pastResult } = renderHook(() => useCountdownTo(Date.now() - 10_000));
     expect(pastResult.current).toBe(0);
   });
+
+  it("recomputes from a fresh clock when endsAt changes from null to a future deadline", () => {
+    const { result, rerender } = renderHook(
+      ({ endsAt }: { endsAt: number | null }) => useCountdownTo(endsAt),
+      { initialProps: { endsAt: null as number | null } }
+    );
+
+    expect(result.current).toBe(0);
+
+    // Mount-time `now` goes stale while endsAt is null (no interval running).
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    const endsAt = Date.now() + 5_000;
+    act(() => {
+      rerender({ endsAt });
+    });
+
+    // Must be 5 — not 15 from the stale mount-time `now`.
+    expect(result.current).toBe(5);
+  });
 });

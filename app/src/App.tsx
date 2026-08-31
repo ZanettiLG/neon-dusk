@@ -10,6 +10,7 @@ import Drawer from "@/components/shell/Drawer";
 import { useAppStore } from "@/stores/app";
 import { useAuthStore } from "@/stores/auth";
 import InstallPrompt from "@/components/InstallPrompt";
+import RankUpCelebration from "@/components/RankUpCelebration";
 
 /** Inline banner shown while the backend is degraded (Redis down, etc.). */
 function DegradedBanner() {
@@ -57,6 +58,7 @@ export default function App() {
         <Outlet />
       </main>
       <InstallPrompt />
+      <RankUpCelebration />
       <AppFooter />
       {hasCharacter && (
         <>

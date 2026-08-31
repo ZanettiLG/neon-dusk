@@ -29,6 +29,12 @@ const storeMocks = vi.hoisted(() => {
     chatStatus: "offline" as const,
     chatSendLoading: false,
     chatSendError: null as string | null,
+    chatBlock: null as {
+      code: "COOLDOWN_ACTIVE" | "RATE_LIMITED" | "CIRCUIT_BREAK";
+      retryAfterSeconds: number;
+      endsAt: number;
+    } | null,
+    clearChatBlock: vi.fn(),
     legends: null as LegendsResponse | null,
     legendsLoading: false,
     legendsError: null as string | null,
@@ -117,6 +123,8 @@ describe("SaideiraView", () => {
     expect(
       screen.queryByText((content) => content.includes("O BAR QUE NUNCA FECHA")),
     ).not.toBeInTheDocument();
+    // Carcará's card is inside the hub — it must not render while gated.
+    expect(screen.queryByText("CARCARÁ // A LENDA")).not.toBeInTheDocument();
   });
 
   it("should show the correct gate message text explaining the SC 10 requirement", () => {
@@ -147,6 +155,16 @@ describe("SaideiraView", () => {
     expect(screen.getByRole("tab", { name: "Chat" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Ranking" })).toHaveAttribute("aria-selected", "false");
     expect(screen.queryByText("⚡ ACESSO RESTRITO")).not.toBeInTheDocument();
+  });
+
+  it("should render the BalcaoCard (Carcará) when Moral is 10 or above", () => {
+    useAuthStore.setState({ character: character(10) });
+
+    renderView();
+
+    expect(screen.getByText("CARCARÁ // A LENDA")).toBeInTheDocument();
+    expect(screen.getByText("A Regra")).toBeInTheDocument();
+    expect(screen.getByText(/Dentro da Saideira não se saca arma/)).toBeInTheDocument();
   });
 
   it("should show hub online count and round in the header", () => {

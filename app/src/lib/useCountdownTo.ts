@@ -10,8 +10,14 @@ import { useEffect, useState } from "react";
  * read — StrictMode-safe (see react-patterns "Timers & Countdown").
  */
 export function useCountdownTo(endsAt: number | null): number {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const ticking = endsAt !== null && endsAt > now;
+
+  // Rebase the clock when the deadline changes (e.g. null → future after a
+  // 429 cooldown) so the first render doesn't use the mount-time `now`.
+  useEffect(() => {
+    setNow(Date.now());
+  }, [endsAt]);
 
   useEffect(() => {
     if (!ticking) return;

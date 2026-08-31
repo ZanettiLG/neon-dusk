@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { api, API_BASE_URL } from "@/api/client";
+import { api, ApiError, API_BASE_URL } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import type {
   SaideiraHubInfo,
@@ -12,6 +12,17 @@ import type {
 /** SSE connection state — three-tier so the UI can show progress. */
 export type ConnectionStatus = "connected" | "reconnecting" | "offline";
 
+/** Why the chat is temporarily blocking sends (429 responses). */
+export type ChatBlockCode = "COOLDOWN_ACTIVE" | "RATE_LIMITED" | "CIRCUIT_BREAK";
+
+/** A temporary send block with a countdown until the chat accepts again. */
+export interface ChatBlock {
+  code: ChatBlockCode;
+  retryAfterSeconds: number;
+  /** Epoch ms when the block lifts. */
+  endsAt: number;
+}
+
 interface SaideiraState {
   // Hub
   hub: SaideiraHubInfo | null;
@@ -23,6 +34,9 @@ interface SaideiraState {
   chatStatus: ConnectionStatus;
   chatSendLoading: boolean;
   chatSendError: string | null;
+  /** Active 429 send block (null = sends allowed). */
+  chatBlock: ChatBlock | null;
+  clearChatBlock: () => void;
 
   // Legends
   legends: LegendsResponse | null;
@@ -90,6 +104,8 @@ export const useSaideiraStore = create<SaideiraState>((set, get) => ({
   chatStatus: "offline",
   chatSendLoading: false,
   chatSendError: null,
+  chatBlock: null,
+  clearChatBlock: () => set({ chatBlock: null }),
 
   legends: null,
   legendsLoading: false,
@@ -126,7 +142,22 @@ export const useSaideiraStore = create<SaideiraState>((set, get) => ({
       // the 201), so no local append — avoids duplicates.
       await api.post<ChatMessage>("/api/saideira/chat", { message });
     } catch (err) {
-      set({ chatSendError: err instanceof Error ? err.message : "Falha ao enviar mensagem" });
+      // 429 = temporary block, not a send failure: surface it as a countdown
+      // banner (chatBlock) instead of the red error line. Everything else
+      // keeps the current chatSendError behaviour. Always re-throw.
+      if (err instanceof ApiError && err.status === 429) {
+        const details = err.details as { retryAfter?: number } | undefined;
+        const retryAfter = details?.retryAfter ?? 60;
+        set({
+          chatBlock: {
+            code: err.code as ChatBlockCode,
+            retryAfterSeconds: retryAfter,
+            endsAt: Date.now() + retryAfter * 1000,
+          },
+        });
+      } else {
+        set({ chatSendError: err instanceof Error ? err.message : "Falha ao enviar mensagem" });
+      }
       throw err;
     } finally {
       set({ chatSendLoading: false });
@@ -209,9 +240,13 @@ export const useSaideiraStore = create<SaideiraState>((set, get) => ({
   fetchCrewLeaderboard: async () => {
     set({ crewLoading: true, crewError: null });
     try {
-      set({ crewLeaderboard: await api.get<CrewLeaderboardResponse>("/api/saideira/leaderboard/crews") });
+      set({
+        crewLeaderboard: await api.get<CrewLeaderboardResponse>("/api/saideira/leaderboard/crews"),
+      });
     } catch (err) {
-      set({ crewError: err instanceof Error ? err.message : "Falha ao carregar o ranking de bondes" });
+      set({
+        crewError: err instanceof Error ? err.message : "Falha ao carregar o ranking de bondes",
+      });
     } finally {
       set({ crewLoading: false });
     }
