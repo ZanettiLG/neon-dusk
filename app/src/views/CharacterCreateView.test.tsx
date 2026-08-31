@@ -170,6 +170,44 @@ describe("CharacterCreateView", () => {
     expect(screen.queryByText(/Este codinome já está em uso\./)).not.toBeInTheDocument();
   });
 
+  it("should wire aria-invalid and aria-describedby on the codinome field for NAME_TAKEN", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(409, "NAME_TAKEN", "Este codinome já está em uso."),
+    );
+    renderCreate();
+
+    await fillValidForm();
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
+    );
+    expect(await screen.findByText(/Este codinome já está em uso\./)).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText("Ex.: Navalha, Vulto, Cupim");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)).toHaveTextContent(
+      "Este codinome já está em uso.",
+    );
+  });
+
+  it("should show a loading button (aria-busy, disabled, spinner) while creation is pending", async () => {
+    mocks.api.post.mockReturnValue(new Promise(() => {}));
+    renderCreate();
+
+    await fillValidForm();
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
+    );
+
+    const submit = screen.getByRole("button", { name: "FORJANDO PERSONAGEM..." });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute("aria-busy", "true");
+    expect(submit.querySelector(".animate-spin")).toBeInTheDocument();
+  });
+
   it("soft cap indicator is not shown when no stat reaches 15", async () => {
     renderCreate();
     // With 7 free points (max 10 on one stat), soft cap text should not appear.

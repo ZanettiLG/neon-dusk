@@ -122,4 +122,16 @@ describe("LoginView", () => {
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().accessToken).toBeNull();
   });
+
+  it("should show a loading button (aria-busy, disabled, spinner) while login is pending", async () => {
+    mocks.api.post.mockReturnValue(new Promise(() => {}));
+    renderLogin();
+
+    await fillAndSubmit("fixer@neondusk.gg", "secret123");
+
+    const submit = screen.getByRole("button", { name: "CONECTANDO..." });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute("aria-busy", "true");
+    expect(submit.querySelector(".animate-spin")).toBeInTheDocument();
+  });
 });
