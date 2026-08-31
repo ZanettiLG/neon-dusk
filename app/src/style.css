@@ -1,18 +1,13 @@
+/* Design tokens as CSS custom properties (issue #53) — generated from
+   app/src/lib/tokens.ts by `npm run tokens:generate` (prebuild). PWA-first:
+   the file is committed, so the app shell carries the tokens offline. */
+@import "./tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* Focus token — canonical focus ring spec (docs/design/05-design-tokens.md §10):
-     2px solid branco-luz (#f2f2f2) sobre qualquer fundo, offset 2px para não
-     encostar na borda do elemento. Aplicado globalmente via :focus-visible. */
-  :root {
-    /* ponytail: duplica tokens.colors["nd-cyan"] (agora canal funcional #f2f2f2); CSS não importa TS. Atualizar ambos se a cor mudar. */
-    --nd-focus-color: #f2f2f2;
-    --nd-focus-width: 2px;
-    --nd-focus-offset: 2px;
-  }
-
   html {
     @apply bg-nd-bg text-nd-text font-body antialiased;
   }
@@ -23,8 +18,8 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(255, 255, 255, 0.015) 2px,
-      rgba(255, 255, 255, 0.015) 4px
+      var(--nd-scanline) 2px,
+      var(--nd-scanline) 4px
     );
   }
 

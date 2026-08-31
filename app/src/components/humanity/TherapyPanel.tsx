@@ -54,7 +54,7 @@ export default function TherapyPanel({ info, loading, error, onTherapy }: Therap
       <div className="flex items-center justify-between">
         <span className="font-heading text-nd-cyan tracking-widest text-lg">TERAPIA</span>
         {cooldownActive && (
-          <span className="font-data text-[10px] uppercase tracking-widest text-nd-gold">
+          <span className="font-data text-nd-micro uppercase tracking-widest text-nd-gold">
             {cooldownLabel}
           </span>
         )}

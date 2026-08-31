@@ -76,7 +76,7 @@ export default function Drawer({ open, onClose }: DrawerProps) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 sm:hidden">
+    <div className="fixed inset-0 z-nd-overlay sm:hidden">
       {/* Overlay — clicks close the drawer (it is not focusable, so the trap
           below still routes Tab between the panel's focusable items). */}
       <div
@@ -100,7 +100,7 @@ export default function Drawer({ open, onClose }: DrawerProps) {
             type="button"
             onClick={closeAndRestore}
             aria-label="Fechar menu"
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center border border-nd-cyan/20 rounded-terminal text-nd-text-secondary hover:text-nd-cyan transition-colors"
+            className="flex min-h-touch min-w-touch items-center justify-center border border-nd-cyan/20 rounded-terminal text-nd-text-secondary hover:text-nd-cyan transition-colors"
           >
             ✕
           </button>
@@ -112,7 +112,7 @@ export default function Drawer({ open, onClose }: DrawerProps) {
                 to={item.to}
                 onClick={closeAndRestore}
                 className={({ isActive }) =>
-                  `flex min-h-[44px] items-center border-l-2 px-4 font-heading text-xs uppercase tracking-wider transition-colors ${
+                  `flex min-h-touch items-center border-l-2 px-4 font-heading text-xs uppercase tracking-wider transition-colors ${
                     isActive
                       ? "border-nd-cyan bg-nd-cyan/5 text-nd-cyan"
                       : "border-transparent text-nd-text-secondary hover:text-nd-cyan"

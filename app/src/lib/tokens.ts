@@ -1,8 +1,9 @@
 /**
- * Canonical design tokens for Neon Dusk (issue #133).
+ * Canonical design tokens for Neon Dusk (issue #133, epic #14 — issue #53).
  *
  * Single source of truth consumed by:
  * - app/tailwind.config.js (theme values, imported via jiti)
+ * - app/scripts/generate-tokens-css.mjs (via app/src/lib/tokens-css.ts)
  * - views/components (RESOURCE_BAR_BANDS + bandFor)
  *
  * Full spec: docs/design/05-design-tokens.md
@@ -11,23 +12,51 @@
 // ponytail: legacy names such as nd-cyan, nd-magenta, nd-purple and nd-green
 // are now functional channels, not literal color descriptions. A future refactor
 // may rename them to semantic tokens (nd-action, nd-danger, nd-hack, nd-success).
-/** Color primitives (kebab-case, `nd-` prefix = Neon Dusk). */
+/** Raw color primitives — private layer, no semantics (docs/design §1). */
+const raw = {
+  bg: "#0a0a0a",
+  surface: "#161616",
+  white: "#f2f2f2",
+  blood: "#ff2020",
+  amber: "#d4a017",
+  steel: "#8aa4b8",
+  text: "#e8e8e8",
+  textMuted: "#9a9a9a",
+  lightGray: "#c8c8c8",
+  deadGray: "#3a3a3a",
+} as const;
+
+/**
+ * Semantic color channels (kebab-case, `nd-` prefix = Neon Dusk). Each channel
+ * references a raw primitive — change the primitive once, the whole palette
+ * follows (issue #53).
+ */
 const colors = {
-  "nd-bg": "#0a0a0a",
-  "nd-surface": "#161616",
-  "nd-cyan": "#f2f2f2",
-  "nd-magenta": "#ff2020",
-  "nd-gold": "#d4a017",
-  "nd-purple": "#8aa4b8",
-  "nd-text": "#e8e8e8",
-  "nd-text-secondary": "#9a9a9a",
-  "nd-green": "#c8c8c8",
-  "nd-dead-gray": "#3a3a3a",
+  "nd-bg": raw.bg,
+  "nd-surface": raw.surface,
+  "nd-cyan": raw.white,
+  "nd-magenta": raw.blood,
+  "nd-gold": raw.amber,
+  "nd-purple": raw.steel,
+  "nd-text": raw.text,
+  "nd-text-secondary": raw.textMuted,
+  "nd-green": raw.lightGray,
+  "nd-dead-gray": raw.deadGray,
+} as const;
+
+/** Type families (docs/design §3). */
+const fontFamily = {
+  heading: ['"JetBrains Mono"', "monospace"],
+  body: ["Inter", "sans-serif"],
+  data: ['"Fira Code"', "monospace"],
+  terminal: ['"Courier New"', '"Fira Code"', "monospace"],
 } as const;
 
 /** Corner radii. */
 const borderRadius = {
   terminal: "2px",
+  /** Progress bars (NIL, difficulty, Moral) — Tailwind's rounded-full value. */
+  pill: "9999px",
 } as const;
 
 /** Hairline + drop shadows (no neon glow). */
@@ -67,14 +96,80 @@ const fontSize = {
   "nd-title-lg": ["30px", { lineHeight: "1.2" }],
 } as const;
 
+/**
+ * Stacking order. Layering contract (issue #53):
+ * header (30) < nav (40) < overlay (50). Overlays always cover nav/header;
+ * the sticky HUD lives at header level so nav/overlay float above it.
+ */
+const zIndex = {
+  "nd-header": 30,
+  "nd-nav": 40,
+  "nd-overlay": 50,
+} as const;
+
+/** Minimum touch target (WCAG 2.5.5, docs/design §4) — 44px. */
+const minHeight = {
+  touch: "44px",
+} as const;
+
+const minWidth = {
+  touch: "44px",
+} as const;
+
+/** Named animations (Tailwind `animation` theme key). */
+const animation = {
+  glitch: "glitch 0.2s ease-in-out infinite alternate",
+  flicker: "flicker 0.15s ease-in-out infinite alternate",
+  "pulse-neon": "pulse-neon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+  "fade-in": "fade-in 0.5s ease-out both",
+} as const;
+
+/** Keyframes backing {@link animation}. */
+const keyframes = {
+  glitch: {
+    "0%": { transform: "translate(0)" },
+    "20%": { transform: "translate(-1px, 1px)" },
+    "40%": { transform: "translate(1px, -1px)" },
+    "60%": { transform: "translate(-1px, 0)" },
+    "80%": { transform: "translate(1px, 0)" },
+    "100%": { transform: "translate(0)" },
+  },
+  flicker: {
+    "0%, 100%": { opacity: "1" },
+    "50%": { opacity: "0.8" },
+  },
+  "pulse-neon": {
+    "0%, 100%": { opacity: "1" },
+    "50%": { opacity: "0.5" },
+  },
+  "fade-in": {
+    from: { opacity: "0" },
+    to: { opacity: "1" },
+  },
+} as const;
+
+/** Decorative effects for plain CSS consumers (scanlines, noise...). */
+const effects = {
+  /** Body scanline grid overlay (docs/design §8 of 00-direcao-visual). */
+  scanline: "rgba(255, 255, 255, 0.015)",
+} as const;
+
 /** All design tokens, grouped by Tailwind theme key. */
 export const tokens = {
+  raw,
   colors,
+  fontFamily,
   borderRadius,
   boxShadow,
   screens,
   transitionDuration,
   fontSize,
+  zIndex,
+  minHeight,
+  minWidth,
+  animation,
+  keyframes,
+  effects,
 } as const;
 
 /**

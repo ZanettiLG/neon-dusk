@@ -306,10 +306,10 @@ export default function ChromeSurgeryPanel({
                       <span className="font-data text-xs text-nd-gold">{formatEds(effectivePrice(def))}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-1">
-                      <span className="font-data text-[11px] text-nd-text-secondary">
+                      <span className="font-data text-nd-label text-nd-text-secondary">
                         Tier {def.tier} · -{effectiveHumanityCost(def)} humanidade
                       </span>
-                      {already && <span className="font-data text-[11px] text-nd-text-secondary">(instalado)</span>}
+                      {already && <span className="font-data text-nd-label text-nd-text-secondary">(instalado)</span>}
                     </div>
                   </button>
                 </li>
@@ -337,7 +337,7 @@ export default function ChromeSurgeryPanel({
     <div className="card space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-heading text-nd-cyan">{implant.name}</h3>
-        <button type="button" className="text-nd-text-secondary text-[11px] font-data underline" onClick={backToPicker}>
+        <button type="button" className="text-nd-text-secondary text-nd-label font-data underline" onClick={backToPicker}>
           trocar
         </button>
       </div>
@@ -352,7 +352,7 @@ export default function ChromeSurgeryPanel({
       </div>
 
       <div className="border-t border-nd-cyan/10 pt-2 space-y-1 text-xs font-data">
-        <p className="text-nd-text-secondary uppercase tracking-widest text-[10px]">Antes → Depois</p>
+        <p className="text-nd-text-secondary uppercase tracking-widest text-nd-micro">Antes → Depois</p>
         {ATTR_KEYS.map((key) => {
           const from = attrBefore(key);
           const to = from + (bonus[key] ?? 0);

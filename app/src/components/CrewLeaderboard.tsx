@@ -21,7 +21,7 @@ export default function CrewLeaderboard() {
     <section className="card">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h3 className="font-heading text-nd-cyan text-lg tracking-widest">TOP 5 BONDES</h3>
-        <span className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary border border-nd-cyan/20 rounded-terminal px-2 py-0.5">
+        <span className="font-data text-nd-micro uppercase tracking-widest text-nd-text-secondary border border-nd-cyan/20 rounded-terminal px-2 py-0.5">
           EM BREVE
         </span>
       </div>

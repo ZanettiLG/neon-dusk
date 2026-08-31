@@ -41,7 +41,7 @@ export default function OutcomeChip({ label, outcome, roll, chance }: OutcomeChi
 
   return (
     <span
-      className={`inline-flex items-center gap-1 font-data text-[10px] uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 ${OUTCOME_CLASSES[outcome]}`}
+      className={`inline-flex items-center gap-1 font-data text-nd-micro uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 ${OUTCOME_CLASSES[outcome]}`}
     >
       {`${OUTCOME_GLYPH[outcome]} ${text}`}
       {hasRoll && (

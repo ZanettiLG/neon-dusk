@@ -31,7 +31,7 @@ export default function Tab({ state = "inactive", disabledReason, onClick, child
         title={isDisabled ? disabledReason : undefined}
         aria-describedby={isDisabled && disabledReason ? reasonId : undefined}
         onClick={onClick}
-        className={`chip-tap font-data text-[11px] uppercase tracking-widest border rounded-terminal px-3 py-1 transition-colors ${
+        className={`chip-tap font-data text-nd-label uppercase tracking-widest border rounded-terminal px-3 py-1 transition-colors ${
           state === "active"
             ? "border-nd-cyan text-nd-cyan bg-nd-cyan/10"
             : state === "disabled"

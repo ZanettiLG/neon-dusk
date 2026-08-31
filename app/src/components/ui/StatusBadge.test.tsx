@@ -27,7 +27,7 @@ describe("StatusBadge", () => {
 
   it("should apply size classes", () => {
     const { rerender } = render(<StatusBadge label="X" size="sm" />);
-    expect(screen.getByText("X")).toHaveClass("text-[10px]");
+    expect(screen.getByText("X")).toHaveClass("text-nd-micro");
     rerender(<StatusBadge label="X" size="md" />);
     expect(screen.getByText("X")).toHaveClass("text-xs");
   });

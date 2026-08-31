@@ -32,7 +32,7 @@ export default function MetroCrossing({ destination }: MetroCrossingProps) {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-nd-bg/95"
+      className="fixed inset-0 z-nd-overlay flex items-center justify-center bg-nd-bg/95"
     >
       <div className="w-full max-w-md space-y-5 px-6 text-center">
         <p className="font-data text-sm text-nd-cyan sm:text-base">

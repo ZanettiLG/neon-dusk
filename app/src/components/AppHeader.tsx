@@ -59,7 +59,7 @@ export default function AppHeader({ drawerOpen = false, onOpenDrawer }: AppHeade
           {hasCharacter && (
             <button
               type="button"
-              className="sm:hidden flex min-h-[44px] items-center gap-2 border border-nd-cyan/20 rounded-terminal px-3 font-heading text-xs uppercase tracking-wider text-nd-text-secondary hover:text-nd-cyan transition-colors"
+              className="sm:hidden flex min-h-touch items-center gap-2 border border-nd-cyan/20 rounded-terminal px-3 font-heading text-xs uppercase tracking-wider text-nd-text-secondary hover:text-nd-cyan transition-colors"
               aria-haspopup="dialog"
               aria-expanded={drawerOpen}
               aria-controls={DRAWER_CONTROL_ID}

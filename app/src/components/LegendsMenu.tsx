@@ -24,7 +24,7 @@ export default function LegendsMenu() {
     <section className="card">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h3 className="font-heading text-nd-gold text-lg tracking-widest">MENU DE LENDAS</h3>
-        <span className="font-data text-[10px] uppercase tracking-widest text-nd-gold border border-nd-gold/40 rounded-terminal px-2 py-0.5">
+        <span className="font-data text-nd-micro uppercase tracking-widest text-nd-gold border border-nd-gold/40 rounded-terminal px-2 py-0.5">
           ⭐ PERMANENTE
         </span>
       </div>
@@ -65,7 +65,7 @@ export default function LegendsMenu() {
                 <span className="font-data text-xs text-nd-text-secondary">
                   Desde {yearOf(entry.achievedAt)}
                 </span>
-                <span className="font-data text-[10px] uppercase tracking-wider text-nd-text-secondary border border-nd-text-secondary/30 rounded-terminal px-1.5 py-0.5">
+                <span className="font-data text-nd-micro uppercase tracking-wider text-nd-text-secondary border border-nd-text-secondary/30 rounded-terminal px-1.5 py-0.5">
                   {entry.crewName ?? "Sem bonde"}
                 </span>
               </div>

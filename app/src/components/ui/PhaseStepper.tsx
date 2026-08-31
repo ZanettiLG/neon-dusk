@@ -10,7 +10,7 @@ export interface PhaseStepperProps {
 }
 
 const SIZE = {
-  sm: { dot: "w-5 h-5 text-[10px]", label: "text-[10px]" },
+  sm: { dot: "w-5 h-5 text-nd-micro", label: "text-nd-micro" },
   md: { dot: "w-7 h-7 text-xs", label: "text-xs" },
 } as const;
 

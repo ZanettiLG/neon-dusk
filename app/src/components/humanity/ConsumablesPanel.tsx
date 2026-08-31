@@ -118,7 +118,7 @@ export default function ConsumablesPanel({ info }: ConsumablesPanelProps) {
             <div key={item.id} className="border border-nd-cyan/15 rounded-terminal p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-heading text-nd-cyan text-sm">{item.name}</h3>
-                <span className="font-data text-[10px] uppercase tracking-widest text-nd-purple">
+                <span className="font-data text-nd-micro uppercase tracking-widest text-nd-purple">
                   Tier {item.tier}
                 </span>
               </div>
@@ -126,7 +126,7 @@ export default function ConsumablesPanel({ info }: ConsumablesPanelProps) {
                 <span className="text-nd-green">restaura +{item.restoreAmount}</span> ·{" "}
                 <span className="text-nd-text-secondary">{item.ownedQuantity} em estoque</span>
               </p>
-              <p className="text-[11px] font-data text-nd-text-secondary">
+              <p className="text-nd-label font-data text-nd-text-secondary">
                 {item.cooldownHours > 0 ? `Cooldown de ${item.cooldownHours}h` : "Sem cooldown"}
               </p>
               {flatlined || bandTooHigh ? (

@@ -43,7 +43,7 @@ export default function ResourceBar({
       </div>
       <div className="h-2 w-full bg-nd-bg overflow-hidden rounded-full border border-nd-cyan/20">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${band.color}`}
+          className={`h-full rounded-full transition-all duration-nd-slow ${band.color}`}
           style={{ width: `${percent}%` }}
         ></div>
       </div>

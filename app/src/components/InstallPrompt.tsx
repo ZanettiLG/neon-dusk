@@ -67,7 +67,7 @@ export default function InstallPrompt() {
 
   return (
     <div
-      className="fixed bottom-16 left-0 right-0 z-50 mx-auto w-full max-w-md px-4"
+      className="fixed bottom-16 left-0 right-0 z-nd-overlay mx-auto w-full max-w-md px-4"
       role="alert"
       aria-live="polite"
     >
