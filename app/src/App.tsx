@@ -48,7 +48,7 @@ export default function App() {
       <DegradedBanner />
       <OfflineBanner />
       {hasCharacter && (
-        <div className="sticky top-0 z-30">
+        <div className="sticky top-0 z-nd-header">
           <Hud />
           <TimerAlerts />
         </div>

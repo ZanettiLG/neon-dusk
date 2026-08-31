@@ -8,7 +8,17 @@ declare const config: {
   theme: {
     extend: {
       colors: Record<string, string>;
+      fontFamily: Record<string, string[]>;
+      borderRadius: Record<string, string>;
       boxShadow: Record<string, string>;
+      screens: Record<string, string>;
+      fontSize: Record<string, [string, { lineHeight: string }]>;
+      transitionDuration: Record<string, string>;
+      zIndex: Record<string, number>;
+      minHeight: Record<string, string>;
+      minWidth: Record<string, string>;
+      animation: Record<string, string>;
+      keyframes: Record<string, Record<string, Record<string, string>>>;
     };
   };
 };

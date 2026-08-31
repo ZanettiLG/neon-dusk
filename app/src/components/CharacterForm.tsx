@@ -198,7 +198,7 @@ export default function CharacterForm({ loading, nameError, onNameChange, onSubm
               : attributes[key] > BASE_ATTRIBUTES
                 ? "text-nd-cyan"
                 : "text-nd-text";
-            const borderGlow = atSoftCap ? "border-nd-gold/40 shadow-[0_0_6px_rgba(255,204,0,0.15)]" : "border-nd-cyan/20";
+            const borderGlow = atSoftCap ? "border-nd-gold/40 shadow-neon-gold" : "border-nd-cyan/20";
 
             return (
               <div key={key} className="space-y-1">

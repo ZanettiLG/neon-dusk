@@ -58,7 +58,7 @@ export default function Hud() {
         status={humanity === null ? (humanityError ? "error" : "loading") : "default"}
       />
       <div className="flex flex-col justify-between gap-1">
-        <span className="text-[10px] font-data uppercase tracking-widest text-nd-text-secondary">
+        <span className="text-nd-micro font-data uppercase tracking-widest text-nd-text-secondary">
           Grana
         </span>
         {balanceError ? (

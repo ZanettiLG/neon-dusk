@@ -88,11 +88,11 @@ export default function EventLog({
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <span className="text-[10px] font-data uppercase tracking-wider text-nd-text-secondary">
+                <span className="text-nd-micro font-data uppercase tracking-wider text-nd-text-secondary">
                   {formatRelativeTime(e.timestamp)}
                 </span>
                 {e.onRetry && (
-                  <button type="button" className="btn-neon text-[10px] px-2 py-1" onClick={e.onRetry}>
+                  <button type="button" className="btn-neon text-nd-micro px-2 py-1" onClick={e.onRetry}>
                     Tentar de novo
                   </button>
                 )}

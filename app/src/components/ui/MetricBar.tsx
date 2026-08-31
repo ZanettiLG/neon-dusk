@@ -61,7 +61,7 @@ export default function MetricBar({
   const activeBands = bands ?? (resource ? RESOURCE_BAR_BANDS[resource] : undefined);
   const band = activeBands ? bandForBands(activeBands, percent) : undefined;
   const barHeight = size === "sm" ? "h-1" : "h-2";
-  const captionSize = size === "sm" ? "text-[10px]" : "text-xs";
+  const captionSize = size === "sm" ? "text-nd-micro" : "text-xs";
 
   return (
     <div>
@@ -84,7 +84,7 @@ export default function MetricBar({
         className={`mt-1 w-full ${barHeight} bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden`}
       >
         <div
-          className={`h-full rounded-full transition-all duration-500 ${band?.color ?? "bg-nd-cyan"} ${
+          className={`h-full rounded-full transition-all duration-nd-slow ${band?.color ?? "bg-nd-cyan"} ${
             band?.pulse ? "animate-pulse-neon" : ""
           }`}
           style={{ width: `${percent}%` }}

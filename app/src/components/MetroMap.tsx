@@ -218,7 +218,7 @@ export default function MetroMap({
         {METRO_LINES.map((line) => (
           <span
             key={line.id}
-            className="flex items-center gap-1.5 font-data text-[10px] uppercase tracking-widest text-nd-text-secondary"
+            className="flex items-center gap-1.5 font-data text-nd-micro uppercase tracking-widest text-nd-text-secondary"
           >
             <span aria-hidden="true" className={`h-1 w-6 ${line.solid}`} />
             {line.label}

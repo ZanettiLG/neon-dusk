@@ -177,7 +177,7 @@ function FullBadge({ x, y }: { x: number; y: number }) {
       textAnchor="middle"
       aria-hidden="true"
       pointerEvents="none"
-      className="fill-nd-magenta font-data text-[9px] font-bold"
+      className="fill-nd-magenta font-data text-nd-micro font-bold"
     >
       CHEIO
     </text>

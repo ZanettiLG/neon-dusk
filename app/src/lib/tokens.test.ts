@@ -191,6 +191,50 @@ describe("tokens", () => {
     });
   });
 
+  it("should pin the raw primitive layer and derive colors from it (issue #53)", () => {
+    expect(tokens.raw).toEqual({
+      bg: "#0a0a0a",
+      surface: "#161616",
+      white: "#f2f2f2",
+      blood: "#ff2020",
+      amber: "#d4a017",
+      steel: "#8aa4b8",
+      text: "#e8e8e8",
+      textMuted: "#9a9a9a",
+      lightGray: "#c8c8c8",
+      deadGray: "#3a3a3a",
+    });
+    const expectations: Array<[keyof typeof tokens.colors, keyof typeof tokens.raw]> = [
+      ["nd-bg", "bg"],
+      ["nd-surface", "surface"],
+      ["nd-cyan", "white"],
+      ["nd-magenta", "blood"],
+      ["nd-gold", "amber"],
+      ["nd-purple", "steel"],
+      ["nd-text", "text"],
+      ["nd-text-secondary", "textMuted"],
+      ["nd-green", "lightGray"],
+      ["nd-dead-gray", "deadGray"],
+    ];
+    expectations.forEach(([channel, primitive]) => {
+      expect(tokens.colors[channel]).toBe(tokens.raw[primitive]);
+    });
+  });
+
+  it("should pin type families (issue #53)", () => {
+    expect(tokens.fontFamily).toEqual({
+      heading: ['"JetBrains Mono"', "monospace"],
+      body: ["Inter", "sans-serif"],
+      data: ['"Fira Code"', "monospace"],
+      terminal: ['"Courier New"', '"Fira Code"', "monospace"],
+    });
+  });
+
+  it("should expose the pill radius alongside terminal (issue #53)", () => {
+    expect(tokens.borderRadius.terminal).toBe("2px");
+    expect(tokens.borderRadius.pill).toBe("9999px");
+  });
+
   it("should pin hairline + drop shadows (no neon glow, issue #149)", () => {
     expect(tokens.boxShadow).toEqual({
       "neon-cyan": "0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 8px rgba(0, 0, 0, 0.5)",
@@ -201,9 +245,86 @@ describe("tokens", () => {
     });
   });
 
+  it("should pin the stacking order header < nav < overlay (issue #53)", () => {
+    expect(tokens.zIndex).toEqual({
+      "nd-header": 30,
+      "nd-nav": 40,
+      "nd-overlay": 50,
+    });
+  });
+
+  it("should pin touch targets at 44px (WCAG 2.5.5, issue #53)", () => {
+    expect(tokens.minHeight.touch).toBe("44px");
+    expect(tokens.minWidth.touch).toBe("44px");
+  });
+
+  it("should expose animations and keyframes moved from tailwind.config (issue #53)", () => {
+    expect(tokens.animation).toEqual({
+      glitch: "glitch 0.2s ease-in-out infinite alternate",
+      flicker: "flicker 0.15s ease-in-out infinite alternate",
+      "pulse-neon": "pulse-neon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+      "fade-in": "fade-in 0.5s ease-out both",
+    });
+    expect(tokens.keyframes["pulse-neon"]).toEqual({
+      "0%, 100%": { opacity: "1" },
+      "50%": { opacity: "0.5" },
+    });
+    expect(tokens.keyframes["fade-in"]).toEqual({ from: { opacity: "0" }, to: { opacity: "1" } });
+  });
+
+  it("should expose the scanline effect (issue #53)", () => {
+    expect(tokens.effects.scanline).toBe("rgba(255, 255, 255, 0.015)");
+  });
+
   it("should expose canonical screens and motion durations", () => {
     expect(tokens.screens.lg).toBe("1024px");
     expect(tokens.transitionDuration["nd-fast"]).toBe("150ms");
+  });
+
+  it("should pin the full semantic type scale (issue #53)", () => {
+    expect(tokens.fontSize).toEqual({
+      "nd-micro": ["10px", { lineHeight: "1.2" }],
+      "nd-label": ["11px", { lineHeight: "1.4" }],
+      "nd-body-xs": ["12px", { lineHeight: "1.5" }],
+      "nd-body": ["14px", { lineHeight: "1.5" }],
+      "nd-body-lg": ["16px", { lineHeight: "1.6" }],
+      "nd-title-xs": ["18px", { lineHeight: "1.3" }],
+      "nd-title": ["24px", { lineHeight: "1.25" }],
+      "nd-title-lg": ["30px", { lineHeight: "1.2" }],
+    });
+  });
+
+  it("should pin the full motion duration scale (issue #53)", () => {
+    expect(tokens.transitionDuration).toEqual({
+      "nd-fast": "150ms",
+      "nd-base": "250ms",
+      "nd-slow": "500ms",
+      "nd-slower": "2000ms",
+    });
+  });
+
+  it("should pin the full responsive breakpoint scale (issue #53)", () => {
+    expect(tokens.screens).toEqual({
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+    });
+  });
+
+  it("should pin the glitch and flicker keyframes (issue #53)", () => {
+    expect(tokens.keyframes.glitch).toEqual({
+      "0%": { transform: "translate(0)" },
+      "20%": { transform: "translate(-1px, 1px)" },
+      "40%": { transform: "translate(1px, -1px)" },
+      "60%": { transform: "translate(-1px, 0)" },
+      "80%": { transform: "translate(1px, 0)" },
+      "100%": { transform: "translate(0)" },
+    });
+    expect(tokens.keyframes.flicker).toEqual({
+      "0%, 100%": { opacity: "1" },
+      "50%": { opacity: "0.8" },
+    });
   });
 });
 
@@ -214,7 +335,17 @@ let tailwindConfig: {
   theme: {
     extend: {
       colors: Record<string, string>;
+      fontFamily: Record<string, string[]>;
+      borderRadius: Record<string, string>;
       boxShadow: Record<string, string>;
+      screens: Record<string, string>;
+      fontSize: Record<string, [string, { lineHeight: string }]>;
+      transitionDuration: Record<string, string>;
+      zIndex: Record<string, number>;
+      minHeight: Record<string, string>;
+      minWidth: Record<string, string>;
+      animation: Record<string, string>;
+      keyframes: Record<string, Record<string, Record<string, string>>>;
     };
   };
 } | null = null;
@@ -232,5 +363,19 @@ describe("tailwind.config integration", () => {
 
   it.skipIf(configError !== null)("should expose tokens.boxShadow as theme shadows", () => {
     expect(tailwindConfig?.theme.extend.boxShadow["neon-cyan"]).toBe(tokens.boxShadow["neon-cyan"]);
+  });
+
+  it.skipIf(configError !== null)("should expose the issue #53 theme keys", () => {
+    expect(tailwindConfig?.theme.extend.fontFamily.heading).toEqual(tokens.fontFamily.heading);
+    expect(tailwindConfig?.theme.extend.borderRadius.pill).toBe(tokens.borderRadius.pill);
+    expect(tailwindConfig?.theme.extend.fontSize["nd-micro"]).toEqual(tokens.fontSize["nd-micro"]);
+    expect(tailwindConfig?.theme.extend.transitionDuration["nd-slow"]).toBe(
+      tokens.transitionDuration["nd-slow"],
+    );
+    expect(tailwindConfig?.theme.extend.zIndex["nd-overlay"]).toBe(tokens.zIndex["nd-overlay"]);
+    expect(tailwindConfig?.theme.extend.minHeight.touch).toBe(tokens.minHeight.touch);
+    expect(tailwindConfig?.theme.extend.minWidth.touch).toBe(tokens.minWidth.touch);
+    expect(tailwindConfig?.theme.extend.animation["pulse-neon"]).toBe(tokens.animation["pulse-neon"]);
+    expect(tailwindConfig?.theme.extend.keyframes.glitch).toEqual(tokens.keyframes.glitch);
   });
 });

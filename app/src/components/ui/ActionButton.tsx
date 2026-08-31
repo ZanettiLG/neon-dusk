@@ -100,12 +100,12 @@ export default function ActionButton({
         )}
       </button>
       {isBlocked && blockReason && (
-        <span id={reasonId} className="text-[11px] font-data text-nd-magenta">
+        <span id={reasonId} className="text-nd-label font-data text-nd-magenta">
           ⛔ {blockReason}
         </span>
       )}
       {isError && errorMessage && (
-        <span role="alert" className="text-[11px] font-data text-nd-magenta">
+        <span role="alert" className="text-nd-label font-data text-nd-magenta">
           ✗ {errorMessage}
         </span>
       )}

@@ -29,7 +29,7 @@ export default function Leaderboard() {
     <section className="card">
       <div className="flex items-center justify-between gap-3 mb-4">
         <h3 className="font-heading text-nd-cyan text-lg tracking-widest">RANKING // MORAL</h3>
-        <span className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary border border-nd-cyan/20 rounded-terminal px-2 py-0.5">
+        <span className="font-data text-nd-micro uppercase tracking-widest text-nd-text-secondary border border-nd-cyan/20 rounded-terminal px-2 py-0.5">
           TOP 20
         </span>
       </div>
@@ -53,7 +53,7 @@ export default function Leaderboard() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm font-data">
             <thead>
-              <tr className="text-left text-nd-text-secondary text-[10px] uppercase tracking-widest">
+              <tr className="text-left text-nd-text-secondary text-nd-micro uppercase tracking-widest">
                 <th className="py-1 pr-2 font-normal">#</th>
                 <th className="py-1 pr-2 font-normal">Corredor</th>
                 <th className="py-1 pr-2 font-normal">Título</th>
@@ -73,11 +73,11 @@ export default function Leaderboard() {
                     <td className="py-2 pr-2 text-nd-text-secondary">{entry.position}</td>
                     <td className={`py-2 pr-2 ${isMe ? "text-nd-cyan" : "text-nd-text"}`}>
                       {entry.characterName}
-                      {isMe && <span className="ml-2 text-[10px] text-nd-cyan/70">← você</span>}
+                      {isMe && <span className="ml-2 text-nd-micro text-nd-cyan/70">← você</span>}
                     </td>
                     <td className="py-2 pr-2">
                       <span
-                        className={`border rounded-terminal px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${titleBadgeClass(entry.title)}`}
+                        className={`border rounded-terminal px-1.5 py-0.5 text-nd-micro uppercase tracking-wider ${titleBadgeClass(entry.title)}`}
                       >
                         {entry.title}
                       </span>

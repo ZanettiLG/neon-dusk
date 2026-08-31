@@ -71,7 +71,7 @@ export default function ChatBox() {
       <div className="flex items-center justify-between gap-3 mb-3">
         <h3 className="font-heading text-nd-cyan text-lg tracking-widest">CIDADE // CHAT</h3>
         <span
-          className={`font-data text-[10px] uppercase tracking-widest border rounded-terminal px-2 py-0.5 ${STATUS_CONFIG[chatStatus].border} ${STATUS_CONFIG[chatStatus].text}`}
+          className={`font-data text-nd-micro uppercase tracking-widest border rounded-terminal px-2 py-0.5 ${STATUS_CONFIG[chatStatus].border} ${STATUS_CONFIG[chatStatus].text}`}
         >
           <span className="mr-1">{STATUS_CONFIG[chatStatus].dot}</span>
           {STATUS_CONFIG[chatStatus].label}
@@ -138,7 +138,7 @@ export default function ChatBox() {
             className="w-full bg-nd-bg border border-nd-cyan/20 rounded-terminal px-3 py-2 text-sm text-nd-text placeholder:text-nd-text-secondary focus:border-nd-cyan focus:outline-none"
             disabled={sendLoading}
           />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 font-data text-[10px] text-nd-text-secondary">
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 font-data text-nd-micro text-nd-text-secondary">
             {draft.length}/{MAX_MESSAGE_LENGTH}
           </span>
         </div>

@@ -19,7 +19,7 @@ const TONE_CLASSES: Record<Tone, string> = {
 };
 
 const SIZE_CLASSES = {
-  sm: "text-[10px] px-1.5 py-0.5",
+  sm: "text-nd-micro px-1.5 py-0.5",
   md: "text-xs px-2.5 py-1",
 } as const;
 

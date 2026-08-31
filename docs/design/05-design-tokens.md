@@ -113,8 +113,8 @@ Base móvel: 320px. Grid: 1 col (mobile) → 2 (tablet) → 3 (desktop).
 | `nd-slow` | 500ms | Preenchimento de barra, mudança de faixa |
 | `nd-slower` | 2000ms | Pulso neon, respiração de HUD |
 
-Animações existentes (não tokenizadas, mantidas no config):
-`glitch` 0.2s, `flicker` 0.15s, `pulse-neon` 2s.
+Animações (tokenizadas em `app/src/lib/tokens.ts` — `animation` + `keyframes`,
+issue #53): `glitch` 0.2s, `flicker` 0.15s, `pulse-neon` 2s, `fade-in` 0.5s.
 
 ## 8. Thresholds de cor-por-faixa
 
@@ -279,11 +279,16 @@ download de fonte.
 
 | Artefato | Papel |
 |---|---|
-| `app/src/lib/tokens.ts` | Fonte única: `tokens` (cores, raios, sombras, screens, durações, tipografia) + `RESOURCE_BAR_BANDS` + `bandFor` |
+| `app/src/lib/tokens.ts` | Fonte única: `tokens` (raw, cores, fontes, raios, sombras, screens, durações, tipografia, z-index, touch, animações, efeitos) + `RESOURCE_BAR_BANDS` + `bandFor` |
+| `app/src/lib/tokens-css.ts` | `buildTokensCss` — gera o bloco `:root { --nd-* }` a partir de `tokens` (issue #53) |
+| `app/scripts/generate-tokens-css.mjs` | Gerador jiti — escreve `app/src/tokens.css` (falha com exit ≠ 0 em erro) |
+| `app/src/tokens.css` | CSS gerado e **commitado** (PWA-first): vars `--nd-*`, foco derivado de `colors["nd-cyan"]` |
 | `app/tailwind.config.js` | Importa `tokens` e mapeia para `theme.extend` |
 | `app/tailwind.config.d.ts` | Declaração de tipos para o import dinâmico do config em `tokens.test.ts` |
-| `app/src/style.css` | Tokens de foco (CSS vars), reduced-motion global, `.btn-neon` 44px touch |
-| `app/src/lib/tokens.test.ts` | Varredura 0–100 por recurso, clamps, NaN, frações, pulse, FLATLINE (label de código — pendente #145), integração config |
+| `app/src/style.css` | `@import "./tokens.css"`, reduced-motion global, `.btn-neon` 44px touch |
+| `app/src/lib/tokens.test.ts` | Varredura 0–100 por recurso, clamps, NaN, frações, pulse, FLATLINE (label de código — pendente #145), pins das categorias, integração config |
+| `app/src/lib/tokens-css.test.ts` | Pin byte-a-byte do `tokens.css` commitado (falha instrui `npm run tokens:generate`) |
+| `app/src/lib/tokens-usage.test.ts` | Guard de consistência: classes nd-*/neon-* existem (fail), zero hardcode no core (fail), views warn-only, tokens sem uso → warn |
 | Consumidores | `DashboardView` (NIL via `bandFor`), `GigCard` (dificuldade), `StreetCredDisplay` (fill via `tokens.colors`) |
 
 ## 15. Divergências registradas
@@ -312,5 +317,21 @@ Desvios intencionais entre spec original, produto e implementação:
    `04-sistemas-e-progressao.md` §5 (Lenda = 100).
 5. **D5 — `--nd-focus-color` duplica `tokens.colors["nd-cyan"]` (agora canal
    funcional `#f2f2f2`)**: CSS não importa TypeScript, então a única fonte
-   programática não cobre CSS vars. Mitigação: comentário `ponytail` no
-   `style.css` exige atualizar os dois arquivos se a cor mudar.
+   programática não cobria CSS vars. **RESOLVIDO (issue #53)**: o gerador
+   `app/scripts/generate-tokens-css.mjs` deriva `--nd-focus-color` de
+   `colors["nd-cyan"]` em `buildTokensCss` (`app/src/lib/tokens-css.ts`) e
+   escreve em `app/src/tokens.css` — a duplicação manual do `style.css` foi
+   removida e o pin byte-a-byte (`tokens-css.test.ts`) garante sincronia.
+6. **D6 — `duration-1000` → `duration-nd-slow` no ActiveGigPanel (fill do
+   legwork)**: 1000ms virou 500ms — o fill da barra fica 2× mais rápido.
+   Aceito porque §7 define o preenchimento de barra como `nd-slow` (500ms);
+   o único consumidor da duração antiga era a barra de progresso do legwork.
+7. **D7 — `shadow-[0_0_6px_rgba(255,204,0,0.15)]` → `shadow-neon-gold` no
+   CharacterForm (atributo no soft cap)**: o glow amarelo (#ffcc00) virou o
+   hairline gold do token (`0 0 0 1px rgba(212,160,23,.25)`) — glow banido
+   pela direção visual (só hairline + drop, §2); o estado de soft cap segue
+   sinalizado por `border-nd-gold/40` + `text-nd-gold`.
+8. **D8 — `text-[9px]` → `text-nd-micro` no ChromeBodyMapSvg (badge CHEIO)**:
+   9px virou 10px (piso da escala semântica §3 — não existe token abaixo de
+   `nd-micro`). Delta de 1px no badge SVG, sem impacto de layout (posição
+   fixa no viewBox); legibilidade ganha com o piso da escala.

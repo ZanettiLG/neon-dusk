@@ -94,7 +94,7 @@ export default function OsPanel() {
     <div className="card border-nd-cyan/20 space-y-3">
       <div className="flex items-center justify-between">
         <span className="font-heading text-nd-cyan tracking-widest text-lg">{os.name}</span>
-        <span className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary">
+        <span className="font-data text-nd-micro uppercase tracking-widest text-nd-text-secondary">
           SO · permanente por rodada
         </span>
       </div>

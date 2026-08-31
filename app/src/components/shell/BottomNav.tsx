@@ -20,7 +20,7 @@ export default function BottomNav({ drawerOpen, onOpenDrawer }: BottomNavProps) 
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-40 sm:hidden bg-nd-surface border-t border-nd-cyan/20 pb-safe"
+      className="fixed inset-x-0 bottom-0 z-nd-nav sm:hidden bg-nd-surface border-t border-nd-cyan/20 pb-safe"
     >
       <ul className="grid grid-cols-6 m-0 p-0 list-none">
         {PRIMARY_NAV.map((item) => (
@@ -28,7 +28,7 @@ export default function BottomNav({ drawerOpen, onOpenDrawer }: BottomNavProps) 
             <NavLink
               to={item.to}
               className={({ isActive }) =>
-                `flex min-h-[44px] items-center justify-center border-t text-[10px] font-heading uppercase tracking-wider transition-colors ${
+                `flex min-h-touch items-center justify-center border-t text-nd-micro font-heading uppercase tracking-wider transition-colors ${
                   isActive
                     ? "border-nd-cyan text-nd-cyan bg-nd-cyan/5"
                     : "border-transparent text-nd-text-secondary hover:text-nd-cyan"
@@ -46,7 +46,7 @@ export default function BottomNav({ drawerOpen, onOpenDrawer }: BottomNavProps) 
             aria-expanded={drawerOpen}
             aria-controls={DRAWER_CONTROL_ID}
             onClick={onOpenDrawer}
-            className="flex min-h-[44px] w-full items-center justify-center border-t border-transparent text-[10px] font-heading uppercase tracking-wider text-nd-text-secondary hover:text-nd-cyan transition-colors"
+            className="flex min-h-touch w-full items-center justify-center border-t border-transparent text-nd-micro font-heading uppercase tracking-wider text-nd-text-secondary hover:text-nd-cyan transition-colors"
           >
             Mais
           </button>

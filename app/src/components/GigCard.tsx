@@ -60,11 +60,11 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
           </p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="font-data text-[10px] uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 border-nd-green/40 text-nd-green">
+          <span className="font-data text-nd-micro uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 border-nd-green/40 text-nd-green">
             {trampo.tier.toUpperCase()}
           </span>
           <span
-            className={`font-data text-[10px] uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 ${typeStyle.badge}`}
+            className={`font-data text-nd-micro uppercase tracking-widest border rounded-terminal px-1.5 py-0.5 ${typeStyle.badge}`}
           >
             {GIG_TYPE_LABELS[trampo.type]}
           </span>
@@ -73,13 +73,13 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
 
       {/* Difficulty bar */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between text-[10px] font-data uppercase tracking-widest text-nd-text-secondary">
+        <div className="flex items-center justify-between text-nd-micro font-data uppercase tracking-widest text-nd-text-secondary">
           <span>Dificuldade</span>
           <span>{trampo.difficulty}</span>
         </div>
         <div className="h-1.5 w-full bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${bandFor("gigDifficulty", trampo.difficulty).color}`}
+            className={`h-full rounded-full transition-all duration-nd-slow ${bandFor("gigDifficulty", trampo.difficulty).color}`}
             style={{ width: `${Math.min(100, trampo.difficulty)}%` }}
           ></div>
         </div>
@@ -87,17 +87,17 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
 
       {/* Chance (server-calculated base; legwork +20% applies on top at execute) */}
       <div className="space-y-1">
-        <div className="flex items-center justify-between text-[10px] font-data uppercase tracking-widest text-nd-text-secondary">
+        <div className="flex items-center justify-between text-nd-micro font-data uppercase tracking-widest text-nd-text-secondary">
           <span>Chance</span>
           <span
-            className={`font-data text-[10px] uppercase tracking-wider border rounded-terminal px-1.5 py-0.5 ${CHANCE_BADGES[chanceBand.label]}`}
+            className={`font-data text-nd-micro uppercase tracking-wider border rounded-terminal px-1.5 py-0.5 ${CHANCE_BADGES[chanceBand.label]}`}
           >
             chance {chancePct}% · {chanceBand.label}
           </span>
         </div>
         <div className="h-1.5 w-full bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${chanceBand.color}`}
+            className={`h-full rounded-full transition-all duration-nd-slow ${chanceBand.color}`}
             style={{ width: `${chancePct}%` }}
           ></div>
         </div>
@@ -115,7 +115,7 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
         <span className="text-nd-text-secondary">Recompensa</span>
         <span className="text-nd-gold">
           G$ {trampo.baseReward.toLocaleString("pt-BR")}
-          <span className="text-nd-text-secondary text-[10px]"> · ×1.32 máx (legwork + sucesso)</span>
+          <span className="text-nd-text-secondary text-nd-micro"> · ×1.32 máx (legwork + sucesso)</span>
         </span>
       </div>
 
@@ -128,7 +128,7 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
             return (
               <span
                 key={key}
-                className={`font-data text-[10px] uppercase tracking-wider border rounded-terminal px-1.5 py-0.5 ${
+                className={`font-data text-nd-micro uppercase tracking-wider border rounded-terminal px-1.5 py-0.5 ${
                   met
                     ? "text-nd-green border-nd-green/30"
                     : "text-nd-magenta border-nd-magenta/30"
@@ -145,13 +145,13 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
       {/* Footer: cooldown + accept */}
       <div className="mt-auto flex items-center justify-between gap-2">
         {onCooldown ? (
-          <span className="font-data text-[11px] text-nd-text-secondary">
+          <span className="font-data text-nd-label text-nd-text-secondary">
             cooldown {formatCountdown(remaining)}
           </span>
         ) : !trampo.meetsRequirements ? (
-          <span className="font-data text-[11px] text-nd-magenta">requisitos não atendidos</span>
+          <span className="font-data text-nd-label text-nd-magenta">requisitos não atendidos</span>
         ) : (
-          <span className="font-data text-[11px] text-nd-text-secondary">disponível</span>
+          <span className="font-data text-nd-label text-nd-text-secondary">disponível</span>
         )}
         <button
           className="btn-neon text-xs px-3 py-1.5"

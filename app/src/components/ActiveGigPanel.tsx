@@ -146,12 +146,12 @@ export default function ActiveGigPanel() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="font-data text-[10px] uppercase tracking-widest text-nd-text-secondary">
+          <p className="font-data text-nd-micro uppercase tracking-widest text-nd-text-secondary">
             TRAMPO ATIVO // CUPIM · O PORTEIRO
           </p>
           <h3 className="font-heading text-xl text-nd-text">{trampo.gigName}</h3>
         </div>
-        <span className="font-data text-[10px] uppercase tracking-widest border border-nd-purple/40 text-nd-purple rounded-terminal px-2 py-1">
+        <span className="font-data text-nd-micro uppercase tracking-widest border border-nd-purple/40 text-nd-purple rounded-terminal px-2 py-1">
           {trampo.gigTier.toUpperCase()} · {trampo.gigType.toUpperCase()}
         </span>
       </div>
@@ -207,7 +207,7 @@ export default function ActiveGigPanel() {
               </div>
               <div className="h-1.5 w-full bg-nd-bg rounded-full border border-nd-cyan/20 overflow-hidden">
                 <div
-                  className="h-full bg-nd-cyan transition-all duration-1000"
+                  className="h-full bg-nd-cyan transition-all duration-nd-slow"
                   style={{
                     width: `${
                       legworkEndsAt
