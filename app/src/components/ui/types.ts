@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** Shared types for the base UI component library (issue #134). */
+/** Shared types for the base UI component library (issue #54). */
 
 /** Generic data-fetch state for containers (Panel, MetricBar, EventLog). */
 export type DataStatus = "default" | "loading" | "error" | "empty";

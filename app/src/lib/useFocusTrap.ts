@@ -23,7 +23,9 @@ const FOCUSABLE_SELECTOR =
  * the opening element, focuses the initial focus target (or the first
  * focusable), cycles Tab/Shift+Tab inside the container, closes on Escape and
  * restores focus to the opener. Body scroll is locked while active and
- * restored on deactivation or unmount.
+ * restored on deactivation or unmount — focus is restored to the opener on
+ * ANY deactivation path (programmatic active=false included), not just via
+ * closeAndRestore.
  *
  * Returns `closeAndRestore` for callers that need to close from a click
  * handler (close button, overlay) with the same focus-restore behavior.
@@ -87,6 +89,12 @@ export function useFocusTrap({
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
+      // Restore focus to the opener on any deactivation path — including
+      // programmatic close via active=false — not just closeAndRestore.
+      // Idempotent: when closeAndRestore already ran, this refocuses the
+      // same element (a no-op for the user); on unmount of a detached
+      // opener, focusing a disconnected node is also a safe no-op.
+      openerRef.current?.focus();
     };
   }, [active, closeAndRestore, containerRef]);
 

@@ -8,6 +8,8 @@ export interface EventLogProps {
   events?: EventLogEntry[];
   status?: DataStatus;
   emptyMessage?: string;
+  /** Overrides the error banner message (defaults to "Erro ao carregar."). */
+  errorMessage?: string;
   /** Retry button shown in the error banner. */
   onRetryAll?: () => void;
   /** CSS max-height for the scrollable list (e.g. "16rem"). */
@@ -32,6 +34,7 @@ export default function EventLog({
   events = [],
   status = "default",
   emptyMessage,
+  errorMessage,
   onRetryAll,
   maxHeight,
 }: EventLogProps) {
@@ -42,7 +45,7 @@ export default function EventLog({
   if (status === "error") {
     return (
       <div className="card border-nd-magenta/40 shadow-neon-magenta">
-        <ErrorState message="Falha ao carregar eventos." onRetry={onRetryAll} />
+        <ErrorState message={errorMessage} onRetry={onRetryAll} />
       </div>
     );
   }

@@ -11,6 +11,8 @@ export interface ButtonProps {
   onClick?: () => void;
   /** Native type, defaults to "button" (never submits a form by accident). */
   type?: "button" | "submit" | "reset";
+  /** Extra classes appended after the variant/size classes. */
+  className?: string;
   children: ReactNode;
 }
 
@@ -43,6 +45,7 @@ export default function Button({
   fullWidth = false,
   onClick,
   type = "button",
+  className,
   children,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -50,7 +53,7 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`chip-tap inline-flex items-center justify-center rounded-terminal font-heading uppercase tracking-wider transition-all ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${fullWidth ? "w-full" : ""}`}
+      className={`chip-tap inline-flex items-center justify-center rounded-terminal font-heading uppercase tracking-wider transition-all ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${fullWidth ? "w-full" : ""} ${className ?? ""}`}
       disabled={isDisabled}
       aria-busy={loading || undefined}
       onClick={onClick}

@@ -26,6 +26,17 @@ describe("Modal", () => {
     expect(document.getElementById(labelledBy!)).toHaveTextContent("Confirmar");
   });
 
+  it("should use ariaLabel as the accessible name when title is absent", () => {
+    render(
+      <Modal open ariaLabel="Confirmar exclusão" onClose={vi.fn()}>
+        conteúdo
+      </Modal>,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Confirmar exclusão" });
+    expect(dialog).toHaveAttribute("aria-label", "Confirmar exclusão");
+    expect(dialog).not.toHaveAttribute("aria-labelledby");
+  });
+
   it("should focus the first focusable on open and trap Tab at the edges", () => {
     render(
       <Modal open title="Confirmar" onClose={vi.fn()}>

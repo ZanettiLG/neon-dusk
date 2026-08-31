@@ -12,9 +12,9 @@ export interface LoadingStateProps {
 }
 
 /**
- * Shared loading state (issue #54): N pulsing skeleton lines wrapped in an
- * aria-busy container, or a compact inline "▌ label..." pulse. Used by
- * Panel, EventLog and Table so the loading look stays consistent.
+ * Shared loading state (issue #54): N pulsing skeleton lines wrapped in a
+ * role="status" + aria-busy container, or a compact inline "▌ label..." pulse.
+ * Used by Panel, EventLog and Table so the loading look stays consistent.
  */
 export default function LoadingState({
   label = "carregando",
@@ -32,7 +32,7 @@ export default function LoadingState({
   }
 
   return (
-    <div className={`space-y-2 ${className ?? ""}`} aria-busy="true">
+    <div className={`space-y-2 ${className ?? ""}`} role="status" aria-busy="true">
       {Array.from({ length: lines }).map((_, i) => (
         <Skeleton key={i} className={skeletonClassName} />
       ))}

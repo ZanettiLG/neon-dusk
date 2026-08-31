@@ -1,4 +1,4 @@
-/** Base UI component library (issue #134). Import as `import { Panel } from "@/components/ui"`. */
+/** Base UI component library (issue #54). Import as `import { Panel } from "@/components/ui"`. */
 export { default as Panel } from "./Panel";
 export { default as MetricBar } from "./MetricBar";
 export { default as ActionButton } from "./ActionButton";

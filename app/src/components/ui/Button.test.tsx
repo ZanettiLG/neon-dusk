@@ -54,4 +54,11 @@ describe("Button", () => {
     rerender(<Button fullWidth>A</Button>);
     expect(screen.getByRole("button")).toHaveClass("w-full");
   });
+
+  it("should append extra className after the variant/size classes", () => {
+    render(<Button className="mt-4 w-32">Executar</Button>);
+    const btn = screen.getByRole("button", { name: "Executar" });
+    expect(btn).toHaveClass("mt-4", "w-32");
+    expect(btn).toHaveClass("btn-neon", "px-4", "py-2");
+  });
 });

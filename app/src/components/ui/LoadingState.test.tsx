@@ -3,10 +3,11 @@ import { render, screen } from "@testing-library/react";
 import LoadingState from "./LoadingState";
 
 describe("LoadingState", () => {
-  it("should render N skeleton lines wrapped in aria-busy", () => {
+  it("should render N skeleton lines wrapped in aria-busy role=status", () => {
     render(<LoadingState lines={4} />);
     const wrapper = document.querySelector('[aria-busy="true"]');
     expect(wrapper).not.toBeNull();
+    expect(wrapper).toHaveAttribute("role", "status");
     expect(wrapper!.querySelectorAll(".animate-pulse-neon")).toHaveLength(4);
   });
 

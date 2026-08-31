@@ -54,7 +54,11 @@ export default function Panel({
   const v = VARIANTS[variant];
 
   return (
-    <section className={`card ${v.frame}`} aria-busy={status === "loading" || undefined}>
+    <section
+      className={`card ${v.frame}`}
+      role={status === "loading" ? "status" : undefined}
+      aria-busy={status === "loading" || undefined}
+    >
       {(title || accessory) && (
         <header className="mb-3 flex items-center justify-between gap-2">
           <h3 className="font-heading text-sm uppercase tracking-widest text-nd-text">

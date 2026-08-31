@@ -6,6 +6,9 @@ export interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Accessible-name fallback when no title is shown — the dialog must
+   *  always have a name (aria-label), mirroring the Drawer pattern. */
+  ariaLabel?: string;
   children: ReactNode;
   /** Optional footer bar under the content. */
   footer?: ReactNode;
@@ -26,13 +29,15 @@ const SIZE_CLASSES = {
 
 /**
  * Accessible modal dialog (issue #54): focus trap (useFocusTrap), labelled by
- * the title (useId), overlay click and Escape to close with focus restored to
- * the opener, sm/md/lg widths. Returns null while closed — no DOM, no trap.
+ * the title (useId) or the ariaLabel fallback, overlay click and Escape to
+ * close with focus restored to the opener, sm/md/lg widths. Returns null
+ * while closed — no DOM, no trap.
  */
 export default function Modal({
   open,
   onClose,
   title,
+  ariaLabel,
   children,
   footer,
   size = "md",
@@ -66,6 +71,7 @@ export default function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : ariaLabel}
         className={`relative w-full bg-nd-surface border border-nd-cyan/30 shadow-neon-cyan rounded-terminal ${SIZE_CLASSES[size]}`}
       >
         <header className="flex items-center justify-between gap-3 border-b border-nd-cyan/10 px-4 py-2">

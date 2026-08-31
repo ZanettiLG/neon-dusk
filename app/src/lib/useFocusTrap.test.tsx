@@ -106,6 +106,37 @@ describe("useFocusTrap", () => {
     expect(document.activeElement).toBe(toggle);
   });
 
+  it("should restore focus to the opener when deactivated programmatically (active=false)", () => {
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <>
+        <button type="button">Toggle</button>
+        <Harness active={false} onClose={onClose} />
+      </>,
+    );
+    const toggle = screen.getByRole("button", { name: "Toggle" });
+    toggle.focus();
+
+    rerender(
+      <>
+        <button type="button">Toggle</button>
+        <Harness active onClose={onClose} />
+      </>,
+    );
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Fechar" }));
+
+    // Programmatic close: the parent flips active=false without calling
+    // closeAndRestore — the cleanup must still hand focus back to the opener.
+    rerender(
+      <>
+        <button type="button">Toggle</button>
+        <Harness active={false} onClose={onClose} />
+      </>,
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(toggle);
+  });
+
   it("should remove the keydown listener and restore body overflow on deactivation", () => {
     const onClose = vi.fn();
     const { rerender } = render(<Harness active onClose={onClose} />);
