@@ -122,7 +122,8 @@ describe("CharacterCreateView", () => {
       screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
     );
 
-    expect(await screen.findByText("Codinome já em uso")).toBeInTheDocument();
+    // ErrorState banner (design system) — role="alert" with a ✗ prefix.
+    expect(await screen.findByRole("alert")).toHaveTextContent("Codinome já em uso");
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().character).toBeNull();
   });
@@ -139,10 +140,9 @@ describe("CharacterCreateView", () => {
       screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
     );
 
-    // Inline alert under the codinome field — not the generic banner.
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Este codinome já está em uso.",
-    );
+    // Inline error under the codinome field — not the generic banner. It lives
+    // inside ui/Input (no role="alert"; aria-invalid/aria-describedby instead).
+    expect(await screen.findByText(/Este codinome já está em uso\./)).toBeInTheDocument();
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().character).toBeNull();
   });
@@ -158,9 +158,7 @@ describe("CharacterCreateView", () => {
     await userEvent.setup().click(
       screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
     );
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Este codinome já está em uso.",
-    );
+    expect(await screen.findByText(/Este codinome já está em uso\./)).toBeInTheDocument();
 
     // Editing the name clears the inline error immediately (revalidates only on submit).
     const user = userEvent.setup();
@@ -169,7 +167,7 @@ describe("CharacterCreateView", () => {
       "X",
     );
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Este codinome já está em uso\./)).not.toBeInTheDocument();
   });
 
   it("soft cap indicator is not shown when no stat reaches 15", async () => {

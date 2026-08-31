@@ -111,7 +111,9 @@ describe("RegisterView", () => {
         .setup()
         .type(screen.getByPlaceholderText("voce@neondusk.gg"), invalidEmail);
 
-      expect(screen.getByRole("alert")).toHaveTextContent("E-mail inválido.");
+      // Inline field errors render inside ui/Input (no role="alert" — wired via
+      // aria-invalid/aria-describedby), so match by text (✗ prefix is safe with regex).
+      expect(screen.getByText(/E-mail inválido\./)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "CADASTRAR" })).toBeDisabled();
     },
   );
@@ -121,9 +123,7 @@ describe("RegisterView", () => {
 
     await userEvent.setup().type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "Ab1");
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "A senha precisa de pelo menos 8 caracteres.",
-    );
+    expect(screen.getByText(/A senha precisa de pelo menos 8 caracteres\./)).toBeInTheDocument();
   });
 
   it("should show an inline error when the password lacks an uppercase letter or a digit", async () => {
@@ -132,13 +132,11 @@ describe("RegisterView", () => {
     const user = userEvent.setup();
     await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "secretsss");
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Inclua ao menos uma letra maiúscula.",
-    );
+    expect(screen.getByText(/Inclua ao menos uma letra maiúscula\./)).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "S");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Inclua ao menos um número.");
+    expect(screen.getByText(/Inclua ao menos um número\./)).toBeInTheDocument();
   });
 
   it("should show a mismatch error and not call the API when passwords differ", async () => {
@@ -146,7 +144,7 @@ describe("RegisterView", () => {
 
     await fillAndSubmit("new@neondusk.gg", "Secret123", "different");
 
-    expect(await screen.findByText("As senhas não coincidem")).toBeInTheDocument();
+    expect(await screen.findByText(/As senhas não coincidem/)).toBeInTheDocument();
     expect(mocks.api.post).not.toHaveBeenCalled();
     expect(useAuthStore.getState().accessToken).toBeNull();
   });
@@ -171,7 +169,8 @@ describe("RegisterView", () => {
 
     await fillAndSubmit("new@neondusk.gg", "Secret123", "Secret123");
 
-    expect(await screen.findByText("Email já cadastrado")).toBeInTheDocument();
+    // ErrorState banner (design system) — role="alert" with a ✗ prefix.
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email já cadastrado");
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
   });
 });

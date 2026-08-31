@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { CreateCharacterRequest } from "@neon-dusk/shared";
 import { ApiError } from "@/api/client";
+import { ErrorState } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
 import CharacterForm from "@/components/CharacterForm";
 
@@ -43,11 +44,7 @@ export default function CharacterCreateView() {
           </p>
         </div>
 
-        {formError && (
-          <p className="text-nd-magenta font-data text-sm border border-nd-magenta/30 rounded-terminal px-3 py-2">
-            {formError}
-          </p>
-        )}
+        {formError && <ErrorState message={formError} />}
 
         <CharacterForm
           loading={loading}

@@ -118,9 +118,10 @@ describe("CharacterForm", () => {
       "X",
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "O codinome precisa de pelo menos 2 caracteres.",
-    );
+    // Inline error inside ui/Input (no role="alert"; aria-invalid instead).
+    expect(
+      screen.getByText(/O codinome precisa de pelo menos 2 caracteres\./),
+    ).toBeInTheDocument();
     expect(screen.getByText("CRIAR PERSONAGEM")).toBeDisabled();
   });
 
@@ -129,7 +130,9 @@ describe("CharacterForm", () => {
       <CharacterForm loading={false} nameError="Este codinome já está em uso." onSubmit={vi.fn()} />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Este codinome já está em uso.");
+    expect(
+      screen.getByText(/Este codinome já está em uso\./),
+    ).toBeInTheDocument();
   });
 
   it("submit button enables only when remaining is 0 and form is valid", async () => {

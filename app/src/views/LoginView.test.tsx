@@ -116,7 +116,8 @@ describe("LoginView", () => {
 
     await fillAndSubmit("fixer@neondusk.gg", "wrong");
 
-    expect(await screen.findByText("Credenciais inválidas")).toBeInTheDocument();
+    // ErrorState banner (design system) — role="alert" with a ✗ prefix.
+    expect(await screen.findByRole("alert")).toHaveTextContent("Credenciais inválidas");
     expect(screen.getByRole("button", { name: "ENTRAR" })).toBeInTheDocument();
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().accessToken).toBeNull();
