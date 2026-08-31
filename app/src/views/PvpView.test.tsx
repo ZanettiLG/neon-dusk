@@ -3,7 +3,16 @@ import { StrictMode } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PvpView from "@/views/PvpView";
-import type { PvpAttackableResponse, PvpCombatRecord, PvpHistoryResponse } from "@neon-dusk/shared";
+import { useAuthStore } from "@/stores/auth";
+import { useHudStore } from "@/stores/hud";
+import { useStreetCredStore } from "@/stores/street-cred";
+import type {
+  Character,
+  PvpAttackableResponse,
+  PvpCombatRecord,
+  PvpCombatResult,
+  PvpHistoryResponse,
+} from "@neon-dusk/shared";
 
 const mocks = vi.hoisted(() => ({
   api: {
@@ -30,7 +39,26 @@ vi.mock("@/api/client", () => ({
   },
 }));
 
+const character: Character = {
+  id: "c1",
+  userId: "u1",
+  name: "Ghost",
+  origin: "a_paraiso",
+  role: "bicho",
+  body: 6,
+  reflexes: 4,
+  intelligence: 3,
+  technical: 3,
+  cool: 3,
+  streetCred: 20,
+  maxStreetCredAchieved: 20,
+  ability: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
 const attackable: PvpAttackableResponse = {
+  nilCost: 20,
   targets: [
     {
       characterId: "c2",
@@ -39,8 +67,21 @@ const attackable: PvpAttackableResponse = {
       power: 8,
       noobShield: true,
       weeklyAttacksReceived: 0,
+      griefRisk: false,
     },
   ],
+};
+
+const combatResult: PvpCombatResult = {
+  combatId: "pc1",
+  won: true,
+  attackerPower: 10,
+  defenderPower: 8,
+  lootAmount: 120,
+  streetCredChange: 5,
+  newStreetCred: 25,
+  newBalance: 1120,
+  grieferPenalty: false,
 };
 
 const combat: PvpCombatRecord = {
@@ -61,10 +102,47 @@ const history: PvpHistoryResponse = {
   nextCursor: null,
 };
 
+function mockGets() {
+  mocks.api.get.mockImplementation((url: string) => {
+    if (url === "/api/pvp/attackable") return Promise.resolve(attackable);
+    if (url === "/api/pvp/history") return Promise.resolve(history);
+    return Promise.resolve({});
+  });
+}
+
+function seedStores() {
+  useAuthStore.setState({
+    character,
+    nilStatus: {
+      current: 100,
+      max: 100,
+      nextTickSeconds: 0,
+      regenerating: false,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    },
+  });
+  useHudStore.setState({
+    balance: 1000,
+    escrow: 0,
+    humanity: 50,
+    statBonus: { body: 0, reflexes: 0, intelligence: 0, technical: 0, cool: 0 },
+  });
+  useStreetCredStore.setState({
+    info: {
+      score: 20,
+      title: "Perna",
+      maxAchieved: 20,
+      nextThreshold: { score: 25, title: "Pro" },
+      scToNext: 5,
+    },
+  });
+}
+
 describe("PvpView", () => {
   beforeEach(() => {
     mocks.api.get.mockReset();
     mocks.api.post.mockReset();
+    seedStores();
   });
 
   it("should show a loading state while targets are being fetched", () => {
@@ -76,11 +154,7 @@ describe("PvpView", () => {
   });
 
   it("should render attackable targets and the history tab", async () => {
-    mocks.api.get.mockImplementation((url: string) => {
-      if (url === "/api/pvp/attackable") return Promise.resolve(attackable);
-      if (url === "/api/pvp/history") return Promise.resolve(history);
-      return Promise.resolve({});
-    });
+    mockGets();
     const user = userEvent.setup();
 
     render(<PvpView />);
@@ -97,6 +171,32 @@ describe("PvpView", () => {
     expect(mocks.api.get).toHaveBeenCalledWith("/api/pvp/history");
   });
 
+  it("should show the griefRisk badge on the target card", async () => {
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/pvp/attackable")
+        return Promise.resolve({
+          nilCost: 20,
+          targets: [
+            {
+              characterId: "c3",
+              name: "Cutter",
+              streetCred: 30,
+              power: 9,
+              noobShield: false,
+              weeklyAttacksReceived: 4,
+              griefRisk: true,
+            },
+          ],
+        });
+      if (url === "/api/pvp/history") return Promise.resolve(history);
+      return Promise.resolve({});
+    });
+
+    render(<PvpView />);
+
+    expect(await screen.findByText("Risco de grief")).toBeInTheDocument();
+  });
+
   it("should show an error state when the targets fetch fails", async () => {
     mocks.api.get.mockRejectedValue(new Error("Falha ao carregar alvos"));
 
@@ -105,29 +205,65 @@ describe("PvpView", () => {
     expect(await screen.findByText("Falha ao carregar alvos")).toBeInTheDocument();
   });
 
-  it("should surface the attack result message", async () => {
-    mocks.api.get.mockResolvedValue(attackable);
-    mocks.api.post.mockResolvedValue({ won: true, lootAmount: 120 });
+  it("should open the confirm modal with the two cards, cost and risk", async () => {
+    mockGets();
     const user = userEvent.setup();
 
     render(<PvpView />);
 
     await user.click(await screen.findByRole("button", { name: "Atacar" }));
 
-    expect(await screen.findByText("Vitória! +G$ 120")).toBeInTheDocument();
+    expect(screen.getByText("VOCÊ")).toBeInTheDocument();
+    expect(screen.getByText("Ghost")).toBeInTheDocument();
+    // The target appears both on the list card and on the confirm card.
+    expect(screen.getAllByText("Raven").length).toBeGreaterThan(0);
+    expect(screen.getByText("Custo: 20 NIL")).toBeInTheDocument();
+    expect(screen.getByText(/Risco: saque 1% · -5% Moral/)).toBeInTheDocument();
+  });
+
+  it("should POST the attack on confirm and open the result modal", async () => {
+    mockGets();
+    mocks.api.post.mockResolvedValue(combatResult);
+    const user = userEvent.setup();
+
+    render(<PvpView />);
+
+    await user.click(await screen.findByRole("button", { name: "Atacar" }));
+    await user.click(screen.getByRole("button", { name: /CONFIRMAR ATAQUE/i }));
+
+    expect(await screen.findByText("VITÓRIA")).toBeInTheDocument();
+    expect(screen.getByText("Poder: 10 vs 8")).toBeInTheDocument();
+    expect(screen.getByText("Saque: G$ 120")).toBeInTheDocument();
+    expect(screen.getByText("Moral: +5 → 25")).toBeInTheDocument();
+    expect(screen.getByText("Saldo: G$ 1120")).toBeInTheDocument();
+
     expect(mocks.api.post).toHaveBeenCalledWith("/api/pvp/attack", {
       targetId: "c2",
     });
   });
 
-  it("should surface attack error from the API", async () => {
-    mocks.api.get.mockResolvedValue(attackable);
+  it("should not POST when the attack is cancelled", async () => {
+    mockGets();
+    const user = userEvent.setup();
+
+    render(<PvpView />);
+
+    await user.click(await screen.findByRole("button", { name: "Atacar" }));
+    await user.click(screen.getByRole("button", { name: /CANCELAR/i }));
+
+    expect(screen.queryByText(/Custo:/)).not.toBeInTheDocument();
+    expect(mocks.api.post).not.toHaveBeenCalled();
+  });
+
+  it("should surface the attack error inside the confirm modal", async () => {
+    mockGets();
     mocks.api.post.mockRejectedValue(new Error("Ação em cooldown. Aguarde."));
     const user = userEvent.setup();
 
     render(<PvpView />);
 
     await user.click(await screen.findByRole("button", { name: "Atacar" }));
+    await user.click(screen.getByRole("button", { name: /CONFIRMAR ATAQUE/i }));
 
     expect(await screen.findByText("Ação em cooldown. Aguarde.")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/pvp/attack", {
@@ -136,11 +272,7 @@ describe("PvpView", () => {
   });
 
   it("should re-fetch and render targets after unmount and remount", async () => {
-    mocks.api.get.mockImplementation((url: string) => {
-      if (url === "/api/pvp/attackable") return Promise.resolve(attackable);
-      if (url === "/api/pvp/history") return Promise.resolve(history);
-      return Promise.resolve({});
-    });
+    mockGets();
 
     const { unmount } = render(<PvpView />);
     expect(await screen.findByText("Raven")).toBeInTheDocument();
@@ -159,11 +291,7 @@ describe("PvpView", () => {
   });
 
   it("should not stay stuck in loading after StrictMode remount", async () => {
-    mocks.api.get.mockImplementation((url: string) => {
-      if (url === "/api/pvp/attackable") return Promise.resolve(attackable);
-      if (url === "/api/pvp/history") return Promise.resolve(history);
-      return Promise.resolve({});
-    });
+    mockGets();
 
     // StrictMode runs the effect twice on the SAME instance (mount → cleanup →
     // mount). Without the #191 fix (mountedRef.current = true at effect start),

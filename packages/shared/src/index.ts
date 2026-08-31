@@ -832,6 +832,8 @@ export interface PvpCombatResult {
   newStreetCred: number;
   /** Attacker's wallet balance after the fight. */
   newBalance: number;
+  /** True when the attacker's loot was grief-reduced (≥3 weekly attacks on the target). */
+  grieferPenalty: boolean;
 }
 
 /** One row of the GET /api/pvp/attackable list. */
@@ -843,11 +845,15 @@ export interface PvpTarget {
   power: number;
   noobShield: boolean;
   weeklyAttacksReceived: number;
+  /** True when the caller already hit this target ≥3 times this week (loot reduced to 1%). */
+  griefRisk: boolean;
 }
 
 /** GET /api/pvp/attackable response. */
 export interface PvpAttackableResponse {
   targets: PvpTarget[];
+  /** NIL cost per attack (game param PVP_NIL_COST, default 20). */
+  nilCost: number;
 }
 
 /** One row of the GET /api/pvp/history list. */

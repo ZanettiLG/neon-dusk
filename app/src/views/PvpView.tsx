@@ -1,14 +1,25 @@
 import { useEffect, useRef, useState } from "react";
-import type { PvpTarget, PvpCombatRecord, PvpAttackableResponse, PvpHistoryResponse } from "@neon-dusk/shared";
+import type {
+  PvpTarget,
+  PvpCombatRecord,
+  PvpCombatResult,
+  PvpAttackableResponse,
+  PvpHistoryResponse,
+} from "@neon-dusk/shared";
 import { api } from "@/api/client";
 import { useHudStore } from "@/stores/hud";
 import { useStreetCredStore } from "@/stores/street-cred";
 import Tab from "@/components/ui/Tab";
+import AttackConfirmModal from "@/components/pvp/AttackConfirmModal";
+import CombatResultModal from "@/components/pvp/CombatResultModal";
 
 type TabKey = "targets" | "history";
 
 /**
  * PvP arena — scan for attackable targets and review your combat history.
+ * The attack flow is confirm-first: picking a target opens the confirmation
+ * modal (mirrored cards + NIL cost + risks), confirming POSTs the attack and
+ * the result modal shows the combat log.
  */
 export default function PvpView() {
   const mountedRef = useRef(true);
@@ -16,6 +27,7 @@ export default function PvpView() {
 
   // Targets
   const [targets, setTargets] = useState<PvpTarget[]>([]);
+  const [nilCost, setNilCost] = useState(0);
   const [targetsLoading, setTargetsLoading] = useState(true);
   const [targetsError, setTargetsError] = useState<string | null>(null);
 
@@ -25,10 +37,13 @@ export default function PvpView() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  // Action
-  const [actionMsg, setActionMsg] = useState<string | null>(null);
+  // Attack flow
+  const [confirmTarget, setConfirmTarget] = useState<PvpTarget | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [combatResult, setCombatResult] = useState<PvpCombatResult | null>(
+    null,
+  );
 
   async function fetchTargets() {
     setTargetsLoading(true);
@@ -37,6 +52,7 @@ export default function PvpView() {
       const res = await api.get<PvpAttackableResponse>("/api/pvp/attackable");
       if (!mountedRef.current) return;
       setTargets(res.targets);
+      setNilCost(res.nilCost);
     } catch (e) {
       if (!mountedRef.current) return;
       setTargetsError(e instanceof Error ? e.message : "Falha ao carregar alvos");
@@ -68,14 +84,22 @@ export default function PvpView() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  async function onAttack(targetId: string) {
+  function openConfirm(target: PvpTarget) {
+    setActionError(null);
+    setConfirmTarget(target);
+  }
+
+  async function confirmAttack() {
+    if (!confirmTarget) return;
     setActionLoading(true);
     setActionError(null);
-    setActionMsg(null);
     try {
-      const res = await api.post<{ won: boolean; lootAmount: number }>("/api/pvp/attack", { targetId });
+      const res = await api.post<PvpCombatResult>("/api/pvp/attack", {
+        targetId: confirmTarget.characterId,
+      });
       if (!mountedRef.current) return;
-      setActionMsg(res.won ? `Vitória! +G$ ${res.lootAmount}` : `Derrota! -G$ ${res.lootAmount}`);
+      setConfirmTarget(null);
+      setCombatResult(res);
       fetchTargets();
       // Attack moves grana and Moral — keep the HUD readouts honest (issue #13).
       void useHudStore.getState().refresh();
@@ -101,9 +125,6 @@ export default function PvpView() {
         </Tab>
       </div>
 
-      {actionMsg && <p className="text-nd-green text-sm font-data">{actionMsg}</p>}
-      {actionError && <p className="text-nd-magenta text-sm font-data">{actionError}</p>}
-
       {tab === "targets" && (
         <div>
           {targetsLoading ? (
@@ -127,11 +148,14 @@ export default function PvpView() {
                     {t.noobShield && (
                       <p className="text-nd-magenta">Escudo de iniciante ativo</p>
                     )}
+                    {t.griefRisk && (
+                      <p className="text-nd-gold">Risco de grief</p>
+                    )}
                   </div>
                   <button
                     className="btn-neon text-xs px-3 py-1 mt-3"
                     disabled={actionLoading}
-                    onClick={() => void onAttack(t.characterId)}
+                    onClick={() => openConfirm(t)}
                   >
                     Atacar
                   </button>
@@ -179,6 +203,26 @@ export default function PvpView() {
             </div>
           )}
         </div>
+      )}
+
+      {confirmTarget && (
+        <AttackConfirmModal
+          target={confirmTarget}
+          nilCost={nilCost}
+          open
+          onClose={() => setConfirmTarget(null)}
+          onConfirm={() => void confirmAttack()}
+          loading={actionLoading}
+          error={actionError}
+        />
+      )}
+
+      {combatResult && (
+        <CombatResultModal
+          result={combatResult}
+          open
+          onClose={() => setCombatResult(null)}
+        />
       )}
     </div>
   );

@@ -207,6 +207,7 @@ describe("ND-014 — PvP combat API", () => {
 
       expect(res.status).toBe(200);
       const body = await json<PvpAttackableResponse>(res);
+      expect(body.nilCost).toBe(20); // PVP_NIL_COST fallback
       const ids = body.targets.map((t) => t.characterId);
       expect(ids).toContain(inHigh.characterId);
       expect(ids).toContain(inLow.characterId);
@@ -220,6 +221,7 @@ describe("ND-014 — PvP combat API", () => {
       for (const target of body.targets) {
         expect(target.power).toBeGreaterThanOrEqual(3); // 13 − 10
         expect(target.power).toBeLessThanOrEqual(23); // 13 + 10
+        expect(target.griefRisk).toBe(false); // no weekly hits on these targets yet
       }
     });
 
@@ -267,6 +269,38 @@ describe("ND-014 — PvP combat API", () => {
       expect(res.status).toBe(200);
       const body = await json<PvpAttackableResponse>(res);
       expect(body.targets).toEqual([]);
+      expect(body.nilCost).toBe(20);
+    });
+
+    it("should flag griefRisk on targets already hit 3+ times this week", async () => {
+      const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
+      const defender = await createPvpPlayer({
+        attributes: WEAK_ATTRS,
+        createdAtDaysAgo: 10,
+      });
+      await seedWallet(defender.characterId, 500);
+
+      for (let i = 0; i < 3; i++) {
+        await clearAttackLimits(attacker);
+        const { status } = await attack(attacker, defender.characterId);
+        expect(status).toBe(200);
+      }
+      // The last attack left the caller on cooldown — clear it so the
+      // attackable list is served again (otherwise it returns no targets).
+      await clearAttackLimits(attacker);
+
+      const res = await fetch(`${base()}/api/pvp/attackable`, {
+        headers: authHeader(attacker.accessToken),
+      });
+
+      expect(res.status).toBe(200);
+      const body = await json<PvpAttackableResponse>(res);
+      const target = body.targets.find(
+        (t) => t.characterId === defender.characterId,
+      );
+      expect(target?.weeklyAttacksReceived).toBe(3);
+      expect(target?.griefRisk).toBe(true);
+      expect(body.nilCost).toBe(20);
     });
 
     it("should return 401 without an access token", async () => {
@@ -310,6 +344,7 @@ describe("ND-014 — PvP combat API", () => {
       const body = await json<PvpCombatResult>(res);
       expect(body.won).toBe(true); // base 15 (min 16) always beats base 5 (max 15)
       expect(body.lootAmount).toBe(50); // 10% of 500
+      expect(body.grieferPenalty).toBe(false);
       expect(body.streetCredChange).toBe(5);
       expect(body.newStreetCred).toBe(5);
       expect(body.newBalance).toBe(1050); // 1000 + 50 loot
@@ -363,6 +398,14 @@ describe("ND-014 — PvP combat API", () => {
         const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS, nil: 100 });
         const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
         await seedWallet(defender.characterId, 500);
+
+        // The attackable list must quote the tuned cost, not the default 20.
+        const abRes = await fetch(`${base()}/api/pvp/attackable`, {
+          headers: authHeader(attacker.accessToken),
+        });
+        expect(abRes.status).toBe(200);
+        const abBody = await json<PvpAttackableResponse>(abRes);
+        expect(abBody.nilCost).toBe(30);
 
         const { status, body } = await attack(attacker, defender.characterId);
         expect(status).toBe(200);
@@ -599,17 +642,21 @@ describe("ND-014 — PvP combat API", () => {
       await seedWallet(defender.characterId, 500);
 
       const loots: number[] = [];
+      const penalties: boolean[] = [];
       for (let i = 1; i <= 4; i++) {
         await clearAttackLimits(attacker); // cooldown + rate counter between attacks
         const { status, body } = await attack(attacker, defender.characterId);
         expect(status).toBe(200);
         loots.push((body as PvpCombatResult).lootAmount);
+        penalties.push((body as PvpCombatResult).grieferPenalty);
       }
 
       // Loot is 10% of the CURRENT balance, so each win shrinks the loot base:
       // 500 → 450 → 405 → 365; the 4th attack also carries the griefer penalty
       // (1% = floor(floor(balance × 0.1) × 0.1) of the current balance).
       expect(loots).toEqual([50, 45, 40, 3]);
+      // The result must tell the attacker the 4th fight was grief-reduced.
+      expect(penalties).toEqual([false, false, false, true]);
 
       const combats = await db("pvp_combats")
         .select("*")
