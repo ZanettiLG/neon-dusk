@@ -118,9 +118,10 @@ describe("CharacterForm", () => {
       "X",
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "O codinome precisa de pelo menos 2 caracteres.",
-    );
+    // Inline error inside ui/Input (no role="alert"; aria-invalid instead).
+    expect(
+      screen.getByText(/O codinome precisa de pelo menos 2 caracteres\./),
+    ).toBeInTheDocument();
     expect(screen.getByText("CRIAR PERSONAGEM")).toBeDisabled();
   });
 
@@ -129,7 +130,49 @@ describe("CharacterForm", () => {
       <CharacterForm loading={false} nameError="Este codinome já está em uso." onSubmit={vi.fn()} />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Este codinome já está em uso.");
+    expect(
+      screen.getByText(/Este codinome já está em uso\./),
+    ).toBeInTheDocument();
+  });
+
+  it("wires aria-invalid and aria-describedby on the codinome field when too short", async () => {
+    render(<CharacterForm loading={false} onSubmit={vi.fn()} />);
+
+    await userEvent.setup().type(
+      screen.getByPlaceholderText("Ex.: Navalha, Vulto, Cupim"),
+      "X",
+    );
+
+    const input = screen.getByPlaceholderText("Ex.: Navalha, Vulto, Cupim");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)).toHaveTextContent(
+      "O codinome precisa de pelo menos 2 caracteres.",
+    );
+  });
+
+  it("wires aria-invalid and aria-describedby on the codinome field for the server nameError", () => {
+    render(
+      <CharacterForm loading={false} nameError="Este codinome já está em uso." onSubmit={vi.fn()} />,
+    );
+
+    const input = screen.getByPlaceholderText("Ex.: Navalha, Vulto, Cupim");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)).toHaveTextContent(
+      "Este codinome já está em uso.",
+    );
+  });
+
+  it("shows a loading button (aria-busy, disabled, spinner) when loading", () => {
+    render(<CharacterForm loading onSubmit={vi.fn()} />);
+
+    const submit = screen.getByRole("button", { name: "FORJANDO PERSONAGEM..." });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute("aria-busy", "true");
+    expect(submit.querySelector(".animate-spin")).toBeInTheDocument();
   });
 
   it("submit button enables only when remaining is 0 and form is valid", async () => {

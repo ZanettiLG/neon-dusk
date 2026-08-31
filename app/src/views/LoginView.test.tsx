@@ -110,15 +110,37 @@ describe("LoginView", () => {
     expect(await screen.findByText("CREATE CHARACTER PAGE")).toBeInTheDocument();
   });
 
+  it("should render the store error fallback when there is no form error", () => {
+    useAuthStore.setState({ error: "Sessão expirada, autentique-se novamente" });
+    renderLogin();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Sessão expirada, autentique-se novamente",
+    );
+  });
+
   it("should show the error message and stay on the page when login fails", async () => {
     mocks.api.post.mockRejectedValue(new Error("Credenciais inválidas"));
     renderLogin();
 
     await fillAndSubmit("fixer@neondusk.gg", "wrong");
 
-    expect(await screen.findByText("Credenciais inválidas")).toBeInTheDocument();
+    // ErrorState banner (design system) — role="alert" with a ✗ prefix.
+    expect(await screen.findByRole("alert")).toHaveTextContent("Credenciais inválidas");
     expect(screen.getByRole("button", { name: "ENTRAR" })).toBeInTheDocument();
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().accessToken).toBeNull();
+  });
+
+  it("should show a loading button (aria-busy, disabled, spinner) while login is pending", async () => {
+    mocks.api.post.mockReturnValue(new Promise(() => {}));
+    renderLogin();
+
+    await fillAndSubmit("fixer@neondusk.gg", "secret123");
+
+    const submit = screen.getByRole("button", { name: "CONECTANDO..." });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute("aria-busy", "true");
+    expect(submit.querySelector(".animate-spin")).toBeInTheDocument();
   });
 });

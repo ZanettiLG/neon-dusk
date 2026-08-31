@@ -10,6 +10,7 @@ import {
   SOFT_CAP,
 } from "@neon-dusk/shared";
 import { ATTRIBUTE_LABELS, ORIGIN_LABELS, ROLE_LABELS, ROLE_PHRASES, ROLE_PRIMARY_ATTRIBUTES } from "@/lib/labels";
+import { Button, Input } from "@/components/ui";
 import CharacterAvatar from "@/components/CharacterAvatar";
 
 interface CharacterFormProps {
@@ -88,33 +89,25 @@ export default function CharacterForm({ loading, nameError, onNameChange, onSubm
     <form className="space-y-6" onSubmit={handleSubmit}>
       {/* Identity */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-1">
-          <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
-            Codinome
-          </span>
-          <input
-            type="text"
-            required
-            maxLength={24}
-            placeholder="Ex.: Navalha, Vulto, Cupim"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              onNameChange?.();
-            }}
-            className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
-          />
-          {name.length > 0 && name.trim().length < 2 && (
-            <p role="alert" className="text-nd-magenta font-data text-xs">
-              O codinome precisa de pelo menos 2 caracteres.
-            </p>
-          )}
-          {nameError && (
-            <p role="alert" className="text-nd-magenta font-data text-xs">
-              {nameError}
-            </p>
-          )}
-        </label>
+        <Input
+          label="Codinome"
+          type="text"
+          required
+          maxLength={24}
+          placeholder="Ex.: Navalha, Vulto, Cupim"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            onNameChange?.();
+          }}
+          error={
+            nameError ??
+            (name.length > 0 && name.trim().length < 2
+              ? "O codinome precisa de pelo menos 2 caracteres."
+              : undefined)
+          }
+          fullWidth
+        />
 
         <label className="block space-y-1">
           <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
@@ -252,13 +245,9 @@ export default function CharacterForm({ loading, nameError, onNameChange, onSubm
         </p>
       </div>
 
-      <button
-        type="submit"
-        disabled={!valid || loading}
-        className="btn-neon w-full disabled:opacity-50"
-      >
+      <Button type="submit" disabled={!valid} loading={loading} fullWidth>
         {loading ? "FORJANDO PERSONAGEM..." : "CRIAR PERSONAGEM"}
-      </button>
+      </Button>
     </form>
   );
 }

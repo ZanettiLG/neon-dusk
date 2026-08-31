@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Button, ErrorState, Input } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
 
 // Mirrors the server-side rules in auth-service.ts (emailSchema/passwordSchema):
@@ -12,6 +13,7 @@ const EMAIL_RE = /^(?!\.)(?!.*\.\.)([A-Z0-9_'+\-.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9
 function passwordError(password: string): string | null {
   if (password.length === 0) return null;
   if (password.length < 8) return "A senha precisa de pelo menos 8 caracteres.";
+  // defense: mirror do server .max(72); inalcançável via UI (maxLength trunca)
   if (password.length > 72) return "A senha pode ter no máximo 72 caracteres.";
   if (!/[A-Z]/.test(password)) return "Inclua ao menos uma letra maiúscula.";
   if (!/[0-9]/.test(password)) return "Inclua ao menos um número.";
@@ -69,77 +71,49 @@ export default function RegisterView() {
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit} noValidate>
-          <label className="block space-y-1">
-            <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
-              E-mail
-            </span>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="voce@neondusk.gg"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
-            />
-            {emailError && (
-              <p role="alert" className="text-nd-magenta font-data text-xs">
-                {emailError}
-              </p>
-            )}
-          </label>
+          <Input
+            label="E-mail"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="voce@neondusk.gg"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={emailError ?? undefined}
+            fullWidth
+          />
 
-          <label className="block space-y-1">
-            <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
-              Senha
-            </span>
-            <input
-              type="password"
-              required
-              autoComplete="new-password"
-              minLength={8}
-              maxLength={72}
-              placeholder="Mínimo 8 caracteres"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
-            />
-            {passwordFieldError && (
-              <p role="alert" className="text-nd-magenta font-data text-xs">
-                {passwordFieldError}
-              </p>
-            )}
-          </label>
+          <Input
+            label="Senha"
+            type="password"
+            required
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={72}
+            placeholder="Mínimo 8 caracteres"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={passwordFieldError ?? undefined}
+            fullWidth
+          />
 
-          <label className="block space-y-1">
-            <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
-              Confirmar senha
-            </span>
-            <input
-              type="password"
-              required
-              autoComplete="new-password"
-              placeholder="Repita a senha"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
-            />
-            {confirmError && (
-              <p role="alert" className="text-nd-magenta font-data text-xs">
-                {confirmError}
-              </p>
-            )}
-          </label>
+          <Input
+            label="Confirmar senha"
+            type="password"
+            required
+            autoComplete="new-password"
+            placeholder="Repita a senha"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            error={confirmError ?? undefined}
+            fullWidth
+          />
 
-          {formError && <p className="text-nd-magenta font-data text-sm">{formError}</p>}
+          {formError && <ErrorState message={formError} />}
 
-          <button
-            type="submit"
-            disabled={!valid || auth.loading}
-            className="btn-neon w-full disabled:opacity-50"
-          >
+          <Button type="submit" disabled={!valid} loading={auth.loading} fullWidth>
             {auth.loading ? "GERANDO CREDENCIAIS..." : "CADASTRAR"}
-          </button>
+          </Button>
         </form>
 
         <p className="text-nd-text-secondary text-sm text-center">

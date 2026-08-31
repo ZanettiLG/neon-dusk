@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Button, ErrorState, Input } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth";
 
 /** Login form: email + password, ?redirect= post-login target (port of LoginView.vue). */
@@ -24,6 +25,10 @@ export default function LoginView() {
     }
   }
 
+  // Local failure wins over any stale store error; identical to the previous
+  // formError/auth.error cascade.
+  const errorMessage = formError ?? auth.error;
+
   return (
     <div className="flex items-center justify-center py-12">
       <div className="card w-full max-w-md space-y-6">
@@ -35,49 +40,33 @@ export default function LoginView() {
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-1">
-            <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
-              E-mail
-            </span>
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="voce@neondusk.gg"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
-            />
-          </label>
+          <Input
+            label="E-mail"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="voce@neondusk.gg"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            fullWidth
+          />
 
-          <label className="block space-y-1">
-            <span className="text-nd-text-secondary text-xs uppercase tracking-wider font-data">
-              Senha
-            </span>
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-nd-bg border border-nd-cyan/30 rounded-terminal px-3 py-2 text-nd-text placeholder-nd-text-secondary/40 focus:border-nd-cyan focus:shadow-neon-cyan outline-none"
-            />
-          </label>
+          <Input
+            label="Senha"
+            type="password"
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            fullWidth
+          />
 
-          {formError ? (
-            <p className="text-nd-magenta font-data text-sm">{formError}</p>
-          ) : auth.error && !formError ? (
-            <p className="text-nd-magenta font-data text-sm">{auth.error}</p>
-          ) : null}
+          {errorMessage && <ErrorState message={errorMessage} />}
 
-          <button
-            type="submit"
-            disabled={auth.loading}
-            className="btn-neon w-full disabled:opacity-50"
-          >
+          <Button type="submit" loading={auth.loading} fullWidth>
             {auth.loading ? "CONECTANDO..." : "ENTRAR"}
-          </button>
+          </Button>
         </form>
 
         <p className="text-nd-text-secondary text-sm text-center">

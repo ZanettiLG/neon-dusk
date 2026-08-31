@@ -122,7 +122,8 @@ describe("CharacterCreateView", () => {
       screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
     );
 
-    expect(await screen.findByText("Codinome já em uso")).toBeInTheDocument();
+    // ErrorState banner (design system) — role="alert" with a ✗ prefix.
+    expect(await screen.findByRole("alert")).toHaveTextContent("Codinome já em uso");
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().character).toBeNull();
   });
@@ -139,10 +140,9 @@ describe("CharacterCreateView", () => {
       screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
     );
 
-    // Inline alert under the codinome field — not the generic banner.
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Este codinome já está em uso.",
-    );
+    // Inline error under the codinome field — not the generic banner. It lives
+    // inside ui/Input (no role="alert"; aria-invalid/aria-describedby instead).
+    expect(await screen.findByText(/Este codinome já está em uso\./)).toBeInTheDocument();
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
     expect(useAuthStore.getState().character).toBeNull();
   });
@@ -158,9 +158,7 @@ describe("CharacterCreateView", () => {
     await userEvent.setup().click(
       screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
     );
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Este codinome já está em uso.",
-    );
+    expect(await screen.findByText(/Este codinome já está em uso\./)).toBeInTheDocument();
 
     // Editing the name clears the inline error immediately (revalidates only on submit).
     const user = userEvent.setup();
@@ -169,7 +167,45 @@ describe("CharacterCreateView", () => {
       "X",
     );
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Este codinome já está em uso\./)).not.toBeInTheDocument();
+  });
+
+  it("should wire aria-invalid and aria-describedby on the codinome field for NAME_TAKEN", async () => {
+    mocks.api.post.mockRejectedValue(
+      new mocks.ApiError(409, "NAME_TAKEN", "Este codinome já está em uso."),
+    );
+    renderCreate();
+
+    await fillValidForm();
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
+    );
+    expect(await screen.findByText(/Este codinome já está em uso\./)).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText("Ex.: Navalha, Vulto, Cupim");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)).toHaveTextContent(
+      "Este codinome já está em uso.",
+    );
+  });
+
+  it("should show a loading button (aria-busy, disabled, spinner) while creation is pending", async () => {
+    mocks.api.post.mockReturnValue(new Promise(() => {}));
+    renderCreate();
+
+    await fillValidForm();
+
+    await userEvent.setup().click(
+      screen.getByRole("button", { name: "CRIAR PERSONAGEM" }),
+    );
+
+    const submit = screen.getByRole("button", { name: "FORJANDO PERSONAGEM..." });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute("aria-busy", "true");
+    expect(submit.querySelector(".animate-spin")).toBeInTheDocument();
   });
 
   it("soft cap indicator is not shown when no stat reaches 15", async () => {

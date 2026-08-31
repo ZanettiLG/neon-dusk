@@ -111,7 +111,9 @@ describe("RegisterView", () => {
         .setup()
         .type(screen.getByPlaceholderText("voce@neondusk.gg"), invalidEmail);
 
-      expect(screen.getByRole("alert")).toHaveTextContent("E-mail inválido.");
+      // Inline field errors render inside ui/Input (no role="alert" — wired via
+      // aria-invalid/aria-describedby), so match by text (✗ prefix is safe with regex).
+      expect(screen.getByText(/E-mail inválido\./)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "CADASTRAR" })).toBeDisabled();
     },
   );
@@ -121,9 +123,7 @@ describe("RegisterView", () => {
 
     await userEvent.setup().type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "Ab1");
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "A senha precisa de pelo menos 8 caracteres.",
-    );
+    expect(screen.getByText(/A senha precisa de pelo menos 8 caracteres\./)).toBeInTheDocument();
   });
 
   it("should show an inline error when the password lacks an uppercase letter or a digit", async () => {
@@ -132,13 +132,11 @@ describe("RegisterView", () => {
     const user = userEvent.setup();
     await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "secretsss");
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Inclua ao menos uma letra maiúscula.",
-    );
+    expect(screen.getByText(/Inclua ao menos uma letra maiúscula\./)).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "S");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Inclua ao menos um número.");
+    expect(screen.getByText(/Inclua ao menos um número\./)).toBeInTheDocument();
   });
 
   it("should show a mismatch error and not call the API when passwords differ", async () => {
@@ -146,7 +144,7 @@ describe("RegisterView", () => {
 
     await fillAndSubmit("new@neondusk.gg", "Secret123", "different");
 
-    expect(await screen.findByText("As senhas não coincidem")).toBeInTheDocument();
+    expect(await screen.findByText(/As senhas não coincidem/)).toBeInTheDocument();
     expect(mocks.api.post).not.toHaveBeenCalled();
     expect(useAuthStore.getState().accessToken).toBeNull();
   });
@@ -171,7 +169,74 @@ describe("RegisterView", () => {
 
     await fillAndSubmit("new@neondusk.gg", "Secret123", "Secret123");
 
-    expect(await screen.findByText("Email já cadastrado")).toBeInTheDocument();
+    // ErrorState banner (design system) — role="alert" with a ✗ prefix.
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email já cadastrado");
     expect(screen.queryByText("DASHBOARD PAGE")).not.toBeInTheDocument();
+  });
+
+  it("should wire aria-invalid and aria-describedby on the email field when invalid", async () => {
+    renderRegister();
+
+    await userEvent.setup().type(screen.getByPlaceholderText("voce@neondusk.gg"), "not-an-email");
+
+    const input = screen.getByPlaceholderText("voce@neondusk.gg");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)).toHaveTextContent("E-mail inválido.");
+  });
+
+  it("should wire aria-invalid and aria-describedby on the password field when weak", async () => {
+    renderRegister();
+
+    await userEvent.setup().type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "Ab1");
+
+    const input = screen.getByPlaceholderText("Mínimo 8 caracteres");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)).toHaveTextContent(
+      "A senha precisa de pelo menos 8 caracteres.",
+    );
+  });
+
+  it("should wire aria-invalid and aria-describedby on the confirm field when passwords differ", async () => {
+    renderRegister();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("voce@neondusk.gg"), "new@neondusk.gg");
+    await user.type(screen.getByPlaceholderText("Mínimo 8 caracteres"), "Secret123");
+    await user.type(screen.getByPlaceholderText("Repita a senha"), "different");
+
+    const input = screen.getByPlaceholderText("Repita a senha");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    const describedBy = input.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(document.getElementById(describedBy!)).toHaveTextContent("As senhas não coincidem");
+  });
+
+  it("should cap the password input at 72 characters via maxLength", async () => {
+    renderRegister();
+
+    await userEvent.setup().type(
+      screen.getByPlaceholderText("Mínimo 8 caracteres"),
+      "A1" + "x".repeat(80),
+    );
+
+    // ui/Input forwards maxLength natively — typing beyond 72 is truncated, so
+    // the "máximo 72" error branch is unreachable through the UI.
+    expect(screen.getByPlaceholderText("Mínimo 8 caracteres")).toHaveValue("A1" + "x".repeat(70));
+  });
+
+  it("should show a loading button (aria-busy, disabled, spinner) while registration is pending", async () => {
+    mocks.api.post.mockReturnValue(new Promise(() => {}));
+    renderRegister();
+
+    await fillAndSubmit("new@neondusk.gg", "Secret123", "Secret123");
+
+    const submit = screen.getByRole("button", { name: "GERANDO CREDENCIAIS..." });
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute("aria-busy", "true");
+    expect(submit.querySelector(".animate-spin")).toBeInTheDocument();
   });
 });
