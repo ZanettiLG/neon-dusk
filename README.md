@@ -68,6 +68,19 @@ partir das novas migrations. NÃO rode isso em banco com dados que importam.
 | `npm run db:migrate`             | Apply migrations (Knex)         |
 | `npm run db:seed -w server`      | Seed content (Knex)             |
 
+## Deploy de produção
+
+O deploy roda **na VPS** (`/opt/neon-dusk`), não no laptop:
+
+```bash
+ssh vps && cd /opt/neon-dusk && git pull && ./scripts/deploy-prod.sh
+```
+
+O script puxa imagens, roda migrations, sobe a stack, smoke-testa (`/` e
+`/api/health`) e faz rollback automático se algo falhar. As imagens GHCR
+atualizam apenas via build manual (o job `build-and-push` foi removido) —
+use `DRY_RUN=1` para simular o fluxo sem executar.
+
 ## Structure
 
 ```

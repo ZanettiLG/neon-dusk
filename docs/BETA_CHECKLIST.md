@@ -12,6 +12,7 @@
 - [ ] `docker-compose.prod.yml` — production-grade config
 - [ ] Health check endpoint (`/api/health`) — DB + Redis connectivity verified
 - [ ] Lint + typecheck + testes rodando localmente antes do deploy
+- [ ] Deploy de produção scriptado (`scripts/deploy-prod.sh`) — extraído do workflow removido
 - [ ] Rollback plan — redeploy previous image tag
 - [ ] Database backups — automated daily pg_dump
 
