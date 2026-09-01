@@ -107,6 +107,10 @@ describe("ND-015 — Saideira Hub API", () => {
     );
     expect(created.status).toBe(201);
     const character = await json<{ id: string }>(created);
+    // ND-053: the chat POST now enforces SC >= 10 server-side. Give the
+    // character enough Moral so the chat tests exercise the chat flow, not
+    // the SC gate (the gate itself has its own dedicated test below).
+    await db("characters").where("id", character.id).update({ street_cred: 30 });
     return { accessToken, characterId: character.id, characterName };
   }
 
@@ -274,6 +278,33 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(status).toBe(404);
       const err = body as ErrorBody;
       expect(err.error).toBe("NO_CHARACTER");
+    });
+
+    it("should reject with 400 SC_TOO_LOW when street_cred < 10 (ND-053 server-side gate)", async () => {
+      // Register over HTTP + insert the character directly with SC < 10
+      // (bypasses POST /characters — this test targets the SC gate).
+      const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+      expect(res.status).toBe(201);
+      const { accessToken, user } = await json<AuthResponse>(res);
+      await db("characters").insert({
+        user_id: user.id,
+        name: uniqueName(),
+        origin: "a_paraiso",
+        role: "bicho",
+        body: 5,
+        reflexes: 4,
+        intelligence: 4,
+        technical: 4,
+        cool: 5,
+        street_cred: 5,
+      });
+
+      const { status, body } = await postChat(accessToken, "ainda não sou figurinha");
+
+      expect(status).toBe(400);
+      const err = body as ErrorBody;
+      expect(err.error).toBe("SC_TOO_LOW");
+      expect(err.message).toMatch(/10 de Moral/);
     });
 
     it("should reject the second message within 5s with 429 COOLDOWN_ACTIVE", async () => {

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json, authHeader, resetDb } from "./helpers";
+import { startTestServer, json, authHeader, resetDb, clearAuthIpRateLimits } from "./helpers";
 import { db } from "../db";
 import type {
   AuthResponse,
@@ -57,6 +57,7 @@ function validAttributes(): CreateCharacterRequest["attributes"] {
 interface ErrorBody {
   error: string;
   message: string;
+  retryAfter?: number;
   details?: { path: (string | number)[]; message: string }[];
 }
 
@@ -117,9 +118,24 @@ describe("Feature #4 — cromo API", () => {
     await app.close();
   });
 
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many registrations from 127.0.0.1.
+  beforeEach(async () => {
+    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    await redis.connect();
+    await clearAuthIpRateLimits(redis);
+    redis.disconnect();
+  });
+
   /** Register a fresh user + character via HTTP; returns token + character id. */
-  async function registerAndCreateCharacter(): Promise<{ accessToken: string; characterId: string }> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+  async function registerAndCreateCharacter(): Promise<{
+    accessToken: string;
+    characterId: string;
+  }> {
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken, user } = await json<AuthResponse>(res);
 
@@ -135,19 +151,13 @@ describe("Feature #4 — cromo API", () => {
     });
     expect(created.status).toBe(201);
 
-    const [character] = await db("characters")
-      .select("id")
-      .where("user_id", user.id)
-      .limit(1);
+    const [character] = await db("characters").select("id").where("user_id", user.id).limit(1);
     return { accessToken, characterId: character!.id };
   }
 
   /** DB id of a seeded cromo definition, by slug. */
   async function defId(slug: string): Promise<string> {
-    const [row] = await db("chrome_definitions")
-      .select("id")
-      .where("slug", slug)
-      .limit(1);
+    const [row] = await db("chrome_definitions").select("id").where("slug", slug).limit(1);
     return row!.id;
   }
 
@@ -322,15 +332,41 @@ describe("Feature #4 — cromo API", () => {
     });
 
     it("should reject a second install of the same cromo with 409", async () => {
-      const { accessToken } = await registerAndCreateCharacter();
+      const { accessToken, characterId } = await registerAndCreateCharacter();
       const neural = await defId("neural-booster");
-      await installChrome(accessToken, neural);
+      const first = await installChrome(accessToken, neural);
+      expect(first.status).toBe(201);
+
+      // ND-053: the first install arms the 60s chrome_install cooldown. Drop
+      // it so the second install reaches the duplicate-item guard — the
+      // cooldown gate itself is covered by the COOLDOWN_ACTIVE test below.
+      const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+      await redis.connect();
+      await redis.del(`cooldown:${characterId}:chrome_install`);
+      redis.disconnect();
 
       const res = await installChrome(accessToken, neural);
 
       expect(res.status).toBe(409);
       const body = await json<ErrorBody>(res);
       expect(body.error).toBe("ALREADY_INSTALLED");
+    });
+
+    it("should reject a second install within 60s with 429 COOLDOWN_ACTIVE", async () => {
+      const { accessToken } = await registerAndCreateCharacter();
+
+      const first = await installChrome(accessToken, await defId("neural-booster"));
+      expect(first.status).toBe(201);
+
+      // The route arms `cooldown:<characterId>:chrome_install` for 60s after a
+      // successful install (ADR-2). A DIFFERENT cromo on the second call proves
+      // the gate is action-level (per character), not a duplicate-item check.
+      const second = await installChrome(accessToken, await defId("reflex-tuner"));
+
+      expect(second.status).toBe(429);
+      const body = await json<ErrorBody>(second);
+      expect(body.error).toBe("COOLDOWN_ACTIVE");
+      expect(body.retryAfter).toBeGreaterThan(0);
     });
 
     it("should return 404 for an unknown cromo definition", async () => {
@@ -379,9 +415,7 @@ describe("Feature #4 — cromo API", () => {
     it("should return 400 HUMANITY_TOO_LOW when humanity would drop below 0", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       // Estalo costs 3 humanity and 300 de Grana. At 2 humanity it would go to -1.
-      await db("characters")
-        .where("id", characterId)
-        .update({ humanity: 2 });
+      await db("characters").where("id", characterId).update({ humanity: 2 });
 
       const res = await installChrome(accessToken, await defId("reflex-tuner"));
 
@@ -395,9 +429,7 @@ describe("Feature #4 — cromo API", () => {
       // Estalo costs 3 humanity; at 3 humanity the result is exactly 0,
       // which the game contract allows — the install itself is the flatline
       // trigger (issue #28: flag 1 approved, permanent).
-      await db("characters")
-        .where("id", characterId)
-        .update({ humanity: 3 });
+      await db("characters").where("id", characterId).update({ humanity: 3 });
 
       const res = await installChrome(accessToken, await defId("reflex-tuner"));
 
@@ -438,7 +470,9 @@ describe("Feature #4 — cromo API", () => {
         headers: authHeader(accessToken),
       });
       expect(humanity.status).toBe(200);
-      const humanityBody = await json<{ flatlined: boolean; band: string; humanity: number }>(humanity);
+      const humanityBody = await json<{ flatlined: boolean; band: string; humanity: number }>(
+        humanity,
+      );
       expect(humanityBody.flatlined).toBe(true);
       expect(humanityBody.band).toBe("apagado");
       expect(humanityBody.humanity).toBe(0);
@@ -452,9 +486,7 @@ describe("Feature #4 — cromo API", () => {
       );
       expect(retry.status).toBe(403);
       expect((await json<ErrorBody>(retry)).error).toBe("FLATLINED");
-      const [after] = await db("characters")
-        .select("is_flatlined")
-        .where("id", characterId);
+      const [after] = await db("characters").select("is_flatlined").where("id", characterId);
       expect(after!.is_flatlined).toBe(true);
     });
 
@@ -492,10 +524,7 @@ describe("Feature #4 — cromo API", () => {
       const res = await installChrome(accessToken, await defId("neural-booster"));
       expect(res.status).toBe(201);
 
-      const [char] = await db("characters")
-        .select("max_nil")
-        .where("id", characterId)
-        .limit(1);
+      const [char] = await db("characters").select("max_nil").where("id", characterId).limit(1);
       expect(char!.max_nil).toBe(110); // 100 base + 10 from Cuca Acesa
     });
 
@@ -504,17 +533,12 @@ describe("Feature #4 — cromo API", () => {
 
       // Fetch balance to trigger wallet creation, then top up for Braço de Ferro (2500 de Grana).
       await fetch(`${base()}/api/economy/balance`, { headers: authHeader(accessToken) });
-      await db("character_wallets")
-        .where("character_id", characterId)
-        .update({ balance: 3000 });
+      await db("character_wallets").where("character_id", characterId).update({ balance: 3000 });
 
       const res = await installChrome(accessToken, await defId("gorilla-arms"));
       expect(res.status).toBe(201);
 
-      const [char] = await db("characters")
-        .select("max_nil")
-        .where("id", characterId)
-        .limit(1);
+      const [char] = await db("characters").select("max_nil").where("id", characterId).limit(1);
       expect(char!.max_nil).toBe(100); // unchanged
     });
   });
@@ -538,16 +562,11 @@ describe("Feature #4 — cromo API", () => {
       expect(body.effectiveHumanity).toBe(97); // no recovery
 
       // Slot freed — loadout is empty again.
-      const loadout = await db("installed_chrome")
-        .select("*")
-        .where("character_id", characterId);
+      const loadout = await db("installed_chrome").select("*").where("character_id", characterId);
       expect(loadout).toHaveLength(0);
 
       // NIL max restored to base (100) after uninstalling frontal cortex chrome.
-      const [char] = await db("characters")
-        .select("max_nil")
-        .where("id", characterId)
-        .limit(1);
+      const [char] = await db("characters").select("max_nil").where("id", characterId).limit(1);
       expect(char!.max_nil).toBe(100);
 
       // Sem reembolso — carteira fica em 200 (o saldo após a compra de 300 grana).
@@ -626,10 +645,7 @@ describe("Feature #4 — cromo API", () => {
       );
 
       // Verify max went up.
-      let [char] = await db("characters")
-        .select("max_nil")
-        .where("id", characterId)
-        .limit(1);
+      let [char] = await db("characters").select("max_nil").where("id", characterId).limit(1);
       expect(char!.max_nil).toBe(110);
 
       await server.post(
@@ -638,10 +654,7 @@ describe("Feature #4 — cromo API", () => {
         authHeader(accessToken),
       );
 
-      [char] = await db("characters")
-        .select("max_nil")
-        .where("id", characterId)
-        .limit(1);
+      [char] = await db("characters").select("max_nil").where("id", characterId).limit(1);
       expect(char!.max_nil).toBe(100);
     });
   });
@@ -683,9 +696,7 @@ describe("Feature #4 — cromo API", () => {
         .andWhere("type", "CHROME_PURCHASE");
       expect(purchases).toHaveLength(0);
 
-      const [character] = await db("characters")
-        .select("humanity")
-        .where("id", characterId);
+      const [character] = await db("characters").select("humanity").where("id", characterId);
       expect(character!.humanity).toBe(100);
 
       const balance = await fetch(`${base()}/api/economy/balance`, {
@@ -714,9 +725,7 @@ describe("Feature #4 — cromo API", () => {
       expect([400, 409]).toContain(rejected[0].status);
 
       // Exactly one installed row and one debit.
-      const loadout = await db("installed_chrome")
-        .select("*")
-        .where("character_id", characterId);
+      const loadout = await db("installed_chrome").select("*").where("character_id", characterId);
       expect(loadout).toHaveLength(1);
 
       const purchases = await db("transaction_log")
@@ -726,9 +735,7 @@ describe("Feature #4 — cromo API", () => {
       expect(purchases).toHaveLength(1);
       expect(purchases[0].amount).toBe(-300);
 
-      const [character] = await db("characters")
-        .select("humanity")
-        .where("id", characterId);
+      const [character] = await db("characters").select("humanity").where("id", characterId);
       expect(character!.humanity).toBe(97); // 100 - 3, applied exactly once
     });
   });

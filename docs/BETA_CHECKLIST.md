@@ -77,14 +77,15 @@
 
 ## Security
 
-- [ ] Rate limiting — global per-IP (`@fastify/rate-limit`)
-- [ ] Per-action rate limits — register, login, PvP, chat
-- [ ] Circuit breaker — 3 failures → 24h ban per character
-- [ ] Cooldowns — trampo accept (30s), PvP (1h), chat (5s), cromo (60s)
+- [x] Rate limiting — global per-IP (`@fastify/rate-limit`)
+- [x] Per-action rate limits — register, login, PvP, chat
+- [x] Circuit breaker — 3 failures → 24h ban per character
+- [x] Cooldowns — trampo accept (30s), PvP (1h), chat (5s), cromo (60s)
+- [x] Audit log — every mutating action recorded with IP, UA, result (UA normalization post-MVP)
+- [x] Input validation — Zod schemas on all endpoints
+- [x] Admin ban gate — banned characters blocked from login and all actions (`403 BANNED`)
 - [ ] JWT — HS256, 15min access, refresh token rotation
 - [ ] Admin protection — x-api-key + JWT admin role + admin rate limit
-- [ ] Audit log — every mutating action recorded with IP, UA, result
-- [ ] Input validation — Zod schemas on all endpoints
 - [ ] CORS — whitelisted origins
 - [ ] No secrets in code — all via `env.ts` (Zod-validated)
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { randomUUID } from "node:crypto";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
@@ -10,6 +10,7 @@ import {
   authHeader,
   insertTestCharacter,
   registerTestUser,
+  clearAuthIpRateLimits,
 } from "./helpers";
 import { db } from "../db";
 import { ECONOMY_FAUCET_TYPES, ECONOMY_SINK_TYPES } from "../repositories/transaction-repository";
@@ -47,6 +48,15 @@ describe("ND-052 — admin panel API", () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many admin registrations from 127.0.0.1.
+  beforeEach(async () => {
+    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    await redis.connect();
+    await clearAuthIpRateLimits(redis);
+    redis.disconnect();
   });
 
   // Helper: register a user and promote to admin.
@@ -297,6 +307,42 @@ describe("ND-052 — admin panel API", () => {
             ...authHeader(admin.accessToken),
           },
           body: JSON.stringify({ reason: "" }),
+        },
+      );
+
+      expect(res.status).toBe(400);
+      const body = await json<ErrorBody>(res);
+      expect(body.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 400 VALIDATION_ERROR for a non-UUID player id on ban (ND-053 Zod params)", async () => {
+      const admin = await createAdminUser(`admin-${Date.now()}-baduuid@test.com`);
+
+      const res = await fetch(
+        `http://127.0.0.1:${server.port}/api/admin/players/not-a-uuid/ban`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeader(admin.accessToken),
+          },
+          body: JSON.stringify({ reason: "test" }),
+        },
+      );
+
+      expect(res.status).toBe(400);
+      const body = await json<ErrorBody>(res);
+      expect(body.error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 400 VALIDATION_ERROR for a non-UUID player id on unban (ND-053 Zod params)", async () => {
+      const admin = await createAdminUser(`admin-${Date.now()}-baduuid2@test.com`);
+
+      const res = await fetch(
+        `http://127.0.0.1:${server.port}/api/admin/players/not-a-uuid/unban`,
+        {
+          method: "POST",
+          headers: authHeader(admin.accessToken),
         },
       );
 
@@ -577,6 +623,7 @@ describe("ND-052 — admin panel API", () => {
 
       expect(res.status).toBe(400);
       const body = await json<ErrorBody>(res);
+      // admin-service throws UNKNOWN_PARAMS for unknown keys (not VALIDATION_ERROR).
       expect(body.error).toBe("UNKNOWN_PARAMS");
     });
 

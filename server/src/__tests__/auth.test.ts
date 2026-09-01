@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcrypt";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json, authHeader } from "./helpers";
+import { startTestServer, json, authHeader, clearAuthIpRateLimits } from "./helpers";
 import { db } from "../db";
 import type { AuthResponse, UserWithCharacter } from "@neon-dusk/shared";
 
@@ -52,6 +52,12 @@ describe("Feature #1 — auth API", () => {
   afterAll(async () => {
     redis.disconnect();
     await app.close();
+  });
+
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many registrations this suite performs from 127.0.0.1.
+  beforeEach(async () => {
+    await clearAuthIpRateLimits(redis);
   });
 
   /** Register a fresh account and return the token pair + user. */

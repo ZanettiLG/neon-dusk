@@ -26,7 +26,7 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
 
   afterAll(async () => {
     await redis.flushdb();
-    circuitBreakerConfig.strikeThreshold = 1000;
+    circuitBreakerConfig.strikeThreshold = 3; // ND-053 default (was 1000)
     redis.disconnect();
   });
 

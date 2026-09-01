@@ -1,15 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { resetDb } from "./helpers";
+import { resetDb, clearAuthIpRateLimits } from "./helpers";
 import { db } from "../db";
-import type {
-  AuthResponse,
-  LeaderboardResponse,
-  StreetCredInfo,
-} from "@neon-dusk/shared";
+import type { AuthResponse, LeaderboardResponse, StreetCredInfo } from "@neon-dusk/shared";
 
 // ND-013 — street-cred API integration tests. Real Postgres/Redis on the
 // isolated test stack, exercised with app.inject() (supertest is incompatible
@@ -55,6 +51,12 @@ describe("ND-013 — street-cred API", () => {
   afterAll(async () => {
     await app.close();
     redis.disconnect();
+  });
+
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many registrations from 127.0.0.1.
+  beforeEach(async () => {
+    await clearAuthIpRateLimits(redis);
   });
 
   /** Drop the server-side leaderboard cache so the next read hits the DB. */
@@ -296,7 +298,9 @@ describe("ND-013 — street-cred API", () => {
       // Writeback refreshes the decay clock so repeated reads stay stable.
       // Compared against the DB clock, not Date.now() — the container clock
       // can drift from the test runner.
-      const { rows: [{ now }] } = await db.raw("SELECT NOW() AS now");
+      const {
+        rows: [{ now }],
+      } = await db.raw("SELECT NOW() AS now");
       expect(Math.abs(new Date(now).getTime() - char!.updated_at.getTime())).toBeLessThan(60_000);
     });
 

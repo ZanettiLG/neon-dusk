@@ -31,9 +31,7 @@ declare module "fastify" {
  * Must run AFTER `authenticate` (needs `request.user.sub`).
  * Must run BEFORE any anti-cheat middleware.
  */
-export function setAuditContext(
-  action: string,
-): (request: FastifyRequest) => Promise<void> {
+export function setAuditContext(action: string): (request: FastifyRequest) => Promise<void> {
   return async (request) => {
     const characterId = (await characters.requireByUserId(request.user.sub)).id;
     request.audit_context = {
@@ -56,9 +54,7 @@ function resultFromStatusCode(statusCode: number): AuditResult {
  * (register/login/refresh/logout) where there is no JWT and no character.
  * characterId is null so the onResponse hook still records the outcome.
  */
-export function setPreAuthAuditContext(
-  action: string,
-): (request: FastifyRequest) => Promise<void> {
+export function setPreAuthAuditContext(action: string): (request: FastifyRequest) => Promise<void> {
   return async (request) => {
     request.audit_context = {
       action,
@@ -82,6 +78,9 @@ async function auditOnResponse(app: FastifyInstance): Promise<void> {
       characterId: ctx.characterId,
       action: ctx.action,
       ip: request.ip,
+      // ponytail: raw UA, normalize post-MVP — hand-rolled {browser, os,
+      // device} parsing is fragile; add a UA-parsing lib when the admin panel
+      // needs client statistics.
       userAgent: (request.headers["user-agent"] as string) ?? "unknown",
       payload: ctx.payload ?? {},
       result,

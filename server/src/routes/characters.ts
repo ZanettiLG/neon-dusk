@@ -14,7 +14,7 @@ import { listCharacterEvents } from "../services/event-service";
 import { characterRepository as characters } from "../repositories/character-repository";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
-import { setAuditContext } from "../middleware/audit-middleware";
+import { setAuditContext, setPreAuthAuditContext } from "../middleware/audit-middleware";
 import { checkRateLimit, checkActionRateLimit } from "../lib/rate-limit";
 
 /** Query schema for the player event feed (ND-139). */
@@ -39,7 +39,12 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
     {
       preHandler: [
         authenticate,
-        setAuditContext("character_create"),
+        // POST /characters is the ONLY mutating route that runs pre-character:
+        // `setAuditContext` would resolve the character via requireByUserId and
+        // throw 404 NO_CHARACTER before the handler could create it. Use the
+        // pre-auth context (characterId null) — the character is born inside
+        // the handler, so the audit row's character_id is null by design.
+        setPreAuthAuditContext("character_create"),
         checkCircuitBreaker(redis),
         checkActionRateLimit(redis, "character_create"),
       ],

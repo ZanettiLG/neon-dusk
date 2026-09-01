@@ -118,3 +118,23 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
     await expect(preHandler(requestFor(userId))).resolves.toBeUndefined();
   });
 });
+
+describe("cooldownConfig (ND-053 durations)", () => {
+  it("should set pvp_attack to 1h (3_600_000ms)", () => {
+    expect(cooldownConfig.pvp_attack.durationMs).toBe(3_600_000);
+  });
+
+  it("should set gig_accept to 30s (30_000ms)", () => {
+    expect(cooldownConfig.gig_accept.durationMs).toBe(30_000);
+  });
+
+  it("should set chrome_install to 60s (60_000ms)", () => {
+    expect(cooldownConfig.chrome_install.durationMs).toBe(60_000);
+  });
+
+  it("should keep the legacy durations unchanged", () => {
+    expect(cooldownConfig.stim_use.durationMs).toBe(300_000); // 5min
+    expect(cooldownConfig.chat_message.durationMs).toBe(5_000); // 5s
+    expect(cooldownConfig.crew_invite.durationMs).toBe(60_000); // 60s
+  });
+});

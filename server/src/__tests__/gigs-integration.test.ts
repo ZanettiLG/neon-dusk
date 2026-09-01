@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach, vi } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { insertTestCharacter, resetDb } from "./helpers";
+import { insertTestCharacter, resetDb, clearAuthIpRateLimits } from "./helpers";
 import { db } from "../db";
 import {
   abandonGig,
@@ -58,6 +58,7 @@ function uniqueName(): string {
 interface ErrorBody {
   error: string;
   message: string;
+  retryAfter?: number;
 }
 
 describe("ND-011 — trampos service & API", () => {
@@ -78,6 +79,12 @@ describe("ND-011 — trampos service & API", () => {
   afterAll(async () => {
     await app.close();
     redis.disconnect();
+  });
+
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many registrations from 127.0.0.1.
+  beforeEach(async () => {
+    await clearAuthIpRateLimits(redis);
   });
 
   /** DB row of a seeded template, by display name. */
@@ -1297,14 +1304,20 @@ describe("ND-011 — trampos service & API", () => {
     });
 
     it("should return 400 ALREADY_ACTIVE_GIG on a double accept", async () => {
-      const { accessToken: token } = await registerApiUser();
+      const { accessToken: token, characterId } = await registerApiUser();
       const farma = await farmaGig();
 
-      await app.inject({
+      const first = await app.inject({
         method: "POST",
         url: `/api/gigs/${farma.id}/accept`,
         headers: { authorization: `Bearer ${token}` },
       });
+      expect(first.statusCode).toBe(200);
+
+      // ND-053: the first accept arms the 30s gig_accept cooldown. Drop it so
+      // the second accept reaches the service guard — the cooldown gate itself
+      // is covered by the dedicated COOLDOWN_ACTIVE test below.
+      await redis.del(`cooldown:${characterId}:gig_accept`);
 
       const res = await app.inject({
         method: "POST",
@@ -1314,6 +1327,31 @@ describe("ND-011 — trampos service & API", () => {
 
       expect(res.statusCode).toBe(400);
       expect((res.json() as ErrorBody).error).toBe("ALREADY_ACTIVE_GIG");
+    });
+
+    it("should reject a second accept within 30s with 429 COOLDOWN_ACTIVE", async () => {
+      const { accessToken: token } = await registerApiUser();
+      const farma = await farmaGig();
+
+      const first = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/accept`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(first.statusCode).toBe(200);
+
+      // The route arms `cooldown:<characterId>:gig_accept` for 30s after a
+      // successful accept (ADR-2) — a second accept inside the window is
+      // rejected by the checkCooldown preHandler before any game logic runs.
+      const second = await app.inject({
+        method: "POST",
+        url: `/api/gigs/${farma.id}/accept`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(second.statusCode).toBe(429);
+      const body = second.json() as ErrorBody;
+      expect(body.error).toBe("COOLDOWN_ACTIVE");
+      expect(body.retryAfter).toBeGreaterThan(0);
     });
 
     it("should return 400 VALIDATION_ERROR for a non-uuid id", async () => {
