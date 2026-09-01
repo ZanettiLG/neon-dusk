@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { api } from "@/api/client";
-import type { EconomyBalanceResponse, InstalledChromeResponse, OsStatus } from "@neon-dusk/shared";
+import type {
+  Attributes,
+  EconomyBalanceResponse,
+  InstalledChromeResponse,
+  OsStatus,
+} from "@neon-dusk/shared";
 
 interface HudState {
   /** Wallet balance (G$). Null while unloaded or after a failed refresh. */
@@ -13,6 +18,8 @@ interface HudState {
   humanityError: string | null;
   /** Installed OS readout (issue #28). Null while unloaded/no OS. */
   os: OsStatus | null;
+  /** Installed-cromo stat bonuses (used for effective power in PvP). Null while unloaded. */
+  statBonus: Attributes | null;
 
   /** Fetch balance + humanity + OS status in parallel (best-effort, never throws). */
   refresh: () => Promise<void>;
@@ -23,6 +30,13 @@ function numField(value: unknown, key: string): number | null {
   if (value === null || value === undefined) return null;
   const v = (value as Record<string, unknown>)[key];
   return typeof v === "number" ? v : null;
+}
+
+/** Read the statBonus object from a cromo payload (defensive against mocks). */
+function statBonusField(value: unknown): Attributes | null {
+  if (value === null || value === undefined) return null;
+  const bonus = (value as { statBonus?: Attributes | null }).statBonus;
+  return bonus ?? null;
 }
 
 /**
@@ -42,6 +56,7 @@ export const useHudStore = create<HudState>((set) => ({
   humanity: null,
   humanityError: null,
   os: null,
+  statBonus: null,
 
   refresh: async () => {
     const [balanceRes, humanityRes, osRes, chromeRes] = await Promise.allSettled([
@@ -80,6 +95,10 @@ export const useHudStore = create<HudState>((set) => ({
               : null
           : null,
       os: osRes.status === "fulfilled" && osRes.value ? osRes.value : null,
+      statBonus:
+        chromeRes.status === "fulfilled"
+          ? statBonusField(chromeRes.value)
+          : null,
     });
   },
 }));

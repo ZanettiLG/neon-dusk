@@ -99,13 +99,22 @@ export async function getAttackableTargets(
   if (!attacker) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
 
   if (await redis.get(`${PVP_COOLDOWN_KEY}${attacker.id}`)) {
-    return { targets: [] };
+    // Keep quoting the cost even with no targets so the client stays honest.
+    return {
+      targets: [],
+      nilCost: Number(await getGameParam("PVP_NIL_COST", PVP_NIL_COST_FALLBACK)),
+      cooldownSeconds: PVP_COOLDOWN_S,
+    };
   }
 
   const attackerChrome = await loadChromePower(attacker.id);
   const minPower = attacker.body + attacker.reflexes + attackerChrome - POWER_RANGE;
   const maxPower = attacker.body + attacker.reflexes + attackerChrome + POWER_RANGE;
   const immunityCutoff = new Date(Date.now() - IMMUNITY_MS);
+
+  // The NIL cost is a tunable game param (same read as executeAttack) so the
+  // confirm modal shows exactly what the attack will charge.
+  const nilCost = Number(await getGameParam("PVP_NIL_COST", PVP_NIL_COST_FALLBACK));
 
   const rows = await characters.listAttackableTargets(attacker.id, {
     minPower,
@@ -122,17 +131,19 @@ export async function getAttackableTargets(
     const power = row.body + row.reflexes + chromePower;
     if (power < minPower || power > maxPower) continue;
 
+    const weeklyAttacks = await countWeeklyAttacks(attacker.id, row.id);
     targets.push({
       characterId: row.id,
       name: row.name,
       streetCred: row.streetCred,
       power,
       noobShield: hasNoobShield(row.streetCred),
-      weeklyAttacksReceived: await countWeeklyAttacks(attacker.id, row.id),
+      weeklyAttacksReceived: weeklyAttacks,
+      griefRisk: isGriefLimited(weeklyAttacks),
     });
   }
 
-  return { targets };
+  return { targets, nilCost, cooldownSeconds: PVP_COOLDOWN_S };
 }
 
 /**
@@ -400,6 +411,7 @@ export async function executeAttack(
       streetCredChange: attackerWon ? winnerSC.change : loserSC.change,
       newStreetCred: attackerWon ? winnerSC.newSC : loserSC.newSC,
       newBalance,
+      grieferPenalty,
     };
   });
 

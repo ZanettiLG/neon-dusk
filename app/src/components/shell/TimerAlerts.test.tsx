@@ -115,6 +115,24 @@ describe("TimerAlerts", () => {
     expect(screen.getByText(/1d 1h/)).toBeInTheDocument();
   });
 
+  it("shows the round countdown as m:ss when under 1h remains", () => {
+    useSaideiraStore.setState({
+      hub: {
+        onlineCount: 3,
+        lastReset: null,
+        currentRound: 2,
+        roundEndsAt: new Date(Date.now() + 30 * 60_000).toISOString(),
+      },
+    });
+
+    render(<TimerAlerts />);
+
+    expect(screen.getByText(/ROUND termina em$/)).toBeInTheDocument();
+    // ~30:00 remaining → short-form m:ss (formatCountdown), not "0h".
+    expect(screen.getByText(/30:00|29:5\d/)).toBeInTheDocument();
+    expect(screen.queryByText(/0h/)).not.toBeInTheDocument();
+  });
+
   it("shows the ready ability when no trampo and no round data", async () => {
     useAuthStore.setState({
       character: {

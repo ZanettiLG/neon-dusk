@@ -11,6 +11,7 @@ import { useAppStore } from "@/stores/app";
 import { useAuthStore } from "@/stores/auth";
 import InstallPrompt from "@/components/InstallPrompt";
 import RankUpCelebration from "@/components/RankUpCelebration";
+import RoundResetOverlay from "@/components/shell/RoundResetOverlay";
 
 /** Inline banner shown while the backend is degraded (Redis down, etc.). */
 function DegradedBanner() {
@@ -59,6 +60,7 @@ export default function App() {
       </main>
       <InstallPrompt />
       <RankUpCelebration />
+      <RoundResetOverlay />
       <AppFooter />
       {hasCharacter && (
         <>

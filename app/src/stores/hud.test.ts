@@ -62,6 +62,29 @@ describe("useHudStore.refresh", () => {
     expect(s.balanceError).toBeNull();
     expect(s.humanity).toBe(70);
     expect(s.humanityError).toBeNull();
+    expect(s.statBonus).toEqual(chrome.statBonus);
+  });
+
+  it("should set statBonus from the cromo response", async () => {
+    const chromeWithBonus: InstalledChromeResponse = {
+      ...chrome,
+      statBonus: { body: 2, reflexes: 1, intelligence: 0, technical: 0, cool: 0 },
+    };
+    mocks.api.get.mockImplementation((url: string) => {
+      if (url === "/api/economy/balance") return Promise.resolve(balance);
+      if (url === "/api/chrome/installed") return Promise.resolve(chromeWithBonus);
+      return Promise.resolve(undefined);
+    });
+
+    await useHudStore.getState().refresh();
+
+    expect(useHudStore.getState().statBonus).toEqual({
+      body: 2,
+      reflexes: 1,
+      intelligence: 0,
+      technical: 0,
+      cool: 0,
+    });
   });
 
   it("should keep humanity when the balance fetch fails (allSettled)", async () => {

@@ -67,7 +67,11 @@ export default function TimerAlerts() {
     countdown = formatCountdown(legworkRemaining);
   } else if (roundAlert) {
     label = "ROUND termina em";
-    countdown = formatDuration(roundSeconds);
+    // Short-form m:ss under 1h (round end is imminent), long-form above.
+    countdown =
+      roundSeconds < 3600
+        ? formatCountdown(roundSeconds)
+        : formatDuration(roundSeconds);
   } else if (abilityAlert && ability) {
     label = `${ABILITY_LABELS[ability.abilityType]} pronta`;
   }
