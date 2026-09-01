@@ -14,6 +14,8 @@ function requestFor(characterId: string) {
   return { user: { sub: characterId }, audit_context: {} } as unknown as FastifyRequest;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 describe("checkCircuitBreaker (anti-cheat circuit breaker)", () => {
   let redis: Redis;
 
@@ -75,6 +77,21 @@ describe("checkCircuitBreaker (anti-cheat circuit breaker)", () => {
     await expect(pvpGuard(requestFor(characterId))).rejects.toMatchObject({
       code: "CIRCUIT_BREAK",
     });
+  });
+
+  it("should allow the request again after the ban expires", async () => {
+    const characterId = randomUUID();
+    const preHandler = checkCircuitBreaker(redis);
+
+    // Set a short ban (1s) to simulate the 24h ban TTL elapsing.
+    await redis.setex(`circuit_break:${characterId}`, 1, "1");
+    await expect(preHandler(requestFor(characterId))).rejects.toMatchObject({
+      code: "CIRCUIT_BREAK",
+    });
+
+    await sleep(1_100); // wait for the ban key to expire naturally
+
+    await expect(preHandler(requestFor(characterId))).resolves.toBeUndefined();
   });
 
   it("should fail open when Redis is unavailable (ttl throws)", async () => {
