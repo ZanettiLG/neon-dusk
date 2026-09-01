@@ -102,6 +102,25 @@ export function errorHandler(
     });
   }
 
+  // Fastify body-parsing errors (empty/invalid JSON body, bad Content-Length)
+  // already carry statusCode 400 — map to VALIDATION_ERROR instead of the 500
+  // fallthrough below.
+  const bodyParseCodes = new Set([
+    "FST_ERR_CTP_EMPTY_JSON_BODY",
+    "FST_ERR_CTP_INVALID_JSON_BODY",
+    "FST_ERR_CTP_INVALID_CONTENT_LENGTH",
+  ]);
+  if (
+    error instanceof Error &&
+    "code" in error &&
+    bodyParseCodes.has((error as { code?: string }).code ?? "")
+  ) {
+    return reply.status(400).send({
+      error: "VALIDATION_ERROR",
+      message: "Corpo da requisição inválido.",
+    });
+  }
+
   if ("statusCode" in error && error.statusCode === 429) {
     // Preserve the rate-limit plugin's payload (message, retryAfter) instead of
     // replacing it with the raw error message.

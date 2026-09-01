@@ -129,7 +129,8 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     };
   });
 
-  // POST /api/saideira/chat — send a message (12/minute per character, 5s cooldown).
+  // POST /api/saideira/chat — send a message (5s cooldown ≈ 12/min natural ceiling;
+  // per-action rate limit is a 60/min safety net above it).
   app.post(
     "/saideira/chat",
     {

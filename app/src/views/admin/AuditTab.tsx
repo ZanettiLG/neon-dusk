@@ -90,6 +90,7 @@ export default function AuditTab() {
               <th className="py-2 px-3">Ação</th>
               <th className="py-2 px-3">Resultado</th>
               <th className="py-2 px-3 hidden md:table-cell">IP</th>
+              <th className="py-2 px-3 hidden lg:table-cell">User-Agent</th>
             </tr>
           </thead>
           <tbody>
@@ -123,11 +124,17 @@ export default function AuditTab() {
                 <td className="py-2 px-3 text-nd-text-secondary text-xs font-mono hidden md:table-cell">
                   {entry.ip}
                 </td>
+                <td
+                  className="py-2 px-3 text-nd-text-secondary text-xs font-mono hidden lg:table-cell max-w-[16rem] truncate"
+                  title={entry.userAgent}
+                >
+                  {entry.userAgent}
+                </td>
               </tr>
             ))}
             {auditEntries.length === 0 && !auditLoading && (
               <tr>
-                <td colSpan={5} className="py-6 text-center text-nd-text-secondary">
+                <td colSpan={6} className="py-6 text-center text-nd-text-secondary">
                   Nenhum registro encontrado
                 </td>
               </tr>

@@ -377,6 +377,7 @@ export async function getAuditLog(
       result: r.result,
       payload: r.payload ?? {},
       ip: maskIP(r.ip),
+      userAgent: r.userAgent,
     })),
     nextCursor: hasMore ? entries[entries.length - 1].id : null,
   };

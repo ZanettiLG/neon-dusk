@@ -40,7 +40,7 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
   gig_execute:      { max: 1000, windowMs: 60_000 },
   gig_submit:       { max: 1000, windowMs: 60_000 },
   pvp_attack:       { max: 300,  windowMs: 3_600_000 },
-  saideira_chat:    { max: 1200, windowMs: 60_000 },
+  saideira_chat:    { max: 60,   windowMs: 60_000 },
   crew_invite:      { max: 500,  windowMs: 60_000 },
   chrome_install:   { max: 500,  windowMs: 60_000 },
   chrome_uninstall: { max: 500,  windowMs: 60_000 },
