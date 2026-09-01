@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type { OsActivateResponse, OsStatus } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
 import { characterRepository as characters } from "../repositories/character-repository";
 import { activateOs, getOsStatus } from "../services/os-service";
@@ -21,7 +23,12 @@ export async function osRoutes(app: FastifyInstance) {
   app.post(
     "/os/activate",
     {
-      preHandler: [authenticate, checkActionRateLimit(redis, "os_activate")],
+      preHandler: [
+        authenticate,
+        setAuditContext("os_activate"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "os_activate"),
+      ],
     },
     async (request) => {
       const characterId = (await characters.requireByUserId(request.user.sub)).id;

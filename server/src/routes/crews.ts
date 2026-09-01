@@ -77,6 +77,15 @@ const chatSendSchema = z.object({
     .max(500, "Mensagem muito longa (máx. 500 caracteres)"),
 });
 
+const uuidParam = z.object({
+  id: z.string().uuid("ID do bonde deve ser um UUID"),
+});
+
+const kickParams = z.object({
+  id: z.string().uuid("ID do bonde deve ser um UUID"),
+  characterId: z.string().uuid("ID do personagem deve ser um UUID"),
+});
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -126,7 +135,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     {
       preHandler: [
         authenticate,
-        setAuditContext("crew_invite"),
+        setAuditContext("crew_create"),
         checkCircuitBreaker(redis),
         validate(createCrewSchema),
         checkActionRateLimit(redis, "crew_invite"),
@@ -355,7 +364,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       ],
     },
     async (request, reply): Promise<CrewDetailResponse["members"][number]> => {
-      const crewId = (request.params as { id: string }).id;
+      const { id: crewId } = uuidParam.parse(request.params);
       const characterId = (await characters.requireByUserId(request.user.sub)).id;
 
       request.audit_context!.payload = { crewId };
@@ -404,7 +413,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       ],
     },
     async (request, reply) => {
-      const crewId = (request.params as { id: string }).id;
+      const { id: crewId } = uuidParam.parse(request.params);
       const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const crew = await getCrew(crewId);
 
@@ -436,10 +445,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       ],
     },
     async (request, reply) => {
-      const { id: crewId, characterId: targetId } = request.params as {
-        id: string;
-        characterId: string;
-      };
+      const { id: crewId, characterId: targetId } = kickParams.parse(request.params);
       const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const crew = await getCrew(crewId);
 
@@ -472,7 +478,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       ],
     },
     async (request, reply) => {
-      const crewId = (request.params as { id: string }).id;
+      const { id: crewId } = uuidParam.parse(request.params);
       const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const crew = await getCrew(crewId);
 

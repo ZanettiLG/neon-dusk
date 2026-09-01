@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ConsumablesResponse, ConsumableUseResponse } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { setAuditContext } from "../middleware/audit-middleware";
 import { validate } from "../middleware/validate";
 import { checkActionRateLimit } from "../lib/rate-limit";
 import { characterRepository as characters } from "../repositories/character-repository";
@@ -27,7 +29,13 @@ export async function consumableRoutes(app: FastifyInstance) {
   app.post(
     "/consumables/use",
     {
-      preHandler: [authenticate, validate(useSchema), checkActionRateLimit(redis, "consumable_use")],
+      preHandler: [
+        authenticate,
+        setAuditContext("consumable_use"),
+        checkCircuitBreaker(redis),
+        validate(useSchema),
+        checkActionRateLimit(redis, "consumable_use"),
+      ],
     },
     async (request) => {
       const body = request.body as z.infer<typeof useSchema>;

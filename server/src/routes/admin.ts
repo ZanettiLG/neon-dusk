@@ -36,6 +36,10 @@ const banPlayerSchema = z.object({
   reason: z.string().min(1, "Ban reason is required").max(500),
 });
 
+const uuidParam = z.object({
+  id: z.string().uuid("ID do personagem deve ser um UUID"),
+});
+
 const updateParamsSchema = z.object({
   params: z.record(z.string(), z.string()),
 });
@@ -80,7 +84,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     "/admin/players/:id/ban",
     { preHandler: [authenticate, requireAdminRole, checkAdminRateLimit(redis)] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = uuidParam.parse(request.params);
       const body = banPlayerSchema.parse(request.body);
       await banPlayer(id, request.user.sub, body.reason);
       return reply.status(200).send({ success: true });
@@ -92,7 +96,7 @@ export async function adminRoutes(app: FastifyInstance): Promise<void> {
     "/admin/players/:id/unban",
     { preHandler: [authenticate, requireAdminRole, checkAdminRateLimit(redis)] },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
+      const { id } = uuidParam.parse(request.params);
       await unbanPlayer(id, request.user.sub);
       return reply.status(200).send({ success: true });
     },

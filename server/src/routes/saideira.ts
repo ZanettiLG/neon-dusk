@@ -31,7 +31,7 @@ import { getGameParam } from "../repositories/game-param-repository";
 // The bar that never closes (Babilônia): hub info, ephemeral real-time chat
 // (Redis pub/sub + list, ADR-2), the permanent Legends menu and the crew
 // leaderboard placeholder (ADR-4). Chat requires SC >= 10 (gate enforced
-// client-side; the endpoints themselves only require a character).
+// server-side in the POST handler — the client also hides the box below 10).
 //
 // ND-053: Chat POST is guarded by circuit-break, 5s cooldown, validation,
 // and per-action rate limiting. Name-drink is guarded by circuit-break and
@@ -151,6 +151,11 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
       // Resolve the character name + crew tag (direct query — 1 row).
       const char = await characters.findById(characterId);
       if (!char) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
+
+      // ND-015: the balcony is for regulars — SC >= 10 (mirrors the client gate).
+      if (char.street_cred < 10) {
+        throw new AppError(400, "SC_TOO_LOW", "Frequentar a Saideira requer 10 de Moral");
+      }
 
       // ND-016: attach the crew tag when the character belongs to a crew.
       let crewTag: string | null = null;

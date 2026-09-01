@@ -58,7 +58,7 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
 export const circuitBreakerConfig = {
   countTtlSeconds: 3600,          // 1h window for counting strikes
   banTtlSeconds: 86_400,          // 24h ban
-  strikeThreshold: 1000,
+  strikeThreshold: 3,
 };
 
 // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ export async function checkRateLimit(
  * Returns a preHandler that enforces a per-character, per-action rate limit.
  *
  * On success: sets X-RateLimit-Remaining and X-RateLimit-Reset headers.
- * On limit exceeded: increments the circuit-break counter (7 strikes = 24h ban),
+ * On limit exceeded: increments the circuit-break counter (3 strikes = 24h ban),
  * then throws AppError(429, "RATE_LIMITED").
  */
 export function checkActionRateLimit(

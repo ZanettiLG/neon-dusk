@@ -14,7 +14,7 @@ declare module "fastify" {
   interface FastifyRequest {
     audit_context?: {
       action: string;
-      characterId: string;
+      characterId: string | null;
       payload?: Record<string, unknown>;
       result?: AuditResult;
     };
@@ -49,6 +49,22 @@ function resultFromStatusCode(statusCode: number): AuditResult {
   if (statusCode === 400) return "validation_error";
   if (statusCode >= 500) return "server_error";
   return "blocked";
+}
+
+/**
+ * Returns a preHandler that sets `request.audit_context` for PRE-AUTH routes
+ * (register/login/refresh/logout) where there is no JWT and no character.
+ * characterId is null so the onResponse hook still records the outcome.
+ */
+export function setPreAuthAuditContext(
+  action: string,
+): (request: FastifyRequest) => Promise<void> {
+  return async (request) => {
+    request.audit_context = {
+      action,
+      characterId: null,
+    };
+  };
 }
 
 /**
