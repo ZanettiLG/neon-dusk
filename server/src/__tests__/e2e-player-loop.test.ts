@@ -39,14 +39,14 @@ function uniqueName(): string {
 describe("ND-018 — e2e player loop", () => {
   let app: FastifyInstance;
   let server: Awaited<ReturnType<typeof startTestServer>>;
+  let redis: Redis;
 
   beforeAll(async () => {
     await resetDb();
 
-    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
     await redis.connect();
     await redis.flushdb();
-    redis.disconnect();
 
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     server = await startTestServer(app);
@@ -55,6 +55,7 @@ describe("ND-018 — e2e player loop", () => {
 
   afterAll(async () => {
     await app.close();
+    redis.disconnect();
   });
 
   it(
@@ -121,6 +122,12 @@ describe("ND-018 — e2e player loop", () => {
         // Step 5a: Accept
         const acceptRes = await server.post(`/api/gigs/${gigId}/accept`, {}, headers);
         expect([200, 201], `accept trampo ${gigId}`).toContain(acceptRes.status);
+
+        // ND-053: the accept arms the 30s gig_accept cooldown. Drop it so the
+        // next loop iteration can accept the next trampo (same spirit as the
+        // legwork-timer bypass below — the journey, not the anti-spam gate, is
+        // what this test exercises).
+        await redis.del(`cooldown:${character.id}:gig_accept`);
 
         // Step 5b: Bypass legwork timer via direct DB update
         // ponytail: bypass legwork timer via DB — waiting 5-30min per trampo would

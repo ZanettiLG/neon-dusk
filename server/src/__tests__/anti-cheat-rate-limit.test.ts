@@ -26,7 +26,7 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
 
   afterAll(async () => {
     await redis.flushdb();
-    circuitBreakerConfig.strikeThreshold = 1000;
+    circuitBreakerConfig.strikeThreshold = 3; // ND-053 default (was 1000)
     redis.disconnect();
   });
 
@@ -126,6 +126,24 @@ describe("checkActionRateLimit (anti-cheat rate limiter)", () => {
     expect(await redis.get(`cb_count:${characterId}`)).toBe(String(circuitBreakerConfig.strikeThreshold));
   });
 
+  it("should reset the counter after the window expires (allows requests again)", async () => {
+    const characterId = randomUUID();
+    const preHandler = checkActionRateLimit(redis, "gig_accept"); // max 10, window 60s
+
+    // Exhaust the limit by setting the counter at max → next request rejects.
+    await redis.set(`rate:${characterId}:gig_accept`, rateLimitConfig.gig_accept.max);
+    await expect(preHandler(requestFor(characterId), mockReply())).rejects.toMatchObject({
+      statusCode: 429,
+      code: "RATE_LIMITED",
+    });
+
+    // Simulate window expiry (Redis EXPIRE would delete the key after 60s).
+    await redis.del(`rate:${characterId}:gig_accept`);
+
+    // A fresh window allows requests again.
+    await expect(preHandler(requestFor(characterId), mockReply())).resolves.toBeUndefined();
+  });
+
   it("should keep counters independent across different actions", async () => {
     const characterId = randomUUID();
     const pvpPreHandler = checkActionRateLimit(redis, "pvp_attack");
@@ -171,13 +189,13 @@ describe("rateLimitConfig", () => {
       "gig_submit",
       "pvp_attack",
       "saideira_chat",
+      "crew_chat",
       "crew_invite",
       "chrome_install",
       "chrome_uninstall",
       "economy_transact",
       "character_create",
       "vendor_purchase",
-      "stim_use",
     ];
     for (const action of actions) {
       expect(rateLimitConfig[action].max).toBeGreaterThan(0);

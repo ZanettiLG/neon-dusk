@@ -33,6 +33,7 @@ export interface AuditLogRow {
   result: string;
   payload: Record<string, unknown>;
   ip: string;
+  userAgent: string;
 }
 
 export interface AuditRepository {
@@ -77,6 +78,7 @@ export function createAuditRepository(q: Queryable = db): AuditRepository {
           result: "audit_log.result",
           payload: "audit_log.payload",
           ip: "audit_log.ip",
+          userAgent: "audit_log.user_agent",
         })
         .leftJoin("characters", "characters.id", "audit_log.character_id");
 

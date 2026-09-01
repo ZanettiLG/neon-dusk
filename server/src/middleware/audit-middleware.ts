@@ -2,7 +2,7 @@ import fp from "fastify-plugin";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AuditResult } from "../lib/audit-log";
 import { auditLog } from "../lib/audit-log";
-import { characterRepository as characters } from "../repositories/character-repository";
+import { resolveCharacter } from "../lib/request-character";
 
 // Neon Dusk — onResponse audit hook (ND-053)
 // ============================================================================
@@ -14,7 +14,7 @@ declare module "fastify" {
   interface FastifyRequest {
     audit_context?: {
       action: string;
-      characterId: string;
+      characterId: string | null;
       payload?: Record<string, unknown>;
       result?: AuditResult;
     };
@@ -31,11 +31,11 @@ declare module "fastify" {
  * Must run AFTER `authenticate` (needs `request.user.sub`).
  * Must run BEFORE any anti-cheat middleware.
  */
-export function setAuditContext(
-  action: string,
-): (request: FastifyRequest) => Promise<void> {
+export function setAuditContext(action: string): (request: FastifyRequest) => Promise<void> {
   return async (request) => {
-    const characterId = (await characters.requireByUserId(request.user.sub)).id;
+    // Memoized on `request` (M6) — shares one character query with the rest of
+    // the preHandler chain and the handler.
+    const characterId = (await resolveCharacter(request, { require: true }))!.id;
     request.audit_context = {
       action,
       characterId,
@@ -49,6 +49,20 @@ function resultFromStatusCode(statusCode: number): AuditResult {
   if (statusCode === 400) return "validation_error";
   if (statusCode >= 500) return "server_error";
   return "blocked";
+}
+
+/**
+ * Returns a preHandler that sets `request.audit_context` for PRE-AUTH routes
+ * (register/login/refresh/logout) where there is no JWT and no character.
+ * characterId is null so the onResponse hook still records the outcome.
+ */
+export function setPreAuthAuditContext(action: string): (request: FastifyRequest) => Promise<void> {
+  return async (request) => {
+    request.audit_context = {
+      action,
+      characterId: null,
+    };
+  };
 }
 
 /**
@@ -66,6 +80,9 @@ async function auditOnResponse(app: FastifyInstance): Promise<void> {
       characterId: ctx.characterId,
       action: ctx.action,
       ip: request.ip,
+      // ponytail: raw UA, normalize post-MVP — hand-rolled {browser, os,
+      // device} parsing is fragile; add a UA-parsing lib when the admin panel
+      // needs client statistics.
       userAgent: (request.headers["user-agent"] as string) ?? "unknown",
       payload: ctx.payload ?? {},
       result,

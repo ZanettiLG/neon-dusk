@@ -64,7 +64,7 @@ export function errorHandler(
       });
     }
 
-    if (error.code === "COOLDOWN_ACTIVE" || error.code === "CIRCUIT_BREAK") {
+    if (error.code === "COOLDOWN_ACTIVE" || error.code === "CIRCUIT_BREAK" || error.code === "PVP_COOLDOWN") {
       const retryAfter = (error.details as { retryAfter?: number } | undefined)?.retryAfter;
       if (retryAfter !== undefined) {
         reply.header("Retry-After", retryAfter);
@@ -99,6 +99,25 @@ export function errorHandler(
     return reply.status(400).send({
       error: "VALIDATION_ERROR",
       message: error.message,
+    });
+  }
+
+  // Fastify body-parsing errors (empty/invalid JSON body, bad Content-Length)
+  // already carry statusCode 400 — map to VALIDATION_ERROR instead of the 500
+  // fallthrough below.
+  const bodyParseCodes = new Set([
+    "FST_ERR_CTP_EMPTY_JSON_BODY",
+    "FST_ERR_CTP_INVALID_JSON_BODY",
+    "FST_ERR_CTP_INVALID_CONTENT_LENGTH",
+  ]);
+  if (
+    error instanceof Error &&
+    "code" in error &&
+    bodyParseCodes.has((error as { code?: string }).code ?? "")
+  ) {
+    return reply.status(400).send({
+      error: "VALIDATION_ERROR",
+      message: "Corpo da requisição inválido.",
     });
   }
 

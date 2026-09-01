@@ -11,7 +11,7 @@ import type { AuditResult as RepositoryAuditResult } from "../repositories/audit
 export type AuditResult = RepositoryAuditResult;
 
 export interface AuditLogEntry {
-  characterId: string;
+  characterId: string | null;
   action: string;
   ip: string;
   userAgent: string;

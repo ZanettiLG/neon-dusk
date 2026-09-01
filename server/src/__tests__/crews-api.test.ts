@@ -1144,4 +1144,77 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(res.headers.get("x-ratelimit-remaining")).toBeTruthy();
     });
   });
+
+  // ─── Zod params validation (ND-053) ────────────────────────────────────────
+  // join/leave/kick/dissolve parse `:id` (and kick's `:characterId`) with a
+  // UUID schema. A non-UUID id must yield 400 VALIDATION_ERROR, not a 500.
+
+  describe("Zod params validation (invalid UUID)", () => {
+    /**
+     * Register over HTTP + insert the character directly (bypasses the
+     * POST /characters flow — this block targets Zod params, not creation).
+     */
+    async function userWithCharacter(): Promise<CrewUser> {
+      const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+      expect(res.status).toBe(201);
+      const { accessToken, user } = await json<AuthResponse>(res);
+      const [character] = await db("characters")
+        .insert({
+          user_id: user.id,
+          name: uniqueName(),
+          origin: "a_paraiso",
+          role: "bicho",
+          body: 5,
+          reflexes: 4,
+          intelligence: 4,
+          technical: 4,
+          cool: 5,
+        })
+        .returning("id");
+      return { accessToken, characterId: character.id, characterName: uniqueName() };
+    }
+
+    it("should return 400 VALIDATION_ERROR for a non-UUID crew id on join", async () => {
+      const user = await userWithCharacter();
+      const res = await server.post("/api/crews/not-a-uuid/join", undefined, authHeader(user.accessToken));
+      expect(res.status).toBe(400);
+      expect((await json<ErrorBody>(res)).error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 400 VALIDATION_ERROR for a non-UUID crew id on leave", async () => {
+      const user = await userWithCharacter();
+      const res = await server.post("/api/crews/not-a-uuid/leave", undefined, authHeader(user.accessToken));
+      expect(res.status).toBe(400);
+      expect((await json<ErrorBody>(res)).error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 400 VALIDATION_ERROR for a non-UUID crew id on dissolve", async () => {
+      const user = await userWithCharacter();
+      const res = await fetch(`${base()}/api/crews/not-a-uuid`, {
+        method: "DELETE",
+        headers: authHeader(user.accessToken),
+      });
+      expect(res.status).toBe(400);
+      expect((await json<ErrorBody>(res)).error).toBe("VALIDATION_ERROR");
+    });
+
+    it("should return 400 VALIDATION_ERROR for a non-UUID crew id or character id on kick", async () => {
+      const user = await userWithCharacter();
+      // Non-UUID crew id.
+      const badCrew = await fetch(`${base()}/api/crews/not-a-uuid/members/${user.characterId}`, {
+        method: "DELETE",
+        headers: authHeader(user.accessToken),
+      });
+      expect(badCrew.status).toBe(400);
+      expect((await json<ErrorBody>(badCrew)).error).toBe("VALIDATION_ERROR");
+
+      // Non-UUID character id.
+      const badChar = await fetch(`${base()}/api/crews/${user.characterId}/members/not-a-uuid`, {
+        method: "DELETE",
+        headers: authHeader(user.accessToken),
+      });
+      expect(badChar.status).toBe(400);
+      expect((await json<ErrorBody>(badChar)).error).toBe("VALIDATION_ERROR");
+    });
+  });
 });

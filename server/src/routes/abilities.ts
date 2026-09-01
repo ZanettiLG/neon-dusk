@@ -3,6 +3,8 @@ import type { AbilityState } from "@neon-dusk/shared";
 import { ROLE_TO_ABILITY } from "@neon-dusk/shared";
 import { AppError } from "../middleware/error-handler";
 import { authenticate } from "../middleware/auth";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { setAuditContext } from "../middleware/audit-middleware";
 import {
   canActivateAbility,
   computeActivation,
@@ -35,10 +37,18 @@ function buildAbilityState(
 }
 
 export async function abilitiesRoutes(app: FastifyInstance) {
+  const redis = app.redis;
+
   // POST /api/abilities/activate — trigger the character's role ability.
   app.post(
     "/abilities/activate",
-    { preHandler: [authenticate] },
+    {
+      preHandler: [
+        authenticate,
+        setAuditContext("ability_activate"),
+        checkCircuitBreaker(redis),
+      ],
+    },
     async (request): Promise<{
       success: boolean;
       abilityType: string;

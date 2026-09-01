@@ -3,7 +3,7 @@ import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json } from "./helpers";
+import { startTestServer, json, clearAuthIpRateLimits } from "./helpers";
 
 /**
  * Stress test for auth rate limiting (closes #81).
@@ -71,6 +71,9 @@ describe("Rate limit stress test — auth endpoints (#81)", () => {
   beforeEach(async () => {
     const keys = await redis.keys("fastify-rate-limit-*");
     if (keys.length) await redis.del(keys);
+    // ND-053: the per-IP register/login budget (10 req/60s) must not be
+    // exhausted by the many registrations from 127.0.0.1.
+    await clearAuthIpRateLimits(redis);
   });
 
   /** Register a user and return the email. */
@@ -138,12 +141,17 @@ describe("Rate limit stress test — auth endpoints (#81)", () => {
 
   describe("concurrent brute force (100 concurrent login attempts, same email)", () => {
     const CONCURRENT_COUNT = 100;
+    // ND-053: the per-IP login budget (10 req/60s) is now the binding
+    // constraint for concurrent attempts from a single IP — the per-email
+    // limit (500) can no longer be reached from one address.
+    const PER_IP_MAX = 10;
 
-    it("should allow all concurrent requests when count is well within limit", async () => {
+    it("should cap concurrent requests from one IP at the per-IP limit (ND-053)", async () => {
       const email = uniqueEmail();
       await registerUser(email);
 
-      // Fire all 100 requests concurrently — well within the 500 limit.
+      // Fire all 100 requests concurrently — the per-IP budget (10) is the
+      // ceiling: exactly 10 pass (401 wrong password), the rest are 429.
       const promises = Array.from({ length: CONCURRENT_COUNT }, () =>
         fetch(`http://127.0.0.1:${server.port}/api/auth/login`, {
           method: "POST",
@@ -160,9 +168,9 @@ describe("Rate limit stress test — auth endpoints (#81)", () => {
       const status401 = results.filter((r) => r.status === 401);
       const status429 = results.filter((r) => r.status === 429);
 
-      // All 100 should pass (all < 500 limit), getting 401 for wrong password.
-      expect(status401.length).toBe(CONCURRENT_COUNT);
-      expect(status429.length).toBe(0);
+      // Exactly the per-IP budget passes; every excess request is rate-limited.
+      expect(status401.length).toBe(PER_IP_MAX);
+      expect(status429.length).toBe(CONCURRENT_COUNT - PER_IP_MAX);
       // 100 concurrent logins each run bcrypt.compare (12 rounds) + Postgres +
       // Redis round-trips on one event loop — 5s is too tight on shared hosts.
     }, 30_000);

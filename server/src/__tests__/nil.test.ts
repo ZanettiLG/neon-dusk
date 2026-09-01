@@ -3,7 +3,7 @@ import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json, authHeader } from "./helpers";
+import { startTestServer, json, authHeader, clearAuthIpRateLimits } from "./helpers";
 import type {
   AuthResponse,
   CreateCharacterRequest,
@@ -63,6 +63,15 @@ describe("Feature #2 — NIL API", () => {
     await app.close();
   });
 
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many registrations from 127.0.0.1.
+  beforeEach(async () => {
+    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    await redis.connect();
+    await clearAuthIpRateLimits(redis);
+    redis.disconnect();
+  });
+
   /** Register a fresh account and create a character, returning the access token. */
   async function registerAndCreateCharacter(email: string): Promise<string> {
     const res = await server.post("/api/auth/register", { email, password: PASSWORD });
@@ -87,10 +96,7 @@ describe("Feature #2 — NIL API", () => {
     return fetch(`${base()}/api/characters/me/nil`, { headers: authHeader(accessToken) });
   }
 
-  function consumeNil(
-    accessToken: string,
-    amount: unknown,
-  ): Promise<Response> {
+  function consumeNil(accessToken: string, amount: unknown): Promise<Response> {
     return fetch(`${base()}/api/characters/me/nil/consume`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeader(accessToken) },
@@ -331,7 +337,9 @@ describe("Feature #2 — NIL API", () => {
 
       expect(stimRes.status).toBe(404);
       const body = await json<ErrorBody>(stimRes);
-      expect(body.error).toBe("CHARACTER_NOT_FOUND");
+      // ND-053: setAuditContext resolves the character in the preHandler and
+      // throws NO_CHARACTER before the service's CHARACTER_NOT_FOUND can fire.
+      expect(body.error).toBe("NO_CHARACTER");
     });
   });
 });

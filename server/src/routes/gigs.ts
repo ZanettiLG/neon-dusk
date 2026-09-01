@@ -13,6 +13,7 @@ import type {
 } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { checkCooldown } from "../middleware/cooldown";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
 import { characterRepository as characters } from "../repositories/character-repository";
@@ -86,6 +87,7 @@ export async function gigRoutes(app: FastifyInstance) {
         authenticate,
         setAuditContext("gig_accept"),
         checkCircuitBreaker(redis),
+        checkCooldown(redis, "gig_accept"),
         checkActionRateLimit(redis, "gig_accept"),
       ],
     },
@@ -95,7 +97,12 @@ export async function gigRoutes(app: FastifyInstance) {
 
       request.audit_context!.payload = { gigId: id };
 
-      return acceptGig(characterId, id);
+      const result = await acceptGig(characterId, id);
+
+      // Set cooldown AFTER success (ADR-2) — 30s.
+      await redis.setex(`cooldown:${characterId}:gig_accept`, 30, "1");
+
+      return result;
     },
   );
 

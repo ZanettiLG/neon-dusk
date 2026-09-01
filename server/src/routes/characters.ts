@@ -13,7 +13,9 @@ import { consumeNil, consumeNilSchema, getNilStatus, useStim } from "../services
 import { listCharacterEvents } from "../services/event-service";
 import { characterRepository as characters } from "../repositories/character-repository";
 import { authenticate } from "../middleware/auth";
-import { checkRateLimit } from "../lib/rate-limit";
+import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { setAuditContext, setPreAuthAuditContext } from "../middleware/audit-middleware";
+import { checkRateLimit, checkActionRateLimit } from "../lib/rate-limit";
 
 /** Query schema for the player event feed (ND-139). */
 const eventsQuerySchema = z.object({
@@ -32,11 +34,27 @@ export interface CharacterRoutesOptions {
 export async function characterRoutes(app: FastifyInstance, opts: CharacterRoutesOptions) {
   const { redis } = opts;
 
-  app.post("/characters", { preHandler: [authenticate] }, async (request, reply) => {
-    const input = createCharacterSchema.parse(request.body);
-    const character = await createCharacter(request.user.sub, input);
-    return reply.status(201).send(character as Character);
-  });
+  app.post(
+    "/characters",
+    {
+      preHandler: [
+        authenticate,
+        // POST /characters is the ONLY mutating route that runs pre-character:
+        // `setAuditContext` would resolve the character via requireByUserId and
+        // throw 404 NO_CHARACTER before the handler could create it. Use the
+        // pre-auth context (characterId null) — the character is born inside
+        // the handler, so the audit row's character_id is null by design.
+        setPreAuthAuditContext("character_create"),
+        checkCircuitBreaker(redis),
+        checkActionRateLimit(redis, "character_create"),
+      ],
+    },
+    async (request, reply) => {
+      const input = createCharacterSchema.parse(request.body);
+      const character = await createCharacter(request.user.sub, input);
+      return reply.status(201).send(character as Character);
+    },
+  );
 
   // NIL — energy readout + spend + Pingado (Feature #2). GET is read-only:
   // regen is applied in memory and never persisted. Consumo e Pingado são rate
@@ -51,6 +69,8 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
     {
       preHandler: [
         authenticate,
+        setAuditContext("nil_consume"),
+        checkCircuitBreaker(redis),
         async (request) => {
           await checkRateLimit(redis, `nil:consume:${request.user.sub}`, 1000, 60_000);
         },
@@ -67,6 +87,8 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
     {
       preHandler: [
         authenticate,
+        setAuditContext("nil_stim"),
+        checkCircuitBreaker(redis),
         async (request) => {
           await checkRateLimit(redis, `nil:stim:${request.user.sub}`, 500, 30_000);
         },

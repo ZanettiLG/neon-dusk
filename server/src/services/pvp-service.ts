@@ -48,7 +48,7 @@ const POWER_RANGE = 10;
 /** Redis cooldown key prefix (per attacking character). */
 const PVP_COOLDOWN_KEY = "pvp:cooldown:";
 /** Attack cooldown, in seconds. */
-const PVP_COOLDOWN_S = 15;
+const PVP_COOLDOWN_S = 3600;
 /** Account immunity window (must match game/pvp IMMUNITY_DAYS). */
 const IMMUNITY_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -173,7 +173,10 @@ export async function executeAttack(
   }
 
   if (await redis.get(`${PVP_COOLDOWN_KEY}${attackerId}`)) {
-    throw new AppError(429, "PVP_COOLDOWN", "Você ainda está em cooldown de ataque");
+    const ttl = await redis.ttl(`${PVP_COOLDOWN_KEY}${attackerId}`);
+    throw new AppError(429, "PVP_COOLDOWN", "Você ainda está em cooldown de ataque", {
+      retryAfter: ttl > 0 ? ttl : PVP_COOLDOWN_S,
+    });
   }
 
   // ND-052: the NIL cost is a tunable game param (docs §3: 20 NIL per

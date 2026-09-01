@@ -12,6 +12,7 @@ import {
   signAccessToken,
 } from "../lib/auth";
 import { checkRateLimit } from "../lib/rate-limit";
+import { assertCharacterNotBanned } from "../middleware/ban-check";
 import { userRepository as users } from "../repositories/user-repository";
 import { characterRepository as characters } from "../repositories/character-repository";
 import type { UserRow } from "../repositories/user-repository";
@@ -80,7 +81,12 @@ export async function registerUser(
   redis: Redis,
   input: RegisterInput,
 ): Promise<AuthResponse> {
-  await checkRateLimit(redis, `register:${input.email}`, REGISTER_RATE_LIMIT.max, REGISTER_RATE_LIMIT.windowMs);
+  await checkRateLimit(
+    redis,
+    `register:${input.email}`,
+    REGISTER_RATE_LIMIT.max,
+    REGISTER_RATE_LIMIT.windowMs,
+  );
 
   if (await users.findByEmail(input.email)) {
     throw new AppError(409, "EMAIL_TAKEN", "Já existe uma conta com este email");
@@ -98,13 +104,23 @@ export async function loginUser(
   redis: Redis,
   input: LoginInput,
 ): Promise<AuthResponse> {
-  await checkRateLimit(redis, `login:${input.email}`, LOGIN_RATE_LIMIT.max, LOGIN_RATE_LIMIT.windowMs);
+  await checkRateLimit(
+    redis,
+    `login:${input.email}`,
+    LOGIN_RATE_LIMIT.max,
+    LOGIN_RATE_LIMIT.windowMs,
+  );
 
   const user = await users.findByEmail(input.email);
   // Same error for unknown email vs wrong password (no account enumeration).
   if (!user || !(await bcrypt.compare(input.password, user.password_hash))) {
     throw new AppError(401, "INVALID_CREDENTIALS", "Email ou senha inválidos");
   }
+
+  // ND-053 (Gap D): banned players must not receive new tokens. Runs after
+  // credential verification so ban status is never leaked to unauthenticated
+  // callers. `authenticate` enforces the same gate on every subsequent request.
+  await assertCharacterNotBanned(user.id);
 
   return buildAuthResponse(app, redis, user);
 }

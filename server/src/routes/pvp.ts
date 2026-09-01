@@ -4,11 +4,9 @@ import { z } from "zod";
 import type { PvpAttackableResponse, PvpCombatResult, PvpHistoryResponse } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
-import { checkCooldown } from "../middleware/cooldown";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
-import { characterRepository as characters } from "../repositories/character-repository";
 import {
   executeAttack,
   getAttackableTargets,
@@ -58,23 +56,19 @@ export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
         authenticate,
         setAuditContext("pvp_attack"),
         checkCircuitBreaker(redis),
-        checkCooldown(redis, "pvp_attack"),
         validate(attackSchema),
         checkActionRateLimit(redis, "pvp_attack"),
       ],
     },
     async (request): Promise<PvpCombatResult> => {
-      const characterId = (await characters.requireByUserId(request.user.sub)).id;
       const { targetId } = request.body as z.infer<typeof attackSchema>;
 
       request.audit_context!.payload = { targetId };
 
-      const result = await executeAttack(redis, request.user.sub, targetId);
-
-      // Set cooldown AFTER success (ADR-2) — 1h.
-      await redis.setex(`cooldown:${characterId}:pvp_attack`, 15, "1");
-
-      return result;
+      // The 1h attack cooldown is owned by the service (executeAttack checks it
+      // before the fight and sets it after the transaction commits — ADR-2), so
+      // it is NOT duplicated here (M3).
+      return executeAttack(redis, request.user.sub, targetId);
     },
   );
 

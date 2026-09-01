@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import type { AddressInfo } from "node:net";
+import type Redis from "ioredis";
 import type { AuthResponse, Role, Origin } from "@neon-dusk/shared";
 import { db } from "../db";
 
@@ -141,4 +142,15 @@ export async function registerTestUser(
     throw new Error(`registerTestUser failed: ${res.status} ${await res.text()}`);
   }
   return json<AuthResponse>(res);
+}
+
+/**
+ * Clear the ND-053 per-IP auth rate-limit counters (`auth:rl:auth:register:ip:*`
+ * and `auth:rl:auth:login:ip:*`, max 10 req/60s). Suites that register many
+ * users from 127.0.0.1 must call this between tests so the per-IP budget is
+ * never exhausted mid-suite.
+ */
+export async function clearAuthIpRateLimits(redis: Redis): Promise<void> {
+  const keys = await redis.keys("auth:rl:auth:*:ip:*");
+  if (keys.length) await redis.del(keys);
 }

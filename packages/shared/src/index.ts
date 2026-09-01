@@ -1145,6 +1145,7 @@ export interface AdminAuditEntry {
   result: string;
   payload: Record<string, unknown>;
   ip: string;
+  userAgent: string;
 }
 
 /** GET /api/admin/audit response (cursor-paginated). */

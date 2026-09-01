@@ -16,13 +16,13 @@ export type ActionType =
   | "gig_submit"
   | "pvp_attack"
   | "saideira_chat"
+  | "crew_chat"
   | "crew_invite"
   | "chrome_install"
   | "chrome_uninstall"
   | "economy_transact"
   | "character_create"
   | "vendor_purchase"
-  | "stim_use"
   | "gig_abandon"
   | "os_activate"
   | "therapy"
@@ -40,14 +40,14 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
   gig_execute:      { max: 1000, windowMs: 60_000 },
   gig_submit:       { max: 1000, windowMs: 60_000 },
   pvp_attack:       { max: 300,  windowMs: 3_600_000 },
-  saideira_chat:    { max: 1200, windowMs: 60_000 },
+  saideira_chat:    { max: 60,   windowMs: 60_000 },
+  crew_chat:        { max: 60,   windowMs: 60_000 },
   crew_invite:      { max: 500,  windowMs: 60_000 },
   chrome_install:   { max: 500,  windowMs: 60_000 },
   chrome_uninstall: { max: 500,  windowMs: 60_000 },
   economy_transact: { max: 2000, windowMs: 60_000 },
   character_create: { max: 300,  windowMs: 3_600_000 },
   vendor_purchase:  { max: 1000, windowMs: 60_000 },
-  stim_use:         { max: 500,  windowMs: 30_000 },
   gig_abandon:      { max: 500,  windowMs: 60_000 },
   os_activate:      { max: 60,   windowMs: 3_600_000 },
   therapy:          { max: 100,  windowMs: 3_600_000 },
@@ -58,7 +58,7 @@ export const rateLimitConfig: Record<ActionType, RateLimitEntry> = {
 export const circuitBreakerConfig = {
   countTtlSeconds: 3600,          // 1h window for counting strikes
   banTtlSeconds: 86_400,          // 24h ban
-  strikeThreshold: 1000,
+  strikeThreshold: 3,
 };
 
 // ---------------------------------------------------------------------------
@@ -77,14 +77,19 @@ export async function checkRateLimit(
 ): Promise<void> {
   const counterKey = `auth:rl:${key}`;
 
-  // Atomic INCR + EXPIRE in one multi.
-  const results = await redis.multi().incr(counterKey).expire(counterKey, Math.ceil(windowMs / 1000)).exec();
+  // Fixed window: INCR, then only set the EXPIRE on the first hit (count === 1).
+  // Renewing EXPIRE on every hit would let an attacker keep the window open
+  // indefinitely with spaced requests (M5).
+  const results = await redis.multi().incr(counterKey).exec();
   if (results === null) {
     // ponytail: Redis unavailable — fail open, don't block the user
     console.warn("Rate limiter: Redis unavailable, allowing request");
     return;
   }
   const count = results[0][1] as number;
+  if (count === 1) {
+    await redis.expire(counterKey, Math.ceil(windowMs / 1000));
+  }
 
   if (count > max) {
     const retryAfter = Math.ceil(windowMs / 1000);
@@ -100,7 +105,7 @@ export async function checkRateLimit(
  * Returns a preHandler that enforces a per-character, per-action rate limit.
  *
  * On success: sets X-RateLimit-Remaining and X-RateLimit-Reset headers.
- * On limit exceeded: increments the circuit-break counter (7 strikes = 24h ban),
+ * On limit exceeded: increments the circuit-break counter (3 strikes = 24h ban),
  * then throws AppError(429, "RATE_LIMITED").
  */
 export function checkActionRateLimit(
@@ -114,14 +119,19 @@ export function checkActionRateLimit(
     const key = `rate:${userId}:${actionType}`;
     const windowSeconds = Math.ceil(config.windowMs / 1000);
 
-    // Atomic INCR + EXPIRE.
-    const results = await redis.multi().incr(key).expire(key, windowSeconds).exec();
+    // Fixed window: INCR, then only set the EXPIRE on the first hit (count === 1).
+    // Renewing EXPIRE on every hit would let an attacker keep the window open
+    // indefinitely with spaced requests (M5).
+    const results = await redis.multi().incr(key).exec();
     if (results === null) {
       // ponytail: Redis unavailable — fail open
       console.warn("[rate-limit] Redis unavailable, allowing request");
       return;
     }
     const count = results[0][1] as number;
+    if (count === 1) {
+      await redis.expire(key, windowSeconds);
+    }
 
     if (count <= config.max) {
       setRateLimitHeaders(reply, config.max - count, config.windowMs);

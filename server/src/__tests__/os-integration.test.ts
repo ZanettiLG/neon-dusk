@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json, authHeader, resetDb } from "./helpers";
+import { startTestServer, json, authHeader, resetDb, clearAuthIpRateLimits } from "./helpers";
 import { db } from "../db";
 import type {
   AuthResponse,
@@ -89,9 +89,24 @@ describe("Issue #28 — OS API", () => {
     await app.close();
   });
 
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many registrations from 127.0.0.1.
+  beforeEach(async () => {
+    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    await redis.connect();
+    await clearAuthIpRateLimits(redis);
+    redis.disconnect();
+  });
+
   /** Register a fresh user + character via HTTP; returns token + character id. */
-  async function registerAndCreateCharacter(): Promise<{ accessToken: string; characterId: string }> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+  async function registerAndCreateCharacter(): Promise<{
+    accessToken: string;
+    characterId: string;
+  }> {
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken, user } = await json<AuthResponse>(res);
 
@@ -107,19 +122,13 @@ describe("Issue #28 — OS API", () => {
     });
     expect(created.status).toBe(201);
 
-    const [character] = await db("characters")
-      .select("id")
-      .where("user_id", user.id)
-      .limit(1);
+    const [character] = await db("characters").select("id").where("user_id", user.id).limit(1);
     return { accessToken, characterId: character!.id };
   }
 
   /** DB id of a seeded cromo definition, by slug. */
   async function defId(slug: string): Promise<string> {
-    const [row] = await db("chrome_definitions")
-      .select("id")
-      .where("slug", slug)
-      .limit(1);
+    const [row] = await db("chrome_definitions").select("id").where("slug", slug).limit(1);
     return row!.id;
   }
 
@@ -309,8 +318,15 @@ describe("Issue #28 — OS API", () => {
 
   describe("OS permanence (install/uninstall gates)", () => {
     it("should reject a second OS install with 409 OS_ALREADY_INSTALLED", async () => {
-      const { accessToken } = await registerAndCreateCharacter();
+      const { accessToken, characterId } = await registerAndCreateCharacter();
       await installOs(accessToken, "os-fury");
+
+      // ND-053: the first install arms the 60s chrome_install cooldown. Drop
+      // it so the second install reaches the permanence guard.
+      const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+      await redis.connect();
+      await redis.del(`cooldown:${characterId}:chrome_install`);
+      redis.disconnect();
 
       const res = await installOs(accessToken, "os-surge");
 

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json, authHeader, resetDb } from "./helpers";
+import { startTestServer, json, authHeader, resetDb, clearAuthIpRateLimits } from "./helpers";
 import { db } from "../db";
 import { seedConsumables, seedVendors } from "../seed/content-seeds";
 import type {
@@ -76,6 +76,15 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
 
   afterAll(async () => {
     await app.close();
+  });
+
+  // ND-053: the per-IP register/login budget (10 req/60s) must not be
+  // exhausted by the many registrations from 127.0.0.1.
+  beforeEach(async () => {
+    const redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
+    await redis.connect();
+    await clearAuthIpRateLimits(redis);
+    redis.disconnect();
   });
 
   /** Register a fresh user + character via HTTP; returns token + character id. */

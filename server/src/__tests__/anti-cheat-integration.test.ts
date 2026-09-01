@@ -121,7 +121,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
   });
 
   afterAll(async () => {
-    circuitBreakerConfig.strikeThreshold = 1000;
+    circuitBreakerConfig.strikeThreshold = 3; // ND-053 default (was 1000)
     await app.close();
     redis.disconnect();
   });
@@ -329,5 +329,82 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
       circuitBreakerConfig.strikeThreshold - 1,
     );
     expect(rows.filter((r) => r.result === "circuit_break")).toHaveLength(2);
+  });
+
+  // ─── Pre-auth rate limit (per-IP) + pre-auth audit ────────────────────────
+
+  /** Poll audit_log for pre-auth rows (character_id IS NULL) by action. */
+  async function waitForPreAuthAudit(
+    action: string,
+    expected: number,
+    timeoutMs = 2000,
+  ): Promise<AuditRow[]> {
+    const deadline = Date.now() + timeoutMs;
+    let rows: AuditRow[] = [];
+    while (Date.now() < deadline) {
+      rows = await db("audit_log")
+        .select("*")
+        .whereNull("character_id")
+        .andWhere("action", action)
+        .orderBy("created_at", "desc");
+      if (rows.length >= expected) return rows;
+      await sleep(25);
+    }
+    return rows;
+  }
+
+  it("should rate-limit register per-IP: 10 requests pass, the 11th returns 429", async () => {
+    // The register per-IP counter is keyed `auth:register:ip:{ip}` (max 10/60s).
+    // Pre-set it to 10 so the next request trips the limit deterministically.
+    await redis.set("auth:rl:auth:register:ip:127.0.0.1", 10, "EX", 60);
+
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
+    expect(res.status).toBe(429);
+    const body = await json<ErrorBody>(res);
+    expect(body.error).toBe("RATE_LIMITED");
+  });
+
+  it("should rate-limit login per-IP: 10 requests pass, the 11th returns 429", async () => {
+    await redis.set("auth:rl:auth:login:ip:127.0.0.1", 10, "EX", 60);
+
+    const res = await server.post("/api/auth/login", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
+    expect(res.status).toBe(429);
+    const body = await json<ErrorBody>(res);
+    expect(body.error).toBe("RATE_LIMITED");
+  });
+
+  it("should audit a pre-auth register with character_id NULL and action auth_register", async () => {
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
+    expect(res.status).toBe(201);
+
+    const [row] = await waitForPreAuthAudit("auth_register", 1);
+    expect(row).toBeDefined();
+    expect(row.character_id).toBeNull();
+    expect(row.action).toBe("auth_register");
+    expect(row.result).toBe("allowed");
+    expect(row.ip).toBe("127.0.0.1");
+  });
+
+  it("should audit a pre-auth login with character_id NULL and action auth_login", async () => {
+    const email = uniqueEmail();
+    await server.post("/api/auth/register", { email, password: PASSWORD });
+
+    const res = await server.post("/api/auth/login", { email, password: PASSWORD });
+    expect(res.status).toBe(200);
+
+    const [row] = await waitForPreAuthAudit("auth_login", 1);
+    expect(row).toBeDefined();
+    expect(row.character_id).toBeNull();
+    expect(row.action).toBe("auth_login");
+    expect(row.result).toBe("allowed");
   });
 });
