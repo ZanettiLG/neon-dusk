@@ -2,7 +2,7 @@ import fp from "fastify-plugin";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AuditResult } from "../lib/audit-log";
 import { auditLog } from "../lib/audit-log";
-import { characterRepository as characters } from "../repositories/character-repository";
+import { resolveCharacter } from "../lib/request-character";
 
 // Neon Dusk — onResponse audit hook (ND-053)
 // ============================================================================
@@ -33,7 +33,9 @@ declare module "fastify" {
  */
 export function setAuditContext(action: string): (request: FastifyRequest) => Promise<void> {
   return async (request) => {
-    const characterId = (await characters.requireByUserId(request.user.sub)).id;
+    // Memoized on `request` (M6) — shares one character query with the rest of
+    // the preHandler chain and the handler.
+    const characterId = (await resolveCharacter(request, { require: true }))!.id;
     request.audit_context = {
       action,
       characterId,

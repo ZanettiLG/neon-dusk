@@ -1,6 +1,7 @@
 import type { FastifyRequest } from "fastify";
-import { characterRepository as characters } from "../repositories/character-repository";
 import { AppError } from "./error-handler";
+import { resolveCharacter } from "../lib/request-character";
+import { characterRepository as characters } from "../repositories/character-repository";
 
 // Neon Dusk — manual admin ban gate (ND-053, Gap D)
 // ============================================================================
@@ -43,9 +44,9 @@ export async function checkBan(
 ): Promise<void> {
   const { requireCharacter = true } = opts;
   try {
-    const character = requireCharacter
-      ? await characters.requireByUserId(request.user.sub)
-      : await characters.findByUserId(request.user.sub);
+    // Memoized on `request` (M6) so the ban check, audit context, cooldown
+    // gate and handler share one character query per request.
+    const character = await resolveCharacter(request, { require: requireCharacter });
     if (character?.is_banned) {
       throw new AppError(403, "BANNED", "Sua conta foi banida.");
     }

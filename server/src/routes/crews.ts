@@ -514,7 +514,8 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
   );
 
   // POST /api/crews/:id/chat — send a message (1 msg / 5s per member via the
-  // chat_message cooldown, same gate as the saideira chat — ND-053).
+  // chat_message cooldown). Uses its own `crew_chat` rate-limit namespace so
+  // crew chat does NOT consume the Saideira chat budget (M1).
   app.post(
     "/crews/:id/chat",
     {
@@ -522,7 +523,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         authenticate,
         setAuditContext("crew_chat"),
         checkCircuitBreaker(redis),
-        checkActionRateLimit(redis, "saideira_chat"),
+        checkActionRateLimit(redis, "crew_chat"),
         checkCooldown(redis, "chat_message"),
         validate(chatSendSchema),
       ],

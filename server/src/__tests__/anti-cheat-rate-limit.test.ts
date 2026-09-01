@@ -189,13 +189,13 @@ describe("rateLimitConfig", () => {
       "gig_submit",
       "pvp_attack",
       "saideira_chat",
+      "crew_chat",
       "crew_invite",
       "chrome_install",
       "chrome_uninstall",
       "economy_transact",
       "character_create",
       "vendor_purchase",
-      "stim_use",
     ];
     for (const action of actions) {
       expect(rateLimitConfig[action].max).toBeGreaterThan(0);

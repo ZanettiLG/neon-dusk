@@ -1,6 +1,6 @@
 import type { FastifyRequest } from "fastify";
 import type Redis from "ioredis";
-import { characterRepository as characters } from "../repositories/character-repository";
+import { resolveCharacter } from "../lib/request-character";
 import { AppError } from "./error-handler";
 
 // Neon Dusk — Redis-backed action cooldown preHandler (ND-053)
@@ -10,8 +10,6 @@ import { AppError } from "./error-handler";
 // failed action (e.g., insufficient Grana) does NOT trigger a cooldown.
 
 export type CooldownActionType =
-  | "pvp_attack"       // 1h
-  | "stim_use"         // 5min
   | "chat_message"     // 5s
   | "crew_invite"      // 60s
   | "gig_accept"       // 30s
@@ -22,8 +20,6 @@ export interface CooldownEntry {
 }
 
 export const cooldownConfig: Record<CooldownActionType, CooldownEntry> = {
-  pvp_attack:     { durationMs: 3_600_000 },
-  stim_use:       { durationMs: 300_000 },
   chat_message:   { durationMs: 5_000 },
   crew_invite:    { durationMs: 60_000 },
   gig_accept:     { durationMs: 30_000 },
@@ -44,7 +40,9 @@ export function checkCooldown(
   const entry = cooldownConfig[actionType];
 
   return async (request) => {
-    const characterId = (await characters.requireByUserId(request.user.sub)).id;
+    // Memoized on `request` (M6) — shares one character query with the rest of
+    // the preHandler chain and the handler.
+    const characterId = (await resolveCharacter(request, { require: true }))!.id;
     const key = `cooldown:${characterId}:${actionType}`;
 
     try {

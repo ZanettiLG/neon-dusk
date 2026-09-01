@@ -80,13 +80,13 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
 
   it("should keep cooldowns independent across different actions", async () => {
     const { userId, characterId } = await insertTestCharacter();
-    const pvpPreHandler = checkCooldown(redis, "pvp_attack");
+    const invitePreHandler = checkCooldown(redis, "crew_invite");
     const chatPreHandler = checkCooldown(redis, "chat_message");
 
-    await redis.setex(`cooldown:${characterId}:pvp_attack`, 30, "1");
+    await redis.setex(`cooldown:${characterId}:crew_invite`, 30, "1");
 
-    // pvp_attack is on cooldown…
-    await expect(pvpPreHandler(requestFor(userId))).rejects.toMatchObject({
+    // crew_invite is on cooldown…
+    await expect(invitePreHandler(requestFor(userId))).rejects.toMatchObject({
       code: "COOLDOWN_ACTIVE",
     });
 
@@ -120,10 +120,6 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
 });
 
 describe("cooldownConfig (ND-053 durations)", () => {
-  it("should set pvp_attack to 1h (3_600_000ms)", () => {
-    expect(cooldownConfig.pvp_attack.durationMs).toBe(3_600_000);
-  });
-
   it("should set gig_accept to 30s (30_000ms)", () => {
     expect(cooldownConfig.gig_accept.durationMs).toBe(30_000);
   });
@@ -133,7 +129,6 @@ describe("cooldownConfig (ND-053 durations)", () => {
   });
 
   it("should keep the legacy durations unchanged", () => {
-    expect(cooldownConfig.stim_use.durationMs).toBe(300_000); // 5min
     expect(cooldownConfig.chat_message.durationMs).toBe(5_000); // 5s
     expect(cooldownConfig.crew_invite.durationMs).toBe(60_000); // 60s
   });

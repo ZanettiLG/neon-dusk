@@ -6,7 +6,6 @@ import {
   characterRepository as characters,
   type CharacterRow,
 } from "../repositories/character-repository";
-import { AppError } from "../middleware/error-handler";
 
 // ND-053 (Gap D) — manual admin ban gate. The character-repository module is
 // mocked so the middleware behavior is observable without a running Postgres
@@ -41,7 +40,7 @@ describe("checkBan (ND-053 admin ban gate)", () => {
   });
 
   it("should throw 403 BANNED when the character is banned", async () => {
-    vi.mocked(characters.requireByUserId).mockResolvedValue(bannedRow());
+    vi.mocked(characters.findByUserId).mockResolvedValue(bannedRow());
 
     await expect(checkBan(requestFor(USER_ID))).rejects.toMatchObject({
       statusCode: 403,
@@ -51,15 +50,15 @@ describe("checkBan (ND-053 admin ban gate)", () => {
   });
 
   it("should pass when the character is not banned", async () => {
-    vi.mocked(characters.requireByUserId).mockResolvedValue(cleanRow());
+    vi.mocked(characters.findByUserId).mockResolvedValue(cleanRow());
 
     await expect(checkBan(requestFor(USER_ID))).resolves.toBeUndefined();
   });
 
   it("should throw 404 NO_CHARACTER when the user has no character", async () => {
-    vi.mocked(characters.requireByUserId).mockRejectedValue(
-      new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro"),
-    );
+    // M6: the character is resolved via the memoized findByUserId path — a
+    // missing row surfaces as NO_CHARACTER from resolveCharacter.
+    vi.mocked(characters.findByUserId).mockResolvedValue(null);
 
     await expect(checkBan(requestFor(USER_ID))).rejects.toMatchObject({
       statusCode: 404,
@@ -67,8 +66,8 @@ describe("checkBan (ND-053 admin ban gate)", () => {
     });
   });
 
-  it("should fail open when the DB is unavailable (requireByUserId throws)", async () => {
-    vi.mocked(characters.requireByUserId).mockRejectedValue(new Error("ECONNREFUSED"));
+  it("should fail open when the DB is unavailable (findByUserId throws)", async () => {
+    vi.mocked(characters.findByUserId).mockRejectedValue(new Error("ECONNREFUSED"));
 
     await expect(checkBan(requestFor(USER_ID))).resolves.toBeUndefined();
   });

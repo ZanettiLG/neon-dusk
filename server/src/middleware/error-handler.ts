@@ -64,7 +64,7 @@ export function errorHandler(
       });
     }
 
-    if (error.code === "COOLDOWN_ACTIVE" || error.code === "CIRCUIT_BREAK") {
+    if (error.code === "COOLDOWN_ACTIVE" || error.code === "CIRCUIT_BREAK" || error.code === "PVP_COOLDOWN") {
       const retryAfter = (error.details as { retryAfter?: number } | undefined)?.retryAfter;
       if (retryAfter !== undefined) {
         reply.header("Retry-After", retryAfter);
