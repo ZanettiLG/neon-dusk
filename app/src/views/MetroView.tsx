@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Origin, VendorRecord } from "@neon-dusk/shared";
+import type { MetroMapResponse, Origin, VendorRecord } from "@neon-dusk/shared";
 import { api } from "@/api/client";
 import { useAuthStore } from "@/stores/auth";
 import { useMetroStore } from "@/stores/metro";
@@ -10,8 +10,8 @@ import { originFromDistrictString } from "@/lib/district-meta";
 
 /**
  * Metro map view — diegetic travel between the seven districts of São Paulo
- * 2087. Vendors are fetched from the API and grouped per district to badge
- * the stations that have a market.
+ * 2087. Vendors and the district map payload (trampos, calor, território)
+ * are fetched in parallel and grouped per district to badge the stations.
  */
 export default function MetroView() {
   const character = useAuthStore((s) => s.character);
@@ -22,6 +22,7 @@ export default function MetroView() {
   const cancelTravel = useMetroStore((s) => s.cancelTravel);
 
   const [vendors, setVendors] = useState<VendorRecord[]>([]);
+  const [metro, setMetro] = useState<MetroMapResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -40,10 +41,16 @@ export default function MetroView() {
       setLoading(true);
       setError(null);
       try {
-        const data = await api.get<VendorRecord[]>("/api/vendors");
-        if (!cancelled) setVendors(data);
+        const [vendorData, metroData] = await Promise.all([
+          api.get<VendorRecord[]>("/api/vendors"),
+          api.get<MetroMapResponse>("/api/metro"),
+        ]);
+        if (!cancelled) {
+          setVendors(vendorData);
+          setMetro(metroData);
+        }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Falha ao carregar vendedores");
+        if (!cancelled) setError(e instanceof Error ? e.message : "Falha ao carregar o mapa");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -62,6 +69,32 @@ export default function MetroView() {
     }
     return counts;
   }, [vendors]);
+
+  // Issue #18: the server already aggregates per canonical origin — no client
+  // normalization needed, the districts array is keyed by origin as-is.
+  const gigsByDistrict = useMemo(() => {
+    const counts: Partial<Record<Origin, number>> = {};
+    for (const district of metro?.districts ?? []) {
+      if (district.gigsAvailable > 0) counts[district.origin] = district.gigsAvailable;
+    }
+    return counts;
+  }, [metro]);
+
+  const heatByDistrict = useMemo(() => {
+    const heats: Partial<Record<Origin, number>> = {};
+    for (const district of metro?.districts ?? []) {
+      if (district.heat > 0) heats[district.origin] = district.heat;
+    }
+    return heats;
+  }, [metro]);
+
+  const territoryByDistrict = useMemo(() => {
+    const territories: Partial<Record<Origin, string>> = {};
+    for (const district of metro?.districts ?? []) {
+      if (district.territoryCrewTag) territories[district.origin] = district.territoryCrewTag;
+    }
+    return territories;
+  }, [metro]);
 
   // The overlay clears when the crossing completes (traveling flips back).
   useEffect(() => {
@@ -107,6 +140,9 @@ export default function MetroView() {
           currentDistrict={currentDistrict}
           originDistrict={character?.origin ?? null}
           vendorsByDistrict={vendorsByDistrict}
+          gigsByDistrict={gigsByDistrict}
+          heatByDistrict={heatByDistrict}
+          territoryByDistrict={territoryByDistrict}
           traveling={traveling}
           onSelect={handleSelect}
         />

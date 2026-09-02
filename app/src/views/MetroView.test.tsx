@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import type { Origin, Character, VendorRecord } from "@neon-dusk/shared";
+import type { Character, MetroMapResponse, Origin, VendorRecord } from "@neon-dusk/shared";
 import MetroView from "@/views/MetroView";
 import { useMetroStore, METRO_TRAVEL_MS } from "@/stores/metro";
 import { useAuthStore } from "@/stores/auth";
@@ -63,6 +63,28 @@ const ORIGINS: Origin[] = [
   "o_ponto",
 ];
 
+/** Zero-filled metro payload (no trampos/heat/territory anywhere). */
+const EMPTY_METRO: MetroMapResponse = {
+  districts: ORIGINS.map((origin) => ({
+    origin,
+    gigsAvailable: 0,
+    heat: 0,
+    territoryCrewTag: null,
+  })),
+};
+
+/**
+ * Route-aware mock: /api/vendors → vendor list, /api/metro → district map.
+ * Both resolve by default; pass explicit values to override per test.
+ */
+function mockMapApi(opts: { vendors?: VendorRecord[]; metro?: MetroMapResponse } = {}) {
+  const vendorData = opts.vendors ?? [];
+  const metroData = opts.metro ?? EMPTY_METRO;
+  mocks.api.get.mockImplementation((url: string) =>
+    url === "/api/metro" ? Promise.resolve(metroData) : Promise.resolve(vendorData),
+  );
+}
+
 const STATIONS: [Origin, string][] = [
   ["a_paraiso", "A Paraíso"],
   ["o_fervo", "O Fervo"],
@@ -86,7 +108,7 @@ describe("MetroView", () => {
     vi.useRealTimers();
   });
 
-  it("should show a loading state while vendors are being fetched", () => {
+  it("should show a loading state while vendors and the metro map are being fetched", () => {
     mocks.api.get.mockImplementation(() => new Promise(() => {}));
 
     render(<MetroView />);
@@ -95,23 +117,39 @@ describe("MetroView", () => {
   });
 
   it("should show the error state with a retry that reloads the map", async () => {
-    mocks.api.get.mockRejectedValueOnce(new Error("Falha ao carregar vendedores"));
+    mocks.api.get.mockImplementation(() =>
+      Promise.reject(new Error("Falha ao carregar vendedores")),
+    );
 
     render(<MetroView />);
 
     expect(await screen.findByText(/Falha ao carregar vendedores/)).toBeInTheDocument();
 
-    mocks.api.get.mockResolvedValueOnce([]);
+    mockMapApi();
     fireEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
 
     expect(
       await screen.findByRole("img", { name: "Mapa do metrô de São Paulo 2087" }),
     ).toBeInTheDocument();
-    expect(mocks.api.get).toHaveBeenCalledTimes(2);
+    // Initial load = 2 calls (vendors + metro), retry = 2 more.
+    expect(mocks.api.get).toHaveBeenCalledTimes(4);
+  });
+
+  it("should show the error state when only the /api/metro fetch fails", async () => {
+    mocks.api.get.mockImplementation((url: string) =>
+      url === "/api/metro"
+        ? Promise.reject(new Error("Falha ao carregar o mapa"))
+        : Promise.resolve([]),
+    );
+
+    render(<MetroView />);
+
+    expect(await screen.findByText(/Falha ao carregar o mapa/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
   });
 
   it("should render the map without vendor badges when no vendors exist", async () => {
-    mocks.api.get.mockResolvedValue([]);
+    mockMapApi();
 
     render(<MetroView />);
 
@@ -124,7 +162,7 @@ describe("MetroView", () => {
   });
 
   it("should badge the districts that have vendors", async () => {
-    mocks.api.get.mockResolvedValue(vendors);
+    mockMapApi({ vendors });
 
     render(<MetroView />);
 
@@ -142,8 +180,44 @@ describe("MetroView", () => {
     ).toBeInTheDocument();
   });
 
+  it("should pass trampos, heat and territory indicators from /api/metro to the map", async () => {
+    const metro: MetroMapResponse = {
+      districts: ORIGINS.map((origin) => ({
+        origin,
+        gigsAvailable: origin === "o_fervo" ? 3 : 0,
+        heat: origin === "babilonia" ? 60 : 0,
+        territoryCrewTag: origin === "a_paraiso" ? "BLD" : null,
+      })),
+    };
+    mockMapApi({ metro });
+
+    render(<MetroView />);
+
+    await screen.findByRole("img", { name: "Mapa do metrô de São Paulo 2087" });
+
+    // Derived props reached the map: badges, heat label and territory tag.
+    expect(within(screen.getByTestId("metro-gigs-o_fervo")).getByText("3")).toBeInTheDocument();
+    expect(screen.getByTestId("metro-heat-babilonia")).toHaveTextContent("PEGANDO FOGO");
+    expect(screen.getByTestId("metro-territory-a_paraiso")).toHaveTextContent("[BLD]");
+
+    // Composited station labels.
+    expect(screen.getByRole("button", { name: "Estação O Fervo, 3 trampos" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Estação Babilônia, calor PEGANDO FOGO (60)",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Estação A Paraíso, território do bonde BLD" }),
+    ).toBeInTheDocument();
+
+    // Districts without data render nothing.
+    expect(screen.queryByTestId("metro-gigs-a_paraiso")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("metro-heat-o_fervo")).not.toBeInTheDocument();
+  });
+
   it("should highlight the character origin station on mount", async () => {
-    mocks.api.get.mockResolvedValue([]);
+    mockMapApi();
 
     render(<MetroView />);
 
@@ -160,7 +234,7 @@ describe("MetroView", () => {
 
   it("should cross to the selected district through the diegetic overlay", async () => {
     vi.useFakeTimers();
-    mocks.api.get.mockResolvedValue(vendors);
+    mockMapApi({ vendors });
 
     render(<MetroView />);
 
@@ -200,7 +274,7 @@ describe("MetroView", () => {
 
   it("should cancel a pending crossing when the view unmounts", async () => {
     vi.useFakeTimers();
-    mocks.api.get.mockResolvedValue(vendors);
+    mockMapApi({ vendors });
 
     const { unmount } = render(<MetroView />);
     await act(async () => {});
@@ -222,7 +296,7 @@ describe("MetroView", () => {
 
   it("should render the map without origin or current markers when the character has no origin", async () => {
     useAuthStore.setState({ character: null });
-    mocks.api.get.mockResolvedValue([]);
+    mockMapApi();
 
     render(<MetroView />);
 

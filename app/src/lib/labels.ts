@@ -3,21 +3,14 @@ import type {
   AttributeKey,
   GigPhase,
   GigType,
-  Origin,
   Role,
 } from "@neon-dusk/shared";
 
 // Display labels (pt-BR) for game enums used across auth/character UI.
-
-export const ORIGIN_LABELS: Record<Origin, string> = {
-  a_paraiso: "A Paraíso",
-  o_fervo: "O Fervo",
-  o_fluxo: "O Fluxo",
-  a_quebrada: "A Quebrada",
-  babilonia: "Babilônia",
-  as_mortas: "As Mortas",
-  o_ponto: "O Ponto",
-};
+// ORIGIN_LABELS moved to @neon-dusk/shared (issue #18 — also consumed by the
+// server's metro aggregation); re-exported here so existing consumers keep
+// their `@/lib/labels` import.
+export { ORIGIN_LABELS } from "@neon-dusk/shared";
 
 export const ROLE_LABELS: Record<Role, string> = {
   bicho: "Bicho",

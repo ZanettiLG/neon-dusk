@@ -33,6 +33,31 @@ export const ORIGINS = [
 ] as const;
 export type Origin = (typeof ORIGINS)[number];
 
+/** Display labels (pt-BR) for the seven origin districts. */
+export const ORIGIN_LABELS: Record<Origin, string> = {
+  a_paraiso: "A Paraíso",
+  o_fervo: "O Fervo",
+  o_fluxo: "O Fluxo",
+  a_quebrada: "A Quebrada",
+  babilonia: "Babilônia",
+  as_mortas: "As Mortas",
+  o_ponto: "O Ponto",
+};
+
+/**
+ * Normalize a district string from an API payload to an Origin key. Payloads
+ * are inconsistent across systems: vendor seeds store the Origin key
+ * ("o_fervo") while trampo templates store the display label ("O Fervo").
+ * Returns null for unrecognized values (callers render nothing for those).
+ */
+export function originFromDistrictString(district: string): Origin | null {
+  if ((ORIGINS as readonly string[]).includes(district)) return district as Origin;
+  const byLabel = (Object.entries(ORIGIN_LABELS) as [Origin, string][]).find(
+    ([, label]) => label === district,
+  );
+  return byLabel ? byLabel[0] : null;
+}
+
 // Attribute constants — 3 base + 7 free points = 22 total across 5 attributes.
 export const BASE_ATTRIBUTES = 3;
 export const FREE_POINTS = 7;
@@ -1179,4 +1204,25 @@ export interface AdminTransaction {
 export interface AdminTransactionsResponse {
   transactions: AdminTransaction[];
   total: number;
+}
+
+// ─── Mapa do Metrô (issue #18) ───────────────────────────────────────────────
+// District-map visualization endpoint: one aggregated readout per district
+// (trampos disponíveis, calor com decay aplicado, território de bonde) so the
+// client renders the whole map with a single fetch.
+
+/** One district of the GET /api/metro response, in canonical ORIGINS order. */
+export interface MetroDistrictInfo {
+  origin: Origin;
+  /** Trampo templates whose district maps to this origin. */
+  gigsAvailable: number;
+  /** Live district heat after lazy decay (0 when the character has no heat row). */
+  heat: number;
+  /** Tag of the crew that claims this district (null when unclaimed). */
+  territoryCrewTag: string | null;
+}
+
+/** GET /api/metro response — 7 districts in ORIGINS order. */
+export interface MetroMapResponse {
+  districts: MetroDistrictInfo[];
 }

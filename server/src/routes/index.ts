@@ -18,6 +18,7 @@ import { osRoutes } from "./os";
 import { humanityRoutes } from "./humanity";
 import { therapyRoutes } from "./therapy";
 import { consumableRoutes } from "./consumables";
+import { metroRoutes } from "./metro";
 
 export interface ApiRoutesOptions {
   redis: Redis;
@@ -50,4 +51,6 @@ export async function apiRoutes(app: FastifyInstance, opts: ApiRoutesOptions) {
   await app.register(therapyRoutes);
   // Itens anti-insanidade (issue #28) — /api/consumables
   await app.register(consumableRoutes);
+  // Mapa do metrô (issue #18) — /api/metro
+  await app.register(metroRoutes);
 }

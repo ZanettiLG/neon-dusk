@@ -262,6 +262,12 @@ describe("ND-018 — smoke test (all routes)", () => {
     expect(res.status).toBe(200);
   });
 
+  // ─── Metro (issue #18, JWT) ──────────────────────────────────────────────
+  it("GET /api/metro → 200 (JWT)", async () => {
+    const res = await server.get("/api/metro", headers);
+    expect(res.status).toBe(200);
+  });
+
   // ─── Round (JWT + admin) ─────────────────────────────────────────────────
   it("GET /api/round → 200 (JWT)", async () => {
     const res = await server.get("/api/round", headers);

@@ -11,6 +11,8 @@ export interface CrewRow {
   name: string;
   tag: string;
   leader_id: string;
+  /** Origin district claimed by the crew (null = unclaimed, issue #18). */
+  territory_district: string | null;
   created_at: Date;
 }
 
@@ -47,7 +49,14 @@ export interface CrewRepository {
   findByTag(tag: string, q?: Queryable): Promise<CrewRow | null>;
   /** Crew tag only (chat message decoration). */
   findTagById(id: string, q?: Queryable): Promise<{ tag: string } | null>;
-  insert(input: { name: string; tag: string; leader_id: string }, q?: Queryable): Promise<CrewRow>;
+  /** The crew claiming an origin district, if any (issue #18). */
+  findByTerritory(origin: string, q?: Queryable): Promise<CrewRow | null>;
+  /** Every crew that claims a district: territory origin → crew tag (issue #18). */
+  listTerritories(q?: Queryable): Promise<Array<{ territory_district: string; tag: string }>>;
+  insert(
+    input: { name: string; tag: string; leader_id: string; territory_district?: string | null },
+    q?: Queryable,
+  ): Promise<CrewRow>;
   delete(crewId: string, q?: Queryable): Promise<void>;
   /** Every crew with its member count (board listing). */
   listAllWithMemberCount(q?: Queryable): Promise<
@@ -103,6 +112,20 @@ export function createCrewRepository(q: Queryable = db): CrewRepository {
     async findTagById(id, tx = q) {
       const rows = await tx("crews").select("tag").where("id", id).limit(1);
       return rows.length ? (rows[0] as { tag: string }) : null;
+    },
+
+    async findByTerritory(origin, tx = q) {
+      const rows = await tx("crews").select().where("territory_district", origin).limit(1);
+      return rows.length ? (rows[0] as CrewRow) : null;
+    },
+
+    async listTerritories(tx = q) {
+      return (await tx("crews")
+        .select("territory_district", "tag")
+        .whereNotNull("territory_district")) as unknown as Array<{
+        territory_district: string;
+        tag: string;
+      }>;
     },
 
     async insert(input, tx = q) {
