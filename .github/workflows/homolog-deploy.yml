@@ -70,9 +70,10 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/staging_key
           chmod 600 ~/.ssh/staging_key
-          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/staging_key -p ${STAGING_PORT:-22} \
+          ssh -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -i ~/.ssh/staging_key -p ${STAGING_PORT:-22} \
             ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
             'cd /opt/neon-dusk && git fetch origin homolog && git checkout homolog && git pull origin homolog && ./scripts/deploy-staging.sh'
+          rm -f ~/.ssh/staging_key
 
       # Promotion: `latest` is a promoted alias of the homolog image, never a
       # separate build. Runs ONLY if the staging deploy (previous step) passed.

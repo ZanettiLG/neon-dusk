@@ -60,7 +60,12 @@ describe('homolog-deploy.yml', () => {
     const promoteIdx = steps.findIndex((s) => (s.run ?? '').includes('imagetools create'))
     expect(deployIdx).toBeGreaterThan(-1)
     expect(promoteIdx).toBeGreaterThan(deployIdx)
+    // Fail semantics: a failed staging deploy (migrate/smoke) must abort the
+    // job — no continue-on-error, and promotion only runs on success().
+    const deploy = steps[deployIdx]
     const promote = steps[promoteIdx]
+    expect(deploy['continue-on-error']).toBeUndefined()
+    expect(promote.if).toBe('success()')
     expect(promote.run).toContain('ghcr.io/zan-ia/neon-dusk-server:latest')
     expect(promote.run).toContain('ghcr.io/zan-ia/neon-dusk-app:latest')
     expect(promote.run).toContain('ghcr.io/zan-ia/neon-dusk-server:homolog')
