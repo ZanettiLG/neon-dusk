@@ -1,8 +1,7 @@
-# ND-007: Prometheus scrape config for the Neon Dusk server (dev).
-# Dev: the server runs on the host (npm run dev) bound to 0.0.0.0:3000; Docker
-# reaches it via host.docker.internal (mapped by the extra_hosts entry in
-# docker-compose.yml). Prod uses prometheus.prod.yml targeting the in-network
-# server hostname.
+# ND-007: Prometheus scrape config for the Neon Dusk server (production).
+# Prod: the server container (neondusk-server) is on the internal compose
+# network (docker-compose.prod.yml), so the scrape target is the in-network
+# hostname.
 # NOTE: Prometheus config does NOT expand ${VAR:-default} — env-substitution
 # exists only for external_labels — so scrape targets are hardcoded.
 global:
@@ -17,4 +16,4 @@ scrape_configs:
   - job_name: "neondusk"
     metrics_path: /metrics
     static_configs:
-      - targets: ["host.docker.internal:3000"]
+      - targets: ["neondusk-server:3000"]
