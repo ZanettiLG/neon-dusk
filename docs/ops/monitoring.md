@@ -34,8 +34,8 @@ Regras avaliadas a cada 15s (`evaluation_interval`).
 
 ```bash
 cd /opt/neon-dusk && docker compose --env-file .env.production -f docker-compose.prod.yml up -d prometheus
-# (prometheus service usa prometheus/prometheus.yml + prometheus/alerts.yml;
-#  scrapa o servidor via host.docker.internal:3000)
+# (prometheus service usa prometheus/prometheus.prod.yml + prometheus/alerts.yml;
+#  scrapa o servidor via neondusk-server:3000 — hostname na rede interna do compose)
 ```
 
 1. Abra `http://<vps>:9090` (ou túnel ssh `ssh -L 9090:localhost:9090 vps`).
