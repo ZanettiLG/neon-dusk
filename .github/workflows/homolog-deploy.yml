@@ -1,0 +1,83 @@
+name: homolog-deploy
+
+# Release-gated deploy: this workflow is the ONLY build/deploy trigger.
+# Features merge into `main` silently (no build, no deploy). A deploy happens
+# only when a human promotes main → homolog and pushes. `latest` (production)
+# is never built directly here — it only advances via the promotion step AFTER
+# the staging deploy succeeds (see rollback note on the SSH step).
+on:
+  push:
+    branches:
+      - homolog
+
+concurrency:
+  group: homolog-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push server (homolog tag)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: server/Dockerfile
+          push: true
+          # Candidate tag — validated in staging before `latest` is promoted.
+          tags: ghcr.io/zan-ia/neon-dusk-server:homolog
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push app (homolog tag)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: app/Dockerfile
+          push: true
+          tags: ghcr.io/zan-ia/neon-dusk-app:homolog
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Rollback semantics: a failed migration on staging aborts this step
+      # (`set -e` in deploy-staging.sh → deploy-prod.sh) and the whole job
+      # fails → the promotion step below never runs → `latest` does NOT advance
+      # → production is untouched. Staging keeps the previously-deployed image.
+      - name: Deploy staging via SSH
+        env:
+          STAGING_PORT: ${{ secrets.STAGING_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/staging_key
+          chmod 600 ~/.ssh/staging_key
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/staging_key -p ${STAGING_PORT:-22} \
+            ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
+            'cd /opt/neon-dusk && git fetch origin homolog && git checkout homolog && git pull origin homolog && ./scripts/deploy-staging.sh'
+
+      # Promotion: `latest` is a promoted alias of the homolog image, never a
+      # separate build. Runs ONLY if the staging deploy (previous step) passed.
+      - name: Promote homolog to latest
+        if: success()
+        run: |
+          docker buildx imagetools create -t ghcr.io/zan-ia/neon-dusk-server:latest ghcr.io/zan-ia/neon-dusk-server:homolog
+          docker buildx imagetools create -t ghcr.io/zan-ia/neon-dusk-app:latest ghcr.io/zan-ia/neon-dusk-app:homolog

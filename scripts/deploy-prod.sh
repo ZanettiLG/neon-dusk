@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
-# Deploy production: pull images → migrate → restart stack → smoke test →
-# rollback on failure → prune old images. Runs ON THE VPS (not the laptop):
+# Deploy images → migrate → restart stack → smoke test → rollback on failure →
+# prune old images. Runs ON THE VPS (not the laptop). Serves BOTH environments:
+# production (`IMAGE_TAG=latest`, the default) and staging (`IMAGE_TAG=homolog`,
+# via the thin `deploy-staging.sh` wrapper):
 #
 #   ssh vps && cd /opt/neon-dusk && git pull && ./scripts/deploy-prod.sh
+#   IMAGE_TAG=homolog ./scripts/deploy-staging.sh   # staging VPS
+#
+# A flock serializes concurrent deploys on this host (workflow + manual): the
+# second deploy blocks until the first finishes, then deploys the newest image.
 #
 # Test hooks (no VPS needed):
 #   DRY_RUN=1                     print commands instead of executing them.
@@ -19,6 +25,7 @@
 set -euo pipefail
 
 REGISTRY=ghcr.io/zan-ia
+REGISTRY_TAG="${IMAGE_TAG:-latest}"
 
 # run(): execute a command, or print it and return 0 when DRY_RUN=1.
 run() {
@@ -40,6 +47,11 @@ if [ ! -f .env.production ]; then
   echo "  ssh vps && cd /opt/neon-dusk && git pull && ./scripts/deploy-prod.sh"
   exit 1
 fi
+
+# Serialize deploys on this host (workflow + manual). Blocking, not -n:
+# the second deploy waits and deploys the newest image.
+exec 9>/tmp/neondusk-deploy.lock
+flock 9
 
 # Capture the currently-running images BEFORE pulling, so a failed smoke test
 # can roll back to them. Image IDs, not tags — pull overwrites `latest`.
@@ -112,10 +124,10 @@ smoke_test() {
 rollback() {
   echo "! Rolling back to previous images..."
   if [ -n "${PREVIOUS_SERVER_IMAGE:-}" ]; then
-    run docker tag "$PREVIOUS_SERVER_IMAGE" "$REGISTRY/neon-dusk-server:latest"
+    run docker tag "$PREVIOUS_SERVER_IMAGE" "$REGISTRY/neon-dusk-server:${REGISTRY_TAG}"
   fi
   if [ -n "${PREVIOUS_APP_IMAGE:-}" ]; then
-    run docker tag "$PREVIOUS_APP_IMAGE" "$REGISTRY/neon-dusk-app:latest"
+    run docker tag "$PREVIOUS_APP_IMAGE" "$REGISTRY/neon-dusk-app:${REGISTRY_TAG}"
   fi
   compose up -d
   exit 1
