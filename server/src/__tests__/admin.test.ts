@@ -11,6 +11,7 @@ import {
   insertTestCharacter,
   registerTestUser,
   clearAuthIpRateLimits,
+  resetRounds,
 } from "./helpers";
 import { db } from "../db";
 import { ECONOMY_FAUCET_TYPES, ECONOMY_SINK_TYPES } from "../repositories/transaction-repository";
@@ -392,6 +393,12 @@ describe("ND-052 — admin panel API", () => {
     });
 
     it("should compute inflation = (faucets − sinks) / supply over the current round", async () => {
+      // ND-018 (fix flake): o e2e-player-loop deixa a rodada ativa com
+      // started_at no futuro (intermission do reset) e o estado persiste entre
+      // runs — re-seed determinístico da rodada 1 para a janela conter os
+      // fixtures abaixo.
+      await resetRounds();
+
       const admin = await createAdminUser(`admin-${Date.now()}-infl@test.com`);
       const { characterId } = await insertTestCharacter({
         email: `inflation-${Date.now()}@test.com`,

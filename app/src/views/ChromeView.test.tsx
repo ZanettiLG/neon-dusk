@@ -189,7 +189,21 @@ describe("ChromeView", () => {
     expect(screen.getByText("1/3 — Smart Link")).toBeInTheDocument();
   });
 
-  it("should uninstall from the Meu Cromo tab and surface errors", async () => {
+  it("should NOT uninstall on the first click — 2-step confirmation arms first", async () => {
+    mockApi();
+    const user = userEvent.setup();
+
+    render(<ChromeView />);
+
+    await user.click(await screen.findByRole("tab", { name: "Meu Cromo" }));
+    await user.click(await screen.findByRole("button", { name: "Remover" }));
+
+    // Arming only — API untouched, button now asks for confirmation.
+    expect(await screen.findByRole("button", { name: "CONFIRMAR REMOÇÃO?" })).toBeInTheDocument();
+    expect(mocks.api.post).not.toHaveBeenCalled();
+  });
+
+  it("should uninstall on the second click and surface errors", async () => {
     mockApi();
     mocks.api.post.mockRejectedValue(new Error("Falha ao remover"));
     const user = userEvent.setup();
@@ -198,11 +212,32 @@ describe("ChromeView", () => {
 
     await user.click(await screen.findByRole("tab", { name: "Meu Cromo" }));
     await user.click(await screen.findByRole("button", { name: "Remover" }));
+    await user.click(await screen.findByRole("button", { name: "CONFIRMAR REMOÇÃO?" }));
 
     expect(await screen.findByText("Falha ao remover")).toBeInTheDocument();
     expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/uninstall", {
       installedChromeId: "i1",
     });
+  });
+
+  it("should call the API on the second click and reset the confirmation after success", async () => {
+    mockApi();
+    mocks.api.post.mockResolvedValue({});
+    const user = userEvent.setup();
+
+    render(<ChromeView />);
+
+    await user.click(await screen.findByRole("tab", { name: "Meu Cromo" }));
+    await user.click(await screen.findByRole("button", { name: "Remover" }));
+    await user.click(await screen.findByRole("button", { name: "CONFIRMAR REMOÇÃO?" }));
+
+    expect(await screen.findByText("Implante removido.")).toBeInTheDocument();
+    expect(mocks.api.post).toHaveBeenCalledWith("/api/chrome/uninstall", {
+      installedChromeId: "i1",
+    });
+    // Confirmation reset — button is back to the idle "Remover" label.
+    expect(await screen.findByRole("button", { name: "Remover" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "CONFIRMAR REMOÇÃO?" })).not.toBeInTheDocument();
   });
 
   it("should reset mounted ref after StrictMode remount and show empty state", async () => {

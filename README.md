@@ -81,6 +81,8 @@ O script puxa imagens, roda migrations, sobe a stack, smoke-testa (`/` e
 atualizam apenas via build manual (o job `build-and-push` foi removido) —
 use `DRY_RUN=1` para simular o fluxo sem executar.
 
+Ops docs (backup, rollback, monitoramento, calibração): `docs/ops/`.
+
 ## Structure
 
 ```
@@ -94,6 +96,7 @@ use `DRY_RUN=1` para simular o fluxo sem executar.
 - Product definitions: `docs/definicoes-de-produto/`
 - Market research: `docs/pesquisa-de-mercado/`
 - Development system: `docs/sistema-de-desenvolvimento/`
+- Ops runbooks: `docs/ops/` (backup, rollback, monitoring, calibration)
 - Agent instructions: `AGENTS.md`
 
 ## Agent Commands

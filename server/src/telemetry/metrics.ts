@@ -53,6 +53,17 @@ export const pvpAttacksTotal = new Counter({
 });
 
 /**
+ * HTTP requests by status class (ND-018) — the 5xx/2xx/4xx numerator for the
+ * NeonDuskHighErrorRate alert. Incremented in the telemetry onResponse hook.
+ */
+export const httpRequestsTotal = new Counter({
+  name: "neondusk_http_requests_total",
+  help: "Total HTTP requests by status class",
+  labelNames: ["status_class"] as const,
+  registers: [registry],
+});
+
+/**
  * Active characters in the last 24h — counts `auth:active:*` keys via SCAN.
  * Best-effort: a Redis failure resolves to 0 so a scrape never crashes.
  */

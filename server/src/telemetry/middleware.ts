@@ -2,6 +2,7 @@ import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
 import { instrument } from "./instrument";
 import type { GameEventType } from "./event-types";
+import { httpRequestsTotal } from "./metrics";
 
 // Neon Dusk — Telemetry middleware (ND-007)
 // ============================================================================
@@ -21,7 +22,12 @@ declare module "fastify" {
 }
 
 async function telemetryPlugin(app: FastifyInstance): Promise<void> {
-  app.addHook("onResponse", async (request) => {
+  app.addHook("onResponse", async (request, reply) => {
+    // HTTP status-class counter (ND-018) — feeds the NeonDuskHighErrorRate
+    // alert. Hijacked SSE responses never fire onResponse, so the counter
+    // stays exact for the reply pipeline.
+    httpRequestsTotal.inc({ status_class: `${Math.floor(reply.statusCode / 100)}xx` });
+
     const ctx = request.event_context;
     if (ctx) {
       instrument({

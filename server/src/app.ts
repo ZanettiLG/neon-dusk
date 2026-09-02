@@ -3,7 +3,7 @@ import type Redis from "ioredis";
 import cors from "@fastify/cors";
 import rateLimit from "@fastify/rate-limit";
 import jwt from "@fastify/jwt";
-import { type Env } from "./env";
+import { type Env, corsOrigins } from "./env";
 import { apiRoutes } from "./routes";
 import { healthRoutes } from "./routes/health";
 import { errorHandler } from "./middleware/error-handler";
@@ -25,9 +25,10 @@ declare module "fastify" {
     /**
      * CORS headers for hijacked SSE responses — mirrors the @fastify/cors
      * config (origin + credentials), whose reply.header() calls never reach
-     * the wire on writeHead()+hijack() responses. See lib/sse.ts.
+     * the wire on writeHead()+hijack() responses. Call with the request
+     * origin (echoed when allowed, first origin otherwise). See lib/sse.ts.
      */
-    sseCorsHeaders: Record<string, string>;
+    sseCorsHeaders: (origin?: string) => Record<string, string>;
   }
 }
 
@@ -45,9 +46,11 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     trustProxy: env.NODE_ENV === "production",
   });
 
-  // CORS
+  // CORS — multi-origin (ND-018): CORS_ORIGIN is comma-separated, e.g.
+  // "http://localhost:5173,https://neondusk.gg". @fastify/cors accepts the
+  // parsed array; the SSE route needs the same list via request.server.sseCorsHeaders.
   await app.register(cors, {
-    origin: env.CORS_ORIGIN,
+    origin: corsOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
