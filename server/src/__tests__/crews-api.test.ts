@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from "vitest";
 import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
@@ -6,6 +6,7 @@ import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
+import { crewRepository } from "../repositories/crew-repository";
 import type {
   AuthResponse,
   ChatHistoryResponse,
@@ -395,6 +396,65 @@ describe("ND-016 — Crews Básicas API", () => {
       const crewBId = (body as CreateCrewResponse).crew.id;
       const [row] = await db("crews").select("territory_district").where("id", crewBId);
       expect(row!.territory_district).toBeNull();
+    });
+
+    it("should retry the territory claim via the savepoint when the district is claimed concurrently (issue #18)", async () => {
+      const leaderA = await registerApiUser(); // origin a_paraiso
+      const leaderB = await registerApiUser(); // origin a_paraiso
+      await makeFounder(leaderA);
+      await makeFounder(leaderB);
+
+      // Force the race deterministically: findByTerritory always reports the
+      // district free, so BOTH founders pass the pre-check and try to claim
+      // a_paraiso. The second insert hits idx_crews_territory_district
+      // (23505) → savepoint rollback → retry with territory_district: null
+      // (ADR-0004 silent skip). Without the mock this catch branch only fires
+      // when two real transactions overlap at the insert — timing-dependent,
+      // never guaranteed by a Promise.all race.
+      const spy = vi.spyOn(crewRepository, "findByTerritory").mockResolvedValue(null);
+      try {
+        const a = await createCrew(leaderA, "Blade Runners", "BLD");
+        expect(a.status).toBe(201);
+        const crewAId = (a.body as CreateCrewResponse).crew.id;
+
+        const b = await createCrew(leaderB, "Other Crew", "OTH");
+        expect(b.status).toBe(201);
+        const crewBId = (b.body as CreateCrewResponse).crew.id;
+
+        // Winner claimed the district; the loser's crew exists with null
+        // territory (silent skip — no error surfaced to the client).
+        const [crewA] = await db("crews").select("territory_district").where("id", crewAId);
+        const [crewB] = await db("crews").select("territory_district").where("id", crewBId);
+        expect(crewA!.territory_district).toBe("a_paraiso");
+        expect(crewB!.territory_district).toBeNull();
+      } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it("should retry the territory claim once when two founders race the same district (issue #18)", async () => {
+      const leaderA = await registerApiUser(); // origin a_paraiso
+      const leaderB = await registerApiUser(); // origin a_paraiso
+      await makeFounder(leaderA);
+      await makeFounder(leaderB);
+
+      // Real race (no mocks): both requests pass findByTerritory before either
+      // commits, and distinct wallets mean no optimistic-lock serialization.
+      // One insert wins idx_crews_territory_district; the loser hits the 23505
+      // → savepoint rollback → retry with territory_district: null (ADR-0004).
+      const [a, b] = await Promise.all([
+        createCrew(leaderA, "Blade Runners", "BLD"),
+        createCrew(leaderB, "Other Crew", "OTH"),
+      ]);
+
+      expect(a.status).toBe(201);
+      expect(b.status).toBe(201);
+
+      // Both crews exist, but exactly one claimed the district.
+      const rows = await db("crews").select("territory_district");
+      expect(rows).toHaveLength(2);
+      expect(rows.filter((r) => r.territory_district === "a_paraiso")).toHaveLength(1);
+      expect(rows.filter((r) => r.territory_district === null)).toHaveLength(1);
     });
 
     it("should default territory_district to null for crews inserted without it (pre-migration rows, issue #18)", async () => {
