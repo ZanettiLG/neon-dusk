@@ -13,7 +13,7 @@ import { getMetroMap } from "../services/metro-service";
 export async function metroRoutes(app: FastifyInstance) {
   // GET /api/metro — the district map payload.
   app.get("/metro", { preHandler: [authenticate] }, async (request): Promise<MetroMapResponse> => {
-    const characterId = (await characters.requireByUserId(request.user.sub)).id;
-    return getMetroMap(characterId);
+    const character = await characters.requireByUserId(request.user.sub);
+    return getMetroMap(character);
   });
 }

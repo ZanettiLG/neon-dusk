@@ -32,6 +32,7 @@ import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { transactionRepository as transactions } from "../repositories/transaction-repository";
 import { crewRepository as crews } from "../repositories/crew-repository";
 import type { CrewRow } from "../repositories/crew-repository";
+import { isUniqueViolation } from "../db/pg-errors";
 
 // Neon Dusk — Crew routes (ND-016: Crews Básicas, ND-053)
 // ============================================================================
@@ -178,9 +179,13 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         if (dupTag) throw new AppError(409, "DUPLICATE_TAG", "Já existe um bonde com esta tag");
         // Issue #18: the crew claims the leader's origin district unless it is
         // already taken (silent — no error, the district just stays unclaimed).
-        // The partial unique index on crews.territory_district backstops the
-        // race (a concurrent claim commits first and the loser hits the 409
-        // unique violation via the standard error handler).
+        // Two concurrent founders can both pass the findByTerritory check, so
+        // the partial unique index idx_crews_territory_district rejects the
+        // loser with a 23505. That error would abort the whole transaction
+        // (raw 500 via the error handler), so the insert runs inside a
+        // savepoint: on a territory unique violation we roll back to it and
+        // retry once with territory_district: null — the crew is created and
+        // the district stays unclaimed (ADR-0004 silent skip).
         const territory = (await crews.findByTerritory(leader.origin, trx)) ? null : leader.origin;
         const debit = transferEddies(wallet, -CREW_CREATE_COST, {
           type: "CREW_CREATION",
@@ -214,7 +219,24 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
           trx,
         );
 
-        const crew = await crews.insert({ name, tag, leader_id: characterId, territory_district: territory }, trx);
+        let crew: CrewRow;
+        try {
+          crew = await trx.savepoint(() =>
+            crews.insert({ name, tag, leader_id: characterId, territory_district: territory }, trx),
+          );
+        } catch (err) {
+          if (
+            !isUniqueViolation(err) ||
+            (err as { constraint?: string }).constraint !== "idx_crews_territory_district"
+          ) {
+            throw err;
+          }
+          // The district was claimed concurrently — silent skip, retry without it.
+          crew = await crews.insert(
+            { name, tag, leader_id: characterId, territory_district: null },
+            trx,
+          );
+        }
         const member = await crews.insertMember(crew.id, characterId, trx);
         await characters.setCrewId(characterId, crew.id, trx);
         return { crew, member };
@@ -317,7 +339,8 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
 
       const target = await characters.findById(targetId);
       if (!target) throw new AppError(404, "NO_CHARACTER", "Personagem não encontrado");
-      if (target.crew_id) throw new AppError(409, "ALREADY_IN_CREW", "Este personagem já está em um bonde");
+      if (target.crew_id)
+        throw new AppError(409, "ALREADY_IN_CREW", "Este personagem já está em um bonde");
       if (target.street_cred < CREW_RECRUIT_SC) {
         throw new AppError(
           400,
@@ -377,7 +400,8 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
 
       const { member, target } = await withTransaction(async (trx) => {
         const invite = await crews.findInvite(crewId, characterId, trx);
-        if (!invite) throw new AppError(404, "NO_INVITE", "Você não tem um convite para este bonde");
+        if (!invite)
+          throw new AppError(404, "NO_INVITE", "Você não tem um convite para este bonde");
         if (new Date(invite.expires_at) <= new Date()) {
           throw new AppError(410, "INVITE_EXPIRED", "Convite expirado — peça um novo");
         }

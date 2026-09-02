@@ -1,8 +1,7 @@
 import type { MetroDistrictInfo, MetroMapResponse, Origin } from "@neon-dusk/shared";
 import { ORIGINS, originFromDistrictString } from "@neon-dusk/shared";
-import { AppError } from "../middleware/error-handler";
 import { applyHeatDecay } from "../game/gigs";
-import { characterRepository as characters } from "../repositories/character-repository";
+import type { CharacterRow } from "../repositories/character-repository";
 import { crewRepository as crews } from "../repositories/crew-repository";
 import { gigRepository as gigs } from "../repositories/gig-repository";
 import { heatRepository as heat } from "../repositories/heat-repository";
@@ -19,15 +18,12 @@ import { heatRepository as heat } from "../repositories/heat-repository";
  * Heat decay is applied lazily on read (same rule as the escape phase) and
  * never persisted here — a GET must not write.
  *
- * @param characterId - The calling character.
+ * @param character - The calling character (loaded by the route via
+ *                    `requireByUserId`, which already 404s when missing).
  * @returns `{ districts }` — 7 entries in ORIGINS order, zero-filled when a
  *          district has no trampos/heat/territory.
- * @throws AppError 404 NO_CHARACTER when the character does not exist.
  */
-export async function getMetroMap(characterId: string): Promise<MetroMapResponse> {
-  const character = await characters.findById(characterId);
-  if (!character) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
-
+export async function getMetroMap(character: CharacterRow): Promise<MetroMapResponse> {
   // 1. Trampos: count the static catalog per origin (district may be the
   //    origin key or the display label — normalize via originFromDistrictString).
   const gigRows = await gigs.listCatalog();
@@ -38,7 +34,7 @@ export async function getMetroMap(characterId: string): Promise<MetroMapResponse
   }
 
   // 2. Calor: lazy decay applied per row on read; nothing is written back.
-  const heatRows = await heat.listForCharacter(characterId);
+  const heatRows = await heat.listForCharacter(character.id);
   const heatByOrigin = new Map<Origin, number>();
   for (const row of heatRows) {
     const origin = originFromDistrictString(row.district);

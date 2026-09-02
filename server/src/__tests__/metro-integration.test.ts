@@ -210,4 +210,29 @@ describe("Issue #18 — Metro map API", () => {
     // Unclaimed districts stay null.
     expect(body.districts.find((d) => d.origin === "o_ponto")!.territoryCrewTag).toBeNull();
   });
+
+  it("should isolate heat between characters in the same district (issue #18)", async () => {
+    const userA = await registerApiUser();
+    const userB = await registerApiUser();
+
+    // A has 60 heat in o_fervo; B has none there.
+    await db("heat").insert({
+      character_id: userA.characterId,
+      district: "o_fervo",
+      amount: 60,
+      updated_at: new Date(),
+    });
+
+    // B's map must NOT surface A's heat.
+    const resB = await fetch(`${base()}/api/metro`, { headers: authHeader(userB.accessToken) });
+    expect(resB.status).toBe(200);
+    const bodyB = await json<MetroMapResponse>(resB);
+    expect(bodyB.districts.find((d) => d.origin === "o_fervo")!.heat).toBe(0);
+
+    // A's map still shows their own heat.
+    const resA = await fetch(`${base()}/api/metro`, { headers: authHeader(userA.accessToken) });
+    expect(resA.status).toBe(200);
+    const bodyA = await json<MetroMapResponse>(resA);
+    expect(bodyA.districts.find((d) => d.origin === "o_fervo")!.heat).toBe(60);
+  });
 });
