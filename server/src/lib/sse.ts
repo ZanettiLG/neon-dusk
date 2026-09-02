@@ -20,10 +20,13 @@ export function sseCorsHeaders(env: Env): (origin?: string) => Record<string, st
 
   return (origin) => {
     const allowOrigin = origin && allowed.includes(origin) ? origin : (allowed[0] ?? "*");
+    // Access-Control-Allow-Credentials: true with Allow-Origin: * is rejected
+    // by browsers — only send it when echoing a concrete origin.
     return {
       "Access-Control-Allow-Origin": allowOrigin,
-      ...(allowOrigin !== "*" ? { Vary: "Origin" } : {}),
-      "Access-Control-Allow-Credentials": "true",
+      ...(allowOrigin !== "*"
+        ? { Vary: "Origin", "Access-Control-Allow-Credentials": "true" }
+        : {}),
     };
   };
 }

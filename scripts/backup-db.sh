@@ -20,6 +20,10 @@
 # pg_dump side; FORCE_EMPTY_BACKUP simulates that path for the test.
 set -euo pipefail
 
+# The dump contains password hashes and PII — default to 600 on every file
+# this script creates (backups dir, dump), regardless of the invoking umask.
+umask 077
+
 BACKUP_DIR=${BACKUP_DIR:-/opt/neon-dusk/backups}
 KEEP=7
 
@@ -77,8 +81,8 @@ if [ ! -s "$BACKUP_FILE" ]; then
 fi
 echo "  ✓ Backup OK ($(wc -c < "$BACKUP_FILE") bytes)"
 
-# Prune: names sort lexicographically = chronologically (YYYYMMDD-HHMMSS), so
-# keeping the newest KEEP drops everything older via the tail + xargs pipe.
+# Prune: `ls -1t` sorts by mtime (newest first), so keeping the newest KEEP
+# drops everything older via the tail + xargs pipe.
 prune_backups() {
   ls -1t "$BACKUP_DIR"/neondusk-*.sql.gz 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
 }

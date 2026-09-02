@@ -311,12 +311,18 @@ async function main(): Promise<void> {
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
+  // Defense-in-depth: this script targets the test stack, but never delete
+  // from a production DB even if DATABASE_URL got pointed there.
   console.log("\nCleaning up test data...");
-  await db("transaction_log").where("source", "econ-check").del();
-  await db("character_wallets").whereIn("character_id", charIds).del();
-  await db("characters").whereIn("id", charIds).del();
-  await db("users").where("email", "like", "%@econ.test").del();
-  console.log("  ✓ Cleanup complete\n");
+  if (process.env.NODE_ENV === "production") {
+    console.log("  ⚠ Skipping cleanup: NODE_ENV=production");
+  } else {
+    await db("transaction_log").where("source", "econ-check").del();
+    await db("character_wallets").whereIn("character_id", charIds).del();
+    await db("characters").whereIn("id", charIds).del();
+    await db("users").where("email", "like", "%@econ.test").del();
+    console.log("  ✓ Cleanup complete\n");
+  }
 
   // ── Final report ──────────────────────────────────────────────────────────
   console.log("═".repeat(40));

@@ -37,7 +37,7 @@ describe("sseCorsHeaders", () => {
 
     expect(headers["Access-Control-Allow-Origin"]).toBe("*");
     expect(headers["Vary"]).toBeUndefined();
-    expect(headers["Access-Control-Allow-Credentials"]).toBe("true");
+    expect(headers["Access-Control-Allow-Credentials"]).toBeUndefined();
   });
 
   it("should echo the request origin when it is on the allowed list", () => {

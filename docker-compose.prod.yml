@@ -72,10 +72,36 @@ services:
     networks:
       - neondusk
 
+  # ND-007/ND-018: telemetry — Prometheus scrapes the server container's
+  # /metrics over the internal network and evaluates alerts.yml (same image
+  # and config layout as docker-compose.yml). SCRAPE_TARGET overrides the
+  # dev default (host.docker.internal) with the in-network server hostname.
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: neondusk-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    depends_on:
+      - server
+    environment:
+      - SCRAPE_TARGET=neondusk-server:3000
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - neondusk
+
 volumes:
   pgdata:
     driver: local
   redisdata:
+    driver: local
+  prometheus_data:
     driver: local
 
 networks:

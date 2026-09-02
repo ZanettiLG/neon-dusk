@@ -61,3 +61,18 @@ gzip -dc /opt/neon-dusk/backups/neondusk-<TIMESTAMP>.sql.gz \
 
 > O restore sobrescreve o schema atual. Confirme o timestamp do dump antes de
 > restaurar e considere tirar um backup "pre-restore" manual primeiro.
+
+## Segurança
+
+O dump contém **password hashes** (bcrypt de `users.password`) e **PII** de
+jogadores (nomes de usuário, emails). O script roda com `umask 077`, então o
+arquivo gerado nasce com permissões `600` (somente leitura/escrita para o
+usuário que o criou) — não "corrija" para `644`/`world-readable`.
+
+- Confirme que o diretório `/opt/neon-dusk/backups` é legível apenas pelo
+  usuário de deploy (ex.: `chmod 700 /opt/neon-dusk/backups`).
+- O cron da seção acima roda como o mesmo usuário do deploy — evite criar o
+  backup como `root` se o acesso operacional é feito por outro usuário.
+- Dumps antigos são apagados pelo prune; se precisar arquivar um dump fora do
+  ciclo, mova-o para um local com acesso restrito e remova do diretório de
+  backups.

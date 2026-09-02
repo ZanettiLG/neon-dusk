@@ -9,6 +9,10 @@
  * inflation check verifies the ledger and wallets were wiped at the reset
  * boundary (count = 0, sum(balance) = 0).
  *
+ * The aggregation math lives in server/src/lib/calibration-report.ts
+ * (pure, unit-tested); this file is the CLI wrapper that reads the DB and
+ * prints the report.
+ *
  * Usage:   npx tsx scripts/calibration-report.ts [--round <n>]
  * Default: --round = última rodada encerrada (pós-reset: tabela vazia + check
  *          de inflação). Passe o número da rodada ATIVA para ver a economia
@@ -20,10 +24,7 @@
 
 import "dotenv/config";
 import { db } from "../server/src/db";
-import {
-  ECONOMY_FAUCET_TYPES,
-  ECONOMY_SINK_TYPES,
-} from "../server/src/repositories/transaction-repository";
+import { aggregateRound, type TypeRow } from "../server/src/lib/calibration-report";
 
 // ─── Config / helpers ───────────────────────────────────────────────────────
 
@@ -44,12 +45,6 @@ interface RoundRow {
   started_at: Date;
   ended_at: Date | null;
   status: string;
-}
-
-interface TypeRow {
-  type: string;
-  n: number;
-  total: number;
 }
 
 function fmt(value: number): string {
@@ -98,27 +93,19 @@ async function main(): Promise<void> {
     .andWhere("created_at", "<", windowEnd)
     .groupBy("type")) as TypeRow[];
 
-  const byType = new Map(typeRows.map((r) => [r.type, r]));
+  // 3. Post-reset boundary counts — feeding the pure aggregation (no DB
+  // queries inside the math).
+  const [preResetTx] = await db("transaction_log")
+    .where("created_at", "<=", windowEnd)
+    .count({ count: "*" });
+  const [preResetBal] = await db("character_wallets")
+    .where("updated_at", "<=", windowEnd)
+    .sum({ total: "balance" });
 
-  // 3. Faucets vs sinks (real type lists from transaction-repository.ts).
-  const faucets = ECONOMY_FAUCET_TYPES.map((t) => ({ type: t, ...byType.get(t) })).filter(
-    (r) => r.n !== undefined,
-  ) as Array<TypeRow & { type: string }>;
-  const sinks = ECONOMY_SINK_TYPES.map((t) => ({ type: t, ...byType.get(t) })).filter(
-    (r) => r.n !== undefined,
-  ) as Array<TypeRow & { type: string }>;
-  // Grant inicial / ajustes administrativos (wallet.ensure registra
-  // ADMIN_ADJUSTMENT no seed capital).
-  const grant = byType.get("ADMIN_ADJUSTMENT");
-  const others = typeRows.filter(
-    (r) =>
-      !(ECONOMY_FAUCET_TYPES as readonly string[]).includes(r.type) &&
-      !(ECONOMY_SINK_TYPES as readonly string[]).includes(r.type) &&
-      r.type !== "ADMIN_ADJUSTMENT",
-  );
-
-  const faucetTotal = faucets.reduce((s, r) => s + r.total, 0) + (grant?.total ?? 0);
-  const sinkTotal = sinks.reduce((s, r) => s + Math.abs(r.total), 0);
+  const agg = aggregateRound(typeRows, {
+    txCount: Number(preResetTx?.count ?? 0),
+    balSum: Number(preResetBal?.total ?? 0),
+  });
 
   // 4. Round stats → active characters for per-character averages.
   const statsRows = await db("round_stats").where("round_id", round.id).limit(1);
@@ -130,54 +117,52 @@ async function main(): Promise<void> {
   console.log("─".repeat(46));
   console.log("FLUXO POR TIPO (dentro da janela da rodada)\n");
   console.table([
-    ...faucets.map((r) => ({ fluxo: "FAUCET", type: r.type, n: r.n, total: r.total })),
-    ...(grant
-      ? [{ fluxo: "FAUCET", type: "GRANT (ADMIN_ADJUSTMENT)", n: grant.n, total: grant.total }]
+    ...agg.faucets.map((r) => ({ fluxo: "FAUCET", type: r.type, n: r.n, total: r.total })),
+    ...(agg.grant
+      ? [
+          {
+            fluxo: "FAUCET",
+            type: "GRANT (ADMIN_ADJUSTMENT)",
+            n: agg.grant.n,
+            total: agg.grant.total,
+          },
+        ]
       : []),
-    ...sinks.map((r) => ({ fluxo: "SINK", type: r.type, n: r.n, total: -Math.abs(r.total) })),
-    ...others.map((r) => ({ fluxo: "OUTRO", type: r.type, n: r.n, total: r.total })),
+    ...agg.sinks.map((r) => ({ fluxo: "SINK", type: r.type, n: r.n, total: -Math.abs(r.total) })),
+    ...agg.others.map((r) => ({ fluxo: "OUTRO", type: r.type, n: r.n, total: r.total })),
   ]);
 
   // 5. Net + sink ratio + per-character averages.
-  const net = faucetTotal - sinkTotal;
-  const sinkRatio = faucetTotal > 0 ? sinkTotal / faucetTotal : 0;
-
   console.log("─".repeat(46));
   console.log("RESUMO\n");
-  console.log(`  Faucets totais (incl. grant):     ${fmt(faucetTotal)} G$`);
-  console.log(`  Sinks totais:                     ${fmt(sinkTotal)} G$`);
-  console.log(`  Net (faucets − sinks):            ${fmt(net)} G$`);
-  console.log(`  Sink ratio (sinks / faucets):     ${(sinkRatio * 100).toFixed(1)}%  (meta ≥ 60%)`);
+  console.log(`  Faucets totais (incl. grant):     ${fmt(agg.faucetTotal)} G$`);
+  console.log(`  Sinks totais:                     ${fmt(agg.sinkTotal)} G$`);
+  console.log(`  Net (faucets − sinks):            ${fmt(agg.net)} G$`);
+  console.log(
+    `  Sink ratio (sinks / faucets):     ${(agg.sinkRatio * 100).toFixed(1)}%  (meta ≥ 60%)`,
+  );
   if (activeChars > 0) {
     console.log(`  Personagens ativos (round_stats):  ${fmt(activeChars)}`);
     console.log(
-      `  Faucet por personagem:             ${fmt(Math.round(faucetTotal / activeChars))} G$`,
+      `  Faucet por personagem:             ${fmt(Math.round(agg.faucetTotal / activeChars))} G$`,
     );
     console.log(
-      `  Sink por personagem:               ${fmt(Math.round(sinkTotal / activeChars))} G$`,
+      `  Sink por personagem:               ${fmt(Math.round(agg.sinkTotal / activeChars))} G$`,
     );
   } else {
     console.log("  Personagens ativos (round_stats):  — (sem round_stats p/ esta rodada)");
   }
 
   // 6. Post-reset inflation check (verifica o wipe no boundary do reset).
-  const [preResetTx] = await db("transaction_log")
-    .where("created_at", "<=", windowEnd)
-    .count({ count: "*" });
-  const [preResetBal] = await db("character_wallets")
-    .where("updated_at", "<=", windowEnd)
-    .sum({ total: "balance" });
-
-  const txCount = Number(preResetTx?.count ?? 0);
-  const balSum = Number(preResetBal?.total ?? 0);
-  const resetIntact = txCount === 0 && balSum === 0;
+  const preResetTxCount = Number(preResetTx?.count ?? 0);
+  const preResetBalSum = Number(preResetBal?.total ?? 0);
 
   console.log("\n─".repeat(46));
   console.log("VERIFICAÇÃO DE INFLAÇÃO PÓS-RESET\n");
-  console.log(`  transaction_log <= fim da rodada:  ${fmt(txCount)}  (esperado 0)`);
-  console.log(`  Σ(wallet.balance) <= fim da rodada: ${fmt(balSum)}  (esperado 0)`);
+  console.log(`  transaction_log <= fim da rodada:  ${fmt(preResetTxCount)}  (esperado 0)`);
+  console.log(`  Σ(wallet.balance) <= fim da rodada: ${fmt(preResetBalSum)}  (esperado 0)`);
   console.log(
-    resetIntact
+    agg.resetIntact
       ? "  ✅ Reset intacto — ledger e wallets zerados no boundary."
       : "  ⚠ Não-zero esperado quando a rodada atual já movimentou grana.",
   );
