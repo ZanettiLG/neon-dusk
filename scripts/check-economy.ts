@@ -9,6 +9,8 @@
  *
  * Workspace: `npm run check:economy`
  * Requires: test DB/Redis stack running (`docker compose -f docker-compose.test.yml up -d`)
+ * Targets the TEST stack (55432) by default in dev/test; an explicit
+ * DATABASE_URL or NODE_ENV=production always takes precedence.
  *
  * Rewritten from the original drizzle-orm draft (ND-018 gate): drizzle was not
  * a dependency and the draft referenced non-existent schema exports. The 6
@@ -21,7 +23,21 @@
 /* eslint-disable no-console */
 
 import "dotenv/config";
-import { db } from "../server/src/db";
+import { createRequire } from "node:module";
+
+// ─── Database target ─────────────────────────────────────────────────────────
+// This script's contract targets the TEST stack (docker-compose.test.yml,
+// port 55432). In dev/test, default to it unless DATABASE_URL was explicitly
+// provided. env.ts's dotenv call never overrides an existing env var, so the
+// assignment below wins over server/.env's dev URL (5432). In production
+// (NODE_ENV=production) the real DATABASE_URL always prevails. db is loaded
+// via require (instead of a static import) so the default runs first.
+const TEST_DB_URL = "postgres://neondusk:neondusk_dev@localhost:55432/neondusk";
+if (process.env.NODE_ENV !== "production" && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = TEST_DB_URL;
+}
+const require = createRequire(import.meta.url);
+const { db } = require("../server/src/db") as typeof import("../server/src/db");
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
