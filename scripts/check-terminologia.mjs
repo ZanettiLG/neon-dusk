@@ -348,6 +348,13 @@ const CODE_ALLOWED = [
   // Rotas/imports de implantes: "/api/chrome", "./chrome-service", "CHROME".
   // `?` cobre query string de URL em teste (`/api/chrome?tier=1`).
   { label: 'token chrome em rota/enum/import', re: /["'`/]chromes?(["'`/?]|-)/i, on: 'chrome (implantes)' },
+  // Testid do mapa do metrô (issue #18): metro-gigs-o_fervo — prefixo
+  // `metro-gigs-` com hífen nos DOIS lados não casa no token gig genérico
+  // (que exige aspa/slash antes). Testid é token interno, não prosa.
+  { label: 'testid metro-gigs-* (token interno)', re: /metro-gigs-/, on: 'gig' },
+  // Testid da legenda de calor (issue #18): metro-heat-legend — `legend`
+  // isolado no meio do testid; token interno como os demais testids.
+  { label: 'testid metro-heat-legend (token interno)', re: /metro-heat-legend/, on: 'legend' },
   // Declaração de campo: chrome: 5, chrome: ChromeRepository.
   { label: 'campo chrome (declaração)', re: /\bchromes?\??\s*:/i, on: 'chrome (implantes)' },
   // itemId/slug interno do implante ocular (user-facing: Óptica Vidraça).

@@ -156,7 +156,7 @@ describe("MetroMap", () => {
 
   // ─── Issue #18: trampos / calor / território indicators ──────────────────
 
-  it("should render gig, heat and territory indicators only when data exists", () => {
+  it("should render trampo, heat and territory indicators only when data exists", () => {
     renderMap({
       gigsByDistrict: { o_fervo: 3, babilonia: 1 },
       heatByDistrict: { babilonia: 60 },
@@ -197,14 +197,14 @@ describe("MetroMap", () => {
     expect(screen.getByRole("button", { name: "Estação A Paraíso" })).toBeInTheDocument();
   });
 
-  it("should place the gig badge on the station's left and keep heat/territory clear", () => {
+  it("should place the trampo badge on the station's left and keep heat/territory clear", () => {
     renderMap({
       gigsByDistrict: { o_fervo: 3 },
       heatByDistrict: { o_fervo: 30 },
       territoryByDistrict: { o_fervo: "BLD" },
     });
 
-    // Geometry contract: gig badge centered at (x-27, y) — o_fervo (200,235).
+    // Geometry contract: trampo badge centered at (x-27, y) — o_fervo (200,235).
     expect(screen.getByTestId("metro-gigs-o_fervo")).toHaveAttribute(
       "transform",
       "translate(173 235)",
@@ -229,6 +229,12 @@ describe("MetroMap", () => {
     );
   });
 
+  it("should render the QUENTE word for a low heat district", () => {
+    renderMap({ heatByDistrict: { o_fervo: 30 } });
+
+    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveTextContent("QUENTE");
+  });
+
   it("should keep indicators aria-hidden (announced via the station label)", () => {
     renderMap({
       gigsByDistrict: { o_fervo: 3 },
@@ -241,14 +247,14 @@ describe("MetroMap", () => {
     expect(screen.getByTestId("metro-territory-o_fervo")).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("should render the heat legend with the bands that can appear on the map", () => {
+  it("should render the heat key with the bands that can appear on the map", () => {
     renderMap({ heatByDistrict: { o_fervo: 30 } });
 
-    const legend = screen.getByTestId("metro-heat-legend");
-    expect(within(legend).getByText("QUENTE")).toBeInTheDocument();
-    expect(within(legend).getByText("PEGANDO FOGO")).toBeInTheDocument();
-    expect(within(legend).getByText("INFERNO")).toBeInTheDocument();
-    // LIMPO never renders a chip on the map, so it stays out of the legend.
-    expect(within(legend).queryByText("LIMPO")).not.toBeInTheDocument();
+    const heatKey = screen.getByTestId("metro-heat-legend");
+    expect(within(heatKey).getByText("QUENTE")).toBeInTheDocument();
+    expect(within(heatKey).getByText("PEGANDO FOGO")).toBeInTheDocument();
+    expect(within(heatKey).getByText("INFERNO")).toBeInTheDocument();
+    // LIMPO never renders a chip on the map, so it stays out of the heat key.
+    expect(within(heatKey).queryByText("LIMPO")).not.toBeInTheDocument();
   });
 });

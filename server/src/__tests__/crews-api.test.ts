@@ -397,6 +397,23 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(row!.territory_district).toBeNull();
     });
 
+    it("should default territory_district to null for crews inserted without it (pre-migration rows, issue #18)", async () => {
+      const leader = await registerApiUser();
+
+      // Direct insert omitting territory_district — simulates a crew row
+      // created before migration 0035 (nullable column, no default). Such
+      // rows must read back as NULL, not a bogus district.
+      const [crew] = await db("crews")
+        .insert({
+          name: `Legacy-${Date.now()}`,
+          tag: "LEG",
+          leader_id: leader.characterId,
+        })
+        .returning("territory_district");
+
+      expect(crew!.territory_district).toBeNull();
+    });
+
     it("should reject a duplicate crew name with 409 DUPLICATE_NAME", async () => {
       const leaderA = await registerApiUser();
       const leaderB = await registerApiUser();

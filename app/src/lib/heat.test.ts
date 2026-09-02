@@ -21,6 +21,7 @@ describe("heatLevelFor", () => {
     [50, "pegando_fogo"],
     [99, "pegando_fogo"],
     [100, "inferno"],
+    [150, "inferno"],
     [250, "inferno"],
   ])("should bucket %d as %s", (heat, level) => {
     expect(heatLevelFor(heat)).toBe(level);

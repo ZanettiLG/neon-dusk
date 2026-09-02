@@ -97,7 +97,7 @@ export default function MetroMap({
           const isOrigin = origin === originDistrict;
           const isCurrent = origin === currentDistrict;
           const count = vendorsByDistrict[origin] ?? 0;
-          const gigs = gigsByDistrict[origin] ?? 0;
+          const gigCount = gigsByDistrict[origin] ?? 0;
           const heat = heatByDistrict[origin] ?? 0;
           const territory = territoryByDistrict[origin] ?? null;
           const heatLevel = heatLevelFor(heat);
@@ -106,7 +106,7 @@ export default function MetroMap({
           // aria-hidden — they only duplicate the label visually).
           const countSuffix =
             count > 0 ? `, ${count} ${count === 1 ? "vendedor" : "vendedores"}` : "";
-          const gigsSuffix = gigs > 0 ? `, ${gigs} ${gigs === 1 ? "trampo" : "trampos"}` : "";
+          const gigsSuffix = gigCount > 0 ? `, ${gigCount} ${gigCount === 1 ? "trampo" : "trampos"}` : "";
           const heatSuffix = heat > 0 ? `, calor ${heatBand.label} (${heat})` : "";
           const territorySuffix = territory ? `, território do bonde ${territory}` : "";
           const disabled = traveling;
@@ -232,7 +232,7 @@ export default function MetroMap({
                   badge (x+27). Spans x-39..x-15 — inside the viewBox even for
                   the western o_ponto (x=55 → 16..40). Count announced via the
                   station aria-label; the badge itself is aria-hidden. */}
-              {gigs > 0 && (
+              {gigCount > 0 && (
                 <g
                   transform={`translate(${x - 27} ${y})`}
                   data-testid={`metro-gigs-${origin}`}
@@ -253,7 +253,7 @@ export default function MetroMap({
                     fontSize="10"
                     className="fill-nd-cyan"
                   >
-                    {gigs}
+                    {gigCount}
                   </text>
                 </g>
               )}

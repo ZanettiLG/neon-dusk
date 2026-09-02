@@ -10,7 +10,7 @@ import { heatRepository as heat } from "../repositories/heat-repository";
 // Neon Dusk — Metro service (issue #18: district map visualization)
 // ============================================================================
 // Aggregates the three district readouts the map needs — trampos disponíveis
-// (static gigs catalog), calor (lazy-decayed on read, NEVER written back) and
+// (static trampo catalog), calor (lazy-decayed on read, NEVER written back) and
 // território de bonde (crews.territory_district) — into one response in
 // canonical ORIGINS order.
 
@@ -21,7 +21,7 @@ import { heatRepository as heat } from "../repositories/heat-repository";
  *
  * @param characterId - The calling character.
  * @returns `{ districts }` — 7 entries in ORIGINS order, zero-filled when a
- *          district has no gigs/heat/territory.
+ *          district has no trampos/heat/territory.
  * @throws AppError 404 NO_CHARACTER when the character does not exist.
  */
 export async function getMetroMap(characterId: string): Promise<MetroMapResponse> {
@@ -32,8 +32,8 @@ export async function getMetroMap(characterId: string): Promise<MetroMapResponse
   //    origin key or the display label — normalize via originFromDistrictString).
   const gigRows = await gigs.listCatalog();
   const gigsByOrigin = new Map<Origin, number>();
-  for (const gig of gigRows) {
-    const origin = originFromDistrictString(gig.district);
+  for (const trampo of gigRows) {
+    const origin = originFromDistrictString(trampo.district);
     if (origin) gigsByOrigin.set(origin, (gigsByOrigin.get(origin) ?? 0) + 1);
   }
 

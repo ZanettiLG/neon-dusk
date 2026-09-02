@@ -63,7 +63,7 @@ const ORIGINS: Origin[] = [
   "o_ponto",
 ];
 
-/** Zero-filled metro payload (no gigs/heat/territory anywhere). */
+/** Zero-filled metro payload (no trampos/heat/territory anywhere). */
 const EMPTY_METRO: MetroMapResponse = {
   districts: ORIGINS.map((origin) => ({
     origin,
@@ -135,6 +135,19 @@ describe("MetroView", () => {
     expect(mocks.api.get).toHaveBeenCalledTimes(4);
   });
 
+  it("should show the error state when only the /api/metro fetch fails", async () => {
+    mocks.api.get.mockImplementation((url: string) =>
+      url === "/api/metro"
+        ? Promise.reject(new Error("Falha ao carregar o mapa"))
+        : Promise.resolve([]),
+    );
+
+    render(<MetroView />);
+
+    expect(await screen.findByText(/Falha ao carregar o mapa/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument();
+  });
+
   it("should render the map without vendor badges when no vendors exist", async () => {
     mockMapApi();
 
@@ -167,7 +180,7 @@ describe("MetroView", () => {
     ).toBeInTheDocument();
   });
 
-  it("should pass gigs, heat and territory indicators from /api/metro to the map", async () => {
+  it("should pass trampos, heat and territory indicators from /api/metro to the map", async () => {
     const metro: MetroMapResponse = {
       districts: ORIGINS.map((origin) => ({
         origin,

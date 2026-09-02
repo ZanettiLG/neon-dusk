@@ -144,6 +144,30 @@ describe("Issue #18 — Metro map API", () => {
     }
   });
 
+  it("should never surface negative heat (DB constraint backstops the clamp)", async () => {
+    const user = await registerApiUser();
+
+    // The heat table carries a CHECK constraint (heat_amount_non_negative) —
+    // negative amounts are rejected at the schema level, so the API can never
+    // read a negative value. (The defensive clamp in applyHeatDecay for
+    // currentHeat <= 0 is covered by `gigs-game.test.ts`.)
+    await expect(
+      db("heat").insert({
+        character_id: user.characterId,
+        district: "o_fervo",
+        amount: -40,
+        updated_at: new Date(),
+      }),
+    ).rejects.toThrow(/heat_amount_non_negative/);
+
+    const res = await fetch(`${base()}/api/metro`, { headers: authHeader(user.accessToken) });
+    expect(res.status).toBe(200);
+    const body = await json<MetroMapResponse>(res);
+
+    const fervo = body.districts.find((d) => d.origin === "o_fervo");
+    expect(fervo!.heat).toBe(0);
+  });
+
   it("should apply heat decay on read and NOT write it back", async () => {
     const user = await registerApiUser();
 
