@@ -1,6 +1,6 @@
 # ADR 0003 — Tag de imagem em duas fases (candidato homolog → promoção latest)
 
-**Status**: accepted
+**Status**: aceito
 **Data**: 2026-09-02
 **Issue**: #65
 
