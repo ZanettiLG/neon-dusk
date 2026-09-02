@@ -40,6 +40,27 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 
 Para descobrir o image ID da versão boa: `docker inspect --format '{{.Image}}' neondusk-server`.
 
+## Rollback em staging (homolog)
+
+Staging roda com `IMAGE_TAG=homolog` (via `scripts/deploy-staging.sh`, wrapper
+do `deploy-prod.sh`). O rollback funciona igual ao de produção, com uma
+diferença: o `docker tag` do `rollback()` devolve a tag **`homolog`** para a
+imagem anterior (não `latest`):
+
+```bash
+# No staging VPS (/opt/neon-dusk), reverter para as imagens anteriores:
+PREVIOUS_SERVER_IMAGE=<image_id> PREVIOUS_APP_IMAGE=<image_id> FORCE_SMOKE_FAIL=1 \
+  IMAGE_TAG=homolog ./scripts/deploy-staging.sh
+```
+
+- **Falha de migrate no staging = PARAR.** Com `set -e`, o script aborta antes
+  do `up -d`; staging fica na imagem anterior (ainda de pé). Como o workflow
+  promove `latest` **somente** após o deploy de staging passar, `latest` NÃO é
+  afetado — produção permanece intacta.
+- **Runbook de incidente vale para staging** com a ressalva: `latest` só avança
+  após staging validado (promoção via `imagetools create` no workflow
+  `homolog-deploy.yml`). Um deploy de staging falho NUNCA avança `latest`.
+
 ## Caveats
 
 - **Migrations são forward-only.** O rollback de imagem não reverte schema — se
