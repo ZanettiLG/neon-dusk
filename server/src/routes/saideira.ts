@@ -197,7 +197,8 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
 
     reply.raw.writeHead(200, {
       // CORS for cross-origin EventSource — see app.ts (sseCorsHeaders).
-      ...request.server.sseCorsHeaders,
+      // ND-018: echo the request origin when it is on the allowed list.
+      ...request.server.sseCorsHeaders(request.headers.origin),
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",

@@ -1,4 +1,4 @@
-import type { Env } from "../env";
+import { parseCorsOrigins, type Env } from "../env";
 
 /**
  * CORS headers for hijacked SSE responses (ADR-1).
@@ -10,13 +10,23 @@ import type { Env } from "../env";
  * the wire and cross-origin EventSource connections fail the CORS check
  * (chat stuck "reconectando...").
  *
- * Mirrors the cors registration in app.ts (origin: env.CORS_ORIGIN,
- * credentials: true) — keep both in sync when the CORS config changes.
+ * Returns a factory that echoes the REQUEST's origin when it is on the allowed
+ * list (ND-018 multi-origin CORS_ORIGIN), falling back to the first allowed
+ * origin otherwise — mirrors the @fastify/cors registration in app.ts
+ * (origin: corsOrigins, credentials: true); keep both in sync.
  */
-export function sseCorsHeaders(env: Env): Record<string, string> {
-  return {
-    "Access-Control-Allow-Origin": env.CORS_ORIGIN,
-    ...(env.CORS_ORIGIN !== "*" ? { Vary: "Origin" } : {}),
-    "Access-Control-Allow-Credentials": "true",
+export function sseCorsHeaders(env: Env): (origin?: string) => Record<string, string> {
+  const allowed = parseCorsOrigins(env.CORS_ORIGIN);
+
+  return (origin) => {
+    const allowOrigin = origin && allowed.includes(origin) ? origin : (allowed[0] ?? "*");
+    // Access-Control-Allow-Credentials: true with Allow-Origin: * is rejected
+    // by browsers — only send it when echoing a concrete origin.
+    return {
+      "Access-Control-Allow-Origin": allowOrigin,
+      ...(allowOrigin !== "*"
+        ? { Vary: "Origin", "Access-Control-Allow-Credentials": "true" }
+        : {}),
+    };
   };
 }

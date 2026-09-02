@@ -1,0 +1,38 @@
+# ND-018: Prometheus alerting rules for Neon Dusk.
+# Metric names verified against server/src/telemetry/metrics.ts:
+#   - `up{job="neondusk"}`  (automatic per-target scrape health)
+#   - `neondusk_active_characters`  (gauge, active chars last 24h)
+#   - `neondusk_http_requests_total{status_class=...}`  (added ND-018 for 5xx rate)
+# Alertmanager integration is post-MVP (docs/ops/monitoring.md) — alerts
+# surface here in the Prometheus UI and via rule evaluation.
+groups:
+  - name: neondusk
+    rules:
+      - alert: NeonDuskServerDown
+        expr: up{job="neondusk"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Neon Dusk API fora do ar"
+          description: "O scrape do job 'neondusk' falha há mais de 5 minutos — o servidor não responde em /metrics."
+
+      - alert: NeonDuskZeroActiveCharacters
+        expr: neondusk_active_characters == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nenhum personagem ativo em 24h"
+          description: "neondusk_active_characters == 0 há mais de 30 minutos — possível falha do active-tracker ou Redis indisponível."
+
+      - alert: NeonDuskHighErrorRate
+        expr: |
+          sum by (job) (rate(neondusk_http_requests_total{status_class="5xx"}[10m]))
+            / sum by (job) (rate(neondusk_http_requests_total[10m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taxa de erro 5xx acima de 5%"
+          description: "A proporção de respostas 5xx ultrapassou 5% na janela de 10 minutos."

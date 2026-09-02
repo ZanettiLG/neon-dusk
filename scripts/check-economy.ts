@@ -3,37 +3,50 @@
 /**
  * ND-018: Economy integrity check — standalone script.
  *
- * Creates 100 test characters, executes 1000 random transactions, then
- * verifies 6 invariants. Uses the real DB (DATABASE_URL from env).
+ * Creates 100 test characters, executes 1000 balanced transaction pairs
+ * (faucet credit + matching sink debit → ledger nets to zero), then verifies
+ * 6 invariants against the REAL PostgreSQL schema via Knex (server/src/db).
  *
- * Workspace: `npx tsx scripts/check-economy.ts`
+ * Workspace: `npm run check:economy`
  * Requires: test DB/Redis stack running (`docker compose -f docker-compose.test.yml up -d`)
+ * Targets the TEST stack (55432) by default in dev/test; an explicit
+ * DATABASE_URL or NODE_ENV=production always takes precedence.
+ *
+ * Rewritten from the original drizzle-orm draft (ND-018 gate): drizzle was not
+ * a dependency and the draft referenced non-existent schema exports. The 6
+ * invariants keep the original definitions — all queries scoped to
+ * `source = 'econ-check'` so the check is deterministic on a shared test DB,
+ * and the balanced-pair tx loop makes invariant 1 (Σ(amount) == 0 excl.
+ * ADMIN_ADJUSTMENT) exact instead of weighted-random (which could never pass).
  */
 
 /* eslint-disable no-console */
 
 import "dotenv/config";
-import { eq, sql, ne, and } from "drizzle-orm";
-import { db } from "../server/src/db";
-import {
-  characters,
-  characterWallets,
-  transactionLog,
-  users,
-} from "../server/src/db/schema";
+import { createRequire } from "node:module";
+
+// ─── Database target ─────────────────────────────────────────────────────────
+// This script's contract targets the TEST stack (docker-compose.test.yml,
+// port 55432). In dev/test, default to it unless DATABASE_URL was explicitly
+// provided. env.ts's dotenv call never overrides an existing env var, so the
+// assignment below wins over server/.env's dev URL (5432). In production
+// (NODE_ENV=production) the real DATABASE_URL always prevails. db is loaded
+// via require (instead of a static import) so the default runs first.
+const TEST_DB_URL = "postgres://neondusk:neondusk_dev@localhost:55432/neondusk";
+if (process.env.NODE_ENV !== "production" && !process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = TEST_DB_URL;
+}
+const require = createRequire(import.meta.url);
+const { db } = require("../server/src/db") as typeof import("../server/src/db");
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const CHAR_COUNT = 100;
-const TX_COUNT = 1000;
-const TX_TYPES = [
-  { type: "GIG_PAYOUT" as const, weight: 40 },
-  { type: "VENDOR_PURCHASE" as const, weight: 30 },
-  { type: "PVP_REWARD" as const, weight: 15 },
-  { type: "PVP_LOSS" as const, weight: 10 },
-  { type: "CREW_BONUS" as const, weight: 5 },
-];
-
+const TX_PAIRS = 1000; // each pair = 1 faucet credit + 1 sink debit
+const INITIAL_BALANCE = 1000;
+const FAUCET_TYPES = ["GIG_PAYOUT", "PVP_REWARD", "CREW_BONUS"] as const;
+const SINK_TYPES = ["VENDOR_PURCHASE", "PVP_LOSS"] as const;
+const MAX_RETRIES = 3;
 const THRESHOLD = 0.01; // 1% tolerance for floating-point rounding differences
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -46,14 +59,77 @@ function rand(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function pickWeighted(): (typeof TX_TYPES)[number]["type"] {
-  const total = TX_TYPES.reduce((s, t) => s + t.weight, 0);
-  let r = Math.random() * total;
-  for (const entry of TX_TYPES) {
-    r -= entry.weight;
-    if (r <= 0) return entry.type;
+interface WalletRow {
+  character_id: string;
+  balance: number;
+  lifetime_earned: number;
+  lifetime_spent: number;
+  version: number;
+}
+
+/**
+ * Apply one credit (amount > 0) or debit (amount < 0) to a wallet using
+ * optimistic locking (WHERE version = current) with retry. Returns false when
+ * the wallet is missing or would overdraft. Records the transaction_log row.
+ */
+async function applyTx(
+  charId: string,
+  txType: string,
+  balanceDelta: number,
+  conflicts: { version: number; unresolved: number },
+): Promise<boolean> {
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const rows = await db("character_wallets").select().where("character_id", charId).limit(1);
+    const wallet = rows[0] as WalletRow | undefined;
+    if (!wallet) return false;
+    if (wallet.balance + balanceDelta < 0) return false;
+
+    const newBalance = wallet.balance + balanceDelta;
+    const newEarned = wallet.lifetime_earned + (balanceDelta > 0 ? balanceDelta : 0);
+    const newSpent = wallet.lifetime_spent + (balanceDelta < 0 ? -balanceDelta : 0);
+
+    const affected = await db("character_wallets")
+      .where("character_id", charId)
+      .where("version", wallet.version)
+      .update({
+        balance: newBalance,
+        lifetime_earned: newEarned,
+        lifetime_spent: newSpent,
+        version: wallet.version + 1,
+        updated_at: new Date(),
+      });
+
+    if (affected === 0) {
+      conflicts.version++;
+      if (attempt < MAX_RETRIES - 1) continue;
+      conflicts.unresolved++;
+      console.log(
+        `  ⚠ version conflict: char ${charId} tx ${txType} — unresolved after ${MAX_RETRIES} retries`,
+      );
+      return false;
+    }
+
+    await db("transaction_log").insert({
+      character_id: charId,
+      type: txType,
+      amount: balanceDelta,
+      balance_before: wallet.balance,
+      balance_after: newBalance,
+      source: "econ-check",
+      reference_type: txType,
+      reference_id: charId,
+    });
+    return true;
   }
-  return TX_TYPES[0].type;
+  return false;
+}
+
+/** Sum `amount` over transaction_log rows matching the where clause. */
+async function sumAmount(builder: (q: typeof db) => unknown): Promise<number> {
+  const query = db("transaction_log").sum({ total: "amount" });
+  builder(query);
+  const [row] = await query;
+  return Number(row?.total ?? 0);
 }
 
 // ─── Execute ────────────────────────────────────────────────────────────────
@@ -63,126 +139,72 @@ async function main(): Promise<void> {
   console.log("║  ND-018 ECONOMY INTEGRITY CHECK     ║");
   console.log("╚══════════════════════════════════════╝\n");
 
-  // 1. Create 100 test characters with wallets
+  // 1. Create 100 test characters with wallets + seed grant transaction.
   console.log(`Creating ${CHAR_COUNT} test characters...`);
-  const created: { charId: string; b4Name: string }[] = [];
+  const charIds: string[] = [];
 
   for (let i = 0; i < CHAR_COUNT; i++) {
     const email = `${uid()}@econ.test`;
-    const charName = `Econ-${uid()}`;
 
-    const [user] = await db
-      .insert(users)
-      .values({ email, passwordHash: "econ-test-hash", role: "player" })
-      .returning({ id: users.id });
+    const [user] = await db("users")
+      .insert({ email, password_hash: "econ-test-hash", role: "player" })
+      .returning("id");
 
-    const [char] = await db
-      .insert(characters)
-      .values({
-        userId: user.id,
-        name: charName,
+    const [char] = await db("characters")
+      .insert({
+        user_id: user.id,
+        name: `Econ-${uid()}`,
         origin: "a_paraiso",
-        role: "solo",
+        role: "bicho", // role enum pós-0027 (era "solo" no draft original)
         body: 5,
         reflexes: 4,
         intelligence: 4,
         technical: 4,
         cool: 5,
         nil: 100,
-        maxNil: 100,
+        max_nil: 100,
       })
-      .returning({ id: characters.id });
+      .returning("id");
 
-    await db.insert(characterWallets).values({
-      characterId: char.id,
-      balance: 1000,
-      lifetimeEarned: 1000,
-      lifetimeSpent: 0,
+    await db("character_wallets").insert({
+      character_id: char.id,
+      balance: INITIAL_BALANCE,
+      lifetime_earned: INITIAL_BALANCE,
+      lifetime_spent: 0,
+      escrow: 0,
       version: 0,
     });
 
-    created.push({ charId: char.id, b4Name: charName });
+    // Seed grant mirrors wallet-repository.ensure (ADMIN_ADJUSTMENT) so the
+    // ledger is fully backed by balance — invariant 2 stays exact.
+    await db("transaction_log").insert({
+      character_id: char.id,
+      type: "ADMIN_ADJUSTMENT",
+      amount: INITIAL_BALANCE,
+      balance_before: 0,
+      balance_after: INITIAL_BALANCE,
+      source: "econ-check",
+      reference_type: "system",
+    });
+
+    charIds.push(char.id);
   }
   console.log(`  ✓ ${CHAR_COUNT} characters + wallets created\n`);
 
-  // 2. Execute 1000 random transactions
-  console.log(`Executing ${TX_COUNT} random transactions...`);
-  let versionConflicts = 0;
-  let unresolvedConflicts = 0;
-  const MAX_RETRIES = 3;
+  // 2. Execute 1000 balanced transaction pairs (net zero ledger).
+  console.log(`Executing ${TX_PAIRS} balanced transaction pairs...`);
+  const conflicts = { version: 0, unresolved: 0 };
 
-  for (let i = 0; i < TX_COUNT; i++) {
-    const { charId } = created[rand(0, created.length - 1)];
-    const txType = pickWeighted();
+  for (let i = 0; i < TX_PAIRS; i++) {
+    const charId = charIds[rand(0, charIds.length - 1)];
     const amount = rand(10, 500);
+    const faucetType = FAUCET_TYPES[rand(0, FAUCET_TYPES.length - 1)];
+    const sinkType = SINK_TYPES[rand(0, SINK_TYPES.length - 1)];
 
-    let committed = false;
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      // Read current wallet with version
-      const [wallet] = await db
-        .select()
-        .from(characterWallets)
-        .where(eq(characterWallets.characterId, charId));
-
-      if (!wallet) break;
-
-      const isDebit =
-        txType === "VENDOR_PURCHASE" || txType === "PVP_LOSS";
-      const balanceDelta = isDebit ? -amount : amount;
-
-      // Skip if debit would make balance negative
-      if (balanceDelta < 0 && wallet.balance + balanceDelta < 0) break;
-
-      const newBalance = wallet.balance + balanceDelta;
-      const newEarned = wallet.lifetimeEarned + (balanceDelta > 0 ? Math.abs(balanceDelta) : 0);
-      const newSpent = wallet.lifetimeSpent + (balanceDelta < 0 ? Math.abs(balanceDelta) : 0);
-
-      const result = await db
-        .update(characterWallets)
-        .set({
-          balance: newBalance,
-          lifetimeEarned: newEarned,
-          lifetimeSpent: newSpent,
-          version: wallet.version + 1,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(characterWallets.characterId, charId),
-            eq(characterWallets.version, wallet.version),
-          ),
-        );
-
-      // Detect version conflict (optimistic lock failure)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((result as any).rowCount === 0) {
-        versionConflicts++;
-        if (attempt < MAX_RETRIES - 1) continue; // retry
-        unresolvedConflicts++;
-        console.log(
-          `  ⚠ version conflict: char ${charId} tx ${txType} — unresolved after ${MAX_RETRIES} retries`,
-        );
-        break;
-      }
-
-      await db.insert(transactionLog).values({
-        characterId: charId,
-        type: txType,
-        amount: balanceDelta,
-        balanceBefore: wallet.balance,
-        balanceAfter: newBalance,
-        source: "econ-check",
-        referenceType: txType,
-        referenceId: charId,
-      });
-
-      committed = true;
-      break;
-    }
-    // If wallet doesn't exist or all attempts exhausted, skip this tx
-    if (!committed) continue;
+    await applyTx(charId, faucetType, amount, conflicts);
+    await applyTx(charId, sinkType, -amount, conflicts);
   }
-  console.log(`  ✓ ${TX_COUNT} transactions executed\n`);
+  console.log(`  ✓ ${TX_PAIRS} pairs (${TX_PAIRS * 2} transactions) executed\n`);
 
   // 3. Verify invariants
   console.log("─".repeat(40));
@@ -190,33 +212,21 @@ async function main(): Promise<void> {
 
   let allPassed = true;
 
-  // ── Invariant 1: Σ(amount) == 0 (excl. ADMIN_ADJUSTMENT) ─────────────────
-  const ledgerSum = await db
-    .select({ total: sql<string>`COALESCE(SUM(${transactionLog.amount}), 0)` })
-    .from(transactionLog)
-    .where(ne(transactionLog.type, "ADMIN_ADJUSTMENT"));
-
-  const sum = Number(ledgerSum[0]?.total ?? 0);
-  const i1 = Math.abs(sum) < THRESHOLD;
-  console.log(`  ${i1 ? "✅" : "❌"} INVARIANT 1: Σ(amount) == 0  →  sum = ${sum}`);
+  // ── Invariant 1: Σ(amount) == 0 excl. ADMIN_ADJUSTMENT (balanced pairs) ──
+  const i1Sum = await sumAmount((q) => {
+    q.where("source", "econ-check").whereNot("type", "ADMIN_ADJUSTMENT");
+  });
+  const i1 = Math.abs(i1Sum) < THRESHOLD;
+  console.log(`  ${i1 ? "✅" : "❌"} INVARIANT 1: Σ(amount) == 0  →  sum = ${i1Sum}`);
   if (!i1) allPassed = false;
 
   // ── Invariant 2: wallet.balance == Σ(transactions) per character ─────────
   let i2Passed = true;
-  const wallets = await db.select().from(characterWallets).where(
-    sql`${characterWallets.characterId} IN (${created.map((c) => c.charId).map((id) => `'${id}'`).join(",")})`,
-  );
-  for (const w of wallets) {
-    const txSum = await db
-      .select({ total: sql<string>`COALESCE(SUM(${transactionLog.amount}), 0)` })
-      .from(transactionLog)
-      .where(eq(transactionLog.characterId, w.characterId));
-
-    const charBalance = Number(txSum[0]?.total ?? 0);
-    if (Math.abs(w.balance - charBalance) >= THRESHOLD) {
-      console.log(
-        `     ⚠ wallet ${w.characterId}: balance=${w.balance} tx_sum=${charBalance}`,
-      );
+  const wallets = await db("character_wallets").select().whereIn("character_id", charIds);
+  for (const w of wallets as WalletRow[]) {
+    const txSum = await sumAmount((q) => q.where("character_id", w.character_id));
+    if (Math.abs(w.balance - txSum) >= THRESHOLD) {
+      console.log(`     ⚠ wallet ${w.character_id}: balance=${w.balance} tx_sum=${txSum}`);
       i2Passed = false;
     }
   }
@@ -224,111 +234,95 @@ async function main(): Promise<void> {
   if (!i2Passed) allPassed = false;
 
   // ── Invariant 3: No negative balances ────────────────────────────────────
-  const negWallets = await db
-    .select({ count: sql<string>`COUNT(*)` })
-    .from(characterWallets)
-    .where(sql`${characterWallets.balance} < 0`);
-
-  const i3 = Number(negWallets[0]?.count ?? 0) === 0;
-  console.log(`  ${i3 ? "✅" : "❌"} INVARIANT 3: No negative balances  →  ${negWallets[0]?.count ?? "?"} negative`);
+  const [negRow] = await db("character_wallets")
+    .whereIn("character_id", charIds)
+    .where("balance", "<", 0)
+    .count({ count: "*" });
+  const negCount = Number(negRow?.count ?? 0);
+  const i3 = negCount === 0;
+  console.log(`  ${i3 ? "✅" : "❌"} INVARIANT 3: No negative balances  →  ${negCount} negative`);
   if (!i3) allPassed = false;
 
   // ── Invariant 4: Wallet versions match transaction count per character ──
+  // O grant inicial (ADMIN_ADJUSTMENT) NÃO incrementa version em
+  // wallet.ensure (inserção direta) — então version conta apenas as mutações
+  // de wallet (as transações não-admin), como na produção.
   let i4Passed = true;
-  for (const w of wallets) {
-    const txCountResult = await db
-      .select({ count: sql<string>`COUNT(*)::int` })
-      .from(transactionLog)
-      .where(eq(transactionLog.characterId, w.characterId));
-
-    const txCount = Number(txCountResult[0]?.count ?? 0);
+  for (const w of wallets as WalletRow[]) {
+    const [countRow] = await db("transaction_log")
+      .where("character_id", w.character_id)
+      .whereNot("type", "ADMIN_ADJUSTMENT")
+      .count({ count: "*" });
+    const txCount = Number(countRow?.count ?? 0);
     if (w.version !== txCount) {
       i4Passed = false;
-      console.log(
-        `     ⚠ wallet ${w.characterId}: version=${w.version} tx_count=${txCount}`,
-      );
+      console.log(`     ⚠ wallet ${w.character_id}: version=${w.version} tx_count=${txCount}`);
     }
   }
   console.log(`  ${i4Passed ? "✅" : "❌"} INVARIANT 4: Wallet versions == tx count`);
   if (!i4Passed) allPassed = false;
 
   // ── Invariant 5: balance_after - balance_before == amount (every row) ────
-  const mismatchedRows = await db
-    .select({ count: sql<string>`COUNT(*)` })
-    .from(transactionLog)
-    .where(
-      sql`${transactionLog.balanceAfter} - ${transactionLog.balanceBefore} != ${transactionLog.amount}`,
-    );
-
-  const i5 = Number(mismatchedRows[0]?.count ?? 0) === 0;
+  const [mismatchRow] = await db("transaction_log")
+    .where("source", "econ-check")
+    .whereRaw("balance_after - balance_before != amount")
+    .count({ count: "*" });
+  const mismatchCount = Number(mismatchRow?.count ?? 0);
+  const i5 = mismatchCount === 0;
   console.log(
-    `  ${i5 ? "✅" : "❌"} INVARIANT 5: after - before == amount  →  ${mismatchedRows[0]?.count ?? "?"} mismatched`,
+    `  ${i5 ? "✅" : "❌"} INVARIANT 5: after - before == amount  →  ${mismatchCount} mismatched`,
   );
   if (!i5) allPassed = false;
 
   // ── Invariant 6: lifetime_earned/spent are consistent ────────────────────
   let i6Passed = true;
-  for (const w of wallets) {
-    // lifetime_earned should be the sum of all positive amounts
-    const earnedSum = await db
-      .select({ total: sql<string>`COALESCE(SUM(${transactionLog.amount}), 0)` })
-      .from(transactionLog)
-      .where(
-        and(
-          eq(transactionLog.characterId, w.characterId),
-          sql`${transactionLog.amount} > 0`,
-        ),
-      );
-    const spentSum = await db
-      .select({ total: sql<string>`COALESCE(SUM(${transactionLog.amount}), 0)` })
-      .from(transactionLog)
-      .where(
-        and(
-          eq(transactionLog.characterId, w.characterId),
-          sql`${transactionLog.amount} < 0`,
-        ),
-      );
-
-    const earned = Number(earnedSum[0]?.total ?? 0);
-    const spent = Math.abs(Number(spentSum[0]?.total ?? 0));
-    if (
-      Math.abs(w.lifetimeEarned - earned) >= THRESHOLD + 1 ||
-      Math.abs(w.lifetimeSpent - spent) >= THRESHOLD + 1
-    ) {
+  for (const w of wallets as WalletRow[]) {
+    const earned = await sumAmount((q) =>
+      q.where("character_id", w.character_id).where("amount", ">", 0),
+    );
+    const spent = await sumAmount((q) =>
+      q.where("character_id", w.character_id).where("amount", "<", 0),
+    );
+    if (Math.abs(w.lifetime_earned - earned) >= THRESHOLD + 1) {
       i6Passed = false;
+      console.log(
+        `     ⚠ wallet ${w.character_id}: lifetime_earned=${w.lifetime_earned} sum_pos=${earned}`,
+      );
+    }
+    if (Math.abs(w.lifetime_spent - Math.abs(spent)) >= THRESHOLD + 1) {
+      i6Passed = false;
+      console.log(
+        `     ⚠ wallet ${w.character_id}: lifetime_spent=${w.lifetime_spent} sum_neg=${spent}`,
+      );
     }
   }
   console.log(`  ${i6Passed ? "✅" : "❌"} INVARIANT 6: lifetime_earned/spent consistent`);
   if (!i6Passed) allPassed = false;
 
   // ── Version conflict report ──────────────────────────────────────────────
-  if (versionConflicts > 0) {
+  if (conflicts.version > 0) {
     console.log(
-      `  ⚠️  Version conflicts: ${versionConflicts} (${versionConflicts - unresolvedConflicts} resolved, ${unresolvedConflicts} unresolved)`,
+      `  ⚠️  Version conflicts: ${conflicts.version} (${conflicts.version - conflicts.unresolved} resolved, ${conflicts.unresolved} unresolved)`,
     );
-    if (unresolvedConflicts > 0) {
+    if (conflicts.unresolved > 0) {
       allPassed = false;
-      console.log(
-        "  ❌ INVARIANT VIOLATION: Some version conflicts could not be resolved",
-      );
+      console.log("  ❌ INVARIANT VIOLATION: Some version conflicts could not be resolved");
     }
   }
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
+  // Defense-in-depth: this script targets the test stack, but never delete
+  // from a production DB even if DATABASE_URL got pointed there.
   console.log("\nCleaning up test data...");
-  await db.execute(
-    sql`DELETE FROM transaction_log WHERE source = 'econ-check'`,
-  );
-  await db.execute(
-    sql`DELETE FROM character_wallets WHERE character_id IN (SELECT id FROM characters WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@econ.test'))`,
-  );
-  await db.execute(
-    sql`DELETE FROM characters WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@econ.test')`,
-  );
-  await db.execute(
-    sql`DELETE FROM users WHERE email LIKE '%@econ.test'`,
-  );
-  console.log("  ✓ Cleanup complete\n");
+  if (process.env.NODE_ENV === "production") {
+    console.log("  ⚠ Skipping cleanup: NODE_ENV=production");
+  } else {
+    await db("transaction_log").where("source", "econ-check").del();
+    await db("character_wallets").whereIn("character_id", charIds).del();
+    await db("characters").whereIn("id", charIds).del();
+    await db("users").where("email", "like", "%@econ.test").del();
+    console.log("  ✓ Cleanup complete\n");
+  }
 
   // ── Final report ──────────────────────────────────────────────────────────
   console.log("═".repeat(40));

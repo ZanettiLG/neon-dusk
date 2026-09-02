@@ -23,10 +23,18 @@ describe("app factory", () => {
   });
 
   it("should send CORS headers on API responses", async () => {
-    const res = await server.get("/api/health");
+    // ND-018: CORS_ORIGIN é multi-origin — a whitelist ecoa a Origin da
+    // request quando permitida (browser sempre envia Origin em cross-origin).
+    const res = await server.get("/api/health", { Origin: "http://localhost:5173" });
 
     expect(res.headers.get("access-control-allow-origin")).toBe("http://localhost:5173");
     expect(res.headers.get("access-control-allow-credentials")).toBe("true");
+  });
+
+  it("should not set allow-origin for a disallowed origin", async () => {
+    const res = await server.get("/api/health", { Origin: "http://evil.example" });
+
+    expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 
   it("should respond with application/json content type", async () => {

@@ -86,6 +86,18 @@ export const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+/**
+ * Split a CORS_ORIGIN value into its origin list: comma-separated, trimmed,
+ * empty entries dropped. Pure function (exported for tests and reuse by the
+ * SSE CORS helper, which needs the same parsing per call — not the global).
+ */
+export function parseCorsOrigins(corsOrigin: string): string[] {
+  return corsOrigin
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function loadEnv(): Env {
   const result = envSchema.safeParse(process.env);
 
@@ -101,3 +113,10 @@ function loadEnv(): Env {
 }
 
 export const env = loadEnv();
+
+/**
+ * Allowed CORS origins for the API. ND-018: CORS_ORIGIN is now multi-origin
+ * (`http://a.com,http://b.com`); backward-compatible with the single-origin
+ * default (`http://localhost:5173`).
+ */
+export const corsOrigins = parseCorsOrigins(env.CORS_ORIGIN);

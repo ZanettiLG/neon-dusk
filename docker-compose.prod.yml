@@ -72,10 +72,35 @@ services:
     networks:
       - neondusk
 
+  # ND-007/ND-018: telemetry — Prometheus scrapes the server container's
+  # /metrics over the internal network and evaluates alerts.yml (same image
+  # and config layout as docker-compose.yml). The prod config targets the
+  # in-network server hostname directly (Prometheus does no env-substitution
+  # on scrape targets, so a separate config file is used instead of an env).
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: neondusk-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    depends_on:
+      - server
+    volumes:
+      - ./prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    networks:
+      - neondusk
+
 volumes:
   pgdata:
     driver: local
   redisdata:
+    driver: local
+  prometheus_data:
     driver: local
 
 networks:

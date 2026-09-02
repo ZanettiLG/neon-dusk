@@ -23,9 +23,10 @@
     "db:seed": "npm run db:seed -w server",
     "db:studio": "npm run db:studio -w server",
     "check:economy": "npx tsx scripts/check-economy.ts",
+    "calibration:report": "npx tsx scripts/calibration-report.ts",
     "deploy:staging": "bash scripts/deploy-staging.sh",
-    "smoke": "npx vitest run server/src/__tests__/smoke-routes.test.ts",
-    "e2e": "npx vitest run server/src/__tests__/e2e-player-loop.test.ts"
+    "smoke": "npm run test -w server -- src/__tests__/smoke-routes.test.ts",
+    "e2e": "npm run test -w server -- src/__tests__/e2e-player-loop.test.ts"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",

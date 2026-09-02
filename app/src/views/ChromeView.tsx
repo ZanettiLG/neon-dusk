@@ -49,6 +49,27 @@ export default function ChromeView() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // 2-step inline confirmation (ND-018, padrão do ConsumablesPanel): 1st click
+  // arms, 2nd fires. Resets on success/error, a 3s timeout, or another click.
+  const [confirmingUninstallId, setConfirmingUninstallId] = useState<string | null>(null);
+  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function armUninstall(installedId: string) {
+    setConfirmingUninstallId(installedId);
+    if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
+    confirmTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current) setConfirmingUninstallId(null);
+    }, 3000);
+  }
+
+  function disarmUninstall() {
+    if (confirmTimeoutRef.current) {
+      clearTimeout(confirmTimeoutRef.current);
+      confirmTimeoutRef.current = null;
+    }
+    setConfirmingUninstallId(null);
+  }
+
   async function fetchCatalog() {
     setCatalogLoading(true);
     setCatalogError(null);
@@ -108,7 +129,10 @@ export default function ChromeView() {
     fetchCatalog();
     fetchInstalled();
     void fetchVendor();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+      if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current);
+    };
   }, []);
 
   /** Post-surgery: reload the loadout + refresh the HUD (grana e humanidade). */
@@ -121,6 +145,7 @@ export default function ChromeView() {
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
+    disarmUninstall();
     try {
       await api.post(`/api/chrome/uninstall`, { installedChromeId });
       if (!mountedRef.current) return;
@@ -245,11 +270,21 @@ export default function ChromeView() {
                       Instalado: {new Date(rec.installedAt).toLocaleDateString("pt-BR")}
                     </p>
                     <button
-                      className="btn-danger text-xs px-3 py-1 mt-3"
+                      className={
+                        confirmingUninstallId === rec.installedId
+                          ? "btn-danger text-xs px-3 py-1 mt-3 animate-pulse-neon"
+                          : "btn-danger text-xs px-3 py-1 mt-3"
+                      }
                       disabled={actionLoading}
-                      onClick={() => void onUninstall(rec.installedId)}
+                      onClick={() => {
+                        if (confirmingUninstallId === rec.installedId) {
+                          void onUninstall(rec.installedId);
+                        } else {
+                          armUninstall(rec.installedId);
+                        }
+                      }}
                     >
-                      Remover
+                      {confirmingUninstallId === rec.installedId ? "CONFIRMAR REMOÇÃO?" : "Remover"}
                     </button>
                   </div>
                 ))}
