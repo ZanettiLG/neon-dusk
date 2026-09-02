@@ -216,11 +216,20 @@ describe("MetroMap", () => {
     expect(screen.getByTestId("metro-territory-o_fervo")).toHaveAttribute("y", "203");
   });
 
-  it("should color the heat word by band and pulse on INFERNO", () => {
-    renderMap({ heatByDistrict: { o_fervo: 30, babilonia: 120 } });
+  it("should color each heat band with a distinct color and pulse only on INFERNO", () => {
+    renderMap({
+      heatByDistrict: { o_fervo: 30, a_quebrada: 60, babilonia: 120 },
+    });
 
-    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveClass("fill-nd-gold");
+    // QUENTE → green, PEGANDO FOGO → gold, INFERNO → magenta: three distinct
+    // colors so the map never relies on the pulse alone (prefers-reduced-motion).
+    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveTextContent("QUENTE");
+    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveClass("fill-nd-green");
     expect(screen.getByTestId("metro-heat-o_fervo")).not.toHaveClass("animate-pulse-neon");
+
+    expect(screen.getByTestId("metro-heat-a_quebrada")).toHaveTextContent("PEGANDO FOGO");
+    expect(screen.getByTestId("metro-heat-a_quebrada")).toHaveClass("fill-nd-gold");
+    expect(screen.getByTestId("metro-heat-a_quebrada")).not.toHaveClass("animate-pulse-neon");
 
     expect(screen.getByTestId("metro-heat-babilonia")).toHaveTextContent("INFERNO");
     expect(screen.getByTestId("metro-heat-babilonia")).toHaveClass(

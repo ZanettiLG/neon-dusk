@@ -11,6 +11,20 @@ describe("HEAT_LEVELS", () => {
     expect(HEAT_LEVELS[3].label).toBe("INFERNO");
     expect(HEAT_LEVELS[3].pulse).toBe(true);
   });
+
+  it("should give each renderable band a distinct color (no pulse-only distinction)", () => {
+    // QA: pegando_fogo and inferno used to share magenta, distinguishable only
+    // by the pulse — invisible under prefers-reduced-motion. The three bands
+    // that can render a chip must be green / gold / magenta, pairwise distinct.
+    const renderable = HEAT_LEVELS.filter((b) => b.level !== "limpo");
+    expect(renderable.map((b) => b.color)).toEqual([
+      "fill-nd-green",
+      "fill-nd-gold",
+      "fill-nd-magenta",
+    ]);
+    expect(renderable.map((b) => b.solid)).toEqual(["bg-nd-green", "bg-nd-gold", "bg-nd-magenta"]);
+    expect(new Set(renderable.map((b) => b.color)).size).toBe(3);
+  });
 });
 
 describe("heatLevelFor", () => {

@@ -2,6 +2,12 @@
 // the heat mechanics of 03-mecanicas-core.md §2: decay is applied server-side,
 // the client only buckets the value for color/label. Tailwind classes are
 // literal strings (JIT scans verbatim).
+//
+// Each renderable band carries a DISTINCT color — the heat word and key swatch
+// must never rely on `pulse` alone to tell bands apart (QA: fails under
+// prefers-reduced-motion). `limpo` shares green with `quente`, but it never
+// renders a chip (only announced/key) and the heat key filters it out, so the
+// three visible bands stay green / gold / magenta.
 
 export const HEAT_LEVELS = [
   {
@@ -17,16 +23,16 @@ export const HEAT_LEVELS = [
     min: 1,
     max: 49,
     label: "QUENTE",
-    color: "fill-nd-gold",
-    solid: "bg-nd-gold",
+    color: "fill-nd-green",
+    solid: "bg-nd-green",
   },
   {
     level: "pegando_fogo",
     min: 50,
     max: 99,
     label: "PEGANDO FOGO",
-    color: "fill-nd-magenta",
-    solid: "bg-nd-magenta",
+    color: "fill-nd-gold",
+    solid: "bg-nd-gold",
   },
   {
     level: "inferno",
