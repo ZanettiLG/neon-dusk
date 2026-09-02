@@ -14,5 +14,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-IMAGE_TAG="${IMAGE_TAG:-homolog}"
-exec "$SCRIPT_DIR/deploy-prod.sh"
+# Assignment as command prefix so IMAGE_TAG reaches deploy-prod.sh's env
+# (a bare `VAR=x` on its own line is a shell variable, not exported).
+IMAGE_TAG="${IMAGE_TAG:-homolog}" exec "$SCRIPT_DIR/deploy-prod.sh"
