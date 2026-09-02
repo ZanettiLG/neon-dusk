@@ -106,7 +106,8 @@ export default function MetroMap({
           // aria-hidden — they only duplicate the label visually).
           const countSuffix =
             count > 0 ? `, ${count} ${count === 1 ? "vendedor" : "vendedores"}` : "";
-          const gigsSuffix = gigCount > 0 ? `, ${gigCount} ${gigCount === 1 ? "trampo" : "trampos"}` : "";
+          const gigsSuffix =
+            gigCount > 0 ? `, ${gigCount} ${gigCount === 1 ? "trampo" : "trampos"}` : "";
           const heatSuffix = heat > 0 ? `, calor ${heatBand.label} (${heat})` : "";
           const territorySuffix = territory ? `, território do bonde ${territory}` : "";
           const disabled = traveling;
