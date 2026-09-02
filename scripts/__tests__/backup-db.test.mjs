@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, readdirSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -79,4 +79,52 @@ test("should exit 1 with clear message when .env.production is missing", () => {
 test("should have valid bash syntax (bash -n)", () => {
   const stdout = execFileSync("bash", ["-n", SCRIPT], { encoding: "utf8" });
   assert.equal(stdout, "");
+});
+
+test("should prune to the 7 most recent backups (KEEP=7)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "backup-db-prune-"));
+  try {
+    writeFileSync(join(dir, ".env.production"), "");
+    // Fake docker: emits fake dump data so the size guard passes — no real
+    // docker/compose needed (the script's compose() resolves via PATH).
+    const bin = join(dir, "bin");
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, "docker"),
+      "#!/usr/bin/env bash\ncat <<'EOF'\nfake dump data\nEOF\n",
+      { mode: 0o755 },
+    );
+
+    const backups = join(dir, "backups");
+    mkdirSync(backups);
+    const now = Date.now();
+    for (let i = 1; i <= 10; i++) {
+      const f = join(backups, `neondusk-2026010${i}-000000.sql.gz`);
+      writeFileSync(f, "old");
+      // mtime = now − i days: the 4 oldest (i=7..10) must be pruned.
+      utimesSync(f, new Date(now - i * 86_400_000), new Date(now - i * 86_400_000));
+    }
+
+    const stdout = execFileSync("bash", [SCRIPT], {
+      cwd: dir,
+      env: { ...process.env, BACKUP_DIR: backups, PATH: `${bin}:${process.env.PATH}` },
+      encoding: "utf8",
+    });
+
+    const remaining = readdirSync(backups).filter((f) => f.endsWith(".sql.gz"));
+    // 10 pre-created + 1 new = 11 → prune keeps the 7 newest.
+    assert.equal(remaining.length, 7, `stdout: ${stdout}`);
+    for (let i = 7; i <= 10; i++) {
+      assert.ok(
+        !remaining.includes(`neondusk-2026010${i}-000000.sql.gz`),
+        `backup ${i} should have been pruned`,
+      );
+    }
+    // The 6 newest pre-created (i=1..6) survive alongside the new dump.
+    for (let i = 1; i <= 6; i++) {
+      assert.ok(remaining.includes(`neondusk-2026010${i}-000000.sql.gz`));
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
