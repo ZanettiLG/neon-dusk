@@ -370,6 +370,33 @@ describe("ND-016 — Crews Básicas API", () => {
       expect((body as CreateCrewResponse).crew.tag).toBe("BLD");
     });
 
+    it("should claim the leader's origin district as territory (issue #18)", async () => {
+      const leader = await registerApiUser();
+      await makeFounder(leader);
+
+      const { status, body } = await createCrew(leader, "Blade Runners", "BLD");
+      expect(status).toBe(201);
+      const crewId = (body as CreateCrewResponse).crew.id;
+
+      const [row] = await db("crews").select("territory_district").where("id", crewId);
+      expect(row!.territory_district).toBe("a_paraiso");
+    });
+
+    it("should silently skip the territory claim when the origin is occupied (issue #18)", async () => {
+      const leaderA = await registerApiUser(); // origin a_paraiso
+      const leaderB = await registerApiUser(); // origin a_paraiso
+      await makeFounder(leaderA);
+      await makeFounder(leaderB);
+
+      expect((await createCrew(leaderA, "Blade Runners", "BLD")).status).toBe(201);
+      const { status, body } = await createCrew(leaderB, "Other Crew", "OTH");
+
+      expect(status).toBe(201); // no error — the district just stays unclaimed
+      const crewBId = (body as CreateCrewResponse).crew.id;
+      const [row] = await db("crews").select("territory_district").where("id", crewBId);
+      expect(row!.territory_district).toBeNull();
+    });
+
     it("should reject a duplicate crew name with 409 DUPLICATE_NAME", async () => {
       const leaderA = await registerApiUser();
       const leaderB = await registerApiUser();
@@ -855,6 +882,30 @@ describe("ND-016 — Crews Básicas API", () => {
         headers: authHeader(leader.accessToken),
       });
       expect(after.status).toBe(404);
+    });
+
+    it("should free the territory slot on dissolve (issue #18)", async () => {
+      const leader = await registerApiUser(); // origin a_paraiso
+      const nextLeader = await registerApiUser(); // origin a_paraiso
+      await makeFounder(leader);
+      await makeFounder(nextLeader);
+
+      const crewId = await buildCrew(leader, "Blade Runners", "BLD");
+      const [claimed] = await db("crews").select("territory_district").where("id", crewId);
+      expect(claimed!.territory_district).toBe("a_paraiso");
+
+      const res = await fetch(`${base()}/api/crews/${crewId}`, {
+        method: "DELETE",
+        headers: authHeader(leader.accessToken),
+      });
+      expect(res.status).toBe(204);
+
+      // A new crew founded from the same origin reclaims the district.
+      const { status, body } = await createCrew(nextLeader, "Next Crew", "NXT");
+      expect(status).toBe(201);
+      const nextCrewId = (body as CreateCrewResponse).crew.id;
+      const [row] = await db("crews").select("territory_district").where("id", nextCrewId);
+      expect(row!.territory_district).toBe("a_paraiso");
     });
 
     it("should reject a non-leader with 403 NOT_CREW_LEADER", async () => {

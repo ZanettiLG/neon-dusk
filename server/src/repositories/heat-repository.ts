@@ -19,6 +19,8 @@ export interface HeatRepository {
     district: string,
     q?: Queryable,
   ): Promise<{ amount: number; updated_at: Date } | null>;
+  /** Every heat row of the character (metro map aggregation, issue #18). */
+  listForCharacter(characterId: string, q?: Queryable): Promise<HeatRow[]>;
   /** Upsert heat (one row per character + district). */
   upsert(characterId: string, district: string, amount: number, q?: Queryable): Promise<void>;
 }
@@ -32,6 +34,12 @@ export function createHeatRepository(q: Queryable = db): HeatRepository {
         .where("district", district)
         .limit(1);
       return rows.length ? (rows[0] as { amount: number; updated_at: Date }) : null;
+    },
+
+    async listForCharacter(characterId, tx = q) {
+      return (await tx("heat")
+        .select()
+        .where("character_id", characterId)) as unknown as HeatRow[];
     },
 
     async upsert(characterId, district, amount, tx = q) {

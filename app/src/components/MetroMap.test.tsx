@@ -21,6 +21,9 @@ function renderMap(props: Partial<ComponentProps<typeof MetroMap>> = {}) {
       currentDistrict={props.currentDistrict ?? null}
       originDistrict={props.originDistrict ?? null}
       vendorsByDistrict={props.vendorsByDistrict ?? {}}
+      gigsByDistrict={props.gigsByDistrict ?? {}}
+      heatByDistrict={props.heatByDistrict ?? {}}
+      territoryByDistrict={props.territoryByDistrict ?? {}}
       traveling={props.traveling ?? false}
       onSelect={onSelect}
     />,
@@ -149,5 +152,103 @@ describe("MetroMap", () => {
       "aria-disabled",
       "true",
     );
+  });
+
+  // ─── Issue #18: trampos / calor / território indicators ──────────────────
+
+  it("should render gig, heat and territory indicators only when data exists", () => {
+    renderMap({
+      gigsByDistrict: { o_fervo: 3, babilonia: 1 },
+      heatByDistrict: { babilonia: 60 },
+      territoryByDistrict: { a_paraiso: "BLD" },
+    });
+
+    // Trampos badges (count text inside).
+    expect(within(screen.getByTestId("metro-gigs-o_fervo")).getByText("3")).toBeInTheDocument();
+    expect(within(screen.getByTestId("metro-gigs-babilonia")).getByText("1")).toBeInTheDocument();
+
+    // Calor label (band word).
+    expect(screen.getByTestId("metro-heat-babilonia")).toHaveTextContent("PEGANDO FOGO");
+
+    // Território label ([TAG]).
+    expect(screen.getByTestId("metro-territory-a_paraiso")).toHaveTextContent("[BLD]");
+
+    // Districts without data render no indicators.
+    expect(screen.queryByTestId("metro-gigs-a_paraiso")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("metro-heat-o_fervo")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("metro-territory-babilonia")).not.toBeInTheDocument();
+  });
+
+  it("should announce the indicators in the station aria-label", () => {
+    renderMap({
+      gigsByDistrict: { o_fervo: 3, babilonia: 1 },
+      heatByDistrict: { o_fervo: 30 },
+      territoryByDistrict: { o_fervo: "BLD" },
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: "Estação O Fervo, 3 trampos, calor QUENTE (30), território do bonde BLD",
+      }),
+    ).toBeInTheDocument();
+
+    // Singular trampo + no-indicator districts keep the plain name.
+    expect(screen.getByRole("button", { name: "Estação Babilônia, 1 trampo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Estação A Paraíso" })).toBeInTheDocument();
+  });
+
+  it("should place the gig badge on the station's left and keep heat/territory clear", () => {
+    renderMap({
+      gigsByDistrict: { o_fervo: 3 },
+      heatByDistrict: { o_fervo: 30 },
+      territoryByDistrict: { o_fervo: "BLD" },
+    });
+
+    // Geometry contract: gig badge centered at (x-27, y) — o_fervo (200,235).
+    expect(screen.getByTestId("metro-gigs-o_fervo")).toHaveAttribute(
+      "transform",
+      "translate(173 235)",
+    );
+    // Heat at (x, y+34), territory at (x, y-32) — inside the 400×300 viewBox.
+    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveAttribute("x", "200");
+    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveAttribute("y", "269");
+    expect(screen.getByTestId("metro-territory-o_fervo")).toHaveAttribute("x", "200");
+    expect(screen.getByTestId("metro-territory-o_fervo")).toHaveAttribute("y", "203");
+  });
+
+  it("should color the heat word by band and pulse on INFERNO", () => {
+    renderMap({ heatByDistrict: { o_fervo: 30, babilonia: 120 } });
+
+    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveClass("fill-nd-gold");
+    expect(screen.getByTestId("metro-heat-o_fervo")).not.toHaveClass("animate-pulse-neon");
+
+    expect(screen.getByTestId("metro-heat-babilonia")).toHaveTextContent("INFERNO");
+    expect(screen.getByTestId("metro-heat-babilonia")).toHaveClass(
+      "fill-nd-magenta",
+      "animate-pulse-neon",
+    );
+  });
+
+  it("should keep indicators aria-hidden (announced via the station label)", () => {
+    renderMap({
+      gigsByDistrict: { o_fervo: 3 },
+      heatByDistrict: { o_fervo: 30 },
+      territoryByDistrict: { o_fervo: "BLD" },
+    });
+
+    expect(screen.getByTestId("metro-gigs-o_fervo")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("metro-heat-o_fervo")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByTestId("metro-territory-o_fervo")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("should render the heat legend with the bands that can appear on the map", () => {
+    renderMap({ heatByDistrict: { o_fervo: 30 } });
+
+    const legend = screen.getByTestId("metro-heat-legend");
+    expect(within(legend).getByText("QUENTE")).toBeInTheDocument();
+    expect(within(legend).getByText("PEGANDO FOGO")).toBeInTheDocument();
+    expect(within(legend).getByText("INFERNO")).toBeInTheDocument();
+    // LIMPO never renders a chip on the map, so it stays out of the legend.
+    expect(within(legend).queryByText("LIMPO")).not.toBeInTheDocument();
   });
 });

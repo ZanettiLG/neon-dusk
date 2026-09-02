@@ -1,11 +1,12 @@
 import type { Origin } from "@neon-dusk/shared";
-import { ORIGINS } from "@neon-dusk/shared";
-import { ORIGIN_LABELS } from "@/lib/labels";
 
 // Deterministic client-side origin identity (04-sistemas-e-progressao.md §0.5):
 // two-letter district glyphs and hexagon frame/text themes. Consumed by the
 // character avatar, the metro map and the district banner — one source so the
 // seven districts never drift between surfaces.
+// originFromDistrictString moved to @neon-dusk/shared (issue #18 — the server
+// needs it too); re-exported here so existing consumers keep their import.
+export { originFromDistrictString } from "@neon-dusk/shared";
 
 /**
  * Visual theme of one origin district: the two-letter glyph and the Tailwind
@@ -45,17 +46,3 @@ export const DISTRICT_THEMES: Record<Origin, DistrictTheme> = {
   },
   o_ponto: { glyph: "PT", frame: "stroke-nd-magenta/40", text: "fill-nd-magenta/50" },
 };
-
-/**
- * Normalize a district string from an API payload to an Origin key. Payloads
- * are inconsistent across systems: vendor seeds store the Origin key
- * ("o_fervo") while trampo templates store the display label ("O Fervo").
- * Returns null for unrecognized values (callers render nothing for those).
- */
-export function originFromDistrictString(district: string): Origin | null {
-  if ((ORIGINS as readonly string[]).includes(district)) return district as Origin;
-  const byLabel = (Object.entries(ORIGIN_LABELS) as [Origin, string][]).find(
-    ([, label]) => label === district,
-  );
-  return byLabel ? byLabel[0] : null;
-}

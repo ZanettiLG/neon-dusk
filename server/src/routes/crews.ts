@@ -176,6 +176,12 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
         if (dupName) throw new AppError(409, "DUPLICATE_NAME", "Já existe um bonde com este nome");
         const dupTag = await crews.findByTag(tag, trx);
         if (dupTag) throw new AppError(409, "DUPLICATE_TAG", "Já existe um bonde com esta tag");
+        // Issue #18: the crew claims the leader's origin district unless it is
+        // already taken (silent — no error, the district just stays unclaimed).
+        // The partial unique index on crews.territory_district backstops the
+        // race (a concurrent claim commits first and the loser hits the 409
+        // unique violation via the standard error handler).
+        const territory = (await crews.findByTerritory(leader.origin, trx)) ? null : leader.origin;
         const debit = transferEddies(wallet, -CREW_CREATE_COST, {
           type: "CREW_CREATION",
           source: `Fundação do bonde (${name} [${tag}])`,
@@ -208,7 +214,7 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
           trx,
         );
 
-        const crew = await crews.insert({ name, tag, leader_id: characterId }, trx);
+        const crew = await crews.insert({ name, tag, leader_id: characterId, territory_district: territory }, trx);
         const member = await crews.insertMember(crew.id, characterId, trx);
         await characters.setCrewId(characterId, crew.id, trx);
         return { crew, member };

@@ -3,6 +3,7 @@ import type { Origin } from "@neon-dusk/shared";
 import { ORIGIN_LABELS } from "@/lib/labels";
 import { DISTRICT_THEMES } from "@/lib/district-meta";
 import { METRO_LINES, STATION_NODES } from "@/lib/metro-lines";
+import { HEAT_LEVELS, heatLevelFor } from "@/lib/heat";
 
 // Raw hand-coded icons (24×24, currentColor). Width/height are injected at
 // module load — the curated files ship without them so CSS can size them.
@@ -26,6 +27,12 @@ export interface MetroMapProps {
   originDistrict?: Origin | null;
   /** Vendor count per district (badges). Omitted/empty = no badges. */
   vendorsByDistrict?: Partial<Record<Origin, number>>;
+  /** Trampos disponíveis per district (left badge, issue #18). */
+  gigsByDistrict?: Partial<Record<Origin, number>>;
+  /** Live district heat per district (label below the station, issue #18). */
+  heatByDistrict?: Partial<Record<Origin, number>>;
+  /** Crew tag claiming the district (label above the station, issue #18). */
+  territoryByDistrict?: Partial<Record<Origin, string>>;
   /** Crossing in flight — stations disabled. */
   traveling?: boolean;
   /** Called when the player picks a station. */
@@ -42,6 +49,9 @@ export default function MetroMap({
   currentDistrict,
   originDistrict = null,
   vendorsByDistrict = {},
+  gigsByDistrict = {},
+  heatByDistrict = {},
+  territoryByDistrict = {},
   traveling = false,
   onSelect,
 }: MetroMapProps) {
@@ -87,10 +97,18 @@ export default function MetroMap({
           const isOrigin = origin === originDistrict;
           const isCurrent = origin === currentDistrict;
           const count = vendorsByDistrict[origin] ?? 0;
-          // The vendor count is announced with the station (the badge itself
-          // stays aria-hidden — it only duplicates the label visually).
+          const gigs = gigsByDistrict[origin] ?? 0;
+          const heat = heatByDistrict[origin] ?? 0;
+          const territory = territoryByDistrict[origin] ?? null;
+          const heatLevel = heatLevelFor(heat);
+          const heatBand = HEAT_LEVELS.find((b) => b.level === heatLevel) ?? HEAT_LEVELS[0];
+          // The indicator contents are announced with the station (they stay
+          // aria-hidden — they only duplicate the label visually).
           const countSuffix =
             count > 0 ? `, ${count} ${count === 1 ? "vendedor" : "vendedores"}` : "";
+          const gigsSuffix = gigs > 0 ? `, ${gigs} ${gigs === 1 ? "trampo" : "trampos"}` : "";
+          const heatSuffix = heat > 0 ? `, calor ${heatBand.label} (${heat})` : "";
+          const territorySuffix = territory ? `, território do bonde ${territory}` : "";
           const disabled = traveling;
 
           return (
@@ -98,7 +116,7 @@ export default function MetroMap({
               key={origin}
               role="button"
               tabIndex={0}
-              aria-label={`Estação ${label}${countSuffix}`}
+              aria-label={`Estação ${label}${countSuffix}${gigsSuffix}${heatSuffix}${territorySuffix}`}
               aria-disabled={disabled || undefined}
               className="cursor-pointer"
               data-origin={isOrigin ? "true" : undefined}
@@ -208,12 +226,88 @@ export default function MetroMap({
                   </text>
                 </g>
               )}
+
+              {/* Trampos badge: cyan circle + count, mirrored on the station's
+                  left side (x-27, y) so it never collides with the vendor
+                  badge (x+27). Spans x-39..x-15 — inside the viewBox even for
+                  the western o_ponto (x=55 → 16..40). Count announced via the
+                  station aria-label; the badge itself is aria-hidden. */}
+              {gigs > 0 && (
+                <g
+                  transform={`translate(${x - 27} ${y})`}
+                  data-testid={`metro-gigs-${origin}`}
+                  aria-hidden="true"
+                >
+                  <circle
+                    r={12}
+                    fill="none"
+                    strokeWidth="1"
+                    className="fill-nd-bg stroke-nd-cyan/70"
+                  />
+                  <text
+                    x={0}
+                    y={5}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontFamily="'Fira Code', monospace"
+                    fontSize="10"
+                    className="fill-nd-cyan"
+                  >
+                    {gigs}
+                  </text>
+                </g>
+              )}
+
+              {/* Calor label: heat band word centered under the district label
+                  (y+34). Only renders above zero (LIMPO is never shown — a
+                  clean district shows nothing). Pulse animation on INFERNO.
+                  Band text spans x±33 max ("PEGANDO FOGO") — inside the
+                  viewBox for every station, clears the district label above
+                  (y+14..y+22) and the viewBox bottom (o_ponto y=245 →
+                  279+5=284 < 300). Announced via the station aria-label. */}
+              {heat > 0 && (
+                <text
+                  x={x}
+                  y={y + 34}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontFamily="'Fira Code', monospace"
+                  fontSize="10"
+                  letterSpacing="0.5"
+                  className={`${heatBand.color} ${"pulse" in heatBand ? "animate-pulse-neon" : ""}`}
+                  data-testid={`metro-heat-${origin}`}
+                  aria-hidden="true"
+                >
+                  {heatBand.label}
+                </text>
+              )}
+
+              {/* Território label: [TAG] above the station (y-32) — clears the
+                  "VOCÊ ESTÁ AQUI" band (y-24.5..y-15.5) and the viewBox top
+                  (a_paraiso y=55 → 23-5=18 > 0). Announced via the station
+                  aria-label. */}
+              {territory && (
+                <text
+                  x={x}
+                  y={y - 32}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontFamily="'Fira Code', monospace"
+                  fontSize="10"
+                  letterSpacing="1"
+                  className="fill-nd-gold"
+                  data-testid={`metro-territory-${origin}`}
+                  aria-hidden="true"
+                >
+                  [{territory}]
+                </text>
+              )}
             </g>
           );
         })}
       </svg>
 
-      {/* Line key — color is never the only channel. */}
+      {/* Line + heat keys — color is never the only channel. */}
       <div className="mt-2 flex flex-wrap items-center gap-4">
         {METRO_LINES.map((line) => (
           <span
@@ -224,6 +318,19 @@ export default function MetroMap({
             {line.label}
           </span>
         ))}
+        {/* Heat bands that can render on the map (LIMPO never shows a chip).
+            Same swatch + label pattern as the line key. */}
+        <span
+          data-testid="metro-heat-legend"
+          className="flex items-center gap-3 font-data text-nd-micro uppercase tracking-widest text-nd-text-secondary"
+        >
+          {HEAT_LEVELS.filter((band) => band.level !== "limpo").map((band) => (
+            <span key={band.level} className="flex items-center gap-1.5">
+              <span aria-hidden="true" className={`h-1 w-6 ${band.solid}`} />
+              {band.label}
+            </span>
+          ))}
+        </span>
       </div>
     </div>
   );
