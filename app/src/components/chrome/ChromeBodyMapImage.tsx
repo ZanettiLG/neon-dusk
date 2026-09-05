@@ -1,8 +1,14 @@
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import type { ChromeSlot, InstalledChromeRecord } from "@neon-dusk/shared";
 import { CHROME_SLOTS, SLOT_CAPACITY } from "@neon-dusk/shared";
 import { CHROME_SLOT_LABELS } from "@/lib/labels";
-import { LAYER_ORDER, SLOT_HIT_AREAS, SLOT_PIPS, type SlotHitArea } from "@/lib/chrome-body-map";
+import {
+  LAYER_ORDER,
+  SLOT_HIT_AREAS,
+  SLOT_PIPS,
+  resolveSlot,
+  type SlotHitArea,
+} from "@/lib/chrome-body-map";
 import bodyMapUrl from "@/assets/chrome/body-map.png";
 
 // Body map of the 9 cromo slots (issue #94): the artwork is an AI-generated
@@ -81,6 +87,11 @@ export default function ChromeBodyMapImage({
   selectedSlot,
   onSelectSlot,
 }: ChromeBodyMapImageProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const countFor = (slot: ChromeSlot) =>
+    installed.filter((rec) => rec.definition.slot === slot).length;
+  const isFullFor = (slot: ChromeSlot) => countFor(slot) >= SLOT_CAPACITY[slot];
+
   const hitAreas = LAYER_ORDER.flatMap((slot) =>
     SLOT_HIT_AREAS.filter((area) => area.slot === slot),
   );
@@ -88,6 +99,7 @@ export default function ChromeBodyMapImage({
   return (
     <div>
       <div
+        ref={mapRef}
         role="group"
         aria-label="Mapa corporal de cromo"
         className="relative w-full max-w-[240px] mx-auto"
@@ -105,7 +117,7 @@ export default function ChromeBodyMapImage({
           const slot = area.slot;
           const label = CHROME_SLOT_LABELS[slot] ?? slot;
           const capacity = SLOT_CAPACITY[slot];
-          const count = installed.filter((rec) => rec.definition.slot === slot).length;
+          const count = countFor(slot);
           const full = count >= capacity;
           const partial = count > 0;
           const selected = selectedSlot === slot;
@@ -126,7 +138,24 @@ export default function ChromeBodyMapImage({
                 width: `${area.w}%`,
                 height: `${area.h}%`,
               }}
-              onClick={full ? undefined : () => onSelectSlot(slot)}
+              onClick={(e) => {
+                if (full) return;
+                // Click ownership comes from resolveSlot (LAYER_ORDER), not
+                // from DOM stacking: the topmost layer containing the point
+                // wins, a full owner is never selected, and without geometry
+                // (jsdom / zero rect) the clicked button keeps the click.
+                const rect = mapRef.current?.getBoundingClientRect();
+                const owner =
+                  rect && rect.width > 0
+                    ? resolveSlot(
+                        ((e.clientX - rect.left) / rect.width) * 100,
+                        ((e.clientY - rect.top) / rect.height) * 100,
+                      )
+                    : null;
+                if (owner === null || owner === slot || !isFullFor(owner)) {
+                  onSelectSlot(owner ?? slot);
+                }
+              }}
               onKeyDown={(e) => {
                 if (full) return;
                 if (e.key === "Enter" || e.key === " ") {
@@ -141,7 +170,7 @@ export default function ChromeBodyMapImage({
         {/* Pips/CHEIO badge — image-space markers over the buttons. */}
         {LAYER_ORDER.map((slot) => {
           const capacity = SLOT_CAPACITY[slot];
-          const count = installed.filter((rec) => rec.definition.slot === slot).length;
+          const count = countFor(slot);
           return (
             <SlotMarker
               key={slot}

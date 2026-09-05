@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { CHROME_SLOTS } from "@neon-dusk/shared";
-import { LAYER_ORDER, SLOT_HIT_AREAS, SLOT_PIPS } from "./chrome-body-map";
+import { LAYER_ORDER, SLOT_HIT_AREAS, SLOT_PIPS, resolveSlot } from "./chrome-body-map";
 
 // Issue #94 — geometry of the AI body-map overlay: hit-areas and pip anchors
 // in image percentages (0–100), derived from the old SVG viewBox (x/2, y/4).
@@ -46,5 +46,19 @@ describe("chrome-body-map", () => {
 
   it("should anchor pips for each of the 9 slots", () => {
     expect(Object.keys(SLOT_PIPS).sort()).toEqual([...CHROME_SLOTS].sort());
+  });
+
+  it("should resolve click owners by LAYER_ORDER priority (matrix pinned in #94 review)", () => {
+    // Skin between spine and arm → torso keeps an exclusive area.
+    expect(resolveSlot(35, 50)).toBe("integumentary");
+    // Chest/spine column above the torso → skeleton wins.
+    expect(resolveSlot(50, 30)).toBe("skeleton");
+    // Below the skeleton rect, inside the nervous system column.
+    expect(resolveSlot(50, 52)).toBe("nervous_system");
+    // Both arm entries (left + mirrored right).
+    expect(resolveSlot(10, 30)).toBe("arms");
+    expect(resolveSlot(90, 30)).toBe("arms");
+    // Outside every area → no owner.
+    expect(resolveSlot(0, 0)).toBeNull();
   });
 });

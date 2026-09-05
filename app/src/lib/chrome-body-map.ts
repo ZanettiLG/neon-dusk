@@ -7,9 +7,11 @@ import type { ChromeSlot } from "@neon-dusk/shared";
 //
 // Coordinates are derived from the old ChromeBodyMapSvg viewBox 200×400
 // (x/2, y/4), preserving the geometry tuned in issues #10/#28: each hit area
-// bounds the artwork path plus its stroke width. Regenerating the image keeps
-// these valid because the baseline pins the neutral pose
-// (tools/asset-forge/baselines/neon-dusk.md).
+// bounds the artwork path plus its stroke width. The #94 review retuned
+// skeleton (narrowed to the spine column) and arms so the torso rectangle
+// keeps an exclusive area — clicks on the skin no longer fall through to
+// inner systems. Regenerating the image keeps these valid because the
+// baseline pins the neutral pose (tools/asset-forge/baselines/neon-dusk.md).
 
 /** Hit area of one slot, as a rectangle in % of the image (0–100). */
 export interface SlotHitArea {
@@ -25,10 +27,10 @@ export const SLOT_HIT_AREAS: SlotHitArea[] = [
   { slot: "legs", x: 42, y: 58.75, w: 16, h: 24.25 },
   { slot: "integumentary", x: 17.5, y: 23, w: 65, h: 35.75 },
   { slot: "nervous_system", x: 42, y: 39.5, w: 16, h: 17.5 },
-  { slot: "skeleton", x: 29, y: 18, w: 42, h: 30 },
+  { slot: "skeleton", x: 40, y: 18, w: 20, h: 30 },
   { slot: "circulatory", x: 31, y: 25.5, w: 16, h: 8 },
-  { slot: "arms", x: 4, y: 25, w: 29, h: 35 },
-  { slot: "arms", x: 67, y: 25, w: 29, h: 35 },
+  { slot: "arms", x: 4, y: 25, w: 22, h: 35 },
+  { slot: "arms", x: 74, y: 25, w: 22, h: 35 },
   { slot: "ocular", x: 34, y: 9.25, w: 32, h: 11.5 },
   { slot: "operating_system", x: 39, y: 14.5, w: 22, h: 8 },
   { slot: "frontal_cortex", x: 36.5, y: 1.75, w: 27, h: 11.5 },
@@ -52,7 +54,8 @@ export const SLOT_PIPS: Record<ChromeSlot, { x: number; y: number }> = {
  * the torso rectangle covering skeleton/nervous_system) resolve clicks in
  * favor of the LAST sibling — the torso paints first as the base layer and
  * every smaller slot renders on top of it, same rule as the old SVG paint
- * order. Every slot appears exactly once.
+ * order. resolveSlot() is the authoritative resolver for this rule. Every
+ * slot appears exactly once.
  */
 export const LAYER_ORDER: ChromeSlot[] = [
   "legs",
@@ -65,3 +68,26 @@ export const LAYER_ORDER: ChromeSlot[] = [
   "operating_system",
   "frontal_cortex",
 ];
+
+/**
+ * Owner of a click at image percentage (xPct, yPct): the topmost
+ * LAYER_ORDER slot with a hit area containing the point. Rects are
+ * half-open ([x, x+w) × [y, y+h)) so a boundary point has a single owner.
+ * Returns null when the point falls outside every area. Source of truth for
+ * click ownership (tests + ChromeBodyMapImage click arbitration).
+ */
+export function resolveSlot(xPct: number, yPct: number): ChromeSlot | null {
+  for (let i = LAYER_ORDER.length - 1; i >= 0; i--) {
+    const slot = LAYER_ORDER[i];
+    const hit = SLOT_HIT_AREAS.some(
+      (area) =>
+        area.slot === slot &&
+        xPct >= area.x &&
+        xPct < area.x + area.w &&
+        yPct >= area.y &&
+        yPct < area.y + area.h,
+    );
+    if (hit) return slot;
+  }
+  return null;
+}
