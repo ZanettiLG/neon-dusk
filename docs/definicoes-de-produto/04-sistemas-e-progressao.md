@@ -203,7 +203,7 @@ Faixa total: **−30%** (O Ponto + heat 100) a **+10%** (rep amiga + dia).
 | **Trampo — Assault** (#89) | Execute usa **ATQ**, escape usa **ESQ**. Consome 1 munição (§6.1) |
 | **Trampo — Netrun** (#89) | Execute usa **PHK**, escape usa **ESQ**. Gate: requer SO Gazuá/hacking (§3) |
 | **Trampo — fórmula** | `chance = clamp((stat_derivado × 5 + bônus_cromo) / (dificuldade × 2), 0,05, 0,95)` — **STAT_SCALING_DERIVADO = 2,5** (equivalente a ×5/×2 inteiro; `bônus_cromo` no numerador). Preserva a tabela de dificuldade 1-100 e a calibração atual |
-| **PvP** | Combate tático completo (#186): ATQ vs DEF, INI decide ordem, ESQ esquiva, PRE crítico, HP dano (03 §3) |
+| **PvP** | 1 rolagem contestada (#186): ATQ vs DEF, ESQ esquiva, PRE crítico, HP dano; INI/ESQ/FUR em fuga e emboscada (03 §3) |
 | **Hacking** | PHK vs camadas de trava; RAM é o recurso (gasta por ação, recarrega 1/60s — 03 §4); RME reduz trace: `trace_gerado × (1 − RME/100)` |
 | **Rolê de gangue** (#96) | **Poder de Combate** (fallback simplificado, sem trocas): `floor((ATQ + DEF + floor(HP/10)) / 3) + random(1..10)` — normalizado para a escala antiga; bocas 12-44 continuam válidas sem recalibração |
 | **Social/despachantes** | INF em trampos de Negotiation (03 §2), desconto em vendors (INF 20+ → +5%, acumula com Moral), opções de diálogo. RME resiste a manipulação |
@@ -214,7 +214,7 @@ Princípio: todo número que afeta a jogatina é **visível e computável** — 
 
 - **Ficha do personagem**: os 11 stats derivados com valores atuais + 5 atributos + pontos não gastos, sempre visíveis — é o hub de planejamento
 - **Itens**: contribuição exata de stats em cada item (§6.1) — `ATQ +8 · PRE +2`. O jogador soma sozinho
-- **Ações**: perfil de stats + dificuldade visíveis no card da ação (trampo por abordagem #89: "Stealth — usa Furtividade ★★★ · Esquiva ★★ · Dificuldade 45"; rolê boca/cabeça #96: poder do bando; hacking: camadas + PHK necessário)
+- **Ações**: perfil de stats + dificuldade visíveis no card da ação (trampo por abordagem #89: "Stealth — usa Furtividade ★★★ · Esquiva ★★ · Dificuldade 45 · Chance: 72%"; rolê boca/cabeça #96: poder do bando; hacking: camadas + PHK necessário) **+ a chance total de sucesso calculada** (ex: "Chance: 72%") — o resultado da fórmula pública, computado e exibido ao lado do perfil e da dificuldade. O jogador vê os inputs E o output
 - **Fórmulas públicas**: as fórmulas de sucesso de trampo, de combate (#186) e de XP (#183) são documentadas in-game (seção de ajuda/manual) — o jogador pode calcular a própria chance antes de agir
 - **Aleatoriedade documentada**: os únicos elementos ocultos são os randoms explícitos (random(1..10) no combate, etc.) — tudo mais é determinístico e visível
 - **PvP**: stats PRÓPRIOS visíveis; stats do oponente ocultos (anti-scouting — não dá para farmar fraco de olho)
@@ -510,11 +510,11 @@ Cromo continua nos 9 slots próprios (§3). Equipamento e cromo são **sistemas 
 |---|---|
 | Arma de fogo | **dano** (base de dano no combate, 03 §3), **PRE** (+precisão), **INI** (+cadência, só SMG), classe de munição |
 | Arma branca | **dano**, **FUR** (+silenciosa), sem munição |
-| Granada | **dano fixo em área**, uso único, ignora DEF (abre combate, 03 §3) |
+| Granada | **dano fixo em área**, uso único **antes da rolagem**, ignora DEF (modificador de dano da rolagem única, 03 §3) |
 | Proteção | **DEF**, **HP máx** |
 | Roupa | **FUR** ou **INF** (cada peça favorece um) |
 | Acessório | **INI**, **PRE** ou **PHK** |
-| Munição | Classe + quantidade; consumida por troca de combate e por trampo Assault |
+| Munição | Classe + quantidade; consumida por ataque PvP e por trampo Assault |
 | Consumível | Buffs temporários (ampolas, 03 §5) |
 | Componente | Sem stat — matéria-prima |
 | Blueprint | Sem stat — receita |
@@ -527,7 +527,7 @@ Cromo continua nos 9 slots próprios (§3). Equipamento e cromo são **sistemas 
 ### Munição
 
 - **Por classe de arma**: Pistola, SMG, Rifle, Escopeta, Sniper. Cada arma consome a munição da classe.
-- **Consumo**: **1 unidade por troca de combate** (PvP, 03 §3) e **1 unidade por trampo Assault** (execute). Stealth e Netrun não consomem (silencioso/remoto).
+- **Consumo**: **1 unidade por ataque PvP** (rolagem única, 03 §3) e **1 unidade por trampo Assault** (execute). Stealth e Netrun não consomem (silencioso/remoto).
 - **Compra**: Babilônia (hub) e vendors de gangue. Preço por stack de 10 (catálogo abaixo).
 - **Função econômica**: sink recorrente de Grana (anti-inflação, §6) + teto natural de combate (sem munição, sem Assault).
 
@@ -554,7 +554,7 @@ Tiers de item espelham os gates de nível (§1: T1=1, T2=5, T3=15, T4=30, T5=50)
 | Machete do Cinturão | T3 | 15 | 6.000 | Expensive | 14 | FUR +3 |
 | Katana da 25 | T4 | 30 | 25.000 | Very Expensive | 20 | FUR +4 |
 
-**Granadas** (dano fixo em área, ignora DEF, uso único):
+**Granadas** (dano fixo em área, ignora DEF, uso único antes da rolagem — modificador de dano da rolagem única):
 
 | Item | Tier | Nível | Preço (G$) | Categoria | Dano |
 |---|---|---|---|---|---|

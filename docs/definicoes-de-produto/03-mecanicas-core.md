@@ -32,7 +32,7 @@ Toda ação significativa em São Paulo exige interface neural — seus implante
 | **Custo de trampo T1** | 10-15 NIL | Permite 6-10 trampos por ciclo |
 | **Custo de trampo T3** | 25-40 NIL | Permite 2-4 trampos por ciclo |
 | **Custo de PvP** | 20 NIL | Limita grinding de PvP |
-| **Regen com consumível** | Pingado: +20 NIL (1h cooldown) | Sem custo colateral |
+| **Regen com consumível** | Pingado: +20 NIL (sem cooldown; limitador = estoque) | Sem custo colateral |
 | **Regen com cromo** | Implante Neural Accelerator: +50% regen passiva | Custa 15 Humanidade |
 
 ### Por que NIL, não "Stamina"?
@@ -83,7 +83,7 @@ Trampos são missões oferecidas por despachantes. Cada trampo tem: tier, tipo, 
 
 **Modo Rápido**: jogadores podem pular Legwork e ir direto para Execute, com penalidade de -20% de sucesso.
 
-**Transparência (metrificação, #184)**: o card de cada ação mostra o perfil de stats usados e a dificuldade — ex: "Stealth — usa Furtividade ★★★ · Esquiva ★★ · Dificuldade 45". As fórmulas são públicas (04 §1.1 Transparência Métrica) — o jogador calcula a própria chance antes de agir.
+**Transparência (metrificação, #184)**: o card de cada ação mostra o perfil de stats usados, a dificuldade e a **chance total de sucesso calculada** — ex: "Stealth — usa Furtividade ★★★ · Esquiva ★★ · Dificuldade 45 · Chance: 72%". A fórmula é pública (04 §1.1 Transparência Métrica) e o resultado é computado e exibido ao lado do perfil e da dificuldade — o jogador vê os inputs E o output antes de agir.
 
 ### Progressão de Dificuldade
 
@@ -112,33 +112,59 @@ Trampos são missões oferecidas por despachantes. Cada trampo tem: tier, tipo, 
 
 ### Combate PvP (Briga de Rua)
 
-PvP jogador × jogador resolve em **3 trocas máximas** (combate tático completo, #186) — espaço para emboscada, iniciativa, fuga e granada importarem, resolvendo em segundos. Conteúdo que não justifica 3 trocas (rolê de gangue, guerras de bonde) usa o **Poder de Combate** simplificado (fallback abaixo).
+PvP jogador × jogador resolve em **1 rolagem contestada** (PBBG, #186) — mesma filosofia do power comparison (1 rolagem, timers, decisões de item), agora com stats derivados. **Sem trocas, sem turnos.** Conteúdo que não justifica a rolagem (rolê de gangue, guerras de bonde) usa o **Poder de Combate** simplificado (fallback abaixo).
 
-#### Resolução por Troca
+#### Resolução — Rolagem Única
 
 | Parâmetro | Fórmula |
 |---|---|
-| **Acerto** | `chance_acerto = clamp(ATQ_atacante / (ATQ_atacante + DEF_defensor), 0,10, 0,90) − bônus_esquiva` · `bônus_esquiva = clamp((ESQ_defensor − PRE_atacante) / 20, 0, 0,30)` — ESQ não é um segundo rolamento, é um modificador do mesmo: a esquiva só ajuda quando supera a Precisão do atacante |
-| **Crítico** | `chance_crit = 5% + floor(PRE/5)%` (PRE 10 → 7%, PRE 20 → 9%) · Bicho +5% · cap 25% · multiplicador **×1,5** |
+| **Acerto** | `chance_acerto = clamp(ATQ_atacante / (ATQ_atacante + DEF_defensor), 0,10, 0,90) − bônus_esquiva` · `bônus_esquiva = clamp((ESQ_defensor − PRE_atacante) / 20, 0, 0,30)` — só quando ESQ supera PRE. ESQ não é um segundo rolamento, é um modificador do mesmo: ATQ = DEF → 50%, ATQ = 2×DEF → 67%, ATQ = 0,5×DEF → 33% |
+| **Crítico** | `chance_crit = 5% + floor(PRE/5)%` (PRE 10 → 7%, PRE 20 → 9%) · **Bicho +5%** · cap 25% · multiplicador **×1,5** |
 | **Dano** | `dano = max(1, dano_arma × (crit ? 1,5 : 1,0) − floor(DEF/2))` · desarmado: `dano_arma = floor(BOD/2)` · **Bicho +10% de dano** (nunca abaixo de 1 — armadura não imortaliza) |
-| **Iniciativa** | INI maior ataca primeiro. **Empate → defensor ataca primeiro** (vantagem de casa) |
+| **Resultado** | `dano ≥ HP_def` → **KO** (morte → Resgate, 04 §6); senão → **derrota** (consequências abaixo; HP reduzido persiste) |
 
 #### Fluxo do Combate
 
-1. **Abertura (opcional)**: granada (dano fixo em área, **ignora DEF**, consome o item) OU emboscada (`FUR_atacante > INI_defensor` → atacante ganha **1 troca grátis**, defensor não revida)
-2. **Trocas 1-3**: ordem pela Iniciativa; cada lado rola acerto e aplica dano; consome **1 munição por troca por arma** usada (04 §6.1)
-3. **Fuga (entre trocas)**: defensor pode tentar `chance_fuga = clamp(ESQ_def / (ESQ_def + INI_atq), 0,10, 0,90)` — sucesso: combate termina, defensor escapa SEM perder Grana, perde só **2 Moral**; falha: a troca seguinte acontece
-4. **Fim**: HP ≤ 0 → derrota por KO (Resgate revive, 04 §6); após 3 trocas → vence quem tiver maior **% de HP restante**; empate → defensor
+```
+1. FUGA (defensor, opcional): chance_fuga = clamp(ESQ_def / (ESQ_def + INI_atq), 0,10, 0,90)
+   - Sucesso → SEM combate. Defensor escapa SEM perder Grana, perde só 2 Moral.
+2. EMBOSCADA (atacante): FUR_atacante > INI_defensor → +20% ATQ na rolagem (pega desprevenido)
+3. ROLAGEM ÚNICA (Resolução acima)
+4. FIM: KO ou derrota (HP reduzido persiste e regenera — abaixo)
+```
 
-#### HP e Dano
+#### HP e Regeneração
 
 | Parâmetro | Valor |
 |---|---|
 | **HP máx** | `50 + BOD×5 + cromo + proteção` (04 §1.1) — 65 (novato) a 210 (endgame) |
 | **Dano de arma** | T1 8 · T2 12 · T3 18 · T4 26 · T5 35 (04 §6.1) |
+| **Dano desarmado** | `floor(BOD/2)` |
+| **Regeneração** | **10% do HP máx por hora** (timer) ou via ampola/consumível |
 | **Morte** | HP 0 → KO → Resgate revive (04 §6: Prata 60% HP, Ouro 80%, Platina 100%) |
 
-Escala calibrada: iguais se arranham (escaramuça decide Moral/Saque), desnível mata rápido — combate entre iguais é decisão, não loteria.
+HP reduzido **persiste entre combates** e regenera por timer — é recurso de PBBG, não estado de combate. **Sem debuff de "estado ferido"** — realismo serve à jogatina; a derrota já tem consequências suficientes.
+
+Escala calibrada: iguais se arranham (T2 12 − DEF/2 6 = 6 vs HP 100 → derrota sem KO — escaramuça decide Moral/Saque), desnível mata rápido (T5 35 − DEF/2 2 = 33 > HP 65 → **KO em 1 rolagem**). Combate entre iguais é decisão, não loteria; combate desigual é rápido.
+
+#### Itens de Combate (modificadores da rolagem única)
+
+| Item | Uso |
+|---|---|
+| **Munição** | **1 por ataque PvP** com arma de fogo; 1 por trampo Assault (execute) (04 §6.1). Sem munição → ataque desarmado (`floor(BOD/2)`) |
+| **Granada** | Consumível de uso único **antes da rolagem** → soma dano fixo (15/25/40, **ignora DEF**) ao dano do ataque — modificador da rolagem única. Usável em PvP e rolê (soma ao Poder de Combate) |
+| **Pancadão** | +50% BOD, +30% dano por 30min (03 §5) — multiplica ATQ/DEF/HP antes da rolagem |
+| **Renda Preta** | +100% stats de combate por 15min (03 §5) — multiplica ATQ/DEF/INI/ESQ/PRE |
+| **Tranco** | +15% sucesso em trampos de REF (03 §5) — aplica em ESQ/PRE |
+| **SO Fúria / SO Surto** | +50% BOD / +50% REF +25% ESQ (04 §3) — multiplicadores ativos |
+
+Ampolas e SO aplicam como multiplicadores nos stats derivados **antes da rolagem** (mesmo padrão de `getOsActiveBonus`). Modificadores adicionais: bônus de bonde, bônus de território.
+
+#### Furtividade no Combate
+
+- **Emboscada**: `FUR_atacante > INI_defensor` → **+20% ATQ na rolagem** (pega desprevenido). FUR alta = atacante letal; INI alta = defesa contra emboscada.
+- **Fuga**: `ESQ_def / (ESQ_def + INI_atq)` (passo 1 do fluxo).
+- **Sem** modificador de hora do dia e **sem** estado ferido pós-combate — realismo serve à jogatina; a derrota já tem consequências suficientes.
 
 #### Consequências
 
@@ -150,25 +176,7 @@ Escala calibrada: iguais se arranham (escaramuça decide Moral/Saque), desnível
 | **Morte (KO)** | Consequências de derrota + Resgate revive (04 §6). Platina perde só 50% da Grana |
 | **Anti-griefing** | **Máx 3 ataques/semana ao mesmo alvo** → após, eficácia cai para 10% (Saque ×0,1) |
 | **Noob protection** | Conta **< 7 dias** imune. Moral < 10 perde só 1% |
-
-#### Itens de Combate
-
-| Item | Uso |
-|---|---|
-| **Granada** | Abertura pré-troca 1, dano fixo em área, ignora DEF (04 §6.1: 15/25/40) |
-| **Munição** | 1 por troca por arma; 1 por trampo Assault (04 §6.1) |
-| **Pancadão** | +50% BOD, +30% dano por 30min (03 §5) — multiplica ATQ/DEF/HP durante o combate |
-| **Renda Preta** | +100% stats de combate por 15min (03 §5) — multiplica ATQ/DEF/INI/ESQ/PRE |
-| **Tranco** | +15% sucesso em trampos de REF (03 §5) — aplica em ESQ/PRE |
-| **SO Fúria / SO Surto** | +50% BOD / +50% REF +25% ESQ (04 §3) — multiplicadores ativos |
-
-Ampolas e SO aplicam como multiplicadores nos stats derivados antes do combate. Modificadores adicionais: bônus de bonde, bônus de território.
-
-#### Furtividade no Combate
-
-- **Emboscada**: `FUR_atacante > INI_defensor` → troca 1 grátis (defensor não revida). FUR alta = atacante letal; INI alta = defesa contra emboscada.
-- **Fuga**: `ESQ_def / (ESQ_def + INI_atq)` entre trocas.
-- **Sem** modificador de hora do dia e **sem** estado ferido pós-combate — realismo serve a jogatina; a derrota já tem consequências suficientes.
+| **Fuga** | Defensor escapa sem perder Grana, perde **2 Moral** (passo 1 do fluxo) |
 
 #### Poder de Combate (Fallback)
 
@@ -176,7 +184,7 @@ Ampolas e SO aplicam como multiplicadores nos stats derivados antes do combate. 
 
 | Conteúdo | Resolução |
 |---|---|
-| **PvP jogador × jogador** | Combate tático (3 trocas) |
+| **PvP jogador × jogador** | 1 rolagem contestada (acima) |
 | **Rolê — bocas** (#96) | Poder de Combate vs poder do bando (ratio 0,6-1,5, escala do dia 1,0×→2,2×) |
 | **Rolê — cabeças** (#96) | Poder de Combate (poder somado do bonde) vs poder fixo da cabeça |
 | **Guerra de bondes** (§6) | Poder de Combate somado do bonde |
