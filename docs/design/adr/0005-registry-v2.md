@@ -17,6 +17,8 @@ distrito) — e curadoria por famílias com seeds nomeadas. O baseline de aceite
 
 ## Decisão
 
+> Nota: a numeração D1–D7 desta seção difere da do handoff de design (#190, comentário de 2026-09-05); conteúdo equivalente, ordem diferente.
+
 1. **D1 — version 2 com regimes**: o bloco `style` vira
    `{ flat: {suffix, negative}, atmospheric: {suffix, negative} }`. O regime
    flat mantém o sufixo/negative atuais (proibições de texto, watermark, IP,
