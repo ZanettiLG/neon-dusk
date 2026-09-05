@@ -88,6 +88,12 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
     // Route handlers call setCooldown AFTER success (ADR-2).
     await setCooldown(redis, characterId, "chat_message");
 
+    // #187: the key must carry the sub-second PX TTL (setex can't do 500ms) —
+    // pin it so a regression to whole-second EX is caught.
+    const ttlMs = await redis.pttl(`cooldown:${characterId}:chat_message`);
+    expect(ttlMs).toBeGreaterThan(0);
+    expect(ttlMs).toBeLessThanOrEqual(cooldownConfig.chat_message.durationMs);
+
     // The key is present and blocks the next request within the window.
     await expect(preHandler(requestFor(userId))).rejects.toMatchObject({
       statusCode: 429,
