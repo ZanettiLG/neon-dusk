@@ -39,8 +39,10 @@ async function runCli(args) {
  *   failPostAt (1-based): the Nth POST /prompt answers 500 (batch-failure test).
  *   closeAfterPosts (1-based): close the server right after the Nth POST
  *   response is sent, so the next request hits ECONNREFUSED (offline mid-batch).
+ *   timeoutAt (1-based): the Nth POST answers with a prompt_id ("p-slow")
+ *   whose history never completes — pollHistory loops until its deadline.
  */
-function startMockComfy({ history, checkpoint = true, failPostAt = 0, closeAfterPosts = 0 }) {
+function startMockComfy({ history, checkpoint = true, failPostAt = 0, closeAfterPosts = 0, timeoutAt = 0 }) {
   return new Promise((resolve) => {
     let promptCount = 0;
     const server = createServer((req, res) => {
@@ -68,14 +70,17 @@ function startMockComfy({ history, checkpoint = true, failPostAt = 0, closeAfter
             return;
           }
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ prompt_id: "p-test" }));
+          res.end(JSON.stringify({ prompt_id: promptCount === timeoutAt ? "p-slow" : "p-test" }));
           if (closeAfterPosts && promptCount === closeAfterPosts) {
             server.close();
           }
         });
       } else if (url.pathname.startsWith("/history/")) {
+        // "p-slow" never appears in history — pollHistory keeps polling until
+        // its deadline, then throws TimeoutError.
+        const slow = timeoutAt > 0 && url.pathname === "/history/p-slow";
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(history));
+        res.end(JSON.stringify(slow ? {} : history));
       } else if (url.pathname === "/view") {
         res.writeHead(200, { "Content-Type": "image/png" });
         res.end(Buffer.from(PNG));
@@ -421,6 +426,44 @@ describe("cli", () => {
       }
     });
 
+    it("should exit 5 (worst code) when one member times out and another fails with HTTP, writing the rest", async () => {
+      // cromo-02 POST → HTTP 500 (exit-4 contribution); cromo-05 poll never
+      // completes → TimeoutError (exit-5 contribution). Worst code wins; the
+      // other 10 members still generate and are written.
+      const { server, url } = await startMockComfy({
+        history: FAMILY_HISTORY,
+        failPostAt: 2,
+        timeoutAt: 5,
+      });
+      const outDir = await mkdtemp(path.join(tmpdir(), "asset-forge-mixed-"));
+      try {
+        const { code, stderr } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--url",
+          url,
+          "--out",
+          outDir,
+          "--timeout",
+          "1",
+        ]);
+
+        assert.equal(code, 5);
+        assert.match(stderr, /cromo-02 \(ComfyUI respondeu HTTP 500: boom\)/);
+        assert.match(stderr, /cromo-05 \(Geração não completou em 1s\)/);
+        assert.match(stderr, /✓ 10\/12 gerados/);
+        const files = await readdir(outDir);
+        assert.equal(files.length, 10);
+        assert.ok(!files.includes("cromo-02.png"));
+        assert.ok(!files.includes("cromo-05.png"));
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+        server.close();
+      }
+    });
+
     it("should exit 2 for every family/district/subject misuse, before any generation", async () => {
       const cases = [
         [
@@ -572,7 +615,7 @@ describe("cli", () => {
       assert.equal(code, 0);
       const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
       assert.match(wf["6"].inputs.text, /, chave física sem haste, /);
-      assert.doesNotMatch(wf["6"].inputs.text, /  chave física sem haste  /);
+      assert.doesNotMatch(wf["6"].inputs.text, / {2}chave física sem haste {2}/);
     });
   });
 });

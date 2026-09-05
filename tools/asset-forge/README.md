@@ -33,8 +33,9 @@ submeter).
 Modo família (`--family ID`): gera o lote inteiro de uma `seedFamily` com seeds
 determinísticas por member (`familySeed`), arquivos `<member>.png` no destino do
 tipo. Use `--member ID` para um member só (exige `--family`; `--seed`/`--variants`
-não combinam), `--subject TEXTO` para sobrescrever o subject do prompt e
-`--district ID` para herdar o fragmento de acento do distrito (um member que
+não combinam), `--subject TEXTO` para complementar o subject do prompt (entra
+entre o fragmento de distrito e o sufixo de estilo — não substitui o subject
+base) e `--district ID` para herdar o fragmento de acento do distrito (um member que
 também é id de distrito herda o seu automaticamente).
 
 ```
