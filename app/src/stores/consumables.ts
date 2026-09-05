@@ -36,7 +36,7 @@ interface ConsumablesState {
    */
   lastUse: ConsumableUseResponse | null;
 
-  /** GET /api/consumables — catalog + owned stock + per-item cooldowns. */
+  /** GET /api/consumables — catalog + owned stock + per-item cooldowns (all zeroed post-#187). */
   fetch: () => Promise<void>;
   /** POST /api/consumables/use — consume one owned item. Re-throws on failure. */
   useItem: (itemId: string) => Promise<ConsumableUseResponse>;

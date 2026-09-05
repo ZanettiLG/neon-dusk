@@ -87,7 +87,7 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
     inventory: [
       { itemType: "CONSUMABLE", itemId: "combat-stim", price: 300, stock: -1 },
       { itemType: "LOOT", itemId: "access-chip", price: 5000, stock: 3 },
-      // Issue #28: itens anti-insanidade — T3 (cooldown 24h)
+      // Issue #28: itens anti-insanidade — T3 (sem cooldown pós-#187; limitadores = estoque/custo)
       { itemType: "CONSUMABLE", itemId: "choque", price: 30000, stock: -1 },
     ],
   },
