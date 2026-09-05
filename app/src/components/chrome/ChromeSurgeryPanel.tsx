@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 import type {
   AttributeKey,
   Character,
+  ChromeBonuses,
   ChromeDefinition,
   ChromeSlot,
   InstalledChromeResponse,
@@ -13,7 +15,9 @@ import { useHudStore } from "@/stores/hud";
 import { ATTRIBUTE_LABELS, CHROME_SLOT_LABELS } from "@/lib/labels";
 import { formatEds } from "@/lib/format";
 import ActionButton from "@/components/ui/ActionButton";
+import Modal from "@/components/ui/Modal";
 import MetricBar from "@/components/ui/MetricBar";
+import { CHROME_ICON_ASSETS } from "@/assets/chrome/icons";
 import TypewriterText, { prefersReducedMotion } from "./TypewriterText";
 
 // idle → slot_selected → reviewing → confirming → surgery_playing → done.
@@ -29,6 +33,70 @@ const SURGERY_LOG =
   "O Ferrageiro terminou. Você sente o cromo se fundir aos nervos. Algo dentro de você ficou mais forte. Algo dentro de você se foi.";
 
 const ATTR_KEYS: AttributeKey[] = ["body", "reflexes", "intelligence", "technical", "cool"];
+
+/** Tier = raridade (T1/T2/T3 — Neon Dusk não tem campo "rarity"; 04-sistemas-
+ * e-progressao.md §3). Classes literais (regra JIT, tokens §13.2). */
+const TIER_STYLES: Record<number, { border: string; text: string; label: string }> = {
+  1: { border: "border-nd-text-secondary/40", text: "text-nd-text-secondary", label: "T1" },
+  2: { border: "border-nd-cyan/40", text: "text-nd-cyan", label: "T2" },
+  3: { border: "border-nd-gold/40", text: "text-nd-gold", label: "T3" },
+};
+
+/** Tier styles com fallback conservador para tiers fora da tabela. */
+function tierStyle(tier: number) {
+  return TIER_STYLES[tier] ?? TIER_STYLES[1];
+}
+
+/**
+ * 40×40 cromo icon with a mandatory fallback (issue #188 emenda 1): when the
+ * slug has no shipped asset (CHROME_ICON_ASSETS is empty — the icons are the
+ * #189 sub-issue) or the image fails to load, the first grapheme renders as
+ * a tier-colored monogram. Tier is never color-only: the list always shows
+ * "T1/T2/T3" as text too.
+ */
+function ChromeIcon({ def }: { def: ChromeDefinition }) {
+  const [broken, setBroken] = useState(false);
+  const tier = tierStyle(def.tier);
+  const src = CHROME_ICON_ASSETS[def.slug];
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex size-10 shrink-0 items-center justify-center rounded-terminal border bg-nd-bg ${tier.border} ${tier.text}`}
+    >
+      {src && !broken ? (
+        <img src={src} alt="" className="size-full object-contain p-1" onError={() => setBroken(true)} />
+      ) : (
+        <span className="font-heading text-lg leading-none">{def.name[0]}</span>
+      )}
+    </span>
+  );
+}
+
+/** Label de cada bônus na linha resumida (atributos via ATTRIBUTE_LABELS). */
+const BONUS_LABELS: Array<[keyof ChromeBonuses, string]> = [
+  ["body", ATTRIBUTE_LABELS.body],
+  ["reflexes", ATTRIBUTE_LABELS.reflexes],
+  ["intelligence", ATTRIBUTE_LABELS.intelligence],
+  ["technical", ATTRIBUTE_LABELS.technical],
+  ["cool", ATTRIBUTE_LABELS.cool],
+  ["max_hp", "HP"],
+  ["gig_success_rate", "trampos"],
+  ["nil_max", "NIL máx"],
+];
+
+/**
+ * One-line bonus summary for the picker item + detail pane (issue #188):
+ * only non-zero entries, joined with " · ". Ex.: "+2 Intelligence · +10 NIL máx".
+ */
+function formatChromeBonuses(bonuses: ChromeBonuses): string {
+  return BONUS_LABELS.filter(([key]) => (bonuses[key] ?? 0) !== 0)
+    .map(([key, label]) => {
+      const value = bonuses[key] ?? 0;
+      const suffix = key === "gig_success_rate" ? "%" : "";
+      return `${value > 0 ? "+" : ""}${value}${suffix} ${label}`;
+    })
+    .join(" · ");
+}
 
 interface ChromeSurgeryPanelProps {
   slot: ChromeSlot | null;
@@ -51,6 +119,9 @@ interface ChromeSurgeryPanelProps {
   onRetry?: () => void;
   /** Fired once the surgery theater finishes — parent reloads installed + HUD. */
   onSurgeryDone: () => void;
+  /** Closes the picker modal (ChromeView clears selectedSlot; the focus trap
+   * restores focus to the body-map label that opened it). */
+  onClose: () => void;
 }
 
 /**
@@ -77,9 +148,11 @@ export function isOverclockActive(character: Character | null, now: number = Dat
 }
 
 /**
- * Surgery flow for one body slot (issue #10): pick an implant from the
- * slot-filtered catalog, review cost + before/after (computed client-side —
- * the server stays authoritative on the install), confirm, watch the ~5s
+ * Surgery flow for one body slot (issue #10, picker modal per issue #188
+ * emenda 1): the two-pane picker (list + detail, CP2077-style) lives inside
+ * an accessible modal (ui/Modal — focus trap, Esc, overlay, focus restore);
+ * pick an implant, review cost + before/after (computed client-side — the
+ * server stays authoritative on the install), confirm, watch the ~5s
  * Ferrageiro theater, done. The HUD is refreshed by the parent on done.
  */
 export default function ChromeSurgeryPanel({
@@ -92,6 +165,7 @@ export default function ChromeSurgeryPanel({
   error,
   onRetry,
   onSurgeryDone,
+  onClose,
 }: ChromeSurgeryPanelProps) {
   const character = useAuthStore((s) => s.character);
   const balance = useHudStore((s) => s.balance);
@@ -101,6 +175,9 @@ export default function ChromeSurgeryPanel({
   const [stage, setStage] = useState<Stage>(slot ? "slot_selected" : "idle");
   const [implant, setImplant] = useState<ChromeDefinition | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const firstItemRef = useRef<HTMLButtonElement | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -233,23 +310,74 @@ export default function ChromeSurgeryPanel({
     setStage("slot_selected");
   }
 
+  function selectForReview(def: ChromeDefinition) {
+    setSelectedId(def.id);
+    setImplant(def);
+    setActionError(null);
+    setStage("reviewing");
+  }
+
+  /** Roving focus on the picker list (emenda 1 §E1.6): ArrowUp/ArrowDown move
+   * between items, Home/End jump to the edges. Disabled items can't take
+   * focus (silent no-op), same as native browser behavior. */
+  function onRovingKey(e: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
+    const items = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>("[data-item]") ?? []);
+    const index = items.indexOf(e.currentTarget);
+    if (index < 0) return;
+    const next =
+      e.key === "Home" ? items[0]
+      : e.key === "End" ? items[items.length - 1]
+      : e.key === "ArrowDown" ? items[index + 1]
+      : items[index - 1];
+    if (next) {
+      e.preventDefault();
+      next.focus();
+    }
+  }
+
+  // Shared modal shell for every post-slot stage (picker, review, theater,
+  // done). Esc/overlay stay locked while the Ferrageiro theater plays so the
+  // timer can't be dismounted mid-surgery (emenda 1 §E1.6). The header ✕
+  // routes through onClose too (ui/Modal is shared and untouched), so the
+  // same no-op guard covers it — onClose prop only fires after the theater.
+  const surgeryPlaying = stage === "surgery_playing";
+  const modalTitle = `${label} — ${count}/${capacity} ocupados`;
+  function inModal(content: ReactNode) {
+    return (
+      <Modal
+        open
+        onClose={surgeryPlaying ? () => {} : onClose}
+        title={modalTitle}
+        size="lg"
+        closeOnEscape={!surgeryPlaying}
+        closeOnOverlay={!surgeryPlaying}
+        initialFocusRef={firstItemRef}
+      >
+        <div className="overflow-y-auto" style={{ maxHeight: "70vh" }}>
+          {content}
+        </div>
+      </Modal>
+    );
+  }
+
   // ── done ───────────────────────────────────────────────────────────────────
   if (stage === "done" && implant) {
-    return (
+    return inModal(
       <div role="status" className="card space-y-3">
         <p className="text-nd-green font-data text-sm">✓ Cirurgia concluída. Cromo instalado: {implant.name}.</p>
         <p className="text-nd-text-secondary font-data text-xs">
           O cromo é seu. A conta de humanidade, também.
         </p>
         <ActionButton onClick={backToPicker}>Concluir</ActionButton>
-      </div>
+      </div>,
     );
   }
 
   // ── surgery_playing ────────────────────────────────────────────────────────
   if (stage === "surgery_playing" && implant && installed) {
     const projectedHumanity = installed.effectiveHumanity - effectiveHumanityCost(implant);
-    return (
+    return inModal(
       <div role="status" className="card border-nd-magenta/20 space-y-3">
         <p className="font-data text-xs text-nd-magenta animate-pulse-neon tracking-widest">
           /// BATIMENTO NEURAL ///
@@ -266,58 +394,110 @@ export default function ChromeSurgeryPanel({
         >
           Operando
         </ActionButton>
-      </div>
+      </div>,
     );
   }
 
-  // ── slot_selected ──────────────────────────────────────────────────────────
+  // ── slot_selected: two-pane picker (lista + detalhe, emenda 1) ─────────────
   if (stage === "slot_selected" || !implant) {
-    return (
-      <div className="card space-y-3">
-        <h3 className="font-heading text-nd-cyan">{label}</h3>
-        <p className="text-nd-text-secondary text-xs font-data">
-          {count}/{capacity} ocupados
+    const vacancy = capacity - count;
+    /** Detail target: the hovered/focused/clicked item, falling back to the
+     * first offered item so the pane is never empty while stock exists. */
+    const selectedDef = available.find((c) => c.id === selectedId) ?? available[0] ?? null;
+    const vacancyLabel = vacancy === 1 ? "1 vaga" : `${vacancy} vagas`;
+
+    return inModal(
+      catalogForSlot.length === 0 ? (
+        <p className="text-nd-text-secondary text-sm font-data">Nenhum cromo para este slot.</p>
+      ) : available.length === 0 ? (
+        <p className="text-nd-text-secondary text-sm font-data">
+          O ferrageiro não tem cromo em estoque para este slot.
         </p>
-        {catalogForSlot.length === 0 ? (
-          <p className="text-nd-text-secondary text-sm font-data">Nenhum cromo para este slot.</p>
-        ) : available.length === 0 ? (
-          <p className="text-nd-text-secondary text-sm font-data">
-            O ferrageiro não tem cromo em estoque para este slot.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {available.map((def) => {
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+          <ul ref={listRef} className="space-y-2">
+            {available.map((def, i) => {
               const already = isInstalled(def);
+              const selected = selectedDef?.id === def.id;
               return (
                 <li key={def.id}>
                   <button
                     type="button"
-                    className="card w-full text-left hover:border-nd-cyan/50 transition-colors"
+                    ref={i === 0 ? firstItemRef : undefined}
+                    data-item={def.id}
                     disabled={already}
                     aria-disabled={already || undefined}
-                    onClick={() => {
-                      setImplant(def);
-                      setActionError(null);
-                      setStage("reviewing");
-                    }}
+                    aria-current={selected ? "true" : undefined}
+                    onMouseEnter={() => setSelectedId(def.id)}
+                    onFocus={() => setSelectedId(def.id)}
+                    onClick={() => selectForReview(def)}
+                    onKeyDown={onRovingKey}
+                    className={`card flex min-h-touch w-full items-center gap-3 text-left transition-colors hover:border-nd-cyan/50 ${
+                      selected ? "border-nd-gold/60" : ""
+                    }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-heading text-nd-cyan text-sm">{def.name}</span>
-                      <span className="font-data text-xs text-nd-gold">{formatEds(effectivePrice(def))}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 mt-1">
-                      <span className="font-data text-nd-label text-nd-text-secondary">
-                        Tier {def.tier} · -{effectiveHumanityCost(def)} humanidade
+                    <ChromeIcon def={def} />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className="truncate font-heading text-sm text-nd-cyan">
+                          {def.name}
+                          {already ? " (instalado)" : ""}
+                        </span>
+                        <span className="shrink-0 font-data text-xs text-nd-gold">
+                          {formatEds(effectivePrice(def))}
+                        </span>
                       </span>
-                      {already && <span className="font-data text-nd-label text-nd-text-secondary">(instalado)</span>}
-                    </div>
+                      <span className="mt-0.5 flex items-baseline gap-2 font-data text-nd-micro text-nd-text-secondary">
+                        <span className="truncate">
+                          {tierStyle(def.tier).label} · {formatChromeBonuses(def.bonuses)}
+                        </span>
+                      </span>
+                    </span>
                   </button>
                 </li>
               );
             })}
           </ul>
-        )}
-      </div>
+
+          {selectedDef && (
+            <div className="space-y-3 border-nd-cyan/10 border-t pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
+              <div className="flex items-center gap-3">
+                <ChromeIcon def={selectedDef} />
+                <div className="min-w-0">
+                  <p className="truncate font-heading text-sm text-nd-cyan">{selectedDef.name}</p>
+                  <p className="font-data text-nd-micro text-nd-text-secondary">
+                    {tierStyle(selectedDef.tier).label}
+                  </p>
+                </div>
+              </div>
+              {selectedDef.description && (
+                <p className="text-xs text-nd-text-secondary">{selectedDef.description}</p>
+              )}
+              <p className="font-data text-xs text-nd-text-secondary">
+                {formatChromeBonuses(selectedDef.bonuses) || "Sem bônus."}
+              </p>
+              <div className="space-y-1 font-data text-xs">
+                <p>
+                  <span className="text-nd-gold">{formatEds(effectivePrice(selectedDef))}</span>
+                  <span className="text-nd-magenta"> · -{effectiveHumanityCost(selectedDef)} humanidade</span>
+                </p>
+                {overclockActive && (
+                  <p className="text-nd-purple">Overclock ativo: metade do preço, zero de humanidade.</p>
+                )}
+                <p className="text-nd-text-secondary">
+                  {count}/{capacity} ocupados — {vacancyLabel}
+                </p>
+                {blockReason(selectedDef) && (
+                  <p className="text-nd-magenta">⛔ {blockReason(selectedDef)}</p>
+                )}
+              </div>
+              {!isInstalled(selectedDef) && (
+                <ActionButton onClick={() => selectForReview(selectedDef)}>Instalar</ActionButton>
+              )}
+            </div>
+          )}
+        </div>
+      ),
     );
   }
 
@@ -333,7 +513,7 @@ export default function ChromeSurgeryPanel({
   const price = effectivePrice(implant);
   const humanityCost = effectiveHumanityCost(implant);
 
-  return (
+  return inModal(
     <div className="card space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-heading text-nd-cyan">{implant.name}</h3>
@@ -407,6 +587,6 @@ export default function ChromeSurgeryPanel({
           Confirmar cirurgia
         </ActionButton>
       )}
-    </div>
+    </div>,
   );
 }

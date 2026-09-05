@@ -1,95 +1,37 @@
 import type { ChromeSlot } from "@neon-dusk/shared";
 
-// Interactive geometry for the AI-generated body map (issues #94, #103). The
-// artwork is a static PNG (app/src/assets/chrome/body-map.png); everything the
-// player interacts with is positioned here in percentages (0–100) so the
-// overlay scales at any breakpoint without JS measurement (ADR-3).
+// Label geometry for the body map (issue #188, labels-only redesign). The
+// artwork is a static PNG (app/src/assets/chrome/body-map.png) rendered
+// decoratively at 55% width; the 9 interactive labels flank it in two side
+// columns, each anchored at a pinned vertical percentage (0–100) of the map
+// container so every label row tracks its body region at any breakpoint
+// without JS measurement (ADR-3). Values are a static pinned table (ADR
+// #188: 9 valores pinnados) and keep a minimum 8% step between labels of the
+// same column.
 //
-// #103 re-derived every coordinate from the replaced AI figure (rembg matte
-// measured on the 512×1024 asset): figure bbox x 27.9–69.7% / y 23.5–95.1%,
-// head y 23.5–34.4% (center x≈48.5), arms x 28.9–37% / 60–69.7% (y 35–60.5%),
-// legs down to y 95.1%. The #94 z-order semantics are preserved: the torso
-// rectangle (integumentary) stays the base layer, skeleton owns the spine
-// column, arms/legs/head zones render on top — clicks on skin still fall to
-// the torso, never through to inner systems. Regenerating the image keeps
-// these valid because the baseline pins the neutral pose
-// (tools/asset-forge/baselines/neon-dusk.md).
+// The #94 hit-area layering is deleted (SLOT_HIT_AREAS, LAYER_ORDER,
+// resolveSlot, pips): the labels-only reference has no click on the body —
+// labels are buttons beside the figure, never boxes over it — so there is no
+// click-owner matrix to maintain.
 
-/** Hit area of one slot, as a rectangle in % of the image (0–100). */
-export interface SlotHitArea {
+/** Vertical anchor of one slot label, in % of the map container (0–100). */
+export interface SlotLabelPos {
   slot: ChromeSlot;
-  x: number;
+  /** Which side column the label sits in (left = torso/head systems). */
+  column: "left" | "right";
+  /** Top anchor in % of the map container (0–100). */
   y: number;
-  w: number;
-  h: number;
 }
 
-/** One rectangle per body region; `arms` has two (left/right). */
-export const SLOT_HIT_AREAS: SlotHitArea[] = [
-  { slot: "legs", x: 27.5, y: 60, w: 41, h: 36 },
-  { slot: "integumentary", x: 30, y: 34, w: 37, h: 27 },
-  { slot: "nervous_system", x: 42, y: 50, w: 13, h: 11 },
-  { slot: "skeleton", x: 42, y: 35, w: 13, h: 15 },
-  { slot: "circulatory", x: 37, y: 37, w: 7, h: 8 },
-  { slot: "arms", x: 27, y: 35, w: 11, h: 25.5 },
-  { slot: "arms", x: 58.5, y: 35, w: 11.5, h: 25.5 },
-  { slot: "ocular", x: 33, y: 27.5, w: 31, h: 7 },
-  { slot: "operating_system", x: 38, y: 28.5, w: 21, h: 4.5 },
-  { slot: "frontal_cortex", x: 35.5, y: 22.5, w: 26, h: 5.5 },
+/** One label per slot, y values pinned by the #188 design (gap ≥ 8% intra-column). */
+export const SLOT_LABEL_POS: SlotLabelPos[] = [
+  { slot: "frontal_cortex", column: "left", y: 21 },
+  { slot: "ocular", column: "left", y: 29 },
+  { slot: "operating_system", column: "left", y: 37 },
+  { slot: "circulatory", column: "left", y: 45 },
+  { slot: "skeleton", column: "left", y: 53 },
+  { slot: "nervous_system", column: "left", y: 61 },
+  { slot: "integumentary", column: "left", y: 69 },
+  { slot: "arms", column: "right", y: 46 },
+  { slot: "legs", column: "right", y: 72 },
 ];
-
-/** Pip/badge anchor per slot, in % of the image — real anatomy centers (#103). */
-export const SLOT_PIPS: Record<ChromeSlot, { x: number; y: number }> = {
-  frontal_cortex: { x: 48.5, y: 25 },
-  ocular: { x: 48.5, y: 28.5 },
-  operating_system: { x: 48.5, y: 32 },
-  arms: { x: 33, y: 49 },
-  skeleton: { x: 48.5, y: 42 },
-  nervous_system: { x: 48.5, y: 55 },
-  circulatory: { x: 39.5, y: 41 },
-  integumentary: { x: 40, y: 57 },
-  legs: { x: 46.5, y: 75 },
-};
-
-/**
- * Render order of the hit-area layers, bottom → top. Overlapping areas (e.g.
- * the torso rectangle covering skeleton/nervous_system) resolve clicks in
- * favor of the LAST sibling — the torso paints first as the base layer and
- * every smaller slot renders on top of it, same rule as the old SVG paint
- * order. resolveSlot() is the authoritative resolver for this rule. Every
- * slot appears exactly once.
- */
-export const LAYER_ORDER: ChromeSlot[] = [
-  "legs",
-  "integumentary",
-  "nervous_system",
-  "skeleton",
-  "circulatory",
-  "arms",
-  "ocular",
-  "operating_system",
-  "frontal_cortex",
-];
-
-/**
- * Owner of a click at image percentage (xPct, yPct): the topmost
- * LAYER_ORDER slot with a hit area containing the point. Rects are
- * half-open ([x, x+w) × [y, y+h)) so a boundary point has a single owner.
- * Returns null when the point falls outside every area. Source of truth for
- * click ownership (tests + ChromeBodyMapImage click arbitration).
- */
-export function resolveSlot(xPct: number, yPct: number): ChromeSlot | null {
-  for (let i = LAYER_ORDER.length - 1; i >= 0; i--) {
-    const slot = LAYER_ORDER[i];
-    const hit = SLOT_HIT_AREAS.some(
-      (area) =>
-        area.slot === slot &&
-        xPct >= area.x &&
-        xPct < area.x + area.w &&
-        yPct >= area.y &&
-        yPct < area.y + area.h,
-    );
-    if (hit) return slot;
-  }
-  return null;
-}

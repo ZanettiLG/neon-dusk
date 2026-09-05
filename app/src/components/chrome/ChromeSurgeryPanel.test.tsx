@@ -108,7 +108,8 @@ interface RenderOptions {
 
 function renderPanel(options: RenderOptions = {}) {
   const onSurgeryDone = vi.fn();
-  render(
+  const onClose = vi.fn();
+  const utils = render(
     <ChromeSurgeryPanel
       slot={options.slot === undefined ? "frontal_cortex" : options.slot}
       catalog={options.catalog ?? [CUCA]}
@@ -119,9 +120,10 @@ function renderPanel(options: RenderOptions = {}) {
       error={options.error}
       onRetry={options.onRetry}
       onSurgeryDone={onSurgeryDone}
+      onClose={onClose}
     />,
   );
-  return { onSurgeryDone };
+  return { onSurgeryDone, onClose, unmount: utils.unmount };
 }
 
 describe("ChromeSurgeryPanel", () => {
@@ -424,5 +426,187 @@ describe("isOverclockActive (mirror of server getOverclockBonus)", () => {
       },
     };
     expect(isOverclockActive(expired, Date.parse("2026-06-01T00:00:00.000Z"))).toBe(false);
+  });
+});
+
+describe("ChromeSurgeryPanel — picker modal (issue #188 emenda 1)", () => {
+  const T2: ChromeDefinition = {
+    id: "olho-vidro",
+    slug: "olho-vidro",
+    name: "Olho de Vidro",
+    slot: "frontal_cortex",
+    tier: 2,
+    bonuses: { cool: 1 },
+    humanityCost: 4,
+    basePrice: 2200,
+    description: "Lente ocular de reposição.",
+  };
+  const T3: ChromeDefinition = {
+    id: "diamante-bruto",
+    slug: "diamante-bruto",
+    name: "Diamante Bruto",
+    slot: "frontal_cortex",
+    tier: 3,
+    bonuses: { body: 2, gig_success_rate: 5 },
+    humanityCost: 6,
+    basePrice: 3000,
+    description: "Blindagem dérmica pesada.",
+  };
+
+  beforeEach(() => {
+    mocks.api.post.mockReset();
+    mocks.api.post.mockResolvedValue({});
+    useAuthStore.setState({ character: CHARACTER });
+    useHudStore.setState({ balance: 5000, humanity: 70 });
+  });
+
+  afterEach(() => {
+    restoreMatchMedia();
+    vi.useRealTimers();
+  });
+
+  it("should render the picker inside an accessible modal labelled with slot occupancy", () => {
+    renderPanel();
+
+    // Modal shell: role="dialog", aria-modal, named by the occupancy title.
+    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Córtex Frontal — 0/3 ocupados" }),
+    ).toBeInTheDocument();
+
+    // Two-pane: list on the left, detail on the right (default = first item).
+    expect(screen.getByRole("list")).toBeInTheDocument();
+    expect(screen.getByText("Aprimoramento neural básico.")).toBeInTheDocument();
+    expect(screen.getByText("+2 Intelligence · +10 NIL máx")).toBeInTheDocument();
+    // Price appears in both panes (item row + detail).
+    expect(screen.getAllByText("G$ 1.500")).toHaveLength(2);
+    expect(screen.getByText(/-3 humanidade/)).toBeInTheDocument();
+    expect(screen.getByText("0/3 ocupados — 3 vagas")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Instalar" })).toBeInTheDocument();
+
+    // Default selection = first item, marked aria-current.
+    expect(screen.getByRole("button", { name: /Cuca Acesa/ })).toHaveAttribute("aria-current", "true");
+  });
+
+  it("should show the tier monogram fallback while icons are not shipped (#189)", () => {
+    renderPanel({ catalog: [CUCA, T2, T3] });
+
+    const item = (name: RegExp) => screen.getByRole("button", { name });
+    // Monogram = first grapheme of the name (CHROME_ICON_ASSETS is empty in #188).
+    const t1Icon = item(/Cuca Acesa/).querySelector<HTMLElement>("span[aria-hidden] > span");
+    expect(t1Icon).toHaveTextContent("C");
+    expect(t1Icon!.parentElement).toHaveClass("border-nd-text-secondary/40", "text-nd-text-secondary");
+    expect(item(/Olho de Vidro/).querySelector("span[aria-hidden]")!.className).toContain("border-nd-cyan/40");
+    expect(item(/Diamante Bruto/).querySelector("span[aria-hidden]")!.className).toContain("border-nd-gold/40");
+
+    // Tier is never color-only: T1/T2/T3 always present as text.
+    expect(item(/Olho de Vidro/).textContent).toContain("T2 ·");
+    expect(item(/Diamante Bruto/).textContent).toContain("T3 ·");
+  });
+
+  it("should drive the detail pane from hover, focus, and click", () => {
+    renderPanel({ catalog: [CUCA, T3] });
+
+    const cuca = screen.getByRole("button", { name: /Cuca Acesa/ });
+    const diamante = screen.getByRole("button", { name: /Diamante Bruto/ });
+
+    // Hover drives the detail.
+    fireEvent.mouseEnter(diamante);
+    expect(screen.getByText("Blindagem dérmica pesada.")).toBeInTheDocument();
+    expect(screen.queryByText("Aprimoramento neural básico.")).not.toBeInTheDocument();
+    expect(diamante).toHaveAttribute("aria-current", "true");
+    expect(cuca).not.toHaveAttribute("aria-current");
+
+    // Focus drives the detail (keyboard parity).
+    fireEvent.focus(cuca);
+    expect(screen.getByText("Aprimoramento neural básico.")).toBeInTheDocument();
+    expect(cuca).toHaveAttribute("aria-current", "true");
+
+    // Click goes to the review screen for the clicked implant.
+    fireEvent.click(diamante);
+    expect(screen.getByRole("heading", { level: 3, name: "Diamante Bruto" })).toBeInTheDocument();
+    expect(screen.getByText("Custo: G$ 3.000")).toBeInTheDocument();
+  });
+
+  it("should rove focus with ArrowDown/ArrowUp/Home/End", () => {
+    renderPanel({ catalog: [CUCA, T2, T3] });
+
+    // initialFocusRef lands on the first item of the list.
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Olho de Vidro/ }));
+
+    fireEvent.keyDown(document.activeElement!, { key: "Home" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    fireEvent.keyDown(document.activeElement!, { key: "End" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Diamante Bruto/ }));
+
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Olho de Vidro/ }));
+  });
+
+  it("should close on Escape and restore focus to the opener on unmount", () => {
+    const opener = document.createElement("button");
+    document.body.appendChild(opener);
+    opener.focus();
+
+    const { onClose, unmount } = renderPanel();
+
+    // Focus moved into the dialog (initialFocusRef = first list item).
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Cuca Acesa/ }));
+
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    // Deactivation path restores focus to the opener (the body-map label).
+    unmount();
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
+
+  it("should trap Tab cycles inside the dialog", () => {
+    renderPanel();
+
+    const close = screen.getByRole("button", { name: "Fechar" });
+    close.focus();
+    // Shift+Tab from the first focusable wraps to the last (Instalar).
+    fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Instalar" }));
+    // Tab from the last wraps back to the first.
+    fireEvent.keyDown(document.activeElement!, { key: "Tab" });
+    expect(document.activeElement).toBe(close);
+  });
+
+  it("should close on overlay click and via the header ✕ outside the theater", () => {
+    const { onClose } = renderPanel();
+
+    fireEvent.click(screen.getByRole("dialog").previousElementSibling as Element);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("should lock the modal during the theater: Esc, overlay and ✕ cannot close", async () => {
+    stubMatchMedia(false);
+    vi.useFakeTimers();
+    const { onClose, onSurgeryDone } = renderPanel();
+
+    fireEvent.click(screen.getByRole("button", { name: /Cuca Acesa/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Confirmar cirurgia" }));
+    });
+
+    const dialog = screen.getByRole("dialog");
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    fireEvent.click(dialog.previousElementSibling as Element);
+    fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(5000));
+    expect(onSurgeryDone).toHaveBeenCalledTimes(1);
   });
 });

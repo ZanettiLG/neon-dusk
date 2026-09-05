@@ -222,6 +222,7 @@ export default function ChromeView() {
                   error={installedError}
                   onRetry={() => void fetchInstalled()}
                   onSurgeryDone={onSurgeryDone}
+                  onClose={() => setSelectedSlot(null)}
                 />
               </div>
             </>

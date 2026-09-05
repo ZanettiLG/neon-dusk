@@ -134,10 +134,11 @@ describe("ChromeView", () => {
 
     render(<ChromeView />);
 
-    // Corpo tab (default): body map + idle surgery panel; installed implant
-    // announced via a legenda HTML (text channel).
+    // Corpo tab (default): body map + idle surgery panel; the installed
+    // implant is announced on the slot label itself (the #188 legenda was
+    // deleted — occupancy lives in the label's aria + status text).
     expect(await screen.findByRole("group", { name: "Mapa corporal de cromo" })).toBeInTheDocument();
-    expect(screen.getByText("1/3 — Smart Link")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sistema Nervoso: 1/3 ocupados" })).toBeInTheDocument();
     expect(screen.getByText(/Sistema Nervoso/)).toBeInTheDocument();
     expect(screen.getByText(/Selecione um slot no mapa corporal/)).toBeInTheDocument();
 
@@ -186,7 +187,7 @@ describe("ChromeView", () => {
     await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
 
     expect(await screen.findByRole("group", { name: "Mapa corporal de cromo" })).toBeInTheDocument();
-    expect(screen.getByText("1/3 — Smart Link")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sistema Nervoso: 1/3 ocupados" })).toBeInTheDocument();
   });
 
   it("should NOT uninstall on the first click — 2-step confirmation arms first", async () => {
@@ -270,7 +271,7 @@ describe("ChromeView", () => {
     render(<ChromeView />);
 
     // Seleciona o slot e abre o implante não instalado.
-    await user.click(await screen.findByRole("button", { name: /^Sistema Nervoso — / }));
+    await user.click(await screen.findByRole("button", { name: /^Sistema Nervoso: / }));
     await user.click(await screen.findByRole("button", { name: /Mira de Plasma/ }));
 
     // O review mostra o preço do estoque do ferrageiro (G$ 900), não o

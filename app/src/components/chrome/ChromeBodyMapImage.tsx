@@ -1,24 +1,22 @@
-import { useRef, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import type { ChromeSlot, InstalledChromeRecord } from "@neon-dusk/shared";
-import { CHROME_SLOTS, SLOT_CAPACITY } from "@neon-dusk/shared";
+import { SLOT_CAPACITY } from "@neon-dusk/shared";
 import { CHROME_SLOT_LABELS } from "@/lib/labels";
-import {
-  LAYER_ORDER,
-  SLOT_HIT_AREAS,
-  SLOT_PIPS,
-  resolveSlot,
-  type SlotHitArea,
-} from "@/lib/chrome-body-map";
+import { SLOT_LABEL_POS } from "@/lib/chrome-body-map";
 import bodyMapUrl from "@/assets/chrome/body-map.png";
 
-// Body map of the 9 cromo slots (issue #94): the artwork is an AI-generated
-// PNG (512×1024, noir silhouette); the interactive layer is invisible
-// percentage-positioned hit areas on top of it. Same a11y contract as the old
-// ChromeBodyMapSvg (group role, per-slot buttons with occupancy aria-labels,
-// Enter/Space, CHEIO badge + pips + HTML legenda as redundant text channels).
-// Pips/badge are absolutely positioned in IMAGE space (SLOT_PIPS), so they
-// render as pointer-events-none siblings of the buttons — they sit over the
-// artwork and never steal clicks.
+// Body map of the 9 cromo slots (issues #94 → #188): the artwork is an
+// AI-generated PNG (512×1024, noir silhouette) rendered decoratively at 55%
+// width; the interactive layer is 9 label buttons flanking the figure in two
+// side columns (labels-only redesign — the body itself is never a click
+// target, per the approved clinic-inventory reference). Desktop (≥1024px): the label
+// wrapper vanishes (lg:contents) and each button positions absolutely at its
+// SLOT_LABEL_POS y anchor, column via left/right. Mobile (<1024px): the same
+// DOM flows as a 2-column label grid under the figure — single DOM, no
+// duplicates. Same a11y contract as before: group role, per-slot buttons
+// with occupancy aria-labels, Enter/Space, full slot = tabIndex −1 + guard.
+// Geometry is inline style / CSS var on purpose: percentage classes
+// (w-[55%]) are banned in core by the token-usage guard (issue #53).
 
 interface ChromeBodyMapImageProps {
   installed: InstalledChromeRecord[];
@@ -26,135 +24,74 @@ interface ChromeBodyMapImageProps {
   onSelectSlot: (slot: ChromeSlot) => void;
 }
 
-/** Tailwind border/animation classes per slot state (color is decorative). */
-function hitAreaClass(state: { selected: boolean; full: boolean; partial: boolean }): string {
-  if (state.selected) return "border-nd-gold/60 animate-pulse-neon";
-  if (state.full) return "border-nd-magenta/40 cursor-not-allowed";
-  if (state.partial) return "border-nd-cyan/40 hover:border-nd-cyan/60 cursor-pointer";
-  return "border-transparent hover:border-nd-cyan/60 cursor-pointer";
-}
-
-/** Overlay content anchored in image space: pips (empty/partial) or CHEIO badge. */
-function SlotMarker({
-  slot,
-  count,
-  capacity,
-  full,
-}: {
-  slot: ChromeSlot;
-  count: number;
-  capacity: number;
-  full: boolean;
-}) {
-  const pip = SLOT_PIPS[slot];
-  const anchor: CSSProperties = { left: `${pip.x}%`, top: `${pip.y}%` };
-  if (full) {
-    return (
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 font-data text-nd-micro font-bold text-nd-magenta"
-        style={anchor}
-      >
-        CHEIO
-      </span>
-    );
-  }
-  return (
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5"
-      style={anchor}
-    >
-      {Array.from({ length: capacity }, (_, i) => (
-        <span
-          key={i}
-          className={`size-2 rounded-full border ${i < count ? "border-nd-cyan bg-nd-cyan" : "border-nd-cyan/40"}`}
-        />
-      ))}
-    </span>
-  );
+/** Label state classes (design #188): default cyan/70, hover cyan, selected
+ * gold + pulse, full magenta/60 + cursor-not-allowed. */
+function labelClass(state: { selected: boolean; full: boolean }): string {
+  if (state.selected) return "text-nd-gold animate-pulse-neon";
+  if (state.full) return "text-nd-magenta/60 cursor-not-allowed";
+  return "text-nd-cyan/70 hover:text-nd-cyan cursor-pointer";
 }
 
 /**
- * Interactive body map over the AI artwork (issue #10 + #28 + #94). Each slot
- * is a keyboard-focusable region (Enter/Space), announced with its occupancy.
- * Visual states: empty (invisible area), partial (cyan pips), full (disabled
- * + CHEIO badge) and selected (gold ring). Color is never the only channel —
- * occupancy is carried by aria-label, pips, badge and a legenda HTML.
+ * Interactive body map (issues #10 + #28 + #94 + #188). Each slot label is a
+ * keyboard-focusable button (Enter/Space) announcing its occupancy; the
+ * status line ("N/M · CHEIO") is the redundant text channel for full slots.
+ * Selection opens the surgery picker modal via onSelectSlot.
  */
 export default function ChromeBodyMapImage({
   installed,
   selectedSlot,
   onSelectSlot,
 }: ChromeBodyMapImageProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
   const countFor = (slot: ChromeSlot) =>
     installed.filter((rec) => rec.definition.slot === slot).length;
-  const isFullFor = (slot: ChromeSlot) => countFor(slot) >= SLOT_CAPACITY[slot];
-
-  const hitAreas = LAYER_ORDER.flatMap((slot) =>
-    SLOT_HIT_AREAS.filter((area) => area.slot === slot),
-  );
 
   return (
-    <div>
-      <div
-        ref={mapRef}
-        role="group"
-        aria-label="Mapa corporal de cromo"
-        className="relative w-full max-w-[240px] mx-auto"
-      >
-        {/* Artwork: decorative — the information lives in the buttons + legenda. */}
-        <img
-          src={bodyMapUrl}
-          alt=""
-          aria-hidden="true"
-          className="block w-full h-auto"
-          draggable={false}
-        />
+    <div
+      role="group"
+      aria-label="Mapa corporal de cromo"
+      className="relative flex flex-col items-center gap-3 lg:block"
+      style={{ "--label-w": "34%" } as CSSProperties}
+    >
+      {/* Artwork: decorative — the information lives in the labels' text + aria. */}
+      <img
+        src={bodyMapUrl}
+        alt=""
+        aria-hidden="true"
+        className="mx-auto block h-auto"
+        style={{ width: "55%" }}
+        draggable={false}
+      />
 
-        {hitAreas.map((area: SlotHitArea, i) => {
-          const slot = area.slot;
+      {/* Mobile: 2-column label grid under the figure. Desktop: the wrapper
+          vanishes (lg:contents) and the labels position absolutely against
+          the map container (top from SLOT_LABEL_POS, column via left/right;
+          the PNG's internal figure margins keep the 34% columns clear of the
+          silhouette). */}
+      <div className="grid w-full grid-cols-2 gap-2 lg:contents">
+        {SLOT_LABEL_POS.map(({ slot, column, y }) => {
           const label = CHROME_SLOT_LABELS[slot] ?? slot;
           const capacity = SLOT_CAPACITY[slot];
           const count = countFor(slot);
           const full = count >= capacity;
-          const partial = count > 0;
           const selected = selectedSlot === slot;
+          const left = column === "left";
 
           return (
             <button
-              key={`${slot}-${i}`}
+              key={slot}
               type="button"
               tabIndex={full ? -1 : 0}
-              aria-label={`${label} — ${count}/${capacity} ocupados`}
+              data-slot={slot}
+              aria-label={`${label}: ${count}/${capacity} ocupados`}
               aria-pressed={selected || undefined}
               aria-disabled={full || undefined}
-              data-slot={slot}
-              className={`absolute border ${hitAreaClass({ selected, full, partial })}`}
-              style={{
-                left: `${area.x}%`,
-                top: `${area.y}%`,
-                width: `${area.w}%`,
-                height: `${area.h}%`,
-              }}
-              onClick={(e) => {
-                if (full) return;
-                // Click ownership comes from resolveSlot (LAYER_ORDER), not
-                // from DOM stacking: the topmost layer containing the point
-                // wins, a full owner is never selected, and without geometry
-                // (jsdom / zero rect) the clicked button keeps the click.
-                const rect = mapRef.current?.getBoundingClientRect();
-                const owner =
-                  rect && rect.width > 0
-                    ? resolveSlot(
-                        ((e.clientX - rect.left) / rect.width) * 100,
-                        ((e.clientY - rect.top) / rect.height) * 100,
-                      )
-                    : null;
-                if (owner === null || owner === slot || !isFullFor(owner)) {
-                  onSelectSlot(owner ?? slot);
-                }
+              style={{ top: `${y}%` }}
+              className={`flex max-lg:min-h-touch items-baseline gap-2 py-1.5 font-data text-xs uppercase tracking-wider transition-colors lg:absolute lg:w-[var(--label-w)] ${
+                left ? "lg:left-0 lg:justify-end lg:text-right" : "lg:right-0 lg:justify-start"
+              } ${labelClass({ selected, full })}`}
+              onClick={() => {
+                if (!full) onSelectSlot(slot);
               }}
               onKeyDown={(e) => {
                 if (full) return;
@@ -163,42 +100,16 @@ export default function ChromeBodyMapImage({
                   onSelectSlot(slot);
                 }
               }}
-            />
-          );
-        })}
-
-        {/* Pips/CHEIO badge — image-space markers over the buttons. */}
-        {LAYER_ORDER.map((slot) => {
-          const capacity = SLOT_CAPACITY[slot];
-          const count = countFor(slot);
-          return (
-            <SlotMarker
-              key={slot}
-              slot={slot}
-              count={count}
-              capacity={capacity}
-              full={count >= capacity}
-            />
+            >
+              <span className="min-w-0 truncate">{label}</span>
+              <span className="shrink-0 text-nd-micro normal-case tracking-normal">
+                {count}/{capacity}
+                {full ? " · CHEIO" : ""}
+              </span>
+            </button>
           );
         })}
       </div>
-
-      <dl className="mt-3 space-y-1 text-xs font-data" aria-label="Ocupação dos slots de cromo">
-        {CHROME_SLOTS.map((slot) => {
-          const inSlot = installed.filter((rec) => rec.definition.slot === slot);
-          const count = inSlot.length;
-          const capacity = SLOT_CAPACITY[slot];
-          return (
-            <div key={slot} className="flex items-baseline justify-between gap-2">
-              <dt className="text-nd-text-secondary">{CHROME_SLOT_LABELS[slot] ?? slot}</dt>
-              <dd className="text-nd-text">
-                {count}/{capacity} —{" "}
-                {count === 0 ? "vazio" : inSlot.map((rec) => rec.definition.name).join(", ")}
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
     </div>
   );
 }
