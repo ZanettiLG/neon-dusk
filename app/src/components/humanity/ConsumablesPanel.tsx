@@ -20,9 +20,10 @@ const BAND_TOO_HIGH_REASON = "Sua humanidade está alta demais para isso (máx. 
 
 /**
  * Consumables panel (issue #48) — itens anti-insanidade: catalog cards with
- * owned stock, per-item cooldowns and a 2-step inline confirmation before
- * POSTing the use. The server stays authoritative on cost, restore and
- * cooldown; pro-active gating mirrors TherapyPanel (flatline / banda Íntegro).
+ * owned stock and a 2-step inline confirmation before POSTing the use. No
+ * per-item cooldowns (#187) — cards show "Sem cooldown"; the server stays
+ * authoritative on cost, restore and the global diminishing-returns window.
+ * Pro-active gating mirrors TherapyPanel (flatline / banda Íntegro).
  * Self-contained: fetches its own readout on mount via the consumables store.
  */
 export default function ConsumablesPanel({ info }: ConsumablesPanelProps) {

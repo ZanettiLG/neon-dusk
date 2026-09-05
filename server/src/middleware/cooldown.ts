@@ -5,7 +5,9 @@ import { AppError } from "./error-handler";
 
 // Neon Dusk — Redis-backed action cooldown preHandler (ND-053, #187)
 // ============================================================================
-// Cooldowns are pure anti-spam now (500ms — imperceptible, anti-DDoS only).
+// Anti-spam split into two families: 500ms for chat/crew-invite/PvP
+// (imperceptible, anti-DDoS only) and per-action anti-spam for fast/sensitive
+// actions — gig_accept 30s, chrome_install 60s (both still in cooldownConfig).
 // The cooldown is CHECKED in the preHandler but SET in the route handler AFTER
 // success (ADR-2). A failed action (e.g., insufficient Grana) does NOT trigger
 // a cooldown. Real gameplay waits (trampo tiers, abilities) live elsewhere —

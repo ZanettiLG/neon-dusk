@@ -263,7 +263,7 @@ describe("ND-011 — trampos service & API", () => {
 
     it("should apply the game_params GIG_COOLDOWN_MINUTES floor on top of template cooldowns (ND-052)", async () => {
       // The global cooldown floor is admin-tunable — raise it to 60 min and
-      // verify the board reports the raised cooldown (not the 5s T1 template).
+      // verify the board reports the raised cooldown (not the template cooldown).
       await db("game_params")
         .insert({ key: "GIG_COOLDOWN_MINUTES", value: "60" })
         .onConflict("key")
@@ -272,7 +272,7 @@ describe("ND-011 — trampos service & API", () => {
 
       try {
         const { characterId } = await insertTestCharacter();
-        const farma = await farmaGig(); // template cooldown 5s (T1)
+        const farma = await farmaGig(); // T1 template already widened 5s → 60s for CI
         await db("gig_history").insert({
           character_id: characterId,
           gig_id: farma.id,
@@ -286,7 +286,7 @@ describe("ND-011 — trampos service & API", () => {
 
         const board = await listAvailableGigs(characterId);
         const entry = board.gigs.find((g) => g.id === farma.id)!;
-        // 60-min floor → ~3600s remaining; the 5s T1 template would be ≤ 6s.
+        // 60-min floor → ~3600s remaining; the widened 60s template would be ≤ 61s.
         expect(entry.cooldownRemaining).toBeGreaterThan(3000);
         expect(entry.cooldownRemaining).toBeLessThanOrEqual(3601);
       } finally {
