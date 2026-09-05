@@ -1,0 +1,16 @@
+{
+  "name": "asset-forge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Neon Dusk AI asset generation CLI (SD1.5 via local ComfyUI). Zero-dependency, Node 22+.",
+  "type": "module",
+  "bin": {
+    "asset-forge": "./cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

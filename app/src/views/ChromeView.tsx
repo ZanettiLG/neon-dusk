@@ -10,7 +10,7 @@ import { api } from "@/api/client";
 import { useHudStore } from "@/stores/hud";
 import { CHROME_SLOT_LABELS } from "@/lib/labels";
 import Tab from "@/components/ui/Tab";
-import ChromeBodyMapSvg from "@/components/chrome/ChromeBodyMapSvg";
+import ChromeBodyMapImage from "@/components/chrome/ChromeBodyMapImage";
 import ChromeSurgeryPanel from "@/components/chrome/ChromeSurgeryPanel";
 import OsView from "@/views/OsView";
 import HumanityView from "@/views/HumanityView";
@@ -205,7 +205,7 @@ export default function ChromeView() {
               )}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 <div className="card">
-                  <ChromeBodyMapSvg
+                  <ChromeBodyMapImage
                     installed={installed?.installed ?? []}
                     selectedSlot={selectedSlot}
                     onSelectSlot={setSelectedSlot}

@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "style": {
+    "suffix": "noir cyberpunk brasileiro, São Paulo 2087, concreto e metal oxidado, garoa ácida, atmosfera densa, paleta monocromática, fundo escuro #0a0a0a, cinzas dessaturados, realce sutil aço azulado, sem glow neon, sem bloom, iluminação plana uniforme, game UI asset, estilo consistente",
+    "negative": "texto, caracteres falsos, kanji, ideogramas, watermark, logo, cidade neon genérica, cyber-samurai, excesso de bloom, anime genérico, fotorrealismo corporativo, baixa legibilidade, anatomia quebrada, dedos extras, membros deformados, glow neon, referência direta a Cyberpunk 2077, Blade Runner ou qualquer IP existente"
+  },
+  "types": [
+    {
+      "id": "body-map",
+      "prompt": {
+        "subject": "corpo humano adulto magro, vista frontal completa, pose neutra em pé, braços levemente afastados do tronco, pernas juntas, cabeça ereta, anatomia coerente, silhueta legível"
+      },
+      "size": { "width": 512, "height": 1024 },
+      "output": { "project": "app", "dir": "app/src/assets/chrome", "filename": "body-map.png" },
+      "seedPolicy": "random",
+      "postprocess": null
+    },
+    {
+      "id": "metro-map",
+      "prompt": {
+        "subject": "mapa esquemático de metrô, linhas retas e estações circulares, diagrama limpo, fundo escuro uniforme"
+      },
+      "size": { "width": 400, "height": 300 },
+      "output": { "project": "app", "dir": "app/src/assets/metro", "filename": "metro-map.png" },
+      "seedPolicy": "random",
+      "postprocess": null
+    },
+    {
+      "id": "icon",
+      "prompt": {
+        "subject": "silhueta única centrada, pictograma minimalista, reconhecível a 24px"
+      },
+      "size": { "width": 512, "height": 512 },
+      "output": { "project": "app", "dir": "app/src/assets/icons", "filename": null },
+      "seedPolicy": "random",
+      "postprocess": null
+    },
+    {
+      "id": "avatar",
+      "prompt": {
+        "subject": "retrato de rosto e ombros, fundo distrital, personagem com specs do lore"
+      },
+      "size": { "width": 768, "height": 1024 },
+      "output": { "project": "app", "dir": "app/src/assets/avatars", "filename": null },
+      "seedPolicy": "random",
+      "postprocess": null
+    }
+  ]
+}
