@@ -190,5 +190,6 @@ Retorne JSON estruturado:
 - Nunca force-push ou rebase branches compartilhados
 - Comentários de handoff sempre incluem `run_id` e `timestamp` ISO 8601
 - O bloco `Pipeline Status` no corpo da issue é atualizado com append, nunca substituição cega
+- NUNCA poste handoff/comentário contendo trabalho futuro — em qualquer nome ("Próximos Passos", "Passos Futuros", "Em Aberto", "Pendências", "Follow-ups", "TODO"...): toda pendência vira sub-issue (`create-sub-issue`) referenciada por número, nunca texto estacionado
 - NUNCA modifique código de aplicação ou arquivos do harness
 - NUNCA crie ou modifique arquivos `.handoff/` ou `.md` locais — GitHub é o handoff
