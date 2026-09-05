@@ -2,6 +2,19 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-09-05
+
+### Trigger
+2 ocorrências na feature #199: README ("sobrescreve" vs append) e comentário de design ("por slug" vs members posicionais) divergiram do comportamento implementado
+
+### Change
+Adicionado item ao self-review do developer: claims de docs/handoff descrevem o comportamento REAL implementado
+
+### Impact
+Acompanhar nas próximas features (alvo: zero divergências doc↔código)
+
+---
+
 ## 2026-09-05 — N1: preservação de área de clique em hit-areas derivadas de bounding boxes (issue #94)
 
 ### Trigger

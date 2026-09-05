@@ -94,4 +94,54 @@ describe("prompts", () => {
     assert.throws(() => buildPrompt(ghost, registry), RegistryError);
     assert.throws(() => buildPrompt(ghost, registry), /sem regime válido/);
   });
+
+  it("should append a specific subject after the base subject and before the suffix", async () => {
+    const registry = await loadRegistry(REGISTRY_PATH);
+    const type = registry.types.find((t) => t.id === "item");
+
+    const { positive } = buildPrompt(type, registry, { subject: "seringa de cache neural" });
+
+    assert.equal(
+      positive,
+      `${type.prompt.subject}, seringa de cache neural, ${registry.style[type.regime].suffix}`,
+    );
+  });
+
+  it("should inject a district fragment (prompt + acento funcional + accent)", async () => {
+    const registry = await loadRegistry(REGISTRY_PATH);
+    const type = registry.types.find((t) => t.id === "scene");
+    const babilonia = registry.districts.find((d) => d.id === "babilonia");
+
+    const { positive } = buildPrompt(type, registry, { district: babilonia });
+
+    assert.equal(
+      positive,
+      `${type.prompt.subject}, ${babilonia.prompt}, acento funcional ${babilonia.accent}, ${registry.style[type.regime].suffix}`,
+    );
+  });
+
+  it("should compose base → district → subject → suffix in order", () => {
+    const type = { id: "scene", regime: "atmospheric", prompt: { subject: "BASE" } };
+    const registry = {
+      style: {
+        flat: { suffix: "FLAT", negative: "N-F" },
+        atmospheric: { suffix: "SUFFIX", negative: "NEG" },
+      },
+    };
+    const district = { id: "babilonia", prompt: "DISTRITO", accent: "âmbar" };
+
+    const { positive, negative } = buildPrompt(type, registry, { subject: "EXTRA", district });
+
+    assert.equal(positive, "BASE, DISTRITO, acento funcional âmbar, EXTRA, SUFFIX");
+    assert.equal(negative, "NEG");
+  });
+
+  it("should keep the legacy output identical when called without opts (regression)", async () => {
+    const registry = await loadRegistry(REGISTRY_PATH);
+    for (const type of registry.types) {
+      const { positive, negative } = buildPrompt(type, registry);
+      assert.equal(positive, `${type.prompt.subject}, ${registry.style[type.regime].suffix}`);
+      assert.equal(negative, registry.style[type.regime].negative);
+    }
+  });
 });

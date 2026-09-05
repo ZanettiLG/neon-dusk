@@ -1,4 +1,4 @@
-/* global Buffer */
+/* global Buffer, URL, process */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -35,10 +35,16 @@ async function runCli(args) {
 /**
  * Minimal ComfyUI mock: /system_stats, /object_info/CheckpointLoaderSimple,
  * POST /prompt → { prompt_id }, /history/{id} → canned history, /view → PNG.
- * @param {{history: object, checkpoint?: boolean}} opts
+ * @param {{history: object, checkpoint?: boolean, failPostAt?: number, closeAfterPosts?: number}} opts
+ *   failPostAt (1-based): the Nth POST /prompt answers 500 (batch-failure test).
+ *   closeAfterPosts (1-based): close the server right after the Nth POST
+ *   response is sent, so the next request hits ECONNREFUSED (offline mid-batch).
+ *   timeoutAt (1-based): the Nth POST answers with a prompt_id ("p-slow")
+ *   whose history never completes — pollHistory loops until its deadline.
  */
-function startMockComfy({ history, checkpoint = true }) {
+function startMockComfy({ history, checkpoint = true, failPostAt = 0, closeAfterPosts = 0, timeoutAt = 0 }) {
   return new Promise((resolve) => {
+    let promptCount = 0;
     const server = createServer((req, res) => {
       const url = new URL(req.url, "http://localhost");
       if (url.pathname === "/system_stats") {
@@ -55,14 +61,26 @@ function startMockComfy({ history, checkpoint = true }) {
           }),
         );
       } else if (url.pathname === "/prompt") {
+        promptCount += 1;
         req.resume();
         req.on("end", () => {
+          if (promptCount === failPostAt) {
+            res.writeHead(500, { "Content-Type": "text/plain" });
+            res.end("boom");
+            return;
+          }
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ prompt_id: "p-test" }));
+          res.end(JSON.stringify({ prompt_id: promptCount === timeoutAt ? "p-slow" : "p-test" }));
+          if (closeAfterPosts && promptCount === closeAfterPosts) {
+            server.close();
+          }
         });
       } else if (url.pathname.startsWith("/history/")) {
+        // "p-slow" never appears in history — pollHistory keeps polling until
+        // its deadline, then throws TimeoutError.
+        const slow = timeoutAt > 0 && url.pathname === "/history/p-slow";
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(history));
+        res.end(JSON.stringify(slow ? {} : history));
       } else if (url.pathname === "/view") {
         res.writeHead(200, { "Content-Type": "image/png" });
         res.end(Buffer.from(PNG));
@@ -271,5 +289,333 @@ describe("cli", () => {
     } finally {
       server.close();
     }
+  });
+
+  // Issue #199 — family generation: deterministic seeds per member, one PNG
+  // per member named <member>.png, per-member failures collected (batch keeps
+  // going, exit code = worst failure).
+  const FAMILY_HISTORY = {
+    "p-test": {
+      status: { status_str: "success", completed: true },
+      outputs: { 9: { images: [{ filename: "nd-item.png", subfolder: "", type: "output" }] } },
+    },
+  };
+  const CROMO_FILES = Array.from(
+    { length: 12 },
+    (_, i) => `cromo-${String(i + 1).padStart(2, "0")}.png`,
+  );
+
+  describe("family mode", () => {
+    it("--dry-run should list all members with seeds and the first member workflow", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "item",
+        "--family",
+        "itens-cromo",
+        "--dry-run",
+      ]);
+
+      assert.equal(code, 0);
+      assert.match(stdout, /\[dry-run\] família itens-cromo \(12 members\):/);
+      for (const memberId of ["cromo-01", "cromo-02", "cromo-12"]) {
+        assert.match(stdout, new RegExp(`${memberId} → seed \\d+`));
+      }
+      // First "{" starts the first member's workflow JSON (lines above are brace-free).
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.equal(wf["9"].inputs.filename_prefix, "nd-cromo-01");
+      assert.equal(wf["3"].inputs.seed, 801015425); // familySeed("itens-cromo", "cromo-01")
+    });
+
+    it("should generate the whole family and write <member>.png per member", async () => {
+      const { server, url } = await startMockComfy({ history: FAMILY_HISTORY });
+      const outDir = await mkdtemp(path.join(tmpdir(), "asset-forge-family-"));
+      try {
+        const { code, stdout } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--url",
+          url,
+          "--out",
+          outDir,
+        ]);
+
+        assert.equal(code, 0);
+        assert.match(stdout, /✓ 12\/12 gerados/);
+        // The displayed path reflects the custom --out (displayDir = out), not
+        // the registry default.
+        assert.match(
+          stdout,
+          new RegExp(`\\[3/12\\] cromo-03 → ${outDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/cromo-03\\.png`),
+        );
+        assert.deepEqual((await readdir(outDir)).sort(), CROMO_FILES);
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+        server.close();
+      }
+    });
+
+    it("--member should generate only that member", async () => {
+      const { server, url } = await startMockComfy({ history: FAMILY_HISTORY });
+      const outDir = await mkdtemp(path.join(tmpdir(), "asset-forge-member-"));
+      try {
+        const { code, stdout } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--member",
+          "cromo-03",
+          "--url",
+          url,
+          "--out",
+          outDir,
+        ]);
+
+        assert.equal(code, 0);
+        assert.match(stdout, /✓ 1\/1 gerados/);
+        assert.deepEqual(await readdir(outDir), ["cromo-03.png"]);
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+        server.close();
+      }
+    });
+
+    it("should be deterministic across runs (dry-run twice → same seed for cromo-01)", async () => {
+      const seedOf = async () => {
+        const { stdout } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--dry-run",
+        ]);
+        return stdout.match(/cromo-01 → seed (\d+)/)?.[1];
+      };
+
+      assert.equal(await seedOf(), await seedOf());
+      assert.equal(await seedOf(), "801015425");
+    });
+
+    it("should keep the batch going when one member fails and exit with the worst code", async () => {
+      // The 3rd POST (cromo-03) answers 500 — the other 11 still generate.
+      const { server, url } = await startMockComfy({ history: FAMILY_HISTORY, failPostAt: 3 });
+      const outDir = await mkdtemp(path.join(tmpdir(), "asset-forge-partial-"));
+      try {
+        const { code, stderr } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--url",
+          url,
+          "--out",
+          outDir,
+        ]);
+
+        assert.equal(code, 4);
+        assert.match(stderr, /cromo-03 \(ComfyUI respondeu HTTP 500: boom\)/);
+        assert.match(stderr, /✓ 11\/12 gerados/);
+        const files = await readdir(outDir);
+        assert.equal(files.length, 11);
+        assert.ok(!files.includes("cromo-03.png"));
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+        server.close();
+      }
+    });
+
+    it("should exit 5 (worst code) when one member times out and another fails with HTTP, writing the rest", async () => {
+      // cromo-02 POST → HTTP 500 (exit-4 contribution); cromo-05 poll never
+      // completes → TimeoutError (exit-5 contribution). Worst code wins; the
+      // other 10 members still generate and are written.
+      const { server, url } = await startMockComfy({
+        history: FAMILY_HISTORY,
+        failPostAt: 2,
+        timeoutAt: 5,
+      });
+      const outDir = await mkdtemp(path.join(tmpdir(), "asset-forge-mixed-"));
+      try {
+        const { code, stderr } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--url",
+          url,
+          "--out",
+          outDir,
+          "--timeout",
+          "1",
+        ]);
+
+        assert.equal(code, 5);
+        assert.match(stderr, /cromo-02 \(ComfyUI respondeu HTTP 500: boom\)/);
+        assert.match(stderr, /cromo-05 \(Geração não completou em 1s\)/);
+        assert.match(stderr, /✓ 10\/12 gerados/);
+        const files = await readdir(outDir);
+        assert.equal(files.length, 10);
+        assert.ok(!files.includes("cromo-02.png"));
+        assert.ok(!files.includes("cromo-05.png"));
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+        server.close();
+      }
+    });
+
+    it("should exit 2 for every family/district/subject misuse, before any generation", async () => {
+      const cases = [
+        [
+          ["generate", "item", "--family", "nao-existe"],
+          /Família desconhecida: "nao-existe".*Famílias válidas.*itens-cromo/s,
+        ],
+        [
+          ["generate", "item", "--family", "itens-cromo", "--member", "cromo-99"],
+          /não pertence à família "itens-cromo"/,
+        ],
+        [["generate", "scene", "--family", "itens-cromo"], /incompatível com "scene"/],
+        [["generate", "item", "--district", "babilonia"], /distrito só para regime atmospheric/],
+        [
+          ["generate", "scene", "--district", "vila-madalena"],
+          /Distrito desconhecido: "vila-madalena"/,
+        ],
+        [
+          ["generate", "item", "--family", "itens-cromo", "--seed", "7"],
+          /--seed e --variants não combinam/,
+        ],
+        [
+          ["generate", "item", "--family", "itens-cromo", "--variants", "3"],
+          /--seed e --variants não combinam/,
+        ],
+        [["generate", "item", "--member", "cromo-03"], /--member exige --family/],
+        [["generate", "item", "--subject", ""], /--subject não pode ser vazio/],
+        [["generate", "item", "--subject", "   "], /--subject não pode ser vazio/],
+      ];
+      for (const [args, expected] of cases) {
+        const { code, stderr } = await runCli(args);
+        assert.equal(code, 2, `esperado exit 2 para: ${args.join(" ")}`);
+        assert.match(stderr, expected);
+      }
+    });
+
+    it("plain mode --subject should append to the prompt and keep the current naming", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "item",
+        "--subject",
+        "chave física sem haste",
+        "--dry-run",
+        "--seed",
+        "9",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.match(wf["6"].inputs.text, /chave física sem haste/);
+      assert.equal(wf["9"].inputs.filename_prefix, "nd-item");
+    });
+
+    it("should abort the whole batch (exit 3) when ComfyUI goes offline mid-batch, keeping prior members", async () => {
+      // Server closes right after the 2nd POST — member 1 fully completes
+      // (poll + download + write), then member 2's poll hits ECONNREFUSED →
+      // ComfyOfflineError → abort (exit 3), keeping member 1's file.
+      const { server, url } = await startMockComfy({
+        history: FAMILY_HISTORY,
+        closeAfterPosts: 2,
+      });
+      const outDir = await mkdtemp(path.join(tmpdir(), "asset-forge-offline-"));
+      try {
+        const { code, stderr } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--url",
+          url,
+          "--out",
+          outDir,
+        ]);
+
+        assert.equal(code, 3);
+        assert.match(stderr, /ComfyUI offline/);
+        // Member 1 was already written before the abort; the batch did not
+        // continue past the offline member.
+        assert.deepEqual(await readdir(outDir), ["cromo-01.png"]);
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+        server.close();
+      }
+    });
+
+    it("--member that names a district should auto-inherit that district's accent fragment", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "scene",
+        "--family",
+        "cenas-distritos",
+        "--member",
+        "babilonia",
+        "--dry-run",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.match(wf["6"].inputs.text, /mercado caótico, barracas/);
+      assert.match(wf["6"].inputs.text, /acento funcional âmbar #d4a017/);
+    });
+
+    it("--member that is not a district should get no district fragment", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "scene",
+        "--family",
+        "cenas-distritos",
+        "--member",
+        "saideira",
+        "--dry-run",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      // "acento funcional" is part of the atmospheric style suffix itself, so
+      // assert the district-specific prompt is absent instead.
+      assert.doesNotMatch(wf["6"].inputs.text, /mercado caótico/);
+    });
+
+    it("plain mode --district should inject the district fragment into the single generation", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "scene",
+        "--district",
+        "babilonia",
+        "--dry-run",
+        "--seed",
+        "5",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.match(wf["6"].inputs.text, /mercado caótico, barracas/);
+      assert.match(wf["6"].inputs.text, /acento funcional âmbar #d4a017/);
+      assert.equal(wf["9"].inputs.filename_prefix, "nd-scene");
+    });
+
+    it("--subject with surrounding spaces should be trimmed in the prompt", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "item",
+        "--subject",
+        "  chave física sem haste  ",
+        "--dry-run",
+        "--seed",
+        "9",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.match(wf["6"].inputs.text, /, chave física sem haste, /);
+      assert.doesNotMatch(wf["6"].inputs.text, / {2}chave física sem haste {2}/);
+    });
   });
 });

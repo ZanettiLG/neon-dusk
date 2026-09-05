@@ -30,6 +30,21 @@ N variantes usa S, S+1, …), `--out DIR` (sobrescreve o destino do registry),
 `--url URL`, `--timeout S` (default 120s), `--dry-run` (imprime o workflow sem
 submeter).
 
+Modo família (`--family ID`): gera o lote inteiro de uma `seedFamily` com seeds
+determinísticas por member (`familySeed`), arquivos `<member>.png` no destino do
+tipo. Use `--member ID` para um member só (exige `--family`; `--seed`/`--variants`
+não combinam), `--subject TEXTO` para complementar o subject do prompt (entra
+entre o fragmento de distrito e o sufixo de estilo — não substitui o subject
+base) e `--district ID` para herdar o fragmento de acento do distrito (um member que
+também é id de distrito herda o seu automaticamente).
+
+```
+node tools/asset-forge/cli.mjs generate item --family itens-cromo
+```
+
+Falha parcial: um member que falha não aborta o lote — os demais seguem e o
+exit code reflete a pior falha da rodada (timeout > falha de geração).
+
 Exit codes: `0` ok · `1` erro inesperado · `2` uso/registry inválido ·
 `3` ComfyUI offline · `4` falha de geração · `5` timeout.
 

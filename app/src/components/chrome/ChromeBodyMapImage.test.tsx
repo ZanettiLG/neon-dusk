@@ -129,7 +129,6 @@ describe("ChromeBodyMapImage", () => {
     const full = [...LOADOUT, chromeRecord("i4", "Compilador", "frontal_cortex")];
     render(<ChromeBodyMapImage installed={full} selectedSlot={null} onSelectSlot={vi.fn()} />);
 
-    const fullCortex = screen.getByRole("button", { name: "Córtex Frontal — 3/3 ocupados" });
     const focusable = screen
       .getAllByRole("button")
       .filter((b) => b.getAttribute("tabindex") !== "-1");
