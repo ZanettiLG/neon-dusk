@@ -45,7 +45,7 @@ export const VENDOR_SEED: VendorSeedEntry[] = [
       { itemType: "CHROME", itemId: "os-fury", price: 15000, stock: -1 },
       { itemType: "CHROME", itemId: "os-surge", price: 15000, stock: -1 },
       { itemType: "CHROME", itemId: "neural-scrubber", price: 22000, stock: -1 },
-      // Issue #28: itens anti-insanidade — T2 (cooldown 12h)
+      // Issue #28: itens anti-insanidade — T2 (sem cooldown pós-#187; limitadores = estoque/custo)
       { itemType: "CONSUMABLE", itemId: "freio", price: 18000, stock: -1 },
     ],
   },
