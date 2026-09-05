@@ -110,24 +110,24 @@ function toDate(v: Date | string | null): Date | null {
 /** Seconds left on a trampo cooldown (0 = ready). */
 function cooldownRemainingFor(
   lastAt: Date | string | null,
-  cooldownMinutes: number,
+  cooldownSeconds: number,
   now: Date,
 ): number {
   const last = toDate(lastAt);
   if (!last) return 0;
-  if (isCooldownExpired(last, cooldownMinutes, now)) return 0;
-  const msLeft = last.getTime() + cooldownMinutes * 60 * 1000 - now.getTime();
+  if (isCooldownExpired(last, cooldownSeconds, now)) return 0;
+  const msLeft = last.getTime() + cooldownSeconds * 1000 - now.getTime();
   return Math.ceil(msLeft / 1000);
 }
 
 /**
  * ND-052: global cooldown floor (game_params GIG_COOLDOWN_MINUTES, fallback
- * 10). Template cooldowns (balance pass #114: T1=10 … T5=30) stay
- * authoritative; the param only raises the floor for every trampo when an
- * admin wants to slow the grind.
+ * 0 — #187). Template cooldowns (per-tier progression #187: T1=5s … T5=24h)
+ * stay authoritative; the param only raises the floor for every trampo when
+ * an admin wants to slow the grind. Expressed in minutes; converted here.
  */
 async function globalCooldownMinutes(q: Queryable): Promise<number> {
-  return Number(await getGameParam("GIG_COOLDOWN_MINUTES", "10", q));
+  return Number(await getGameParam("GIG_COOLDOWN_MINUTES", "0", q));
 }
 
 /** ND-052: NIL passive regen interval in ms (game_params NIL_REGEN_MINUTES, fallback 5). */
@@ -248,7 +248,7 @@ export async function listAvailableGigs(characterId: string): Promise<GigBoardRe
       meetsRequirements,
       cooldownRemaining: cooldownRemainingFor(
         lastByGig.get(g.id as string) ?? null,
-        Math.max(Number(g.cooldown_minutes), cooldownFloor),
+        Math.max(Number(g.cooldown_seconds), cooldownFloor * 60),
         now,
       ),
       // ND-140: base chance (stat + cromo) — legwork/bonde apply on top at execute.
@@ -293,7 +293,7 @@ export async function getGigDetail(characterId: string, gigId: string): Promise<
   const last = await gigs.findLastCompletion(characterId, gigId);
   const cdRemaining = cooldownRemainingFor(
     last?.lastAt ?? null,
-    Math.max(Number(trampo.cooldown_minutes), await globalCooldownMinutes(db)),
+    Math.max(Number(trampo.cooldown_seconds), (await globalCooldownMinutes(db)) * 60),
     new Date(),
   );
 
@@ -312,7 +312,7 @@ export async function getGigDetail(characterId: string, gigId: string): Promise<
     nilCost: Number(trampo.nil_cost),
     heatGenerated: Number(trampo.heat_generated),
     legworkMinutes: Number(trampo.legwork_minutes),
-    cooldownMinutes: Number(trampo.cooldown_minutes),
+    cooldownSeconds: Number(trampo.cooldown_seconds),
     meetsRequirements,
     cooldownRemaining: cdRemaining,
   };
@@ -407,7 +407,7 @@ export async function acceptGig(characterId: string, gigId: string): Promise<Gig
         last &&
         !isCooldownExpired(
           new Date(last.lastAt),
-          Math.max(Number(trampo.cooldown_minutes), cooldownFloor),
+          Math.max(Number(trampo.cooldown_seconds), cooldownFloor * 60),
         )
       ) {
         throw new AppError(400, "GIG_COOLDOWN", "Este trampo ainda está em cooldown");

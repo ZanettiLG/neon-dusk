@@ -7,6 +7,21 @@ export function formatCountdown(totalSeconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+/**
+ * Seconds → compact cooldown label (#187 — trampo per-tier progression spans
+ * 5s to 24h, so "m:ss" is useless at both ends): 5s → "5s", 60 → "1min",
+ * 900 → "15min", 7200 → "2h", 86400 → "24h", 172800 → "2d".
+ */
+export function formatCooldown(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
 /** ISO timestamp → "agora" / "há N min" / "há N h" / "há N d" (pt-BR). */
 export function formatRelativeTime(iso: string, now: number = Date.now()): string {
   const diff = now - new Date(iso).getTime();

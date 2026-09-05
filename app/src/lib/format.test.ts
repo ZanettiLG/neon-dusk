@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { formatCountdown, formatDuration, formatEds, formatRelativeTime } from "@/lib/format";
+import {
+  formatCooldown,
+  formatCountdown,
+  formatDuration,
+  formatEds,
+  formatRelativeTime,
+} from "@/lib/format";
 
 describe("formatEds", () => {
   it("formats with pt-BR grouping", () => {
@@ -35,6 +41,28 @@ describe("formatCountdown", () => {
   it("renders m:ss", () => {
     expect(formatCountdown(95)).toBe("1:35");
     expect(formatCountdown(9)).toBe("0:09");
+  });
+});
+
+describe("formatCooldown (#187 trampo tiers)", () => {
+  it("renders seconds below 1min", () => {
+    expect(formatCooldown(5)).toBe("5s");
+    expect(formatCooldown(59)).toBe("59s");
+  });
+
+  it("renders minutes below 1h", () => {
+    expect(formatCooldown(60)).toBe("1min");
+    expect(formatCooldown(900)).toBe("15min");
+  });
+
+  it("renders hours up to 24h, then days", () => {
+    expect(formatCooldown(7200)).toBe("2h");
+    expect(formatCooldown(86_400)).toBe("24h");
+    expect(formatCooldown(172_800)).toBe("2d");
+  });
+
+  it("clamps negative input to zero", () => {
+    expect(formatCooldown(-5)).toBe("0s");
   });
 });
 

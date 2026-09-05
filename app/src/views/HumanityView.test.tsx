@@ -169,7 +169,7 @@ describe("HumanityView", () => {
       loading: false,
       error: null,
       undergoTherapy: async () => {
-        throw new Error("Você já fez terapia nas últimas 24h.");
+        throw new Error("Você já fez terapia agora há pouco.");
       },
     });
     const user = userEvent.setup();
@@ -178,7 +178,7 @@ describe("HumanityView", () => {
 
     await user.click(screen.getByRole("button", { name: "Sessão (Clínica)" }));
 
-    expect(await screen.findByText("Você já fez terapia nas últimas 24h.")).toBeInTheDocument();
+    expect(await screen.findByText("Você já fez terapia agora há pouco.")).toBeInTheDocument();
     process.off("unhandledRejection", onUnhandled);
   });
 

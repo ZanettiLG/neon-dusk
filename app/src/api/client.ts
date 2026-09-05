@@ -45,7 +45,12 @@ async function refreshAccessToken(): Promise<boolean> {
   return refreshInFlight;
 }
 
-async function request<T>(method: string, path: string, body?: unknown, isRetry = false): Promise<T> {
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  isRetry = false,
+): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -81,12 +86,7 @@ async function request<T>(method: string, path: string, body?: unknown, isRetry 
       const errBody = data as { error?: string; message?: string; details?: unknown } | null;
       const code = errBody?.error || "UNKNOWN_ERROR";
       const rawMessage = errBody?.message || "Erro inesperado.";
-      throw new ApiError(
-        response.status,
-        code,
-        ptBrError(code, rawMessage),
-        errBody?.details,
-      );
+      throw new ApiError(response.status, code, ptBrError(code, rawMessage), errBody?.details);
     }
 
     return data as T;
@@ -124,7 +124,6 @@ const PT_BR_ERRORS: Record<string, string> = {
 
   // NIL
   INSUFFICIENT_NIL: "NIL insuficiente.",
-  NIL_STIM_COOLDOWN: "Pingado em cooldown. Aguarde.",
   NIL_FULL: "NIL já está cheio.",
   NIL_CONCURRENT_MODIFICATION: "NIL foi modificado por outra ação. Tente novamente.",
 
@@ -164,7 +163,6 @@ const PT_BR_ERRORS: Record<string, string> = {
   CANNOT_ATTACK_SELF: "Você não pode atacar a si mesmo.",
   TARGET_NOT_FOUND: "Alvo não encontrado.",
   TARGET_IMMUNE: "Alvo está imune a PvP.",
-  PVP_COOLDOWN: "Cooldown de PvP ativo. Aguarde.",
   POWER_RANGE_EXCEEDED: "Poder do alvo fora do alcance.",
 
   // Anti-cheat

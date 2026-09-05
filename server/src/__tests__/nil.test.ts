@@ -15,10 +15,10 @@ import { NIL_REGEN_INTERVAL_MS } from "@neon-dusk/shared";
 import { calculateRegen } from "../services/nil-service";
 
 // Feature #2 — NIL (energy) API integration tests: live readout (lazy regen),
-// consume (spend), and Pingado (restore with cooldown). Runs against the real
-// Fastify app + Postgres + a dedicated redis db (4) that is flushed before the
-// run, so neither the global per-IP rate limit nor leftover `nil:stim:*`
-// cooldown keys leak between runs (same pattern as auth.test.ts / db 2).
+// consume (spend), and Pingado (restore — no cooldown since #187). Runs
+// against the real Fastify app + Postgres + a dedicated redis db (4) that is
+// flushed before the run, so the global per-IP rate limit never leaks between
+// runs (same pattern as auth.test.ts / db 2).
 
 const REDIS_TEST_DB = "redis://localhost:56379/4";
 
@@ -262,8 +262,8 @@ describe("Feature #2 — NIL API", () => {
 
   describe("POST /api/characters/me/nil/use-stim", () => {
     it("should return 400 NIL_FULL when NIL is already full", async () => {
-      // Fresh character sits at 100/100; the ampola guard rejects instead of
-      // burning the 1h cooldown for zero gain.
+      // Fresh character sits at 100/100; the ampola guard rejects a zero-gain
+      // stim (no cooldown to burn anymore — #187, the cap is the ceiling).
       const accessToken = await registerAndCreateCharacter(uniqueEmail());
 
       const res = await useStim(accessToken);
@@ -300,22 +300,19 @@ describe("Feature #2 — NIL API", () => {
       expect(body.status.current).toBe(100);
     });
 
-    it("should reject a second ampola with NIL_STIM_COOLDOWN and retryAfterSeconds", async () => {
+    it("should allow a second ampola right away — no cooldown (#187)", async () => {
       const accessToken = await registerAndCreateCharacter(uniqueEmail());
-      await consumeNil(accessToken, 20); // 80 → ampola lands exactly at 100
+      await consumeNil(accessToken, 20); // 80 → first ampola lands at 100
 
       const first = await useStim(accessToken);
       expect(first.status).toBe(200);
 
-      const res = await useStim(accessToken);
-
-      expect(res.status).toBe(400);
-      const body = await json<ErrorBody>(res);
-      expect(body.error).toBe("NIL_STIM_COOLDOWN");
-      // Cooldown is 1h; TTL may already be a tick under it.
-      const retryAfter = body.details?.retryAfterSeconds as number;
-      expect(retryAfter).toBeGreaterThan(3500);
-      expect(retryAfter).toBeLessThanOrEqual(3600);
+      // NIL is capped at 100 — a back-to-back second stim is a zero-gain
+      // reject (NIL_FULL), never a cooldown error.
+      const second = await useStim(accessToken);
+      expect(second.status).toBe(400);
+      const body = await json<ErrorBody>(second);
+      expect(body.error).toBe("NIL_FULL");
     });
 
     it("should return 401 without an access token", async () => {

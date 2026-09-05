@@ -159,7 +159,9 @@ export const useAuthStore = create<AuthState>()(
             get().clearAuth();
           } else {
             // Redis down or other transient failure — keep tokens but flag degradation.
-            set({ initializationError: err instanceof Error ? err.message : "Serviço indisponível" });
+            set({
+              initializationError: err instanceof Error ? err.message : "Serviço indisponível",
+            });
           }
         }
       },
@@ -184,7 +186,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      /** Drink a Pingado: +20 NIL with a 1h cooldown. Throws on cooldown/full. */
+      /** Drink a Pingado: +20 NIL, no cooldown (#187). Throws on full. */
       useStim: async () => {
         set({ nilLoading: true, nilError: null });
         try {
@@ -192,12 +194,7 @@ export const useAuthStore = create<AuthState>()(
           set({ nilStatus: res.status });
           return res;
         } catch (err) {
-          // Cooldown is not a failure: the caller reads retryAfterSeconds off the
-          // thrown ApiError and drives its own cooldown state. Keep nilError
-          // clean so a stale "Pingado em cooldown" never outlives the cooldown.
-          if (!(err instanceof ApiError && err.code === "NIL_STIM_COOLDOWN")) {
-            set({ nilError: err instanceof ApiError ? err.message : "Falha ao usar Pingado" });
-          }
+          set({ nilError: err instanceof ApiError ? err.message : "Falha ao usar Pingado" });
           throw err;
         } finally {
           set({ nilLoading: false });

@@ -167,7 +167,8 @@ export interface CreateCharacterRequest {
 
 // --- NIL (Feature #2) --------------------------------------------------------
 // Energy system: regens +1 every 5 minutes, capped at max. Pingado consumable
-// restores 20 instantly with a 1h cooldown (see 03-mecanicas-core.md §1).
+// restores 20 instantly — no cooldown, the stock/estoque is the limiter
+// (see 03-mecanicas-core.md §1).
 
 /** Base NIL cap for a new character (cromo raises it later). */
 export const NIL_MAX_BASE = 100;
@@ -177,8 +178,6 @@ export const NIL_REGEN_INTERVAL_MS = 5 * 60 * 1000;
 export const NIL_REGEN_RATE = 1;
 /** NIL restored by one Pingado (itemId interno; ver 06-terminologia-e-ip.md). */
 export const NIL_SYN_CAFE_AMOUNT = 20;
-/** Pingado cooldown, in seconds. */
-export const NIL_SYN_CAFE_COOLDOWN_S = 3600;
 
 /** Live NIL readout (regen applied lazily, never written on GET). */
 export interface NilStatus {
@@ -574,7 +573,7 @@ export interface HumanityInfo {
   };
   therapy: {
     lastCompletedAt: string | null;
-    /** ISO — when the shared 24h cooldown ends (null when ready). */
+    /** ISO — when the shared 500ms cooldown ends (null when ready). */
     nextAvailableAt: string | null;
     cooldownRemainingMs: number;
     clinic: TherapyOption;
@@ -620,7 +619,7 @@ export interface Consumable {
   name: string;
   tier: number;
   restoreAmount: number;
-  /** Per-item cooldown (T2 12h, T3 24h, T1 none). */
+  /** Per-item cooldown in hours (0 = none — the stock is the limiter, #187). */
   cooldownHours: number;
 }
 
@@ -683,7 +682,8 @@ export interface GigTemplate {
   nilCost: number;
   heatGenerated: number;
   legworkMinutes: number;
-  cooldownMinutes: number;
+  /** Trampo cooldown in seconds (per-tier progression, #187: T1=5 … T5=24h). */
+  cooldownSeconds: number;
   meetsRequirements?: boolean;
   cooldownRemaining?: number;
 }
@@ -879,8 +879,6 @@ export interface PvpAttackableResponse {
   targets: PvpTarget[];
   /** NIL cost per attack (game param PVP_NIL_COST, default 20). */
   nilCost: number;
-  /** Attack cooldown in seconds (PVP_COOLDOWN_S, default 15). */
-  cooldownSeconds: number;
 }
 
 /** One row of the GET /api/pvp/history list. */

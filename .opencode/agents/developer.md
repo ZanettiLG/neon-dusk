@@ -28,10 +28,10 @@ Handoff do architect (`design.md`) + descrição da feature.
 4. Implementar database (migrations, seeds se necessário)
 5. Implementar frontend (components, views, stores, PWA config)
 6. Rodar `npm run lint && npm run type-check`
-7. Self-review (53 checks)
+7. Self-review (55 checks)
 8. Handoff do código implementado
 
-## Self-Review (53 checks)
+## Self-Review (55 checks)
 - [ ] TypeScript strict: zero `any` (exceto `@ts-expect-error` justificado)
 - [ ] Queries SQL com parameterized queries (Knex; nunca string interpolation)
 - [ ] Redis operations com TTL definido
@@ -85,6 +85,8 @@ Handoff do architect (`design.md`) + descrição da feature.
 - [ ] Estados de loading têm anúncio acessível: `role="status"` (ou texto sr-only) no wrapper — skeleton silencioso falha o passo (aria-busy em div sem role não anuncia nada para AT)
 - [ ] Refs de issue em comentários de código (`#N`) referenciam issues existentes (abertas ou fechadas) — `gh issue view N` confirma; nunca cite issue inexistente
 - [ ] Hit-areas/overlays interativos derivados de bounding boxes preservam a área efetiva de clique dos shapes de origem — validado com matriz de donos de clique (função pura resolveSlot-style), não só testes de bounds 0-100 (bounds 100% válidos e clique errado coexistiram na issue #94)
+- [ ] Ao mudar uma mecânica de jogo, faça grep nos `docs/definicoes-de-produto/` e atualize as menções correspondentes (docs canônicos são parte do diff da feature)
+- [ ] Ao mudar comportamento, faça grep de termos stale no working tree INTEIRO (não só no diff) com padrão genérico — ex.: `cooldown\s*\d+(h|min|s)`, `T\d[^\n]*cooldown` — e corrija comentários que contradizem o novo comportamento
 
 ## Stack Específica
 - Backend: Fastify + TypeScript + Zod + Pino

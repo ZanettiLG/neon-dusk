@@ -12,10 +12,10 @@ import { therapyRepository as therapy } from "../repositories/therapy-repository
 
 // Neon Dusk — Therapy service
 // ============================================================================
-// One atomic transaction: lock the character → flatline gate → 24h cooldown
-// gate (shared between clinic and attunement) → roll cost/restore → wallet
-// debit (optimistic lock, available = balance − escrow) → humanity restore
-// (capped at 100) → therapy_sessions row → THERAPY_COMPLETED telemetry.
+// One atomic transaction: lock the character → flatline gate → 500ms
+// anti-spam window (shared between clinic and attunement) → roll cost/restore
+// → wallet debit (optimistic lock, available = balance − escrow) → humanity
+// restore (capped at 100) → therapy_sessions row → THERAPY_COMPLETED telemetry.
 
 /**
  * POST /api/therapy — undergo a therapy session (clínica or sintonia).
@@ -46,7 +46,7 @@ export async function undergoTherapy(
       // ND-053: 429 COOLDOWN_ACTIVE — same convention as consumables, PvP and
       // the anti-cheat middleware (issue #28 review, cycle 2). The unlock time
       // rides in details.nextAvailableAt.
-      throw new AppError(429, "COOLDOWN_ACTIVE", "Você já fez terapia nas últimas 24h.", {
+      throw new AppError(429, "COOLDOWN_ACTIVE", "Você já fez terapia agora há pouco.", {
         nextAvailableAt: cooldown.nextAvailableAt?.toISOString() ?? null,
       });
     }
@@ -80,7 +80,11 @@ export async function undergoTherapy(
       trx,
     );
     if (!updatedWallet) {
-      throw new AppError(409, "CONCURRENCY_CONFLICT", "Modificação concorrente detectada. Tente novamente.");
+      throw new AppError(
+        409,
+        "CONCURRENCY_CONFLICT",
+        "Modificação concorrente detectada. Tente novamente.",
+      );
     }
 
     await transactions.insert(

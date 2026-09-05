@@ -22,14 +22,17 @@ const MODALITY_COPY: Record<TherapyType, { title: string; blurb: string }> = {
 
 /**
  * Therapy panel (issue #28): two modality cards (Clínica/Sintonia) with the
- * cost/restore ranges, a shared 24h cooldown and per-card action buttons.
- * The server stays authoritative on cost, restore and cooldown.
+ * cost/restore ranges, a 500ms anti-spam window (#187) and per-card action
+ * buttons. The server stays authoritative on cost, restore and cooldown.
+ * The real limiter is the price — not time.
  */
 export default function TherapyPanel({ info, loading, error, onTherapy }: TherapyPanelProps) {
   if (loading && !info) {
     return (
       <div className="space-y-3" aria-busy="true">
-        <div className="card"><span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span></div>
+        <div className="card">
+          <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>
+        </div>
       </div>
     );
   }
@@ -61,7 +64,7 @@ export default function TherapyPanel({ info, loading, error, onTherapy }: Therap
       </div>
 
       <p className="text-nd-text-secondary text-xs font-data">
-        Cooldown compartilhado de 24h entre as modalidades.
+        Anti-spam de 500ms entre sessões — o custo é o limitador real.
       </p>
 
       {info.flatlined && (
@@ -79,7 +82,9 @@ export default function TherapyPanel({ info, loading, error, onTherapy }: Therap
               <h3 className="font-heading text-nd-cyan text-sm">{copy.title}</h3>
               <p className="text-nd-text-secondary text-xs font-data">{copy.blurb}</p>
               <p className="text-xs font-data text-nd-text">
-                <span className="text-nd-gold">{formatEds(opt.costMin)}–{formatEds(opt.costMax)}</span>{" "}
+                <span className="text-nd-gold">
+                  {formatEds(opt.costMin)}–{formatEds(opt.costMax)}
+                </span>{" "}
                 · restaura{" "}
                 <span className="text-nd-green">
                   {opt.restoreMin}–{opt.restoreMax}

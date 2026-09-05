@@ -80,7 +80,7 @@
 - [x] Rate limiting — global per-IP (`@fastify/rate-limit`)
 - [x] Per-action rate limits — register, login, PvP, chat
 - [x] Circuit breaker — 3 failures → 24h ban per character
-- [x] Cooldowns — trampo accept (30s), PvP (1h), chat (5s), cromo (60s)
+- [x] Cooldowns — chat (500ms), convite (500ms), PvP (500ms), trampos (5s–24h por tier), terapia (500ms), consumíveis (sem cooldown), Pingado (sem cooldown), habilidades (4–24h)
 - [x] Audit log — every mutating action recorded with IP, UA, result (UA normalization post-MVP)
 - [x] Input validation — Zod schemas on all endpoints
 - [x] Admin ban gate — banned characters blocked from login and all actions (`403 BANNED`)

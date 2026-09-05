@@ -12,7 +12,7 @@ import type {
 } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
-import { checkCooldown } from "../middleware/cooldown";
+import { checkCooldown, setCooldown } from "../middleware/cooldown";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
@@ -33,9 +33,9 @@ import { getGameParam } from "../repositories/game-param-repository";
 // leaderboard placeholder (ADR-4). Chat requires SC >= 10 (gate enforced
 // server-side in the POST handler — the client also hides the box below 10).
 //
-// ND-053: Chat POST is guarded by circuit-break, 5s cooldown, validation,
-// and per-action rate limiting. Name-drink is guarded by circuit-break and
-// validation.
+// ND-053: Chat POST is guarded by circuit-break, 500ms anti-spam cooldown,
+// validation, and per-action rate limiting. Name-drink is guarded by
+// circuit-break and validation.
 
 export interface SaideiraRoutesOptions {
   redis: Redis;
@@ -129,8 +129,8 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
     };
   });
 
-  // POST /api/saideira/chat — send a message (5s cooldown ≈ 12/min natural ceiling;
-  // per-action rate limit is a 60/min safety net above it).
+  // POST /api/saideira/chat — send a message (500ms anti-spam cooldown; the
+  // per-action rate limit is the real safety net above it).
   app.post(
     "/saideira/chat",
     {
@@ -182,8 +182,8 @@ export async function saideiraRoutes(app: FastifyInstance, opts: SaideiraRoutesO
       await redis.lpush(CHAT_HISTORY_KEY, payload);
       await redis.ltrim(CHAT_HISTORY_KEY, 0, CHAT_HISTORY_MAX - 1);
 
-      // Set cooldown AFTER success (ADR-2) — 5s.
-      await redis.setex(`cooldown:${characterId}:chat_message`, 5, "1");
+      // Set cooldown AFTER success (ADR-2) — 500ms anti-spam.
+      await setCooldown(redis, characterId, "chat_message");
 
       return reply.status(201).send(chatMessage);
     },

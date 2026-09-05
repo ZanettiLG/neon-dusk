@@ -5,6 +5,7 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
+import { cooldownConfig } from "../middleware/cooldown";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { crewRepository } from "../repositories/crew-repository";
 import type {
@@ -60,6 +61,12 @@ describe("ND-016 — Crews Básicas API", () => {
   beforeAll(async () => {
     await resetDb();
 
+    // #187: chat/invite anti-spam is 500ms — widen to 5s so back-to-back
+    // chat/invite tests deterministically trip the gate (same mutation
+    // pattern as the circuitBreakerConfig overrides elsewhere).
+    cooldownConfig.chat_message.durationMs = 5_000;
+    cooldownConfig.crew_invite.durationMs = 5_000;
+
     redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
     await redis.connect();
     await redis.flushdb();
@@ -79,6 +86,8 @@ describe("ND-016 — Crews Básicas API", () => {
   });
 
   afterAll(async () => {
+    cooldownConfig.chat_message.durationMs = 500; // #187 defaults
+    cooldownConfig.crew_invite.durationMs = 500;
     await app.close();
     redis.disconnect();
   });
@@ -92,7 +101,10 @@ describe("ND-016 — Crews Básicas API", () => {
 
   /** Register a user + character over HTTP; returns token, ids and name. */
   async function registerApiUser(): Promise<CrewUser> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken } = await json<AuthResponse>(res);
     const characterName = uniqueName();
@@ -121,11 +133,16 @@ describe("ND-016 — Crews Básicas API", () => {
 
   /** Set a character's Moral (direct DB — the API awards cap at 100/request). */
   async function setStreetCred(characterId: string, sc: number): Promise<void> {
-    await db("characters").where("id", characterId).update({ street_cred: sc, max_street_cred_achieved: sc });
+    await db("characters")
+      .where("id", characterId)
+      .update({ street_cred: sc, max_street_cred_achieved: sc });
   }
 
   /** Make a character eligible to found a crew (SC >= 25, wallet >= 5000). */
-  async function makeFounder(user: CrewUser, opts?: { balance?: number; sc?: number }): Promise<void> {
+  async function makeFounder(
+    user: CrewUser,
+    opts?: { balance?: number; sc?: number },
+  ): Promise<void> {
     await setStreetCred(user.characterId, opts?.sc ?? 30);
     await seedWallet(user.characterId, opts?.balance ?? 6000);
   }
@@ -148,7 +165,11 @@ describe("ND-016 — Crews Básicas API", () => {
 
   /** POST join; returns status + parsed body. */
   async function join(user: CrewUser, crewId: string) {
-    const res = await server.post(`/api/crews/${crewId}/join`, undefined, authHeader(user.accessToken));
+    const res = await server.post(
+      `/api/crews/${crewId}/join`,
+      undefined,
+      authHeader(user.accessToken),
+    );
     return { status: res.status, body: await json<CrewMember | ErrorBody>(res) };
   }
 
@@ -167,7 +188,7 @@ describe("ND-016 — Crews Básicas API", () => {
     expect(created.status).toBe(201);
     const { crew } = created.body as CreateCrewResponse;
     for (const recruit of recruits) {
-      // ND-053: clear the 60s invite cooldown so a single leader can invite
+      // ND-053: clear the invite anti-spam cooldown so a single leader can invite
       // several recruits in one test (this helper is setup, not the gate).
       await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       expect((await invite(leader, crew.id, recruit.characterId)).status).toBe(201);
@@ -245,11 +266,16 @@ describe("ND-016 — Crews Básicas API", () => {
       const { status } = await createCrew(leader, "Blade Runners", "BLD");
       expect(status).toBe(201);
 
-      const [wallet] = await db("character_wallets").select("*").where("character_id", leader.characterId);
+      const [wallet] = await db("character_wallets")
+        .select("*")
+        .where("character_id", leader.characterId);
       expect(wallet!.balance).toBe(1000);
       expect(wallet!.lifetime_spent).toBe(5000);
 
-      const [log] = await db("transaction_log").select("*").where("character_id", leader.characterId).andWhere("type", "CREW_CREATION");
+      const [log] = await db("transaction_log")
+        .select("*")
+        .where("character_id", leader.characterId)
+        .andWhere("type", "CREW_CREATION");
       expect(log).toMatchObject({
         type: "CREW_CREATION",
         amount: -5000,
@@ -267,7 +293,10 @@ describe("ND-016 — Crews Básicas API", () => {
       const crewId = (body as CreateCrewResponse).crew.id;
 
       expect(await crewIdOf(leader.characterId)).toBe(crewId);
-      const [member] = await db("crew_members").select("*").where("crew_id", crewId).andWhere("character_id", leader.characterId);
+      const [member] = await db("crew_members")
+        .select("*")
+        .where("crew_id", crewId)
+        .andWhere("character_id", leader.characterId);
       expect(member).toBeDefined();
     });
 
@@ -302,7 +331,9 @@ describe("ND-016 — Crews Básicas API", () => {
       const { status } = await createCrew(leader, "Blade Runners", "BLD");
       expect(status).toBe(201);
 
-      const [wallet] = await db("character_wallets").select("*").where("character_id", leader.characterId);
+      const [wallet] = await db("character_wallets")
+        .select("*")
+        .where("character_id", leader.characterId);
       expect(wallet!.balance).toBe(0);
     });
 
@@ -562,7 +593,9 @@ describe("ND-016 — Crews Básicas API", () => {
       const leader = await registerApiUser();
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
-      const res = await fetch(`${base()}/api/crews/${crewId}`, { headers: authHeader(leader.accessToken) });
+      const res = await fetch(`${base()}/api/crews/${crewId}`, {
+        headers: authHeader(leader.accessToken),
+      });
 
       expect(res.status).toBe(200);
       const body = await json<CrewDetailResponse>(res);
@@ -580,7 +613,9 @@ describe("ND-016 — Crews Básicas API", () => {
       await setStreetCred(recruit.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD", [recruit]);
 
-      const res = await fetch(`${base()}/api/crews/${crewId}`, { headers: authHeader(leader.accessToken) });
+      const res = await fetch(`${base()}/api/crews/${crewId}`, {
+        headers: authHeader(leader.accessToken),
+      });
       const body = await json<CrewDetailResponse>(res);
 
       expect(body.members).toHaveLength(2);
@@ -595,7 +630,9 @@ describe("ND-016 — Crews Básicas API", () => {
       for (const r of recruits) await setStreetCred(r.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD", recruits);
 
-      const res = await fetch(`${base()}/api/crews/${crewId}`, { headers: authHeader(leader.accessToken) });
+      const res = await fetch(`${base()}/api/crews/${crewId}`, {
+        headers: authHeader(leader.accessToken),
+      });
       const body = await json<CrewDetailResponse>(res);
 
       expect(body.members).toHaveLength(4);
@@ -696,7 +733,7 @@ describe("ND-016 — Crews Básicas API", () => {
       await setStreetCred(recruit.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
-      // Clear the 60s invite cooldown so the second invite reaches the
+      // Clear the invite anti-spam cooldown so the second invite reaches the
       // business rule (ALREADY_INVITED) instead of the anti-cheat gate.
       await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       expect((await invite(leader, crewId, recruit.characterId)).status).toBe(201);
@@ -717,9 +754,11 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(first.status).toBe(201);
       const { id: inviteId } = first.body as CrewInvite;
       // Backdate the invite so it is expired at the next invite attempt.
-      await db("crew_invites").where("id", inviteId).update({ expires_at: new Date(Date.now() - 1000) });
+      await db("crew_invites")
+        .where("id", inviteId)
+        .update({ expires_at: new Date(Date.now() - 1000) });
 
-      // Clear the 60s invite cooldown set by the first invite.
+      // Clear the invite anti-spam cooldown set by the first invite.
       await redis.del(`cooldown:${leader.characterId}:crew_invite`);
       const { status, body } = await invite(leader, crewId, recruit.characterId);
 
@@ -756,10 +795,16 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(member.characterName).toBe(recruit.characterName);
       expect(await crewIdOf(recruit.characterId)).toBe(crewId);
 
-      const [row] = await db("crew_members").select("*").where("crew_id", crewId).andWhere("character_id", recruit.characterId);
+      const [row] = await db("crew_members")
+        .select("*")
+        .where("crew_id", crewId)
+        .andWhere("character_id", recruit.characterId);
       expect(row).toBeDefined();
       // The invite is consumed on join.
-      const [inviteRow] = await db("crew_invites").select("*").where("crew_id", crewId).andWhere("character_id", recruit.characterId);
+      const [inviteRow] = await db("crew_invites")
+        .select("*")
+        .where("crew_id", crewId)
+        .andWhere("character_id", recruit.characterId);
       expect(inviteRow).toBeUndefined();
     });
 
@@ -780,7 +825,10 @@ describe("ND-016 — Crews Básicas API", () => {
       await setStreetCred(recruit.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
       expect((await invite(leader, crewId, recruit.characterId)).status).toBe(201);
-      await db("crew_invites").where("crew_id", crewId).andWhere("character_id", recruit.characterId).update({ expires_at: new Date(Date.now() - 1000) });
+      await db("crew_invites")
+        .where("crew_id", crewId)
+        .andWhere("character_id", recruit.characterId)
+        .update({ expires_at: new Date(Date.now() - 1000) });
 
       const { status, body } = await join(recruit, crewId);
 
@@ -797,7 +845,7 @@ describe("ND-016 — Crews Básicas API", () => {
       for (const r of [late, a, b, c]) await setStreetCred(r.characterId, 20);
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
       // Invite everyone while there is room: crew 1 → invites for late/a/b/c.
-      // (Clear the 60s invite cooldown between each so the anti-cheat gate
+      // (Clear the invite anti-spam cooldown between each so the anti-cheat gate
       // does not fire — this test targets CREW_FULL, not the cooldown.)
       for (const r of [late, a, b, c]) {
         await redis.del(`cooldown:${leader.characterId}:crew_invite`);
@@ -1034,11 +1082,23 @@ describe("ND-016 — Crews Básicas API", () => {
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
       expect(
-        (await server.post(`/api/crews/${crewId}/chat`, { message: "primeira" }, authHeader(leader.accessToken))).status,
+        (
+          await server.post(
+            `/api/crews/${crewId}/chat`,
+            { message: "primeira" },
+            authHeader(leader.accessToken),
+          )
+        ).status,
       ).toBe(201);
       await clearChatRateLimit(crewId, leader.characterId);
       expect(
-        (await server.post(`/api/crews/${crewId}/chat`, { message: "segunda" }, authHeader(leader.accessToken))).status,
+        (
+          await server.post(
+            `/api/crews/${crewId}/chat`,
+            { message: "segunda" },
+            authHeader(leader.accessToken),
+          )
+        ).status,
       ).toBe(201);
 
       const history = await fetch(`${base()}/api/crews/${crewId}/chat/history`, {
@@ -1048,7 +1108,7 @@ describe("ND-016 — Crews Básicas API", () => {
       expect(historyBody.messages.map((m) => m.message)).toEqual(["primeira", "segunda"]);
     });
 
-    it("should reject the second message within 5s with 429 COOLDOWN_ACTIVE", async () => {
+    it("should reject the second message within the anti-spam window with 429 COOLDOWN_ACTIVE", async () => {
       const leader = await registerApiUser();
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
@@ -1059,7 +1119,8 @@ describe("ND-016 — Crews Básicas API", () => {
       );
       expect(first.status).toBe(201);
 
-      // ND-053: the 5s chat cooldown gate fires on the second message.
+      // ND-053: the chat anti-spam gate fires on the second message (#187:
+      // 500ms window, widened to 5s in this suite for stability).
       const second = await server.post(
         `/api/crews/${crewId}/chat`,
         { message: "segunda" },
@@ -1074,7 +1135,13 @@ describe("ND-016 — Crews Básicas API", () => {
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
       expect(
-        (await server.post(`/api/crews/${crewId}/chat`, { message: "primeira" }, authHeader(leader.accessToken))).status,
+        (
+          await server.post(
+            `/api/crews/${crewId}/chat`,
+            { message: "primeira" },
+            authHeader(leader.accessToken),
+          )
+        ).status,
       ).toBe(201);
       await clearChatRateLimit(crewId, leader.characterId);
 
@@ -1163,7 +1230,10 @@ describe("ND-016 — Crews Básicas API", () => {
       const leader = await registerApiUser();
       const crewId = await buildCrew(leader, "Blade Runners", "BLD");
 
-      const sse = await openSseThenAbort(`/api/crews/${crewId}/chat/stream`, authHeader(leader.accessToken));
+      const sse = await openSseThenAbort(
+        `/api/crews/${crewId}/chat/stream`,
+        authHeader(leader.accessToken),
+      );
 
       expect(sse.status).toBe(200);
       expect(sse.contentType).toContain("text/event-stream");
@@ -1283,7 +1353,10 @@ describe("ND-016 — Crews Básicas API", () => {
      * POST /characters flow — this block targets Zod params, not creation).
      */
     async function userWithCharacter(): Promise<CrewUser> {
-      const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+      const res = await server.post("/api/auth/register", {
+        email: uniqueEmail(),
+        password: PASSWORD,
+      });
       expect(res.status).toBe(201);
       const { accessToken, user } = await json<AuthResponse>(res);
       const [character] = await db("characters")
@@ -1304,14 +1377,22 @@ describe("ND-016 — Crews Básicas API", () => {
 
     it("should return 400 VALIDATION_ERROR for a non-UUID crew id on join", async () => {
       const user = await userWithCharacter();
-      const res = await server.post("/api/crews/not-a-uuid/join", undefined, authHeader(user.accessToken));
+      const res = await server.post(
+        "/api/crews/not-a-uuid/join",
+        undefined,
+        authHeader(user.accessToken),
+      );
       expect(res.status).toBe(400);
       expect((await json<ErrorBody>(res)).error).toBe("VALIDATION_ERROR");
     });
 
     it("should return 400 VALIDATION_ERROR for a non-UUID crew id on leave", async () => {
       const user = await userWithCharacter();
-      const res = await server.post("/api/crews/not-a-uuid/leave", undefined, authHeader(user.accessToken));
+      const res = await server.post(
+        "/api/crews/not-a-uuid/leave",
+        undefined,
+        authHeader(user.accessToken),
+      );
       expect(res.status).toBe(400);
       expect((await json<ErrorBody>(res)).error).toBe("VALIDATION_ERROR");
     });

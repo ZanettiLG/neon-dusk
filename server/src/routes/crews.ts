@@ -17,7 +17,7 @@ import {
 } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
-import { checkCooldown } from "../middleware/cooldown";
+import { checkCooldown, setCooldown } from "../middleware/cooldown";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
@@ -43,7 +43,7 @@ import { isUniqueViolation } from "../db/pg-errors";
 // 4-member trigger); the app-level checks are UX, the constraints are law.
 //
 // ND-053: All POST/DELETE endpoints are guarded by circuit-break, rate-limit,
-// and audit logging. Invite also has a 60s cooldown.
+// and audit logging. Invite also has a 500ms anti-spam cooldown.
 
 export interface CrewRoutesOptions {
   redis: Redis;
@@ -367,8 +367,8 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       });
       if (!invite) throw new AppError(500, "INVITE_FAILED", "Não foi possível criar o convite");
 
-      // Set cooldown AFTER success (ADR-2) — 60s.
-      await redis.setex(`cooldown:${characterId}:crew_invite`, 60, "1");
+      // Set cooldown AFTER success (ADR-2) — 500ms anti-spam.
+      await setCooldown(redis, characterId, "crew_invite");
 
       return reply.status(201).send({
         id: invite.id,
@@ -543,9 +543,9 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
     },
   );
 
-  // POST /api/crews/:id/chat — send a message (1 msg / 5s per member via the
-  // chat_message cooldown). Uses its own `crew_chat` rate-limit namespace so
-  // crew chat does NOT consume the Saideira chat budget (M1).
+  // POST /api/crews/:id/chat — send a message (1 msg / 500ms per member via
+  // the chat_message cooldown). Uses its own `crew_chat` rate-limit namespace
+  // so crew chat does NOT consume the Saideira chat budget (M1).
   app.post(
     "/crews/:id/chat",
     {
@@ -583,8 +583,8 @@ export async function crewRoutes(app: FastifyInstance, opts: CrewRoutesOptions) 
       await redis.lpush(chatHistoryKey(crewId), payload);
       await redis.ltrim(chatHistoryKey(crewId), 0, CHAT_HISTORY_MAX - 1);
 
-      // Set cooldown AFTER success (ADR-2) — 5s.
-      await redis.setex(`cooldown:${characterId}:chat_message`, 5, "1");
+      // Set cooldown AFTER success (ADR-2) — 500ms anti-spam.
+      await setCooldown(redis, characterId, "chat_message");
 
       return reply.status(201).send(chatMessage);
     },

@@ -15,14 +15,16 @@ import { consumableRepository as consumables } from "../repositories/consumable-
 
 // Neon Dusk — Consumables service (itens anti-insanidade)
 // ============================================================================
-// GET /api/consumables: catalog + owned quantities + per-item cooldowns.
+// GET /api/consumables: catalog + owned quantities + per-item cooldowns
+// (mechanism still live in code, but all cooldown_hours are zeroed post-#187).
 // POST /api/consumables/use: one atomic transaction — lock the character →
 // validate inventory → gates (flatline/band/cooldown/diminishing) → restore
 // humanity → decrement stock → usage log + HUMANITY_RESTORED telemetry.
 //
 // Diminishing returns are GLOBAL (ADR 28-B): all items share the counter of
 // uses in the rolling 24h window (consumable_uses rows). Per-item cooldowns
-// (ADR 28-D) come from the item's last use row. Inventory is per-round: the
+// (ADR 28-D) come from the item's last use row — all zeroed post-#187
+// (re-enabling requires a seed/migration). Inventory is per-round: the
 // reset wipes character_consumables + consumable_uses.
 
 /** One inventory row joined with the catalog (public shape). */
