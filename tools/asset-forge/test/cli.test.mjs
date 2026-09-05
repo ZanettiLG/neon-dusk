@@ -78,13 +78,15 @@ function startMockComfy({ history, checkpoint = true }) {
 }
 
 describe("cli", () => {
-  it("list should print the 4 registry types and exit 0", async () => {
+  it("list should print the 7 registry types and exit 0", async () => {
     const { code, stdout } = await runCli(["list"]);
 
     assert.equal(code, 0);
-    for (const id of ["body-map", "metro-map", "icon", "avatar"]) {
+    for (const id of ["backdrop", "body-map", "gig-art", "icon", "item", "portrait", "scene"]) {
       assert.ok(stdout.includes(id), `stdout deve listar ${id}`);
     }
+    assert.ok(stdout.includes("atmospheric"), "stdout deve mostrar o regime atmospheric");
+    assert.ok(stdout.includes("flat"), "stdout deve mostrar o regime flat");
   });
 
   it("generate --dry-run should print the workflow JSON without network and exit 0", async () => {

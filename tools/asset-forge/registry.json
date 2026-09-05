@@ -1,32 +1,30 @@
 {
-  "version": 1,
+  "version": 2,
   "style": {
-    "suffix": "noir cyberpunk brasileiro, São Paulo 2087, concreto e metal oxidado, garoa ácida, atmosfera densa, paleta monocromática, fundo escuro #0a0a0a, cinzas dessaturados, realce sutil aço azulado, sem glow neon, sem bloom, iluminação plana uniforme, game UI asset, estilo consistente",
-    "negative": "texto, caracteres falsos, kanji, ideogramas, watermark, logo, cidade neon genérica, cyber-samurai, excesso de bloom, anime genérico, fotorrealismo corporativo, baixa legibilidade, anatomia quebrada, dedos extras, membros deformados, glow neon, paisagem, floresta, montanha, vegetação, céu, cenário externo, referência direta a Cyberpunk 2077, Blade Runner ou qualquer IP existente, nude, nsfw, naked, topless, lingerie, bikini, underwear, cleavage, seductive, pin-up, fashion model, glamour, text, letters, numbers, signature, pedestal, display stand, plinth, light background, white background, gray backdrop, studio backdrop"
+    "flat": {
+      "suffix": "noir cyberpunk brasileiro, São Paulo 2087, concreto e metal oxidado, garoa ácida, atmosfera densa, paleta monocromática, fundo escuro #0a0a0a, cinzas dessaturados, realce sutil aço azulado, sem glow neon, sem bloom, iluminação plana uniforme, game UI asset, estilo consistente",
+      "negative": "texto, caracteres falsos, kanji, ideogramas, watermark, logo, cidade neon genérica, cyber-samurai, excesso de bloom, anime genérico, fotorrealismo corporativo, baixa legibilidade, anatomia quebrada, dedos extras, membros deformados, glow neon, paisagem, floresta, montanha, vegetação, céu, cenário externo, referência direta a Cyberpunk 2077, Blade Runner ou qualquer IP existente, nude, nsfw, naked, topless, lingerie, bikini, underwear, cleavage, seductive, pin-up, fashion model, glamour, text, letters, numbers, signature, pedestal, display stand, plinth, light background, white background, gray backdrop, studio backdrop"
+    },
+    "atmospheric": {
+      "suffix": "noir cyberpunk brasileiro, São Paulo 2087, concreto e metal oxidado, garoa ácida, atmosfera densa, paleta monocromática, luz volumétrica, profundidade atmosférica, chiaroscuro, cinzas dessaturados, um único acento funcional, néon apenas como luz ambiente ao fundo, sem glow neon sobre o assunto, sem bloom, game UI asset, estilo consistente",
+      "negative": "texto, caracteres falsos, kanji, ideogramas, watermark, logo, cidade neon genérica, cyber-samurai, excesso de bloom, anime genérico, fotorrealismo corporativo, baixa legibilidade, anatomia quebrada, dedos extras, membros deformados, glow neon sobre o assunto, neon no primeiro plano, paisagem, floresta, montanha, vegetação, céu, cenário externo, referência direta a Cyberpunk 2077, Blade Runner ou qualquer IP existente, nude, nsfw, naked, topless, lingerie, bikini, underwear, cleavage, seductive, pin-up, fashion model, glamour, text, letters, numbers, signature, pedestal, display stand, plinth, light background, white background, gray backdrop, studio backdrop, iluminação plana sem profundidade"
+    }
   },
   "types": [
     {
       "id": "body-map",
+      "regime": "flat",
       "prompt": {
         "subject": "anatomical body chart of a full human figure, clinical hologram scan, front view, standing symmetrical neutral pose, arms slightly apart from torso, legs together, head straight, monolithic gray statue figure, flat schematic technical illustration, entire body inside frame, legible silhouette, dark uniform background, coherent anatomy, desaturated grayscale, noir cyberpunk"
       },
       "size": { "width": 512, "height": 1024 },
       "output": { "project": "app", "dir": "app/src/assets/chrome", "filename": "body-map.png" },
       "seedPolicy": "random",
-      "postprocess": null
-    },
-    {
-      "id": "metro-map",
-      "prompt": {
-        "subject": "mapa esquemático de metrô, linhas retas e estações circulares, diagrama limpo, fundo escuro uniforme"
-      },
-      "size": { "width": 400, "height": 300 },
-      "output": { "project": "app", "dir": "app/src/assets/metro", "filename": "metro-map.png" },
-      "seedPolicy": "random",
-      "postprocess": null
+      "postprocess": { "rembg": true }
     },
     {
       "id": "icon",
+      "regime": "flat",
       "prompt": {
         "subject": "silhueta única centrada, pictograma minimalista, reconhecível a 24px"
       },
@@ -36,14 +34,145 @@
       "postprocess": null
     },
     {
-      "id": "avatar",
+      "id": "portrait",
+      "regime": "atmospheric",
       "prompt": {
-        "subject": "retrato de rosto e ombros, fundo distrital, personagem com specs do lore"
+        "subject": "retrato de rosto e ombros, chiaroscuro, fundo distrital desfocado, luz volumétrica, expressão neutra, anatomia facial plausível, personagem com specs do lore"
       },
-      "size": { "width": 768, "height": 1024 },
-      "output": { "project": "app", "dir": "app/src/assets/avatars", "filename": null },
+      "size": { "width": 512, "height": 768 },
+      "output": { "project": "app", "dir": "app/src/assets/portraits", "filename": null },
       "seedPolicy": "random",
       "postprocess": null
+    },
+    {
+      "id": "scene",
+      "regime": "atmospheric",
+      "prompt": {
+        "subject": "vista ampla de distrito de São Paulo 2087, arquitetura vertical, garoa ácida, luz volumétrica, profundidade atmosférica, monocromático com um único acento funcional, néon apenas como luz ambiente ao fundo, sem glow sobre o assunto"
+      },
+      "size": { "width": 768, "height": 432 },
+      "output": { "project": "app", "dir": "app/src/assets/scenes", "filename": null },
+      "seedPolicy": "random",
+      "postprocess": null
+    },
+    {
+      "id": "item",
+      "regime": "flat",
+      "prompt": {
+        "subject": "objeto único isolado sobre fundo uniforme escuro, luz plana, silhueta recortável, reconhecível a 32px, sem sombra projetada, sem cenário, sem texto"
+      },
+      "size": { "width": 512, "height": 512 },
+      "output": { "project": "app", "dir": "app/src/assets/items", "filename": null },
+      "seedPolicy": "random",
+      "postprocess": { "rembg": true }
+    },
+    {
+      "id": "backdrop",
+      "regime": "atmospheric",
+      "prompt": {
+        "subject": "cenário amplo sem personagens, profundidade atmosférica, garoa, luz volumétrica, monocromático com acento funcional sutil, néon apenas como luz ambiente ao fundo"
+      },
+      "size": { "width": 1024, "height": 1024 },
+      "output": { "project": "app", "dir": "app/src/assets/backdrops", "filename": null },
+      "seedPolicy": "random",
+      "postprocess": null
+    },
+    {
+      "id": "gig-art",
+      "regime": "atmospheric",
+      "prompt": {
+        "subject": "ilustração de cena de trampo, ação dramática, luz volumétrica, garoa, profundidade, monocromático com acento funcional, sem texto"
+      },
+      "size": { "width": 768, "height": 432 },
+      "output": { "project": "app", "dir": "app/src/assets/gig-art", "filename": null },
+      "seedPolicy": "random",
+      "postprocess": null
+    }
+  ],
+  "seedFamilies": [
+    {
+      "id": "cenas-distritos",
+      "type": "scene",
+      "members": ["babilonia", "as-mortas", "o-fervo", "a-paraiso", "o-fluxo", "a-quebrada", "o-ponto", "saideira"]
+    },
+    {
+      "id": "retratos-despachantes",
+      "type": "portrait",
+      "members": ["cupim", "sombra", "malagueta", "graxa", "carcara", "fantasma", "cobra", "coveiro"]
+    },
+    {
+      "id": "retratos-origens",
+      "type": "portrait",
+      "members": ["origem-babilonia", "origem-as-mortas", "origem-o-fervo", "origem-a-paraiso", "origem-o-fluxo", "origem-a-quebrada", "origem-o-ponto"]
+    },
+    {
+      "id": "itens-cromo",
+      "type": "item",
+      "members": ["cromo-01", "cromo-02", "cromo-03", "cromo-04", "cromo-05", "cromo-06", "cromo-07", "cromo-08", "cromo-09", "cromo-10", "cromo-11", "cromo-12"]
+    },
+    {
+      "id": "itens-ampolas",
+      "type": "item",
+      "members": ["ampola-01", "ampola-02", "ampola-03", "ampola-04", "ampola-05"]
+    },
+    {
+      "id": "itens-loot",
+      "type": "item",
+      "members": ["loot-01", "loot-02", "loot-03", "loot-04", "loot-05"]
+    },
+    {
+      "id": "backdrops",
+      "type": "backdrop",
+      "members": ["hero", "tunel"]
+    },
+    {
+      "id": "ilustracoes-trampo",
+      "type": "gig-art",
+      "members": ["extraction", "delivery", "sabotage"]
+    }
+  ],
+  "districts": [
+    {
+      "id": "babilonia",
+      "name": "Babilônia",
+      "accent": "âmbar #d4a017",
+      "prompt": "mercado caótico, barracas, pastel, contrabando, luz âmbar quente"
+    },
+    {
+      "id": "as-mortas",
+      "name": "As Mortas",
+      "accent": "aço azulado #8aa4b8",
+      "prompt": "servidores mortos, antenas retorcidas, estática, quase sem cor, luz de aço fria"
+    },
+    {
+      "id": "o-fervo",
+      "name": "O Fervo",
+      "accent": "vermelho distante #ff2020",
+      "prompt": "fumaça ácida, metal, fábricas, marmita, vermelho distante ao fundo"
+    },
+    {
+      "id": "a-paraiso",
+      "name": "A Paraíso",
+      "accent": "branco-luz #f2f2f2",
+      "prompt": "vidro, ar filtrado, helicópteros, saturado e frio, branco-luz"
+    },
+    {
+      "id": "o-fluxo",
+      "name": "O Fluxo",
+      "accent": "néon ambiente ao fundo",
+      "prompt": "baile funk, moda, cassino, néon apenas como luz ambiente ao fundo"
+    },
+    {
+      "id": "a-quebrada",
+      "name": "A Quebrada",
+      "accent": "cinza dessaturado",
+      "prompt": "containers verticais, gambiarra, vela de santo, pouca saturação"
+    },
+    {
+      "id": "o-ponto",
+      "name": "O Ponto",
+      "accent": "água preta e grafite",
+      "prompt": "metrô inundado, água preta, grafites de Exu"
     }
   ]
 }
