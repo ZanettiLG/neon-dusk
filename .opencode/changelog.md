@@ -2,6 +2,19 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-09-05 — N1: teste de sobreposição no nível de dados em testing-patterns (issue #94)
+
+### Trigger
+Issue #94 (run nd-20260904-asset-forge): o bug de sobreposição de hit-areas (Tegumentar interceptando clique de slots sobrepostos) mostrou que a verificação visual de sobreposição, sozinha, não captura dono de clique errado — bounds em 0-100 estavam 100% válidos enquanto o clique selecionava o slot errado.
+
+### Change
+- `testing-patterns` skill: regra "Planos E2E — verificação visual de sobreposição" estendida — quando os overlays são interativos (hit-areas, hotspots, zonas clicáveis sobrepostas), exige também teste NO NÍVEL DE DADOS (função pura de resolução de dono + matriz de coordenadas), além da verificação visual via screenshot/snapshot.
+
+### Impact
+Esperado: test-writer e code-reviewer passam a exigir matriz de donos de clique para overlays interativos, eliminando a classe de bug em que bounds válidos coexistem com dono de clique errado.
+
+---
+
 ## 2026-09-04 — N2: Regra Aberto Vira Issue passa a ser semântica (não por nome de seção)
 
 ### Trigger
