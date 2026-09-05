@@ -77,11 +77,13 @@ Trampos são missões oferecidas por despachantes. Cada trampo tem: tier, tipo, 
 |---|---|---|---|
 | **1. Meet** | Aceitar trampo do despachante (consome NIL para iniciar) | Instantâneo | Nenhum |
 | **2. Legwork** | Opcional: comprar info, hackear reconhecimento | 5-30 min | Baixo (gasta NIL, Grana) |
-| **3. Execute** | Ação principal. Rolagem de stats vs dificuldade | Instantâneo (mostra resultado) | **Alto**: falha = dano, perda de Grana, heat |
+| **3. Execute** | Ação principal. Rolagem de stat derivado vs dificuldade | Instantâneo (mostra resultado) | **Alto**: falha = dano, perda de Grana, heat |
 | **4. Escape** | Fuga/extração. Rolagem vs heat/segurança | Instantâneo | Médio: falha = heat, ferimento |
 | **5. Wrap Up** | Receber pagamento, cred, consequências | Instantâneo | Nenhum (mas consequências de fases 3-4 se aplicam) |
 
 **Modo Rápido**: jogadores podem pular Legwork e ir direto para Execute, com penalidade de -20% de sucesso.
+
+**Transparência (metrificação, #184)**: o card de cada ação mostra o perfil de stats usados e a dificuldade — ex: "Stealth — usa Furtividade ★★★ · Esquiva ★★ · Dificuldade 45". As fórmulas são públicas (04 §1.1 Transparência Métrica) — o jogador calcula a própria chance antes de agir.
 
 ### Progressão de Dificuldade
 
@@ -103,25 +105,83 @@ Trampos são missões oferecidas por despachantes. Cada trampo tem: tier, tipo, 
 
 ### Combate PvE (Trampos)
 
-- **Fórmula de sucesso**: `(Stat relevante + Skill relevante + Bônus de cromo) / Dificuldade do trampo`
-- **Modificadores**: Legwork (+20%), Abordagem (Stealth/Assault/Netrun), Consumíveis (+10-30%)
+- **Fórmula de sucesso**: `chance = clamp((stat_derivado × 5 + bônus_cromo) / (dificuldade × 2), 0,05, 0,95)` — **STAT_SCALING_DERIVADO = 2,5** (equivalente a ×5/×2 inteiro; `bônus_cromo` no numerador). O stat derivado é definido pela abordagem (#89): Stealth = Furtividade (execute) / Esquiva (escape), Assault = Ataque Físico (execute) / Esquiva (escape), Netrun = Poder de Hack (execute) / Esquiva (escape) — 04 §1.1
+- **Modificadores**: Legwork (+20%), Abordagem (Stealth/Assault/Netrun), Consumíveis (+10-30%), contexto (distrito, heat, facção, dia — 04 §1.1)
+- **Transparência**: perfil de stats + dificuldade visíveis no card da ação (04 §1.1 Transparência Métrica)
 - **Consequência de falha**: dano ao corpo, perda de NIL extra, heat com a facção local
 
-### Combate PvP (Street Fights)
+### Combate PvP (Briga de Rua)
 
-| Parâmetro | Regra |
+PvP jogador × jogador resolve em **3 trocas máximas** (combate tático completo, #186) — espaço para emboscada, iniciativa, fuga e granada importarem, resolvendo em segundos. Conteúdo que não justifica 3 trocas (rolê de gangue, guerras de bonde) usa o **Poder de Combate** simplificado (fallback abaixo).
+
+#### Resolução por Troca
+
+| Parâmetro | Fórmula |
 |---|---|
-| **Iniciação** | Atacante gasta 20 NIL. Só pode atacar alvos ±10 níveis |
-| **Resolução** | Comparação de stats: `(Body + Reflexes + Poder de Cromo) vs (Body + Reflexes + Poder de Cromo do defensor)` |
-| **Modificadores** | Ampolas (+15-30%), bônus de bonde, bônus de território |
-| **Vitória** | Vencedor ganha Moral + 10% da Grana em mãos do perdedor |
-| **Derrota** | Perdedor perde 5% de Moral + 10% da Grana em mãos. **TETO**: máximo de 3 derrotas/dia com perda |
-| **Anti-griefing** | Máximo de 3 ataques ao mesmo jogador por semana. Após isso, eficácia cai para 10% |
-| **Guerra de Bondes** | Líder declara guerra a bonde rival (±5 posições no ranking). 24h de duração. Vencedor ganha território temporário |
+| **Acerto** | `chance_acerto = clamp(ATQ_atacante / (ATQ_atacante + DEF_defensor), 0,10, 0,90) − bônus_esquiva` · `bônus_esquiva = clamp((ESQ_defensor − PRE_atacante) / 20, 0, 0,30)` — ESQ não é um segundo rolamento, é um modificador do mesmo: a esquiva só ajuda quando supera a Precisão do atacante |
+| **Crítico** | `chance_crit = 5% + floor(PRE/5)%` (PRE 10 → 7%, PRE 20 → 9%) · Bicho +5% · cap 25% · multiplicador **×1,5** |
+| **Dano** | `dano = max(1, dano_arma × (crit ? 1,5 : 1,0) − floor(DEF/2))` · desarmado: `dano_arma = floor(BOD/2)` · **Bicho +10% de dano** (nunca abaixo de 1 — armadura não imortaliza) |
+| **Iniciativa** | INI maior ataca primeiro. **Empate → defensor ataca primeiro** (vantagem de casa) |
 
-### Noob Protection
-- Jogadores com menos de 7 dias de conta não podem ser atacados
-- Jogadores com Moral < 10 perdem apenas 1% em derrotas PvP
+#### Fluxo do Combate
+
+1. **Abertura (opcional)**: granada (dano fixo em área, **ignora DEF**, consome o item) OU emboscada (`FUR_atacante > INI_defensor` → atacante ganha **1 troca grátis**, defensor não revida)
+2. **Trocas 1-3**: ordem pela Iniciativa; cada lado rola acerto e aplica dano; consome **1 munição por troca por arma** usada (04 §6.1)
+3. **Fuga (entre trocas)**: defensor pode tentar `chance_fuga = clamp(ESQ_def / (ESQ_def + INI_atq), 0,10, 0,90)` — sucesso: combate termina, defensor escapa SEM perder Grana, perde só **2 Moral**; falha: a troca seguinte acontece
+4. **Fim**: HP ≤ 0 → derrota por KO (Resgate revive, 04 §6); após 3 trocas → vence quem tiver maior **% de HP restante**; empate → defensor
+
+#### HP e Dano
+
+| Parâmetro | Valor |
+|---|---|
+| **HP máx** | `50 + BOD×5 + cromo + proteção` (04 §1.1) — 65 (novato) a 210 (endgame) |
+| **Dano de arma** | T1 8 · T2 12 · T3 18 · T4 26 · T5 35 (04 §6.1) |
+| **Morte** | HP 0 → KO → Resgate revive (04 §6: Prata 60% HP, Ouro 80%, Platina 100%) |
+
+Escala calibrada: iguais se arranham (escaramuça decide Moral/Saque), desnível mata rápido — combate entre iguais é decisão, não loteria.
+
+#### Consequências
+
+| Regra | Valor |
+|---|---|
+| **Iniciação** | Atacante gasta **20 NIL**. Alvo **±10 níveis** (#183) |
+| **Vitória** | +5 Moral (+ bônus de diferença de nível, 04 §5) + **10% da Grana em mãos** do perdedor |
+| **Derrota** | −5% Moral (ou −1% se Moral < 10, noob shield) + **10% da Grana em mãos**. **Teto: 3 derrotas/dia com perda** |
+| **Morte (KO)** | Consequências de derrota + Resgate revive (04 §6). Platina perde só 50% da Grana |
+| **Anti-griefing** | **Máx 3 ataques/semana ao mesmo alvo** → após, eficácia cai para 10% (Saque ×0,1) |
+| **Noob protection** | Conta **< 7 dias** imune. Moral < 10 perde só 1% |
+
+#### Itens de Combate
+
+| Item | Uso |
+|---|---|
+| **Granada** | Abertura pré-troca 1, dano fixo em área, ignora DEF (04 §6.1: 15/25/40) |
+| **Munição** | 1 por troca por arma; 1 por trampo Assault (04 §6.1) |
+| **Pancadão** | +50% BOD, +30% dano por 30min (03 §5) — multiplica ATQ/DEF/HP durante o combate |
+| **Renda Preta** | +100% stats de combate por 15min (03 §5) — multiplica ATQ/DEF/INI/ESQ/PRE |
+| **Tranco** | +15% sucesso em trampos de REF (03 §5) — aplica em ESQ/PRE |
+| **SO Fúria / SO Surto** | +50% BOD / +50% REF +25% ESQ (04 §3) — multiplicadores ativos |
+
+Ampolas e SO aplicam como multiplicadores nos stats derivados antes do combate. Modificadores adicionais: bônus de bonde, bônus de território.
+
+#### Furtividade no Combate
+
+- **Emboscada**: `FUR_atacante > INI_defensor` → troca 1 grátis (defensor não revida). FUR alta = atacante letal; INI alta = defesa contra emboscada.
+- **Fuga**: `ESQ_def / (ESQ_def + INI_atq)` entre trocas.
+- **Sem** modificador de hora do dia e **sem** estado ferido pós-combate — realismo serve a jogatina; a derrota já tem consequências suficientes.
+
+#### Poder de Combate (Fallback)
+
+**`Poder de Combate = floor((ATQ + DEF + floor(HP/10)) / 3) + random(1..10)`**
+
+| Conteúdo | Resolução |
+|---|---|
+| **PvP jogador × jogador** | Combate tático (3 trocas) |
+| **Rolê — bocas** (#96) | Poder de Combate vs poder do bando (ratio 0,6-1,5, escala do dia 1,0×→2,2×) |
+| **Rolê — cabeças** (#96) | Poder de Combate (poder somado do bonde) vs poder fixo da cabeça |
+| **Guerra de bondes** (§6) | Poder de Combate somado do bonde |
+
+A normalização `/3` mantém a escala antiga (BOD+REF+cromo): bocas 12-44 e cabeças 60-200 continuam válidas **sem recalibração**.
 
 ---
 
