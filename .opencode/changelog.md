@@ -2,6 +2,21 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-09-04 — N2: Templates de issue e handoff obrigatoriamente completos na github-workflow (Zero Em Aberto)
+
+### Trigger
+Relato do humano: issues e handoffs recorrentemente saem com definições em aberto, faltando detalhamento e o contexto completo da tarefa. Causa raiz nos templates da skill `github-workflow`: o template de issue dizia "detalhes se disponíveis" e o formato de handoff era apenas `<conteúdo do handoff em markdown>` — nada obrigava completude.
+
+### Change
+- `github-workflow` skill: formato de comentário-handoff redefinido com 7 seções obrigatórias — Contexto Recebido, Planejamento e Racional, Decisões Tomadas (com alternativas descartadas), O Que Foi Feito (com paths), Estado Atual, Próximos Passos, Em Aberto (sempre "NENHUM" — dúvida não resolvida vira issue `blocked` com o que é preciso para destravar). Nova regra "Zero Em Aberto": seção vazia, "a definir", "TBD" ou pergunta sem resposta = handoff inválido.
+- `github-workflow` skill: template de issue expandido com seções obrigatórias "Decisões e Planejamento" (decisão + racional + plano de execução) e Contexto completo (o quê, por quê, docs de produto consultados, escopo incluído/excluído); "Notas Técnicas" deixa de ser "se disponíveis" (obrigatória, "Nenhuma" se vazio). Issue com definição em aberto = issue inválida — resolve antes de criar.
+- Enforcement no `dev-orchestrator` (ver agents-changelog): validação de completude antes de postar handoff e antes de criar issue.
+
+### Impact
+Issues e handoffs passam a ser auto-contidos por padrão: o próximo agente recebe contexto, planejamento, decisões e racional sem precisar adivinhar, e definições em aberto deixam de atravessar o pipeline.
+
+---
+
 ## 2026-08-31 — N1: Convenção de teste DRY_RUN para shell scripts em testing-patterns
 
 ### Trigger

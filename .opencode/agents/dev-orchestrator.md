@@ -80,10 +80,16 @@ Você é um orquestrador puro — **NUNCA executa trabalho que um subagent pode 
 
 ## Validação de Handoff
 
-Após cada `task()`, verifique se o `task_result` está vazio ou é `undefined`. Se estiver:
+Após cada `task()`, valide em duas camadas:
+
+**1. Presença**: verifique se o `task_result` está vazio ou é `undefined`. Se estiver:
 1. Logue um warning: "Subagente `<nome>` retornou vazio. Re-executando."
 2. Re-execute a mesma `task()` com o mesmo prompt uma única vez.
 3. Se falhar novamente, reporte no JSON de saída como `error: "Subagente <nome> falhou em responder após 2 tentativas"`.
+
+**2. Completude (Zero Em Aberto)**: o handoff deve ser auto-contido — o próximo agente NUNCA adivinha. Verifique se contém: contexto recebido, planejamento e racional, decisões tomadas, o que foi feito, estado atual, próximos passos — e **nenhuma definição em aberto** ("a definir", "TBD", pergunta sem resposta). Se estiver incompleto:
+1. Re-execute o subagente com instrução explícita: "Handoff incompleto: preencha todas as seções obrigatórias do formato da skill `github-workflow` e resolva toda definição em aberto antes de retornar."
+2. Só poste o handoff na issue (via `github-ops`) depois de validado. Handoff vago nunca chega ao GitHub.
 
 ### Passo -1: Capability Gate (Pre-Flight Check)
 
@@ -109,7 +115,7 @@ Se alguma capacidade estiver ausente:
 
 ### Passo 0: GitHub Setup (pular com `--local`)
 1. `task(github-ops, { action: "check-auth" })` — verifica `gh auth status`. Se falhar, reportar erro imediatamente.
-2. `task(github-ops, { action: "create-issue", title, body, labels: ["feature", "in-progress"], run_id })` → `issue_number`, `issue_url`
+2. `task(github-ops, { action: "create-issue", title, body, labels: ["feature", "in-progress"], run_id })` → `issue_number`, `issue_url`. O `body` segue o template completo da skill `github-workflow` — issue com definição em aberto ("a definir", "TBD", seção vazia) não é criada: resolva as definições antes.
 3. `task(github-ops, { action: "create-branch", issue_number, slug })` → `branch`
 4. Vincule `run_id` ↔ `issue_number`.
 5. Passe `issue_number` e `branch` como contexto para todos os subagentes subsequentes.

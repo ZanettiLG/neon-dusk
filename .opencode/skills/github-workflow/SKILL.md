@@ -66,17 +66,38 @@ Cada agente do pipeline produz seu handoff como comentário na issue principal:
 gh issue comment <issue_number> --body "<handoff_markdown>"
 ```
 
-Formato do comentário-handoff:
+Formato do comentário-handoff (todas as seções obrigatórias — se não houver o que colocar, escreva "Nenhuma"):
 
 ```markdown
 ## Handoff: <passo> — <agente>
 **run_id**: nd-20260806-091500-auth
 **timestamp**: 2026-08-06T09:20:00Z
 
-<conteúdo do handoff em markdown>
+## Contexto Recebido
+<o que a tarefa pedia, de onde veio (issue, docs de produto consultados), restrições>
+
+## Planejamento e Racional
+<como o trabalho foi pensado e por quê — o próximo agente precisa entender o raciocínio, não só o resultado>
+
+## Decisões Tomadas
+- <decisão> — <racional + alternativas descartadas quando relevante>
+
+## O Que Foi Feito
+<entregas concretas: arquivos, schemas, contratos, testes — com paths>
+
+## Estado Atual
+<o que está pronto, o que falta, riscos conhecidos>
+
+## Próximos Passos
+<exatamente o que o próximo agente deve fazer, com inputs prontos>
+
+## Em Aberto
+NENHUM. <toda dúvida foi resolvida com decisão documentada acima; se algo exigir decisão humana, marque a issue como `blocked` e descreva o que é preciso para destravar>
 
 ---
 ```
+
+**Regra Zero Em Aberto**: o handoff é o único contexto do próximo agente — ele NUNCA adivinha. Handoff com seção vazia, "a definir", "TBD", "ver depois" ou pergunta sem resposta é handoff **inválido**: o orquestrador re-executa o subagente exigindo completude antes de postar (ver Validação de Handoff no `dev-orchestrator`).
 
 ### Atualizar Corpo da Issue
 
@@ -187,13 +208,19 @@ refactor(<scope>): <descrição>
 
 ## Template de Issue (Feature)
 
+Todas as seções são obrigatórias — issue com definição em aberto é issue inválida.
+
 ```markdown
 ## Contexto
-<descrição da feature>
+<o que a feature é, por que existe, docs de produto consultados (`definicoes-de-produto/`), escopo incluído e excluído>
 
 ## Critérios de Aceitação
 - [ ] <critério 1>
 - [ ] <critério 2>
+
+## Decisões e Planejamento
+- <decisão de escopo/design> — <racional>
+<plano de execução previsto: passos do pipeline, ordem, dependências>
 
 ## Pipeline Status
 | run_id | passo | status | score | timestamp |
@@ -201,5 +228,7 @@ refactor(<scope>): <descrição>
 | <run_id> | issue | created | - | <ISO timestamp> |
 
 ## Notas Técnicas
-<detalhes se disponíveis>
+<restrições, dependências, riscos — se não houver, escreva "Nenhuma">
 ```
+
+**Regra**: o orquestrador só cria a issue após resolver todas as definições. "A definir", "TBD" ou seção vazia = issue inválida — resolva antes de criar, não durante o pipeline.
