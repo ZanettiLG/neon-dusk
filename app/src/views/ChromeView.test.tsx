@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import ChromeView from "@/views/ChromeView";
@@ -278,5 +278,22 @@ describe("ChromeView", () => {
     // basePrice do catálogo (G$ 300).
     expect(await screen.findByText("Custo: G$ 900")).toBeInTheDocument();
     expect(mocks.api.get).toHaveBeenCalledWith("/api/vendors/v1");
+  });
+
+  it("should close the picker modal on Escape and restore the idle hint (onClose clears the slot)", async () => {
+    mockApi();
+    const user = userEvent.setup();
+
+    render(<ChromeView />);
+
+    // Open the picker from a slot label (emenda 1 §E1.1).
+    await user.click(await screen.findByRole("button", { name: /^Sistema Nervoso: / }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // Esc closes the modal; onClose clears selectedSlot → the panel remounts
+    // with slot=null and the idle hint returns (E1.7).
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText(/Selecione um slot no mapa corporal/)).toBeInTheDocument();
   });
 });

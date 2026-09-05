@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import ChromeSurgeryPanel, { isOverclockActive } from "@/components/chrome/ChromeSurgeryPanel";
 import { stubMatchMedia, restoreMatchMedia } from "@/test-utils/matchMedia";
 import { useAuthStore } from "@/stores/auth";
@@ -23,6 +23,16 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/api/client", () => ({
   api: mocks.api,
+}));
+
+// CHROME_ICON_ASSETS is empty during #188 (icons ship in #189). The mock
+// defaults to the same empty map so the existing monogram tests are
+// unaffected; the icon-contract tests below populate it per-test to prove
+// ChromeIcon renders <img> when a slug has an asset and falls back on error.
+const iconMocks = vi.hoisted(() => ({ assets: {} as Record<string, string> }));
+
+vi.mock("@/assets/chrome/icons", () => ({
+  CHROME_ICON_ASSETS: iconMocks.assets,
 }));
 
 const CHARACTER: Character = {
@@ -463,6 +473,7 @@ describe("ChromeSurgeryPanel — picker modal (issue #188 emenda 1)", () => {
   afterEach(() => {
     restoreMatchMedia();
     vi.useRealTimers();
+    for (const key of Object.keys(iconMocks.assets)) delete iconMocks.assets[key];
   });
 
   it("should render the picker inside an accessible modal labelled with slot occupancy", () => {
@@ -608,5 +619,73 @@ describe("ChromeSurgeryPanel — picker modal (issue #188 emenda 1)", () => {
 
     act(() => vi.advanceTimersByTime(5000));
     expect(onSurgeryDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("should mark already-installed implants with the (instalado) suffix and hide Instalar in the detail", () => {
+    const withCuca = installedWith({
+      installed: [
+        {
+          installedId: "i1",
+          installedAt: "2026-01-01T00:00:00.000Z",
+          definition: CUCA,
+        },
+      ],
+    });
+    renderPanel({ installed: withCuca });
+
+    // E1.2: item disabled + "(instalado)" suffix (never color-only).
+    const item = screen.getByRole("button", { name: /Cuca Acesa/ });
+    expect(item).toBeDisabled();
+    expect(item).toHaveTextContent("(instalado)");
+
+    // E1.4: the detail pane (default = first offered item) shows the installed
+    // implant without an install action.
+    expect(screen.queryByRole("button", { name: "Instalar" })).not.toBeInTheDocument();
+  });
+
+  it("should defensively surface the full-slot state in the picker: header 3/3, all items disabled, blockReason Slot cheio", () => {
+    const fullSlot = installedWith({
+      installed: ["i1", "i2", "i3"].map((id) => ({
+        installedId: id,
+        installedAt: "2026-01-01T00:00:00.000Z",
+        definition: { ...CUCA, id: `def-${id}` },
+      })),
+    });
+    renderPanel({ installed: fullSlot, catalog: [CUCA, T2, T3] });
+
+    // E1.4 defensive state (race of two tabs): the modal header announces the
+    // full occupancy...
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Córtex Frontal — 3/3 ocupados" }),
+    ).toBeInTheDocument();
+
+    // ...EVERY picker item renders disabled (not only the installed ones)...
+    const items = within(screen.getByRole("list")).getAllByRole("button");
+    expect(items.map((item) => item.textContent)).toEqual([
+      expect.stringContaining("Cuca Acesa"),
+      expect.stringContaining("Olho de Vidro"),
+      expect.stringContaining("Diamante Bruto"),
+    ]);
+    for (const item of items) expect(item).toBeDisabled();
+
+    // ...and the detail pane blocks with the reason, without leaving the picker.
+    expect(screen.getByText(/⛔ Slot cheio\./)).toBeInTheDocument();
+  });
+
+  it("should render the shipped icon <img> when the slug has an asset and fall back to the monogram on error (#189 contract)", () => {
+    iconMocks.assets["neural-booster"] = "/icons/cuca.png";
+    renderPanel();
+
+    // E1.5: ChromeIcon renders <img> from CHROME_ICON_ASSETS[slug] when present.
+    const item = screen.getByRole("button", { name: /Cuca Acesa/ });
+    const img = item.querySelector("img");
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute("src")).toBe("/icons/cuca.png");
+    expect(img).toHaveAttribute("alt", "");
+
+    // onError → monogram fallback: the #189 delivery is zero-diff, ChromeIcon
+    // already handles broken assets.
+    fireEvent.error(img!);
+    expect(item.querySelector("span[aria-hidden] > span")).toHaveTextContent("C");
   });
 });

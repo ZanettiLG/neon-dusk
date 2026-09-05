@@ -158,4 +158,42 @@ describe("ChromeBodyMapImage", () => {
     await user.tab();
     expect(document.activeElement).not.toBe(cortex);
   });
+
+  it("should apply the pinned label states: default cyan/70, selected gold+pulse, full magenta/60", () => {
+    const full = [...LOADOUT, chromeRecord("i4", "Compilador", "frontal_cortex")];
+    render(<ChromeBodyMapImage installed={full} selectedSlot="arms" onSelectSlot={vi.fn()} />);
+
+    // Default: cyan/70 + hover cyan + pointer.
+    const ocular = screen.getByRole("button", { name: /^Ocular:/ });
+    expect(ocular.className).toContain("text-nd-cyan/70");
+    expect(ocular.className).toContain("hover:text-nd-cyan");
+    expect(ocular.className).toContain("cursor-pointer");
+
+    // Selected: gold + pulse.
+    const arms = screen.getByRole("button", { name: /^Braços:/ });
+    expect(arms.className).toContain("text-nd-gold");
+    expect(arms.className).toContain("animate-pulse-neon");
+
+    // Full: magenta/60 + cursor-not-allowed.
+    const cortex = screen.getByRole("button", { name: "Córtex Frontal: 3/3 ocupados" });
+    expect(cortex.className).toContain("text-nd-magenta/60");
+    expect(cortex.className).toContain("cursor-not-allowed");
+  });
+
+  it("should keep a single DOM for mobile: 2-column grid under the figure via lg:contents", () => {
+    const { container } = render(
+      <ChromeBodyMapImage installed={[]} selectedSlot={null} onSelectSlot={vi.fn()} />,
+    );
+
+    // The label wrapper is the mobile grid (2 columns) that vanishes on
+    // desktop (lg:contents) — one DOM, no duplicate labels per breakpoint.
+    const wrapper = container.querySelector("div.grid");
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.className).toContain("grid-cols-2");
+    expect(wrapper!.className).toContain("lg:contents");
+
+    // Mobile layout: figure on top, labels below (DOM order = flex-col order).
+    const img = container.querySelector("img")!;
+    expect(img.compareDocumentPosition(wrapper!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

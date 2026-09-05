@@ -425,8 +425,8 @@ export default function ChromeSurgeryPanel({
                     type="button"
                     ref={i === 0 ? firstItemRef : undefined}
                     data-item={def.id}
-                    disabled={already}
-                    aria-disabled={already || undefined}
+                    disabled={already || slotFull}
+                    aria-disabled={already || slotFull || undefined}
                     aria-current={selected ? "true" : undefined}
                     onMouseEnter={() => setSelectedId(def.id)}
                     onFocus={() => setSelectedId(def.id)}
