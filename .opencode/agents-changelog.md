@@ -2,6 +2,19 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-09-05
+
+### Trigger
+2 ocorrências na feature #199: README ("sobrescreve" vs append) e comentário de design ("por slug" vs members posicionais) divergiram do comportamento implementado
+
+### Change
+Adicionado item ao self-review do developer: claims de docs/handoff descrevem o comportamento REAL implementado
+
+### Impact
+Acompanhar nas próximas features (alvo: zero divergências doc↔código)
+
+---
+
 ## 2026-09-05 — N1: self-review do developer ganha grep de docs canônicos e termos stale
 
 ### Trigger
@@ -12,6 +25,8 @@ Adicionados 2 itens ao self-review do developer: (1) grep obrigatório em docs/d
 
 ### Impact
 Esperado: menos ciclos de review por docs/comentários stale; docs canônicos sincronizados com o código na mesma PR.
+
+---
 
 ## 2026-09-05 — N1: preservação de área de clique em hit-areas derivadas de bounding boxes (issue #94)
 
