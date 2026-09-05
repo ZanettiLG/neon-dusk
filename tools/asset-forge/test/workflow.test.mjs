@@ -36,13 +36,21 @@ describe("workflow", () => {
   });
 
   it("should pin the dreamshaper_8 checkpoint and proven params", () => {
-    assert.equal(CHECKPOINT, "dreamshaper_8");
-    assert.equal(wf["4"].inputs.ckpt_name, "dreamshaper_8");
+    assert.equal(CHECKPOINT, "dreamshaper_8.safetensors");
+    assert.equal(wf["4"].inputs.ckpt_name, "dreamshaper_8.safetensors");
     assert.equal(wf["3"].inputs.steps, 28);
     assert.equal(wf["3"].inputs.cfg, 7);
     assert.equal(wf["3"].inputs.sampler_name, "euler");
     assert.equal(wf["3"].inputs.scheduler, "normal");
     assert.equal(wf["3"].inputs.denoise, 1);
+  });
+
+  it("should accept a checkpoint override via --checkpoint (CLI flag > default)", () => {
+    assert.equal(
+      buildWorkflow(TYPE, PROMPTS, 1, "v1-5-pruned-emaonly.safetensors")["4"].inputs.ckpt_name,
+      "v1-5-pruned-emaonly.safetensors",
+    );
+    assert.equal(buildWorkflow(TYPE, PROMPTS, 1)["4"].inputs.ckpt_name, CHECKPOINT);
   });
 
   it("should take dims from the registry and inject the seed", () => {

@@ -11,16 +11,21 @@ sem anime genérico** (docs/design/00 §"O que NÃO copiar"; prompts em
 
 ### body-map (integrado nesta issue)
 
+O gate é avaliado sobre o **asset final** (pós-processado), não sobre o PNG
+bruto da geração — o modelo tende a produzir fundo claro/gradiente, corrigido
+na etapa de pós-processamento (§4).
+
 - **Anatomia coerente**: 2 braços, 2 pernas, 1 cabeça, proporções humanas
   plausíveis.
 - **Silhueta legível**: corpo inteiro visível, sem corte nas bordas, fundo
-  uniforme `#0a0a0a`.
+  uniforme `#0a0a0a` (garantido pela composição sobre `#0a0a0a` opaco).
 - **Pose neutra**: frontal, braços levemente afastados do tronco (as hit-areas
-  do `/chrome` dependem disso), pernas juntas, cabeça ereta.
+  do `/chrome` dependem disso), pernas neutras, cabeça ereta.
 - **Paleta noir**: monocromática, cinzas dessaturados, sem cor saturada
   dominante.
 - **Sem texto/glifos** na imagem.
 - **Sem watermark**.
+- **Sem halo/fringe** claro na borda da figura (erode/feather no matte).
 
 ### metro-map / icon / avatar (geração sob demanda)
 
@@ -64,10 +69,16 @@ paleta (fundo/realces), nunca introduzir cor fora dela.
 ## 4. Gate de aceite
 
 1. Gerar N variantes (`generate <tipo> --variants N`).
-2. Criticar cada uma contra os critérios (§1) + red flags (§2).
-3. Escolher a melhor; rejeitar (deletar) as demais.
-4. Renomear para o nome canônico (`output.filename` do registry) e commitar.
-5. Se nenhuma passar: ajustar prompt/seed e regerar. **Nunca commitar "quase"**.
+2. Criticar cada uma contra os critérios (§1) + red flags (§2) e escolher a
+   melhor; rejeitar (deletar) as demais.
+3. **Pós-processar** a escolhida (body-map; demais tipos quando aplicável):
+   remoção de fundo com `rembg` (venv dev-only, `pip install "rembg[cpu]"`) →
+   matte com erode ~2px + feather ~1px (mata halo/fringe) → composição sobre
+   fundo `#0a0a0a` opaco.
+4. Avaliar o **asset final** pós-processado contra os critérios — o gate de
+   fundo uniforme vale para o asset final, não para o PNG bruto.
+5. Renomear para o nome canônico (`output.filename` do registry) e commitar.
+6. Se nenhuma passar: ajustar prompt/seed e regerar. **Nunca commitar "quase"**.
 
 ## 5. Limites legais e editoriais
 

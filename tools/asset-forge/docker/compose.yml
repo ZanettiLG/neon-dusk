@@ -1,0 +1,30 @@
+# ComfyUI headless para o asset-forge (SD1.5, GPU NVIDIA).
+#
+# Uso: docker compose up -d --build   (a partir deste diretório)
+# Logs: docker compose logs -f comfyui
+#
+# Modelos ficam NO HOST (bind mount, nunca dentro da imagem):
+#   COMFYUI_MODELS_DIR  — padrão: ~/comfy/ComfyUI/models (setup Studio 21)
+#
+# Trocar checkpoint: coloque o .safetensors em <models>/checkpoints/ e
+# ajuste CHECKPOINT em tools/asset-forge/src/workflow.mjs.
+services:
+  comfyui:
+    build: .
+    image: neondusk/comfyui:v0.28.0
+    container_name: neondusk-comfyui
+    gpus: all
+    ports:
+      - "8188:8188"
+    volumes:
+      - ${COMFYUI_MODELS_DIR:-${HOME}/comfy/ComfyUI/models}:/opt/ComfyUI/models
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8188/system_stats", timeout=5)
+      interval: 30s
+      timeout: 10s
+      start_period: 120s

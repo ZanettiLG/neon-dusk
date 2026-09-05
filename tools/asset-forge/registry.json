@@ -2,13 +2,13 @@
   "version": 1,
   "style": {
     "suffix": "noir cyberpunk brasileiro, São Paulo 2087, concreto e metal oxidado, garoa ácida, atmosfera densa, paleta monocromática, fundo escuro #0a0a0a, cinzas dessaturados, realce sutil aço azulado, sem glow neon, sem bloom, iluminação plana uniforme, game UI asset, estilo consistente",
-    "negative": "texto, caracteres falsos, kanji, ideogramas, watermark, logo, cidade neon genérica, cyber-samurai, excesso de bloom, anime genérico, fotorrealismo corporativo, baixa legibilidade, anatomia quebrada, dedos extras, membros deformados, glow neon, referência direta a Cyberpunk 2077, Blade Runner ou qualquer IP existente"
+    "negative": "texto, caracteres falsos, kanji, ideogramas, watermark, logo, cidade neon genérica, cyber-samurai, excesso de bloom, anime genérico, fotorrealismo corporativo, baixa legibilidade, anatomia quebrada, dedos extras, membros deformados, glow neon, paisagem, floresta, montanha, vegetação, céu, cenário externo, referência direta a Cyberpunk 2077, Blade Runner ou qualquer IP existente, nude, nsfw, naked, topless, lingerie, bikini, underwear, cleavage, seductive, pin-up, fashion model, glamour, text, letters, numbers, signature, pedestal, display stand, plinth, light background, white background, gray backdrop, studio backdrop"
   },
   "types": [
     {
       "id": "body-map",
       "prompt": {
-        "subject": "corpo humano adulto magro, vista frontal completa, pose neutra em pé, braços levemente afastados do tronco, pernas juntas, cabeça ereta, anatomia coerente, silhueta legível"
+        "subject": "anatomical body chart of a full human figure, clinical hologram scan, front view, standing symmetrical neutral pose, arms slightly apart from torso, legs together, head straight, monolithic gray statue figure, flat schematic technical illustration, entire body inside frame, legible silhouette, dark uniform background, coherent anatomy, desaturated grayscale, noir cyberpunk"
       },
       "size": { "width": 512, "height": 1024 },
       "output": { "project": "app", "dir": "app/src/assets/chrome", "filename": "body-map.png" },

@@ -69,11 +69,11 @@ describe("ChromeBodyMapImage", () => {
     }
   });
 
-  it("should position hit-areas with percentage geometry derived from the old SVG viewBox", () => {
+  it("should position hit-areas with percentage geometry from the AI figure anatomy (#103)", () => {
     render(<ChromeBodyMapImage installed={[]} selectedSlot={null} onSelectSlot={vi.fn()} />);
 
     const legs = screen.getAllByRole("button", { name: /^Pernas — / })[0];
-    expect(legs).toHaveStyle({ left: "42%", top: "58.75%", width: "16%", height: "24.25%" });
+    expect(legs).toHaveStyle({ left: "27.5%", top: "60%", width: "41%", height: "36%" });
 
     // Paint order preserved: torso (Tegumentar) is the FIRST hit-area, so the
     // smaller slots rendered after it win overlapping clicks (LAYER_ORDER).

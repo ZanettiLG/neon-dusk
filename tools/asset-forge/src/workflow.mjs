@@ -5,7 +5,7 @@
  */
 
 /** Checkpoint the provider expects on the ComfyUI host (validated by `check`). */
-export const CHECKPOINT = "dreamshaper_8";
+export const CHECKPOINT = "dreamshaper_8.safetensors";
 
 /**
  * Build the ComfyUI API-format workflow JSON for one generation.
@@ -13,9 +13,10 @@ export const CHECKPOINT = "dreamshaper_8";
  * @param {{id: string, size: {width: number, height: number}}} type registry type
  * @param {{positive: string, negative: string}} prompts from buildPrompt
  * @param {number} seed sampler seed (fixed or random, chosen by the CLI)
+ * @param {string} [checkpoint] checkpoint filename override (CLI --checkpoint)
  * @returns {object} workflow graph (POST to /prompt)
  */
-export function buildWorkflow(type, prompts, seed) {
+export function buildWorkflow(type, prompts, seed, checkpoint = CHECKPOINT) {
   const { width, height } = type.size;
   return {
     3: {
@@ -33,7 +34,7 @@ export function buildWorkflow(type, prompts, seed) {
         latent_image: ["5", 0],
       },
     },
-    4: { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: CHECKPOINT } },
+    4: { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: checkpoint } },
     5: { class_type: "EmptyLatentImage", inputs: { width, height, batch_size: 1 } },
     6: { class_type: "CLIPTextEncode", inputs: { text: prompts.positive, clip: ["4", 1] } },
     7: { class_type: "CLIPTextEncode", inputs: { text: prompts.negative, clip: ["4", 1] } },

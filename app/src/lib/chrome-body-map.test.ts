@@ -48,16 +48,18 @@ describe("chrome-body-map", () => {
     expect(Object.keys(SLOT_PIPS).sort()).toEqual([...CHROME_SLOTS].sort());
   });
 
-  it("should resolve click owners by LAYER_ORDER priority (matrix pinned in #94 review)", () => {
-    // Skin between spine and arm → torso keeps an exclusive area.
-    expect(resolveSlot(35, 50)).toBe("integumentary");
-    // Chest/spine column above the torso → skeleton wins.
-    expect(resolveSlot(50, 30)).toBe("skeleton");
+  it("should resolve click owners by LAYER_ORDER priority (matrix pinned in #94 review, retuned to #103 anatomy)", () => {
+    // Waist skin, between the spine column and the arm → torso keeps an
+    // exclusive area.
+    expect(resolveSlot(40, 57)).toBe("integumentary");
+    // Chest/spine column → skeleton wins.
+    expect(resolveSlot(48, 42)).toBe("skeleton");
     // Below the skeleton rect, inside the nervous system column.
     expect(resolveSlot(50, 52)).toBe("nervous_system");
-    // Both arm entries (left + mirrored right).
-    expect(resolveSlot(10, 30)).toBe("arms");
-    expect(resolveSlot(90, 30)).toBe("arms");
+    // Both arm entries (left + mirrored right) — arms hug the torso in the
+    // AI figure (x 27–38 / 58.5–70), far from the placeholder's spread pose.
+    expect(resolveSlot(32, 49)).toBe("arms");
+    expect(resolveSlot(65, 49)).toBe("arms");
     // Outside every area → no owner.
     expect(resolveSlot(0, 0)).toBeNull();
   });

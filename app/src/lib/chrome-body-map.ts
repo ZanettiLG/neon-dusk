@@ -1,17 +1,19 @@
 import type { ChromeSlot } from "@neon-dusk/shared";
 
-// Interactive geometry for the AI-generated body map (issue #94). The artwork
-// is a static PNG (app/src/assets/chrome/body-map.png); everything the player
-// interacts with is positioned here in percentages (0–100) so the overlay
-// scales at any breakpoint without JS measurement (ADR-3).
+// Interactive geometry for the AI-generated body map (issues #94, #103). The
+// artwork is a static PNG (app/src/assets/chrome/body-map.png); everything the
+// player interacts with is positioned here in percentages (0–100) so the
+// overlay scales at any breakpoint without JS measurement (ADR-3).
 //
-// Coordinates are derived from the old ChromeBodyMapSvg viewBox 200×400
-// (x/2, y/4), preserving the geometry tuned in issues #10/#28: each hit area
-// bounds the artwork path plus its stroke width. The #94 review retuned
-// skeleton (narrowed to the spine column) and arms so the torso rectangle
-// keeps an exclusive area — clicks on the skin no longer fall through to
-// inner systems. Regenerating the image keeps these valid because the
-// baseline pins the neutral pose (tools/asset-forge/baselines/neon-dusk.md).
+// #103 re-derived every coordinate from the replaced AI figure (rembg matte
+// measured on the 512×1024 asset): figure bbox x 27.9–69.7% / y 23.5–95.1%,
+// head y 23.5–34.4% (center x≈48.5), arms x 28.9–37% / 60–69.7% (y 35–60.5%),
+// legs down to y 95.1%. The #94 z-order semantics are preserved: the torso
+// rectangle (integumentary) stays the base layer, skeleton owns the spine
+// column, arms/legs/head zones render on top — clicks on skin still fall to
+// the torso, never through to inner systems. Regenerating the image keeps
+// these valid because the baseline pins the neutral pose
+// (tools/asset-forge/baselines/neon-dusk.md).
 
 /** Hit area of one slot, as a rectangle in % of the image (0–100). */
 export interface SlotHitArea {
@@ -24,29 +26,29 @@ export interface SlotHitArea {
 
 /** One rectangle per body region; `arms` has two (left/right). */
 export const SLOT_HIT_AREAS: SlotHitArea[] = [
-  { slot: "legs", x: 42, y: 58.75, w: 16, h: 24.25 },
-  { slot: "integumentary", x: 17.5, y: 23, w: 65, h: 35.75 },
-  { slot: "nervous_system", x: 42, y: 39.5, w: 16, h: 17.5 },
-  { slot: "skeleton", x: 40, y: 18, w: 20, h: 30 },
-  { slot: "circulatory", x: 31, y: 25.5, w: 16, h: 8 },
-  { slot: "arms", x: 4, y: 25, w: 22, h: 35 },
-  { slot: "arms", x: 74, y: 25, w: 22, h: 35 },
-  { slot: "ocular", x: 34, y: 9.25, w: 32, h: 11.5 },
-  { slot: "operating_system", x: 39, y: 14.5, w: 22, h: 8 },
-  { slot: "frontal_cortex", x: 36.5, y: 1.75, w: 27, h: 11.5 },
+  { slot: "legs", x: 27.5, y: 60, w: 41, h: 36 },
+  { slot: "integumentary", x: 30, y: 34, w: 37, h: 27 },
+  { slot: "nervous_system", x: 42, y: 50, w: 13, h: 11 },
+  { slot: "skeleton", x: 42, y: 35, w: 13, h: 15 },
+  { slot: "circulatory", x: 37, y: 37, w: 7, h: 8 },
+  { slot: "arms", x: 27, y: 35, w: 11, h: 25.5 },
+  { slot: "arms", x: 58.5, y: 35, w: 11.5, h: 25.5 },
+  { slot: "ocular", x: 33, y: 27.5, w: 31, h: 7 },
+  { slot: "operating_system", x: 38, y: 28.5, w: 21, h: 4.5 },
+  { slot: "frontal_cortex", x: 35.5, y: 22.5, w: 26, h: 5.5 },
 ];
 
-/** Pip/badge anchor per slot, in % of the image (viewBox PIPS / 2 and / 4). */
+/** Pip/badge anchor per slot, in % of the image — real anatomy centers (#103). */
 export const SLOT_PIPS: Record<ChromeSlot, { x: number; y: number }> = {
-  frontal_cortex: { x: 50, y: 3 },
-  ocular: { x: 50, y: 21.5 },
-  operating_system: { x: 50, y: 13 },
-  arms: { x: 18, y: 61.5 },
-  skeleton: { x: 56, y: 33 },
-  nervous_system: { x: 56, y: 63 },
-  circulatory: { x: 28, y: 44 },
-  integumentary: { x: 30, y: 63 },
-  legs: { x: 50, y: 88 },
+  frontal_cortex: { x: 48.5, y: 25 },
+  ocular: { x: 48.5, y: 28.5 },
+  operating_system: { x: 48.5, y: 32 },
+  arms: { x: 33, y: 49 },
+  skeleton: { x: 48.5, y: 42 },
+  nervous_system: { x: 48.5, y: 55 },
+  circulatory: { x: 39.5, y: 41 },
+  integumentary: { x: 40, y: 57 },
+  legs: { x: 46.5, y: 75 },
 };
 
 /**

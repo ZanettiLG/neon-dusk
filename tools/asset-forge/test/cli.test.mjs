@@ -96,6 +96,20 @@ describe("cli", () => {
     assert.equal(wf["9"].inputs.filename_prefix, "nd-body-map");
   });
 
+  it("--checkpoint should override the workflow checkpoint", async () => {
+    const { code, stdout } = await runCli([
+      "generate",
+      "body-map",
+      "--dry-run",
+      "--checkpoint",
+      "v1-5-pruned-emaonly.safetensors",
+    ]);
+
+    assert.equal(code, 0);
+    const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+    assert.equal(wf["4"].inputs.ckpt_name, "v1-5-pruned-emaonly.safetensors");
+  });
+
   it("should exit 2 for an unknown command", async () => {
     const { code, stderr } = await runCli(["frobnicate"]);
 

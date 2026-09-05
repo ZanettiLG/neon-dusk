@@ -5,7 +5,8 @@
  * asset-forge — AI asset generation CLI for Neon Dusk (SD1.5 via ComfyUI).
  *
  *   node cli.mjs generate <tipo> [--variants N] [--seed S] [--out DIR]
- *                           [--url URL] [--timeout S] [--dry-run]
+ *                           [--url URL] [--timeout S] [--checkpoint NAME]
+ *                           [--dry-run]
  *   node cli.mjs list
  *   node cli.mjs check [--url URL]
  *
@@ -40,9 +41,9 @@ const EXIT = { OK: 0, GENERIC: 1, USAGE: 2, OFFLINE: 3, GENERATION: 4, TIMEOUT: 
 
 /** CLI usage text (also the message for UsageError). */
 const USAGE = `Uso:
-  asset-forge generate <tipo> [--variants N] [--seed S] [--out DIR] [--url URL] [--timeout S] [--dry-run]
+  asset-forge generate <tipo> [--variants N] [--seed S] [--out DIR] [--url URL] [--timeout S] [--checkpoint NOME] [--dry-run]
   asset-forge list
-  asset-forge check [--url URL]
+  asset-forge check [--url URL] [--checkpoint NOME]
 
 Tipos: body-map, metro-map, icon, avatar (veja "list").`;
 
@@ -59,6 +60,7 @@ function parseArgv(argv) {
         out: { type: "string", short: "o" },
         url: { type: "string", short: "u" },
         timeout: { type: "string", short: "t" },
+        checkpoint: { type: "string" },
         "dry-run": { type: "boolean", default: false },
       },
     });
@@ -83,6 +85,7 @@ function parseArgv(argv) {
     seed: intOption("seed"),
     out: parsed.values.out,
     timeoutMs: (intOption("timeout") ?? 120) * 1_000,
+    checkpoint: parsed.values.checkpoint,
     dryRun: parsed.values["dry-run"],
   };
 }
@@ -99,11 +102,12 @@ async function cmdList() {
   }
 }
 
-/** `check` — health check + checkpoint validation. */
-async function cmdCheck({ url }) {
+/** `check` — health check + checkpoint validation (default or --checkpoint). */
+async function cmdCheck({ url, checkpoint }) {
+  const ckpt = checkpoint ?? CHECKPOINT;
   await checkServer(url);
-  await checkCheckpoint(url, CHECKPOINT);
-  console.log(`✓ ComfyUI ok em ${url} — checkpoint "${CHECKPOINT}" presente`);
+  await checkCheckpoint(url, ckpt);
+  console.log(`✓ ComfyUI ok em ${url} — checkpoint "${ckpt}" presente`);
 }
 
 /**
@@ -111,7 +115,7 @@ async function cmdCheck({ url }) {
  * Each variant is a distinct seed; files are named <id>-<seed>.png so the
  * accepted variant can be renamed to the canonical filename (registry).
  */
-async function cmdGenerate({ positional, url, variants, seed, out, timeoutMs, dryRun }) {
+async function cmdGenerate({ positional, url, variants, seed, out, timeoutMs, checkpoint, dryRun }) {
   if (positional.length !== 1) {
     throw new UsageError(`generate exige exatamente um tipo.\n\n${USAGE}`);
   }
@@ -122,23 +126,28 @@ async function cmdGenerate({ positional, url, variants, seed, out, timeoutMs, dr
     throw new UsageError(`Tipo desconhecido: "${positional[0]}". Tipos válidos: ${known}.`);
   }
 
+  const ckpt = checkpoint ?? CHECKPOINT;
+
   const prompts = buildPrompt(type, registry);
   if (dryRun) {
     console.log(`[dry-run] workflow de ${type.id} (seed ${seed ?? "aleatória na geração real"}):`);
-    console.log(JSON.stringify(buildWorkflow(type, prompts, seed ?? 0), null, 2));
+    console.log(JSON.stringify(buildWorkflow(type, prompts, seed ?? 0, ckpt), null, 2));
     return;
   }
 
   await checkServer(url);
-  await checkCheckpoint(url, CHECKPOINT);
+  await checkCheckpoint(url, ckpt);
 
-  const outDir = out ?? type.output.dir;
+  // Resolve the registry dir against the repo root (two levels above this tool),
+  // so the default output location is stable regardless of caller CWD. An
+  // explicit --out stays CWD-relative on purpose.
+  const outDir = out ?? path.resolve(import.meta.dirname, "..", "..", type.output.dir);
   await mkdir(outDir, { recursive: true });
   const written = [];
   for (let i = 0; i < variants; i++) {
     const variantSeed = seed === undefined ? Math.floor(Math.random() * 2 ** 31) : seed + i;
     const started = Date.now();
-    const promptId = await submitWorkflow(url, buildWorkflow(type, prompts, variantSeed));
+    const promptId = await submitWorkflow(url, buildWorkflow(type, prompts, variantSeed, ckpt));
     const image = await pollHistory(url, promptId, { timeoutMs });
     const bytes = await downloadImage(url, image);
     const file = path.join(outDir, `${type.id}-${variantSeed}.png`);

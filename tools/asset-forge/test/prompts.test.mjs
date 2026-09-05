@@ -33,7 +33,7 @@ describe("prompts", () => {
     assert.ok(positive.startsWith(type.prompt.subject));
     assert.ok(positive.includes("noir cyberpunk brasileiro"));
     assert.ok(positive.includes("fundo escuro #0a0a0a"));
-    assert.ok(positive.includes("braços levemente afastados do tronco"));
+    assert.ok(positive.includes("arms slightly apart from torso"));
   });
 
   it("should reuse the shared negative block verbatim", async () => {

@@ -38,11 +38,16 @@ Exit codes: `0` ok · `1` erro inesperado · `2` uso/registry inválido ·
 1. Gere N variantes (`--variants N`) — arquivos `<tipo>-<seed>.png` no destino
    do registry (`registry.json` → `output.dir`).
 2. Critique cada variante contra `baselines/neon-dusk.md` (critérios + red
-   flags + paleta).
-3. Renomeie **a única variante aceita** para o nome canônico
+   flags + paleta) e escolha a melhor.
+3. **Pós-processe** a escolhida (body-map): `rembg` em venv dev-only (ex.:
+   `python3 -m venv /tmp/rembg-venv && /tmp/rembg-venv/bin/pip install "rembg[cpu]"`)
+   → matte com erode ~2px + feather ~1px (sem halo) → composição sobre fundo
+   `#0a0a0a` opaco. O gate de fundo uniforme vale para o **asset final**
+   pós-processado, não para o PNG bruto.
+4. Renomeie **a única variante aceita** para o nome canônico
    (`output.filename`, ex.: `body-map.png`) e commite.
-4. **Delete as variantes rejeitadas** — só o asset aceito entra no repo.
-5. Se nenhuma passar, ajuste prompt/seed e regenere. Nunca commite "quase".
+5. **Delete as variantes rejeitadas** — só o asset aceito entra no repo.
+6. Se nenhuma passar, ajuste prompt/seed e regenere. Nunca commite "quase".
 
 ## Convenções
 
