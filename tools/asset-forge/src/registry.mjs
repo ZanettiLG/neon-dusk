@@ -5,6 +5,7 @@ import { RegistryError } from "./errors.mjs";
 const DEFAULT_REGISTRY_PATH = new URL("../registry.json", import.meta.url);
 
 const VALID_SEED_POLICIES = new Set(["random", "fixed"]);
+const VALID_REGIMES = new Set(["flat", "atmospheric"]);
 
 /**
  * Validate one asset-type entry from registry.json.
@@ -22,6 +23,9 @@ function validateType(raw, index) {
   }
   if (typeof raw.prompt?.subject !== "string" || raw.prompt.subject.length === 0) {
     throw new RegistryError(`${where}.prompt.subject deve ser uma string não vazia`);
+  }
+  if (!VALID_REGIMES.has(raw.regime)) {
+    throw new RegistryError(`${where}.regime deve ser "flat" ou "atmospheric" (recebido: ${raw.regime})`);
   }
   const { width, height } = raw.size ?? {};
   for (const dim of ["width", "height"]) {
@@ -50,15 +54,82 @@ function validateType(raw, index) {
   if (raw.postprocess !== null && typeof raw.postprocess !== "object") {
     throw new RegistryError(`${where}.postprocess deve ser null ou objeto`);
   }
+  if (raw.postprocess !== null && typeof raw.postprocess.rembg !== "boolean") {
+    throw new RegistryError(`${where}.postprocess.rembg deve ser booleano`);
+  }
   return { ...raw, size: { width, height } };
 }
 
 /**
+ * Validate the seedFamilies array — named, non-empty member lists that
+ * reference existing asset types.
+ * @param {unknown} seedFamilies raw JSON value
+ * @param {Set<string>} typeIds validated type ids
+ * @returns {object[]} the validated families
+ */
+function validateSeedFamilies(seedFamilies, typeIds) {
+  if (!Array.isArray(seedFamilies) || seedFamilies.length === 0) {
+    throw new RegistryError("seedFamilies deve ser um array não vazio");
+  }
+  const ids = new Set();
+  for (const [index, family] of seedFamilies.entries()) {
+    const where = `seedFamilies[${index}]`;
+    if (typeof family !== "object" || family === null) {
+      throw new RegistryError(`${where} deve ser um objeto`);
+    }
+    if (typeof family.id !== "string" || family.id.length === 0) {
+      throw new RegistryError(`${where}.id deve ser uma string não vazia`);
+    }
+    if (ids.has(family.id)) throw new RegistryError("ids de seedFamilies devem ser únicos");
+    ids.add(family.id);
+    if (!typeIds.has(family.type)) {
+      throw new RegistryError(`${where}.type referencia tipo inexistente (${family.type})`);
+    }
+    if (
+      !Array.isArray(family.members) ||
+      family.members.length === 0 ||
+      family.members.some((m) => typeof m !== "string" || m.length === 0)
+    ) {
+      throw new RegistryError(`${where}.members deve ser um array não vazio de strings`);
+    }
+  }
+  return seedFamilies;
+}
+
+/**
+ * Validate the districts array — the per-district accent (color) and prompt
+ * used by atmospheric scenes and the baseline gate.
+ * @param {unknown} districts raw JSON value
+ * @returns {object[]} the validated districts
+ */
+function validateDistricts(districts) {
+  if (!Array.isArray(districts) || districts.length === 0) {
+    throw new RegistryError("districts deve ser um array não vazio");
+  }
+  const ids = new Set();
+  for (const [index, district] of districts.entries()) {
+    const where = `districts[${index}]`;
+    if (typeof district !== "object" || district === null) {
+      throw new RegistryError(`${where} deve ser um objeto`);
+    }
+    for (const field of ["id", "name", "accent", "prompt"]) {
+      if (typeof district[field] !== "string" || district[field].length === 0) {
+        throw new RegistryError(`${where}.${field} deve ser uma string não vazia`);
+      }
+    }
+    if (ids.has(district.id)) throw new RegistryError("ids de districts devem ser únicos");
+    ids.add(district.id);
+  }
+  return districts;
+}
+
+/**
  * Load and validate registry.json — the single source of truth for asset
- * generation (style suffix, negative prompt, per-type prompts/dims/output).
+ * generation (per-regime style suffix/negative, per-type prompts/dims/output,
+ * seed families and district accents).
  *
  * @param {string | URL} [filePath] registry path (defaults to the bundled one)
- * @returns {Promise<{version: number, style: {suffix: string, negative: string}, types: object[]}>}
+ * @returns {Promise<{version: number, style: {flat: {suffix: string, negative: string}, atmospheric: {suffix: string, negative: string}}, types: object[], seedFamilies: object[], districts: object[]}>}
  * @throws {RegistryError} on unreadable/malformed JSON or schema violation
  */
 export async function loadRegistry(filePath = DEFAULT_REGISTRY_PATH) {
@@ -70,12 +141,14 @@ export async function loadRegistry(filePath = DEFAULT_REGISTRY_PATH) {
     throw new RegistryError(`não foi possível ler ${filePath} (${err.code ?? err.message})`);
   }
   if (typeof raw !== "object" || raw === null) throw new RegistryError("raiz deve ser um objeto");
-  if (raw.version !== 1) throw new RegistryError(`version deve ser 1 (recebido: ${raw.version})`);
-  if (typeof raw.style?.suffix !== "string" || raw.style.suffix.length === 0) {
-    throw new RegistryError("style.suffix deve ser uma string não vazia");
-  }
-  if (typeof raw.style?.negative !== "string" || raw.style.negative.length === 0) {
-    throw new RegistryError("style.negative deve ser uma string não vazia");
+  if (raw.version !== 2) throw new RegistryError(`version deve ser 2 (recebido: ${raw.version})`);
+  for (const regime of VALID_REGIMES) {
+    if (typeof raw.style?.[regime]?.suffix !== "string" || raw.style[regime].suffix.length === 0) {
+      throw new RegistryError(`style.${regime}.suffix deve ser uma string não vazia`);
+    }
+    if (typeof raw.style?.[regime]?.negative !== "string" || raw.style[regime].negative.length === 0) {
+      throw new RegistryError(`style.${regime}.negative deve ser uma string não vazia`);
+    }
   }
   if (!Array.isArray(raw.types) || raw.types.length === 0) {
     throw new RegistryError("types deve ser um array não vazio");
@@ -83,5 +156,7 @@ export async function loadRegistry(filePath = DEFAULT_REGISTRY_PATH) {
   const types = raw.types.map(validateType);
   const ids = new Set(types.map((t) => t.id));
   if (ids.size !== types.length) throw new RegistryError("ids de tipo devem ser únicos");
-  return { ...raw, types };
+  const seedFamilies = validateSeedFamilies(raw.seedFamilies, ids);
+  const districts = validateDistricts(raw.districts);
+  return { ...raw, types, seedFamilies, districts };
 }

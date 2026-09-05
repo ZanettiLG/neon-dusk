@@ -53,7 +53,8 @@ Exit codes: `0` ok · `1` erro inesperado · `2` uso/registry inválido ·
 
 - Modelos, pesos e variantes rejeitadas ficam **fora do repo** (cache do
   ComfyUI); no repo vão só código, `registry.json`, prompts e o asset aceito.
-- `registry.json` é a fonte única de estilo e prompts (bloco `style` + 4
-  tipos). As coordenadas de interação (hit-areas de UI) moram no app
+- `registry.json` é a fonte única de estilo e prompts (bloco `style` por
+  regime — flat e atmospheric —, 7 tipos, `seedFamilies` e `districts`). As
+  coordenadas de interação (hit-areas de UI) moram no app
   (`app/src/lib/chrome-body-map.ts`), não aqui.
 - Testes: `node --test test/` (fetch stub, zero rede).

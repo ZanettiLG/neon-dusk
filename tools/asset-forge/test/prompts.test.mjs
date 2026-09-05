@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { loadRegistry } from "../src/registry.mjs";
 import { buildPrompt } from "../src/prompts.mjs";
+import { RegistryError } from "../src/errors.mjs";
 
 const REGISTRY_PATH = new URL("../registry.json", import.meta.url);
 
@@ -24,7 +25,7 @@ const BANNED_IP_TERMS = [
 ];
 
 describe("prompts", () => {
-  it("should concatenate subject + noir suffix in the positive prompt", async () => {
+  it("should concatenate subject + flat noir suffix in the positive prompt", async () => {
     const registry = await loadRegistry(REGISTRY_PATH);
     const type = registry.types.find((t) => t.id === "body-map");
 
@@ -36,13 +37,13 @@ describe("prompts", () => {
     assert.ok(positive.includes("arms slightly apart from torso"));
   });
 
-  it("should reuse the shared negative block verbatim", async () => {
+  it("should reuse the negative block of the type's regime verbatim", async () => {
     const registry = await loadRegistry(REGISTRY_PATH);
     const type = registry.types.find((t) => t.id === "body-map");
 
     const { negative } = buildPrompt(type, registry);
 
-    assert.equal(negative, registry.style.negative);
+    assert.equal(negative, registry.style[type.regime].negative);
     // Prohibition clauses stay in the negative (design §3.1):
     assert.ok(negative.includes("Cyberpunk 2077"));
     assert.ok(negative.includes("dedos extras, membros deformados"));
@@ -59,7 +60,7 @@ describe("prompts", () => {
     }
   });
 
-  it("should apply the noir suffix to every asset type", async () => {
+  it("should apply the regime noir suffix to every asset type", async () => {
     const registry = await loadRegistry(REGISTRY_PATH);
     for (const type of registry.types) {
       const { positive } = buildPrompt(type, registry);
@@ -69,5 +70,28 @@ describe("prompts", () => {
         `${type.id} deve carregar o sufixo noir`,
       );
     }
+  });
+
+  it("should load atmospheric lighting in atmospheric positives and flat lighting in flat ones", async () => {
+    const registry = await loadRegistry(REGISTRY_PATH);
+    for (const type of registry.types) {
+      const { positive } = buildPrompt(type, registry);
+      if (type.regime === "atmospheric") {
+        assert.ok(positive.includes("luz volumétrica"), `${type.id} deve carregar luz volumétrica`);
+        assert.ok(positive.includes("néon apenas como luz ambiente ao fundo"), `${type.id} deve restringir néon ao fundo`);
+        assert.ok(!positive.includes("iluminação plana uniforme"), `${type.id} não deve carregar luz plana`);
+      } else {
+        assert.ok(positive.includes("iluminação plana uniforme"), `${type.id} deve carregar iluminação plana`);
+        assert.ok(!positive.includes("luz volumétrica"), `${type.id} não deve carregar luz volumétrica`);
+      }
+    }
+  });
+
+  it("should throw RegistryError for a type whose regime has no style block", async () => {
+    const registry = await loadRegistry(REGISTRY_PATH);
+    const ghost = { id: "ghost", regime: "vaporwave", prompt: { subject: "x" } };
+
+    assert.throws(() => buildPrompt(ghost, registry), RegistryError);
+    assert.throws(() => buildPrompt(ghost, registry), /sem regime válido/);
   });
 });

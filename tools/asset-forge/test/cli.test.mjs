@@ -78,13 +78,15 @@ function startMockComfy({ history, checkpoint = true }) {
 }
 
 describe("cli", () => {
-  it("list should print the 4 registry types and exit 0", async () => {
+  it("list should print the 7 registry types and exit 0", async () => {
     const { code, stdout } = await runCli(["list"]);
 
     assert.equal(code, 0);
-    for (const id of ["body-map", "metro-map", "icon", "avatar"]) {
+    for (const id of ["backdrop", "body-map", "gig-art", "icon", "item", "portrait", "scene"]) {
       assert.ok(stdout.includes(id), `stdout deve listar ${id}`);
     }
+    assert.ok(stdout.includes("atmospheric"), "stdout deve mostrar o regime atmospheric");
+    assert.ok(stdout.includes("flat"), "stdout deve mostrar o regime flat");
   });
 
   it("generate --dry-run should print the workflow JSON without network and exit 0", async () => {
@@ -115,6 +117,27 @@ describe("cli", () => {
 
     assert.equal(code, 2);
     assert.match(stderr, /desconhecido/);
+  });
+
+  it("should point to 'list' instead of hardcoding types in the usage text", async () => {
+    const { code, stderr } = await runCli(["frobnicate"]);
+
+    assert.equal(code, 2);
+    assert.match(stderr, /veja "list"/);
+    // The usage text must not enumerate registry types (they live in
+    // registry.json — a hardcoded list would drift).
+    assert.doesNotMatch(stderr, /body-map/);
+    assert.doesNotMatch(stderr, /gig-art/);
+  });
+
+  it("should list the valid types dynamically for an unknown type", async () => {
+    const { code, stderr } = await runCli(["generate", "unicorn"]);
+
+    assert.equal(code, 2);
+    assert.match(stderr, /Tipo desconhecido/);
+    // The error enumerates the registry types at runtime, not a hardcoded list.
+    assert.match(stderr, /body-map/);
+    assert.match(stderr, /gig-art/);
   });
 
   it("should exit 2 for generate without a type", async () => {

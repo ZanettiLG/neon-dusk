@@ -45,7 +45,7 @@ const USAGE = `Uso:
   asset-forge list
   asset-forge check [--url URL] [--checkpoint NOME]
 
-Tipos: body-map, metro-map, icon, avatar (veja "list").`;
+Tipos: veja "list".`;
 
 /** Parse argv into { command, positional, options }. @throws {UsageError} */
 function parseArgv(argv) {
@@ -97,7 +97,7 @@ async function cmdList() {
   for (const type of registry.types) {
     const canonical = type.output.filename ? ` → ${type.output.filename}` : " (sem integração)";
     console.log(
-      `  ${type.id.padEnd(10)} ${type.size.width}×${type.size.height}  ${type.output.dir}/${canonical}`,
+      `  ${type.id.padEnd(12)} ${type.regime.padEnd(11)} ${type.size.width}×${type.size.height}  ${type.output.dir}/${canonical}`,
     );
   }
 }
