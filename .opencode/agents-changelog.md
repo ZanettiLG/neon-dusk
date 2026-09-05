@@ -2,6 +2,35 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-09-04 — N2: Aberto Vira Issue semântico — varredura por trabalho futuro, não por nomes (revisão do humano)
+
+### Trigger
+Revisão do humano: validar por nomes de seção é quebrável ("Passos Futuros", "Pendências", "Follow-ups" escapariam). Bugs ou trabalho futuro não podem estar no card sendo fechado, em nenhum nome — precisam virar issues.
+
+### Change
+- `dev-orchestrator` (agent): camada 2 da Validação de Handoff agora faz a pergunta semântica — "existe trabalho a ser feito depois neste handoff?" — sem lista de palavras; resposta positiva → sub-issue via github-ops + re-execução do subagente.
+- `dev-orchestrator` (agent): Passo 9 (Fechamento) ganhou varredura pré-fechamento — issue + handoffs + corpo do PR são escaneados semanticamente por trabalho futuro; cada pendência vira sub-issue linkada ANTES do card ser fechado.
+- `github-ops` (agent): regra de postagem generalizada — trabalho futuro em qualquer nome vira sub-issue, nunca texto estacionado.
+
+### Impact
+Nenhum card fechado carrega trabalho futuro: a varredura semântica cobre postagem de handoff, criação de issue e fechamento — com pendências virando issues rastreáveis em qualquer ponto do pipeline.
+
+---
+
+## 2026-09-04 — N2: Aberto Vira Issue — pendência em handoff vira sub-issue, não texto (revisão do humano)
+
+### Trigger
+Revisão do humano sobre a regra Zero Em Aberto: não devem existir "Próximos Passos" nem "Em Aberto" em handoff ou issue. Se há algo em aberto, a issue precisa ser aberta AGORA — corrige depois, mas nunca como comentário no PR ou handoff.
+
+### Change
+- `dev-orchestrator` (agent): camada 2 da Validação de Handoff reescrita — checklist sem "próximos passos"; handoff com pendência em texto → orquestrador abre sub-issue via github-ops (`create-sub-issue`, linkada, com contexto/critérios/impacto) e re-executa o subagente para referenciar o número. Pendência estacionada em texto nunca chega ao GitHub.
+- `github-ops` (agent): nova regra — nunca postar handoff/comentário com seções "Próximos Passos" ou "Em Aberto"; item em aberto vira sub-issue referenciada por número.
+
+### Impact
+Pendências deixam de existir como texto em comentários: o fluxo é pendência → issue aberta na hora → correção depois, com registro canônico imediato e rastreável.
+
+---
+
 ## 2026-09-04 — N2: Validação de completude de handoff no dev-orchestrator (Zero Em Aberto)
 
 ### Trigger

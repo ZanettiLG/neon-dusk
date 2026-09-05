@@ -2,6 +2,35 @@
 
 Histórico de mudanças estruturais no harness de desenvolvimento.
 
+## 2026-09-04 — N2: Regra Aberto Vira Issue passa a ser semântica (não por nome de seção)
+
+### Trigger
+Revisão do humano: proibir "Próximos Passos"/"Em Aberto" por nome é quebrável — "Passos Futuros", "Pendências", "Follow-ups" escapariam. A regra precisa ser genérica: bugs ou trabalho futuro NÃO podem existir no card sendo fechado, em nenhum nome — precisam virar issues.
+
+### Change
+- `github-workflow` skill: regra reescrita como **julgamento semântico** — "isso é trabalho a fazer depois?" (bug conhecido, débito, melhoria, TODO, follow-up, escopo adiado, risco acionável, pergunta sem resposta) → vira issue AGORA, independente do nome. Lista de palavras proibidas explicitamente descartada como mecanismo.
+- `github-workflow` skill: regra estendida ao fechamento — o que está sendo fechado (issue, PR, handoff) contém APENAS o que foi feito e decidido.
+
+### Impact
+Pendência disfarçada ("passos futuros", "follow-ups", "TODO") deixa de escapar: a detecção é semântica, aplicada em todos os pontos — postagem de handoff, criação de issue e fechamento do card.
+
+---
+
+## 2026-09-04 — N2: Regra Aberto Vira Issue — handoffs sem "Próximos Passos"/"Em Aberto" (revisão do humano)
+
+### Trigger
+Revisão do humano sobre a regra anterior (Zero Em Aberto): não deveriam existir seções "Próximos Passos" ou "Em Aberto" em handoff ou issue — pendência em texto é o anti-padrão. Se há algo em aberto, a issue precisa ser ABERTA agora (registro canônico), corrige-se depois — nunca estacionada como comentário no PR ou no handoff.
+
+### Change
+- `github-workflow` skill: seções "Próximos Passos" e "Em Aberto" REMOVIDAS do formato de handoff (agora 5 seções: Contexto Recebido, Planejamento e Racional, Decisões Tomadas, O Que Foi Feito — incluindo issues criadas, Estado Atual). Regra renomeada para **Aberto Vira Issue**: item em aberto → `create-sub-issue` via github-ops AGORA (contexto, critérios, impacto definidos), handoff referencia `#N`.
+- `github-workflow` skill: seção Sub-Issues deixa de ser "Opcional" — é o destino obrigatório de todo item em aberto detectado no pipeline.
+- `github-workflow` skill: regra do template de issue ajustada — definição que surgir durante o pipeline vira sub-issue imediatamente, nunca comentário.
+
+### Impact
+Nenhuma pendência volta a estacionar em comentário ou handoff: o fluxo correto é pendência → issue aberta na hora → correção depois. O registro canônico é imediato e rastreável.
+
+---
+
 ## 2026-09-04 — N2: Templates de issue e handoff obrigatoriamente completos na github-workflow (Zero Em Aberto)
 
 ### Trigger

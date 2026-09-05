@@ -87,9 +87,10 @@ Após cada `task()`, valide em duas camadas:
 2. Re-execute a mesma `task()` com o mesmo prompt uma única vez.
 3. Se falhar novamente, reporte no JSON de saída como `error: "Subagente <nome> falhou em responder após 2 tentativas"`.
 
-**2. Completude (Zero Em Aberto)**: o handoff deve ser auto-contido — o próximo agente NUNCA adivinha. Verifique se contém: contexto recebido, planejamento e racional, decisões tomadas, o que foi feito, estado atual, próximos passos — e **nenhuma definição em aberto** ("a definir", "TBD", pergunta sem resposta). Se estiver incompleto:
-1. Re-execute o subagente com instrução explícita: "Handoff incompleto: preencha todas as seções obrigatórias do formato da skill `github-workflow` e resolva toda definição em aberto antes de retornar."
-2. Só poste o handoff na issue (via `github-ops`) depois de validado. Handoff vago nunca chega ao GitHub.
+**2. Completude (Aberto Vira Issue — julgamento semântico)**: o handoff deve ser auto-contido — o próximo agente NUNCA adivinha. Verifique se contém: contexto recebido, planejamento e racional, decisões tomadas, o que foi feito, estado atual. Depois pergunte semanticamente: **"existe trabalho a ser feito depois neste handoff?"** — bug conhecido, débito, melhoria, TODO, escopo adiado, pergunta sem resposta, risco acionável — **independente do nome que receba** (não valide por lista de palavras: "passos futuros", "follow-ups", "pendências" contam igual). Se sim:
+1. `task(github-ops, { action: "create-sub-issue", ... })` — abra a issue AGORA, com contexto, critérios e impacto definidos, linkada à issue principal.
+2. Re-execute o subagente com instrução: "Handoff com trabalho futuro em texto: cada pendência vira sub-issue via github-ops e o handoff referencia o número. Corrige depois, mas a issue precisa ser aberta agora."
+3. Só poste o handoff na issue (via `github-ops`) depois de validado — trabalho futuro estacionado em texto nunca chega ao GitHub.
 
 ### Passo -1: Capability Gate (Pre-Flight Check)
 
@@ -192,7 +193,7 @@ Se score ≥ 4.5:
 | `changes_requested` | `task(github-ops, { action: "update-issue-labels", issue_number, add_labels: "changes-requested" })`. Voltar ao Passo 2 para corrigir. |
 
 ### Passo 9: Fechamento (pular com `--local`)
-Quando aprovado pelo pr-reviewer:
+Quando aprovado pelo pr-reviewer, **ANTES de fechar**: varra semanticamente a issue + todos os handoffs + corpo do PR por trabalho futuro ("isso fica para depois?", em qualquer nome). Cada pendência encontrada vira issue (`create-sub-issue` linkada à issue principal). Nada a fazer depois pode permanecer no card sendo fechado.
 1. `task(github-ops, { action: "comment-on-issue", issue_number, body: "## Pipeline Concluído\\n**score**: <score>\\n**pr**: #<pr>", step: "close", agent: "orchestrator", run_id })`
 2. `task(github-ops, { action: "update-issue-labels", issue_number, add_labels: "completed", remove_labels: "approved,in-progress" })`
 

@@ -83,21 +83,15 @@ Formato do comentário-handoff (todas as seções obrigatórias — se não houv
 - <decisão> — <racional + alternativas descartadas quando relevante>
 
 ## O Que Foi Feito
-<entregas concretas: arquivos, schemas, contratos, testes — com paths>
+<entregas concretas: arquivos, schemas, contratos, testes — com paths. Inclui issues criadas para itens em aberto (#N)>
 
 ## Estado Atual
-<o que está pronto, o que falta, riscos conhecidos>
-
-## Próximos Passos
-<exatamente o que o próximo agente deve fazer, com inputs prontos>
-
-## Em Aberto
-NENHUM. <toda dúvida foi resolvida com decisão documentada acima; se algo exigir decisão humana, marque a issue como `blocked` e descreva o que é preciso para destravar>
+<o que está pronto e verificado>
 
 ---
 ```
 
-**Regra Zero Em Aberto**: o handoff é o único contexto do próximo agente — ele NUNCA adivinha. Handoff com seção vazia, "a definir", "TBD", "ver depois" ou pergunta sem resposta é handoff **inválido**: o orquestrador re-executa o subagente exigindo completude antes de postar (ver Validação de Handoff no `dev-orchestrator`).
+**Regra Aberto Vira Issue (semântica — não por nome de seção)**: o que está sendo fechado (issue, PR, handoff) contém APENAS o que foi feito e decidido. Se existe qualquer trabalho a ser feito depois — bug conhecido, débito, melhoria, TODO, follow-up, escopo adiado, risco acionável, pergunta sem resposta — **vira issue AGORA**, independente do nome que receba ("Próximos Passos", "Passos Futuros", "Em Aberto", "Pendências", "Follow-ups", "Melhorias Futuras", "Adiar", "TODO"...). A detecção é por **julgamento semântico**: "isso é trabalho a fazer depois?" → se sim, `create-sub-issue` via `github-ops` (contexto, critérios, impacto definidos) e referencie o número no handoff. Proibir lista de palavras não funciona — card fechado com trabalho futuro disfarçado de qualquer nome é card inválido. A correção acontece depois; o registro canônico é imediato.
 
 ### Atualizar Corpo da Issue
 
@@ -179,14 +173,16 @@ gh issue comment <issue_number> --body "## Pipeline Concluído
 | `completed` | Merged + issue fechada |
 | `blocked` | Bloqueado por dependência |
 
-## Sub-Issues (Opcional)
+## Sub-Issues (Obrigatórias para Itens em Aberto)
 
-Para features complexas, o orquestrador pode criar sub-issues linkadas:
+Item em aberto detectado durante o pipeline (débito, follow-up, decisão pendente, risco acionável, escopo adiado) vira **sub-issue linkada na hora** — nunca texto em comentário ou handoff:
 
 ```bash
-gh issue create --title "Schema: <nome>" --body "<descrição>" --label "db"
+gh issue create --title "Schema: <nome>" --body "<contexto, critérios, impacto>" --label "db"
 gh issue edit <main_issue> --body "$(echo -e 'corpo\n\n## Sub-Tasks\n- [ ] #<sub_issue>')"
 ```
+
+A correção acontece depois; o registro é imediato. Handoff referencia a sub-issue pelo número (`#N`) na seção "O Que Foi Feito".
 
 ## Pipelines em Paralelo
 
@@ -231,4 +227,4 @@ Todas as seções são obrigatórias — issue com definição em aberto é issu
 <restrições, dependências, riscos — se não houver, escreva "Nenhuma">
 ```
 
-**Regra**: o orquestrador só cria a issue após resolver todas as definições. "A definir", "TBD" ou seção vazia = issue inválida — resolva antes de criar, não durante o pipeline.
+**Regra**: o orquestrador só cria a issue após resolver todas as definições. "A definir", "TBD" ou seção vazia = issue inválida — resolva antes de criar, não durante o pipeline. Definição que surgir durante o pipeline vira sub-issue imediatamente (ver Sub-Issues), nunca comentário.
