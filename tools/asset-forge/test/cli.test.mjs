@@ -35,10 +35,12 @@ async function runCli(args) {
 /**
  * Minimal ComfyUI mock: /system_stats, /object_info/CheckpointLoaderSimple,
  * POST /prompt → { prompt_id }, /history/{id} → canned history, /view → PNG.
- * @param {{history: object, checkpoint?: boolean, failPostAt?: number}} opts
+ * @param {{history: object, checkpoint?: boolean, failPostAt?: number, closeAfterPosts?: number}} opts
  *   failPostAt (1-based): the Nth POST /prompt answers 500 (batch-failure test).
+ *   closeAfterPosts (1-based): close the server right after the Nth POST
+ *   response is sent, so the next request hits ECONNREFUSED (offline mid-batch).
  */
-function startMockComfy({ history, checkpoint = true, failPostAt = 0 }) {
+function startMockComfy({ history, checkpoint = true, failPostAt = 0, closeAfterPosts = 0 }) {
   return new Promise((resolve) => {
     let promptCount = 0;
     const server = createServer((req, res) => {
@@ -67,6 +69,9 @@ function startMockComfy({ history, checkpoint = true, failPostAt = 0 }) {
           }
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ prompt_id: "p-test" }));
+          if (closeAfterPosts && promptCount === closeAfterPosts) {
+            server.close();
+          }
         });
       } else if (url.pathname.startsWith("/history/")) {
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -333,9 +338,11 @@ describe("cli", () => {
 
         assert.equal(code, 0);
         assert.match(stdout, /✓ 12\/12 gerados/);
+        // The displayed path reflects the custom --out (displayDir = out), not
+        // the registry default.
         assert.match(
           stdout,
-          /\[3\/12\] cromo-03 → .*cromo-03\.png \(seed \d+, 512×512, \d+\.\d+s\)/,
+          new RegExp(`\\[3/12\\] cromo-03 → ${outDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/cromo-03\\.png`),
         );
         assert.deepEqual((await readdir(outDir)).sort(), CROMO_FILES);
       } finally {
@@ -464,6 +471,108 @@ describe("cli", () => {
       const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
       assert.match(wf["6"].inputs.text, /chave física sem haste/);
       assert.equal(wf["9"].inputs.filename_prefix, "nd-item");
+    });
+
+    it("should abort the whole batch (exit 3) when ComfyUI goes offline mid-batch, keeping prior members", async () => {
+      // Server closes right after the 2nd POST — member 1 fully completes
+      // (poll + download + write), then member 2's poll hits ECONNREFUSED →
+      // ComfyOfflineError → abort (exit 3), keeping member 1's file.
+      const { server, url } = await startMockComfy({
+        history: FAMILY_HISTORY,
+        closeAfterPosts: 2,
+      });
+      const outDir = await mkdtemp(path.join(tmpdir(), "asset-forge-offline-"));
+      try {
+        const { code, stderr } = await runCli([
+          "generate",
+          "item",
+          "--family",
+          "itens-cromo",
+          "--url",
+          url,
+          "--out",
+          outDir,
+        ]);
+
+        assert.equal(code, 3);
+        assert.match(stderr, /ComfyUI offline/);
+        // Member 1 was already written before the abort; the batch did not
+        // continue past the offline member.
+        assert.deepEqual(await readdir(outDir), ["cromo-01.png"]);
+      } finally {
+        await rm(outDir, { recursive: true, force: true });
+        server.close();
+      }
+    });
+
+    it("--member that names a district should auto-inherit that district's accent fragment", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "scene",
+        "--family",
+        "cenas-distritos",
+        "--member",
+        "babilonia",
+        "--dry-run",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.match(wf["6"].inputs.text, /mercado caótico, barracas/);
+      assert.match(wf["6"].inputs.text, /acento funcional âmbar #d4a017/);
+    });
+
+    it("--member that is not a district should get no district fragment", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "scene",
+        "--family",
+        "cenas-distritos",
+        "--member",
+        "saideira",
+        "--dry-run",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      // "acento funcional" is part of the atmospheric style suffix itself, so
+      // assert the district-specific prompt is absent instead.
+      assert.doesNotMatch(wf["6"].inputs.text, /mercado caótico/);
+    });
+
+    it("plain mode --district should inject the district fragment into the single generation", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "scene",
+        "--district",
+        "babilonia",
+        "--dry-run",
+        "--seed",
+        "5",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.match(wf["6"].inputs.text, /mercado caótico, barracas/);
+      assert.match(wf["6"].inputs.text, /acento funcional âmbar #d4a017/);
+      assert.equal(wf["9"].inputs.filename_prefix, "nd-scene");
+    });
+
+    it("--subject with surrounding spaces should be trimmed in the prompt", async () => {
+      const { code, stdout } = await runCli([
+        "generate",
+        "item",
+        "--subject",
+        "  chave física sem haste  ",
+        "--dry-run",
+        "--seed",
+        "9",
+      ]);
+
+      assert.equal(code, 0);
+      const wf = JSON.parse(stdout.slice(stdout.indexOf("{")));
+      assert.match(wf["6"].inputs.text, /, chave física sem haste, /);
+      assert.doesNotMatch(wf["6"].inputs.text, /  chave física sem haste  /);
     });
   });
 });

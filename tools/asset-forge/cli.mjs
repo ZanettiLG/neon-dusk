@@ -177,6 +177,7 @@ async function cmdGenerate({
   if (subject !== undefined && subject.trim().length === 0) {
     throw new UsageError("--subject não pode ser vazio.");
   }
+  subject = subject?.trim(); // ponytail: user input — strip surrounding spaces so the prompt stays clean
   if (member !== undefined && familyId === undefined) {
     throw new UsageError("--member exige --family (members pertencem a uma família).");
   }
