@@ -2,6 +2,20 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-09-04 — N2: Validação de completude de handoff no dev-orchestrator (Zero Em Aberto)
+
+### Trigger
+Relato do humano: issues e handoffs recorrentemente saem com definições em aberto, faltando detalhamento e o contexto completo da tarefa. Planejamento e racional devem estar disponíveis para o próximo agente — nada em aberto.
+
+### Change
+- `dev-orchestrator` (agent): seção "Validação de Handoff" expandida de 1 para 2 camadas — (1) Presença (regra existente de task_result vazio); (2) Completude (Zero Em Aberto): handoff deve conter contexto recebido, planejamento e racional, decisões tomadas, o que foi feito, estado atual e próximos passos, sem nenhuma definição em aberto ("a definir", "TBD", pergunta sem resposta). Handoff incompleto → re-execução do subagente com instrução explícita de completude; só posta na issue depois de validado.
+- `dev-orchestrator` (agent): Passo 0 (create-issue) agora exige body conforme template completo da skill `github-workflow` — issue com definição em aberto não é criada.
+
+### Impact
+Handoffs vagos deixam de chegar ao GitHub: o orquestrador valida completude antes de postar, e issues só nascem com todas as definições resolvidas. O próximo agente recebe contexto, planejamento e racional sem precisar adivinhar.
+
+---
+
 ## 2026-08-31 — N1: grep de referências residuais ampliado para remoções de infra (issue #59)
 
 ### Trigger
