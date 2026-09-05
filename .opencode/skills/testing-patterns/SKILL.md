@@ -265,6 +265,7 @@ Features que renderizam diagramas, mapas ou overlays visuais (badges, marcadores
 
 - Planos E2E de features com overlays/diagramas visuais DEVEM incluir um passo explícito de verificação de sobreposição/colisão entre elementos sobrepostos — conferir (via screenshot + snapshot) se badges, marcadores e labels não se sobrepõem de forma ilegível nem cobrem informação crítica.
 - O passo deve cobrir pelo menos os breakpoints responsivos relevantes (móvel e desktop) quando o posicionamento varia com o viewport.
+- Quando os overlays são interativos (hit-areas, hotspots, zonas clicáveis sobrepostas), a verificação visual NÃO basta — exija também um teste no nível de dados: uma função pura de resolução de dono do clique (resolveSlot-style) + matriz de coordenadas que pina, para cada ponto de teste, qual overlay deve capturar o clique. Bounds em 0–100 válidos não garantem dono de clique correto (issue #94: bounds 100% válidos e clique errado coexistiram).
 
 ## Testando scripts shell com DRY_RUN
 

@@ -6,7 +6,7 @@
  *     style.css) must resolve to a token key — FAIL.
  *  2. Zero hardcoded values in core: hex literals, rgb()/rgba(), text-[Npx],
  *     min-h/min-w-[44px], z-N, duration-N and arbitrary sizes — FAIL, with
- *     the documented allowlist (max-w-[240px] ChromeBodyMapSvg,
+ *     the documented allowlist (max-w-[240px] ChromeBodyMapImage,
  *     max-w-[85vw] Drawer).
  *  3. views/** get the same scan but warn-only (epic #14 follow-up) — WARN.
  *  4. Tokens with no class usage in core warn — WARN (drift signal).
@@ -166,7 +166,7 @@ const HARDCODE_PATTERNS: Array<{ re: RegExp; label: string }> = [
 
 /** Documented exceptions (issue #53): keep these out of the hardcode scan. */
 const HARDCODE_ALLOWLIST: Array<{ file: string; re: RegExp }> = [
-  { file: "ChromeBodyMapSvg.tsx", re: /max-w-\[240px\]/ },
+  { file: "ChromeBodyMapImage.tsx", re: /max-w-\[240px\]/ },
   { file: "Drawer.tsx", re: /max-w-\[85vw\]/ },
 ];
 
@@ -389,7 +389,7 @@ describe("scanFiles (synthetic files)", () => {
   });
 
   it("should honor the per-file hardcode allowlist", () => {
-    const file = write("ChromeBodyMapSvg.tsx", 'className="w-full max-w-[240px] mx-auto"\n');
+    const file = write("ChromeBodyMapImage.tsx", 'className="w-full max-w-[240px] mx-auto"\n');
     expect(scanFiles([file])).toEqual([]);
   });
 });

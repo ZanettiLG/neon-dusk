@@ -1,0 +1,3 @@
+# Rejected AI variants stay local (issue #94 review); the accepted baseline
+# body-map.png does NOT match this pattern and stays committed.
+body-map-*.png

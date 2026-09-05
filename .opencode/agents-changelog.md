@@ -2,6 +2,19 @@
 
 Histórico de mudanças nos agentes de desenvolvimento.
 
+## 2026-09-05 — N1: preservação de área de clique em hit-areas derivadas de bounding boxes (issue #94)
+
+### Trigger
+Issue #94 (run nd-20260904-asset-forge): o qa-browser reportou sobreposição de hit-areas — o Tegumentar sobrepõe nervous_system/skeleton/circulatory/arms e o clique no centro do torso é interceptado pelo slot errado. O code-reviewer confirmou como regressão real: o SVG antigo usava shapes anatômicos; o novo achata em bounding-box rects, colapsando a área exclusiva de clique (a área do Tegumentar caiu de ~40-50% para ~15% do torso). Bounds em 0-100 estavam 100% válidos enquanto o clique selecionava o slot errado.
+
+### Change
+- `developer` (agent): self-review 52 → 53 checks. Adicionado: "Hit-areas/overlays interativos derivados de bounding boxes preservam a área efetiva de clique dos shapes de origem — validado com matriz de donos de clique (função pura resolveSlot-style), não só testes de bounds 0-100".
+
+### Impact
+Esperado: features com overlays interativos passam a validar dono de clique (não só bounds), evitando o ciclo extra de correção causado por sobreposição de hit-areas invisível em testes de coordenadas 0-100.
+
+---
+
 ## 2026-09-04 — N2: Aberto Vira Issue semântico — varredura por trabalho futuro, não por nomes (revisão do humano)
 
 ### Trigger
