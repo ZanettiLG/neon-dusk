@@ -58,4 +58,16 @@ describe("prompts", () => {
       }
     }
   });
+
+  it("should apply the noir suffix to every asset type", async () => {
+    const registry = await loadRegistry(REGISTRY_PATH);
+    for (const type of registry.types) {
+      const { positive } = buildPrompt(type, registry);
+      assert.ok(positive.startsWith(type.prompt.subject), `${type.id} deve começar com o subject`);
+      assert.ok(
+        positive.includes("noir cyberpunk brasileiro"),
+        `${type.id} deve carregar o sufixo noir`,
+      );
+    }
+  });
 });

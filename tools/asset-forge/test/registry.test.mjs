@@ -68,6 +68,11 @@ describe("registry", () => {
     await assert.rejects(() => loadFromTemp("{ nope"), RegistryError);
   });
 
+  it("should reject a missing registry file with RegistryError", async () => {
+    const missing = path.join(tmpdir(), `asset-forge-missing-${Date.now()}.json`);
+    await assert.rejects(() => loadRegistry(missing), RegistryError);
+  });
+
   it("should reject odd dimensions with RegistryError", async () => {
     const bad = {
       version: 1,
@@ -126,5 +131,23 @@ describe("registry", () => {
         ),
       /version/,
     );
+  });
+
+  it("should reject seedPolicy fixed without an integer seed", async () => {
+    const bad = {
+      version: 1,
+      style: { suffix: "s", negative: "n" },
+      types: [
+        {
+          id: "x",
+          prompt: { subject: "s" },
+          size: { width: 8, height: 8 },
+          output: { project: "app", dir: "d", filename: null },
+          seedPolicy: "fixed",
+          postprocess: null,
+        },
+      ],
+    };
+    await assert.rejects(() => loadFromTemp(JSON.stringify(bad)), /seed/);
   });
 });

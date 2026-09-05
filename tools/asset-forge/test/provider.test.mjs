@@ -72,6 +72,13 @@ describe("provider", () => {
     );
   });
 
+  it("checkCheckpoint should map a non-2xx answer to HttpError", async () => {
+    await assert.rejects(
+      () => checkCheckpoint(BASE, "dreamshaper_8", { fetchImpl: fetchOk(500, "boom") }),
+      HttpError,
+    );
+  });
+
   it("submitWorkflow should POST the graph and return prompt_id", async () => {
     const impl = fetchOk(200, { prompt_id: "p-1" });
     const id = await submitWorkflow(BASE, { 3: { class_type: "KSampler" } }, { fetchImpl: impl });
@@ -157,6 +164,13 @@ describe("provider", () => {
     await assert.rejects(
       () => pollHistory(BASE, "p-t", { fetchImpl: impl, intervalMs: 1, timeoutMs: 20 }),
       TimeoutError,
+    );
+  });
+
+  it("pollHistory should map a non-2xx answer to HttpError", async () => {
+    await assert.rejects(
+      () => pollHistory(BASE, "p-x", { fetchImpl: fetchOk(500, "boom"), intervalMs: 1, timeoutMs: 5_000 }),
+      HttpError,
     );
   });
 

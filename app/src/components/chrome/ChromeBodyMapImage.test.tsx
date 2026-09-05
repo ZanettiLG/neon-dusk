@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import ChromeBodyMapImage from "@/components/chrome/ChromeBodyMapImage";
 import { LAYER_ORDER } from "@/lib/chrome-body-map";
 import type { ChromeSlot, InstalledChromeRecord } from "@neon-dusk/shared";
@@ -112,6 +113,39 @@ describe("ChromeBodyMapImage", () => {
     expect(onSelectSlot).toHaveBeenCalledWith("ocular");
   });
 
+  it("should preventDefault on Enter/Space (no native double-fire)", () => {
+    const onSelectSlot = vi.fn();
+    render(<ChromeBodyMapImage installed={[]} selectedSlot={null} onSelectSlot={onSelectSlot} />);
+
+    const cortex = screen.getByRole("button", { name: /^Córtex Frontal — / });
+    // fireEvent resolves to !defaultPrevented — false proves preventDefault ran.
+    expect(fireEvent.keyDown(cortex, { key: "Enter" })).toBe(false);
+    expect(fireEvent.keyDown(cortex, { key: " " })).toBe(false);
+    expect(onSelectSlot).toHaveBeenCalledTimes(2);
+  });
+
+  it("should skip full slots in keyboard tab order", async () => {
+    const user = userEvent.setup();
+    const full = [...LOADOUT, chromeRecord("i4", "Compilador", "frontal_cortex")];
+    render(<ChromeBodyMapImage installed={full} selectedSlot={null} onSelectSlot={vi.fn()} />);
+
+    const fullCortex = screen.getByRole("button", { name: "Córtex Frontal — 3/3 ocupados" });
+    const focusable = screen
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("tabindex") !== "-1");
+    expect(focusable).toHaveLength(9); // 10 hit-areas − 1 full slot
+
+    focusable[0].focus();
+    const visited: (string | null)[] = [];
+    for (let i = 0; i < focusable.length; i++) {
+      await user.tab();
+      visited.push((document.activeElement as HTMLElement).getAttribute("data-slot"));
+    }
+
+    expect(visited).not.toContain("frontal_cortex");
+    expect(new Set(visited).size).toBe(8); // 8 non-full slots (arms × 2 dedupe)
+  });
+
   it("should mark the selected slot with aria-pressed and keep color as decoration", () => {
     render(<ChromeBodyMapImage installed={[]} selectedSlot="arms" onSelectSlot={vi.fn()} />);
 
@@ -138,6 +172,12 @@ describe("ChromeBodyMapImage", () => {
     fireEvent.keyDown(cortex, { key: " " });
 
     expect(onSelectSlot).not.toHaveBeenCalled();
+  });
+
+  it("should not render the CHEIO badge when no slot is full", () => {
+    render(<ChromeBodyMapImage installed={LOADOUT} selectedSlot={null} onSelectSlot={vi.fn()} />);
+
+    expect(screen.queryByText("CHEIO")).not.toBeInTheDocument();
   });
 
   it("should render the legenda HTML com contagens and implant names (text channel)", () => {
