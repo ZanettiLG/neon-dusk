@@ -119,6 +119,27 @@ describe("cli", () => {
     assert.match(stderr, /desconhecido/);
   });
 
+  it("should point to 'list' instead of hardcoding types in the usage text", async () => {
+    const { code, stderr } = await runCli(["frobnicate"]);
+
+    assert.equal(code, 2);
+    assert.match(stderr, /veja "list"/);
+    // The usage text must not enumerate registry types (they live in
+    // registry.json — a hardcoded list would drift).
+    assert.doesNotMatch(stderr, /body-map/);
+    assert.doesNotMatch(stderr, /gig-art/);
+  });
+
+  it("should list the valid types dynamically for an unknown type", async () => {
+    const { code, stderr } = await runCli(["generate", "unicorn"]);
+
+    assert.equal(code, 2);
+    assert.match(stderr, /Tipo desconhecido/);
+    // The error enumerates the registry types at runtime, not a hardcoded list.
+    assert.match(stderr, /body-map/);
+    assert.match(stderr, /gig-art/);
+  });
+
   it("should exit 2 for generate without a type", async () => {
     const { code, stderr } = await runCli(["generate"]);
 

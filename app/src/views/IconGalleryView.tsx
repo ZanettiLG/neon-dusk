@@ -18,12 +18,12 @@ const icons = import.meta.glob("../assets/icons/*.svg", {
  * slash the guard's CODE_ALLOWED expects. Same file set at runtime.
  */
 const rasterAssets = {
-  ...import.meta.glob("../assets/chrome/*.{png,webp,avif}", { query: "?url", eager: true }),
-  ...import.meta.glob("../assets/scenes/*.{png,webp,avif}", { query: "?url", eager: true }),
-  ...import.meta.glob("../assets/items/*.{png,webp,avif}", { query: "?url", eager: true }),
-  ...import.meta.glob("../assets/portraits/*.{png,webp,avif}", { query: "?url", eager: true }),
-  ...import.meta.glob("../assets/backdrops/*.{png,webp,avif}", { query: "?url", eager: true }),
-  ...import.meta.glob("../assets/gig-art/*.{png,webp,avif}", { query: "?url", eager: true }),
+  ...import.meta.glob("../assets/chrome/*.{png,webp,avif}", { query: "?url", eager: true, import: "default" }),
+  ...import.meta.glob("../assets/scenes/*.{png,webp,avif}", { query: "?url", eager: true, import: "default" }),
+  ...import.meta.glob("../assets/items/*.{png,webp,avif}", { query: "?url", eager: true, import: "default" }),
+  ...import.meta.glob("../assets/portraits/*.{png,webp,avif}", { query: "?url", eager: true, import: "default" }),
+  ...import.meta.glob("../assets/backdrops/*.{png,webp,avif}", { query: "?url", eager: true, import: "default" }),
+  ...import.meta.glob("../assets/gig-art/*.{png,webp,avif}", { query: "?url", eager: true, import: "default" }),
 } as Record<string, string>;
 
 interface ManifestAsset {

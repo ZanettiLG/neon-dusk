@@ -255,4 +255,29 @@ describe("registry", () => {
       /districts\[0\]\.name deve ser uma string não vazia/,
     );
   });
+
+  it("should reject malformed postprocess, output.filename and empty types", async () => {
+    const base = baseRegistry();
+    await rejectFixture(
+      { types: [{ ...base.types[0], postprocess: "rembg" }] },
+      /postprocess deve ser null ou objeto/,
+    );
+    await rejectFixture(
+      { types: [{ ...base.types[0], output: { ...base.types[0].output, filename: 42 } }] },
+      /output\.filename deve ser string ou null/,
+    );
+    await rejectFixture({ types: [] }, /types deve ser um array não vazio/);
+  });
+
+  it("should reject empty style suffix and non-string seed family members", async () => {
+    const base = baseRegistry();
+    await rejectFixture(
+      { style: { ...base.style, flat: { ...base.style.flat, suffix: "" } } },
+      /style\.flat\.suffix deve ser uma string não vazia/,
+    );
+    await rejectFixture(
+      { seedFamilies: [{ id: "x", type: "body-map", members: ["a", 7] }] },
+      /members deve ser um array não vazio de strings/,
+    );
+  });
 });

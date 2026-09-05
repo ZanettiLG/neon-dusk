@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { loadRegistry } from "../src/registry.mjs";
 import { buildPrompt } from "../src/prompts.mjs";
+import { RegistryError } from "../src/errors.mjs";
 
 const REGISTRY_PATH = new URL("../registry.json", import.meta.url);
 
@@ -84,5 +85,13 @@ describe("prompts", () => {
         assert.ok(!positive.includes("luz volumétrica"), `${type.id} não deve carregar luz volumétrica`);
       }
     }
+  });
+
+  it("should throw RegistryError for a type whose regime has no style block", async () => {
+    const registry = await loadRegistry(REGISTRY_PATH);
+    const ghost = { id: "ghost", regime: "vaporwave", prompt: { subject: "x" } };
+
+    assert.throws(() => buildPrompt(ghost, registry), RegistryError);
+    assert.throws(() => buildPrompt(ghost, registry), /sem regime válido/);
   });
 });
