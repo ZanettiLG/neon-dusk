@@ -330,3 +330,105 @@ Quando um jogador atinge Moral 100 (Lenda):
 > *"Você pode perder tudo no reset. Sua Grana, seu cromo, seu nível. Mas ninguém tira seu nome do menu."*
 
 Este é o prestige reward definitivo — alinhado ao lore do gênero (drinks da Saideira), ao sistema de prestígio de KoL (Ascensão com benefício permanente) e ao que The Crims tentou fazer com medalhas.
+
+## 8. Universidade — Cursinho da Quebrada
+
+### Conceito
+
+> *"A rua ensina de graça. O Cursinho cobra caro — porque o que ele ensina, a rua cobra mais caro ainda."*
+
+A universidade do submundo. Galpão de 3 andares na Babilônia, entre a galeria de eletrônicos e o Saideira. Porta de aço, placa pichada: "CURSINHO DA QUEBRADA" — o S caiu em 2081 e ninguém consertou. O nome é marca, não endereço: o Cursinho fica na Babilônia, mas é da quebrada.
+
+Professor é corredor aposentado, Ferrageiro sem cliente, Vulto queimado, despachante que devia dinheiro pra gente errada. Todos ensinam o que aprenderam — pelo preço certo. Não tem diploma de verdade. Tem contrato. E o contrato é claro: você paga, eles ensinam, e o que você aprende é seu. Pra sempre.
+
+### As Duas Portas
+
+| Instituição | Distrito | Moeda | O que ensina | Preço escondido |
+|---|---|---|---|---|
+| **Cursinho da Quebrada** | Babilônia | G$ | O corre de rua: briga, tiro, gambiarra, malemolência | Nenhum. O conhecimento é sujo, mas é seu |
+| **Instituto Paraíso** | A Paraíso | ₵ | "Expansão cognitiva assistida": Netrun profundo, cromo neural, Sobrevivência de elite | **Humanidade**. O folheto promete uma mente mais clara. Os andares de baixo não têm janela |
+
+### Cursos (6)
+
+Cada curso é uma área do corre. Cada um tem 3 tiers. Cada tier tem um bônus na rodada — e o T3 tem um bônus permanente.
+
+| Curso | Área | Atributo | Bônus permanente (T3) |
+|---|---|---|---|
+| **Briga** | Combate corpo a corpo | Body | +1 BOD base |
+| **Mira** | Tiro e reflexos | Reflexes | +1 REF base |
+| **Netrun** | Hacking e Rede | Intelligence | +1 INT base |
+| **Gambiarra** | Engenharia e crafting | Technical | +1 TEC base |
+| **Malemolência** | Social e presença | Cool | +1 COL base |
+| **Sobrevivência** | Rua e resistência | Geral | +10 NIL máximo |
+
+### Tiers
+
+| Tier | Nome | Custo (G$) | Duração | Requisitos | Bônus na rodada | Bônus permanente |
+|---|---|---|---|---|---|---|
+| T1 | Básico | 20.000 | 24h | Nível 5, Moral 10, atributo 10 | +1 atributo na área | — |
+| T2 | Avançado | 50.000 | 48h | Nível 15, Moral 25, atributo 12 | +2 atributo na área | — |
+| T3 | Master | 100.000 | 72h | Nível 30, Moral 50, atributo 15 | +3 atributo na área | **+1 atributo base** |
+
+- **Bônus na rodada é cumulativo**: curso completo (T1+T2+T3) = +3 atributo na área durante a rodada.
+- **Bônus permanente é único**: fez o T3 uma vez, o +1 base é seu pra sempre. Refazer o curso na próxima rodada não acumula — só renova o bônus da rodada. Máximo de +6 atributo base e +10 NIL máximo vindos da Universidade.
+- Cada tier consome **20 NIL** ao iniciar (a aula inaugural). O resto roda sozinho — timer idle.
+
+### Instituto Paraíso — A Porta Corporativa
+
+Mesmos 6 cursos, mesmos tiers. A diferença é o preço:
+
+| Tier | Custo (₵) | Custo oculto | Bônus |
+|---|---|---|---|
+| T1 | 50₵ | -10 Humanidade | +1 atributo na área |
+| T2 | 100₵ | -10 Humanidade | +2 atributo na área |
+| T3 | 150₵ | -10 Humanidade | +1 atributo base + **1 slot de cromo neural** |
+
+- O Instituto cobra em Créditos (₵) — conveniência, nunca poder. O Cursinho cobra em Grana; o Instituto cobra em Créditos **e** Humanidade.
+- O bônus permanente do T3 é o mesmo do Cursinho (+1 atributo base, ou +10 NIL máximo no caso de Sobrevivência) — o Instituto adiciona o slot de cromo neural por cima.
+- O T3 do Instituto desbloqueia **cromo exclusivo**: +1 slot de cromo neural permanente. "Enriquecimento de longo prazo" — os cérebros que entram no programa nunca mais produzem um pensamento que o Instituto não tenha implantado primeiro.
+
+### Permanente vs Temporário
+
+| Bônus | Tipo | Sobrevive ao reset? |
+|---|---|---|
+| +1/+2/+3 atributo na área (tiers) | Temporário | Não — reseta com a rodada |
+| +1 atributo base (T3) | Permanente | **Sim** — como o Hall de Lendas (§7) |
+| +10 NIL máximo (Sobrevivência T3) | Permanente | **Sim** |
+| +1 slot de cromo neural (Instituto T3) | Permanente | **Sim** |
+| Diploma (título no perfil) | Permanente | **Sim** — cosmético |
+
+- **Diploma**: completar o T3 de um curso concede um título exibido no perfil (ex: "Formado em Briga — Cursinho da Quebrada"). Cosmético, como o drink do Saideira — ninguém tira seu nome do quadro.
+
+### Integração com Simuladores (#79)
+
+Simuladores e Universidade dividem o mesmo **slot de treino** (1 por personagem). Você treina ou estuda — não os dois ao mesmo tempo.
+
+| | Simuladores | Universidade |
+|---|---|---|
+| Timer | 30min-1h por sessão | 24-72h por tier |
+| Custo | NIL ou Grana | G$ ou ₵ |
+| Bônus | +1 atributo por sessão (na rodada) | +1/+2/+3 atributo (na rodada) + permanente no T3 |
+| Bônus de bonde | +10%/nível (até +100%) | — |
+| Sobrevive ao reset? | Não | T3 sim |
+
+- **Fluxo**: Simuladores sobem atributos na rodada → Universidade exige atributo 15 no T3 (o soft cap do §1) → o T3 converte o progresso da rodada em bônus permanente.
+- **Soft cap 15**: depois de 15, o custo dobra (§1). O +1 base permanente da Universidade é o caminho de longo prazo — a cada rodada, você começa mais perto do teto.
+
+### Requisitos
+
+| Requisito | T1 | T2 | T3 |
+|---|---|---|---|
+| Nível | 5 | 15 | 30 |
+| Moral | 10 (Perna) | 25 (Pro) | 50 (Corredor) |
+| Atributo da área | 10 | 12 | 15 |
+| Grana | G$ 20.000 | G$ 50.000 | G$ 100.000 |
+| NIL (início do tier) | 20 | 20 | 20 |
+
+### Regras de Matrícula
+
+- **1 curso por vez** — o slot de treino é único (compartilhado com Simuladores).
+- **Matrícula não reembolsável** — trancou, perdeu a grana. O Cursinho não devolve nada. Nem o Instituto.
+- **Timer idle** — o curso roda sozinho. Pode deslogar. Volta quando termina.
+- **Bônus de bonde não se aplica** — Universidade é estudo individual. Bonde ajuda no Simulador, não na prova.
+
+> **Nota**: Universidade é Fase 2 (issue #91). Simuladores (#79) é o pré-requisito de treino.

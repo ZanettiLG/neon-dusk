@@ -271,3 +271,130 @@ Substitui o "casino" do The Crims com atividades temáticas cyberpunk:
 - **Corp War**: evento de 48h. Escolha um lado (Grupo Falcão vs Aço Paulista). Trampos PvP massivos
 - **Apagão 2.0**: ataque à infraestrutura. Hacking liberado em todos os distritos
 - **Night of the Long Knives**: 24h sem proteção de noob. Alto risco, alta recompensa
+
+---
+
+## 9. Rolê de Gangue — PvE de Gangue
+
+### Conceito
+
+As gangues de São Paulo não pedem licença. Elas ocupam. Cada uma mantém **bocas** — pontos de operação no próprio território: boca de cromo, boca de aposta, boca de arma, boca de dado. Invadir uma boca é invadir o **rolê** da gangue: bater nos seguranças, saquear o estoque e vazar antes do reforço chegar.
+
+PvE contra gangues NPC. Sem tempo real, sem servidor de baixa latência — comparação de poder + decisão + timer, o padrão do gênero. Referência: Hunting Grounds do The Crims (35 raves escaláveis por dia da rodada; 8 bosses com power fixo).
+
+> "Cada gangue tem seu canto. Teu erro é achar que entra sem pagar entrada."
+
+### As Bocas
+
+35 bocas no total, distribuídas pelos territórios das 8 gangues. Babilônia não tem boca — território neutro, trégua tácita. As bocas aparecem no menu do distrito: cada território lista as suas, com poder e recompensa visíveis.
+
+| Gangue | Território | Bocas | Moral mínima | Poder base (dia 1) | Grana base (G$) | Moral | Saque típico |
+|---|---|---|---|---|---|---|---|
+| **Catadores** | A Quebrada (base) | 4 | 0 | 12 | 500-1.000 | 1-2 | Peça de Sucata |
+| **Raiz** | Periferia / cinturão verde | 4 | 5 | 16 | 1.000-2.000 | 1-2 | Muda Sintética |
+| **Culto da Estática** | As Mortas | 4 | 10 | 20 | 2.000-4.000 | 2-3 | Fragmento de Estática |
+| **Anjos de Cromo** | A Quebrada (superior) | 5 | 15 | 24 | 4.000-8.000 | 2-3 | Cromo Dourado |
+| **Os Invisíveis** | A Quebrada (zonas profundas) | 4 | 20 | 28 | 6.000-12.000 | 3-4 | Identidade Descartável |
+| **Maré de Ferro** | O Fervo | 5 | 25 | 32 | 10.000-20.000 | 3-4 | Munição de Grau Militar |
+| **O Comando** | O Fluxo (submundo) | 5 | 30 | 36 | 15.000-30.000 | 4-5 | Contrato de Proteção |
+| **Os Barqueiros** | O Ponto | 4 | 40 | 44 | 25.000-50.000 | 5-6 | Cromo de Necrópole |
+
+**Total: 35 bocas.** Catadores são fracos — catador não é soldado. Os Barqueiros são o fim da linha: ninguém desce no Ponto e volta do mesmo jeito.
+
+### Fórmula de Sucesso
+
+`Chance de sucesso = Poder do jogador / Poder do bando`
+
+- **Poder do jogador** = Body + Reflexes + Poder de Cromo + bônus de ampola (mesma fórmula do PvP)
+- **Poder do bando** = Poder base da gangue × Escala do dia
+- **Ratio ≥ 1.5**: vitória garantida, recompensa -50%. Sem risco, sem graça (lição do The Crims: power >> dificuldade = ganho diminui)
+- **Ratio 0.9-1.1**: zona ideal, recompensa cheia
+- **Ratio < 0.6**: derrota quase certa. Não insiste, mano
+
+### Escala por Dia da Rodada
+
+A rodada dura 14 dias. As gangues se preparam — o rolê fica mais pesado a cada dia. Recompensa acompanha o risco.
+
+| Dia da rodada | Multiplicador de Poder | Multiplicador de Recompensa |
+|---|---|---|
+| 1-2 | 1.0× | 1.0× |
+| 3-4 | 1.2× | 1.2× |
+| 5-6 | 1.4× | 1.4× |
+| 7-8 | 1.6× | 1.6× |
+| 9-10 | 1.8× | 1.8× |
+| 11-12 | 2.0× | 2.0× |
+| 13-14 | 2.2× | 2.2× |
+
+Dia 14, a boca dos Catadores (12) vira 26. A dos Barqueiros (44) vira 97. O fim da rodada é o auge — e o auge paga.
+
+### Recompensas
+
+| Recompensa | Boca | Cabeça |
+|---|---|---|
+| **Grana** | Tabela das bocas × Escala do dia | Fixa por gangue (10.000-200.000) |
+| **Saque** | Componente da gangue (1-3 unidades) | Componente raro + peça de cromo |
+| **Moral** | 1-6 (por gangue) | 10-30 |
+| **Reputação de gangue** | +rep com o inimigo natural, -rep com a gangue atacada | Dobro do swing da boca |
+
+Saque alimenta crafting (Fase 3) e venda em Babilônia. Componente de gangue é a matéria-prima do cromo de rua.
+
+### Riscos
+
+| Risco | Boca | Cabeça |
+|---|---|---|
+| **NIL** | 15 | 30 |
+| **Dano** | Falha = dano ao corpo | Falha = dano pesado |
+| **Heat** | +10 com a gangue | +25 |
+| **Prisão** | Não | Falha = 2h de prisão + perda de 10% da Grana em mãos |
+
+**Heat** acumula por gangue. Heat ≥ 50: chance de emboscada no próximo trampo no território dela. Heat 100: a gangue revida — ataque PvP contra você. Heat decai 10/dia.
+
+### As Cabeças (Bosses)
+
+Cada gangue tem uma **Cabeça** — o dono da boca maior, o nome que a gangue respeita. Poder **fixo**, não escala com o dia (referência: Street Fights do The Crims, 8 bosses com power fixo). Conteúdo de bonde: poder somado dos membros. Solo é possível com build de endgame + ampola.
+
+| Gangue | Cabeça | Poder fixo | Desbloqueio | Grana (G$) | Moral | Risco |
+|---|---|---|---|---|---|---|
+| **Catadores** | Ferro-Velho | 60 | Dia 3, Moral 10 | 10.000-20.000 | 10-15 | Médio |
+| **Raiz** | Mata-Viva | 80 | Dia 4, Moral 15 | 15.000-30.000 | 10-15 | Médio |
+| **Culto da Estática** | O Coro | 100 | Dia 5, Moral 20 | 20.000-40.000 | 12-18 | Alto |
+| **Anjos de Cromo** | Serafim | 120 | Dia 6, Moral 25 | 30.000-60.000 | 12-18 | Alto |
+| **Os Invisíveis** | Ninguém | 140 | Dia 7, Moral 30 | 40.000-80.000 | 15-20 | Alto |
+| **Maré de Ferro** | Sargento | 160 | Dia 8, Moral 35 | 50.000-100.000 | 15-20 | Muito Alto |
+| **O Comando** | O Doutor | 180 | Dia 10, Moral 40 | 75.000-150.000 | 18-25 | Muito Alto |
+| **Os Barqueiros** | Caronte | 200 | Dia 12, Moral 50 | 100.000-200.000 | 20-30 | Extremo |
+
+**Vingança**: matar a Cabeça zera o heat dela com você — mas a gangue reage. As bocas dela ficam 2× mais difíceis por 24h.
+
+### Limites Anti-Grind
+
+| Limite | Regra |
+|---|---|
+| **NIL** | 15 por boca, 30 por Cabeça — teto natural de ~6 bocas/dia |
+| **Teto diário** | Máx 8 bocas/dia no total, máx 3 da mesma gangue |
+| **Cabeça** | 1 tentativa por gangue por dia (cooldown 24h) |
+| **Recompensa decrescente** | Mesma boca 3× no mesmo dia → recompensa -50% |
+| **Ratio alto** | Poder ≥ 1.5× o bando → recompensa -50% |
+
+Bocas resetam diariamente. O anti-grind segue o mesmo princípio do PvP: teto de tentativas + recompensa decrescente.
+
+### Reputação de Gangue (issue #88)
+
+PvE de Gangue é a principal fonte de reputação de gangue (Sistema de Reputação, issue #88, Fase 3). Atacar a boca da gangue X dá +rep com o inimigo natural de X e -rep com X:
+
+| Gangue atacada | Ganham rep |
+|---|---|
+| Catadores | Anjos de Cromo |
+| Anjos de Cromo | Catadores |
+| Culto da Estática | Os Invisíveis |
+| Os Invisíveis | Culto da Estática |
+| Os Barqueiros | Raiz |
+| Raiz | Os Barqueiros |
+| Maré de Ferro | O Comando |
+| O Comando | Maré de Ferro |
+
+Rep alta desbloqueia: desconto em vendors da gangue, trampos exclusivos, passagem segura pelo território. Rep baixa: a gangue te trata como alvo.
+
+### Nota de Fase
+
+Rolê de Gangue é **Fase 2** (The Edge), alinhado com Guerra de Bondes e territórios. A integração completa de reputação depende do Sistema de Reputação (#88, Fase 3).
