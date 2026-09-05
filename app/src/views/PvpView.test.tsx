@@ -59,7 +59,6 @@ const character: Character = {
 
 const attackable: PvpAttackableResponse = {
   nilCost: 20,
-  cooldownSeconds: 15,
   targets: [
     {
       characterId: "c2",
@@ -177,7 +176,6 @@ describe("PvpView", () => {
       if (url === "/api/pvp/attackable")
         return Promise.resolve({
           nilCost: 20,
-          cooldownSeconds: 15,
           targets: [
             {
               characterId: "c3",

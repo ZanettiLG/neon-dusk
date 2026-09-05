@@ -21,7 +21,7 @@ export interface GigRow {
   nil_cost: number;
   heat_generated: number;
   legwork_minutes: number;
-  cooldown_minutes: number;
+  cooldown_seconds: number;
   created_at: Date;
 }
 

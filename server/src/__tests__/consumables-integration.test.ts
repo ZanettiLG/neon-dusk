@@ -6,11 +6,7 @@ import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, clearAuthIpRateLimits } from "./helpers";
 import { db } from "../db";
 import { seedConsumables, seedVendors } from "../seed/content-seeds";
-import type {
-  AuthResponse,
-  ConsumablesResponse,
-  ConsumableUseResponse,
-} from "@neon-dusk/shared";
+import type { AuthResponse, ConsumablesResponse, ConsumableUseResponse } from "@neon-dusk/shared";
 
 // Issue #28 — Itens anti-insanidade API integration tests. Real HTTP against
 // the app (Fastify + Postgres + Redis on the isolated test stack). Dedicated
@@ -88,8 +84,14 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
   });
 
   /** Register a fresh user + character via HTTP; returns token + character id. */
-  async function registerAndCreateCharacter(): Promise<{ accessToken: string; characterId: string }> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+  async function registerAndCreateCharacter(): Promise<{
+    accessToken: string;
+    characterId: string;
+  }> {
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken, user } = await json<AuthResponse>(res);
 
@@ -105,15 +107,16 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
     });
     expect(created.status).toBe(201);
 
-    const [character] = await db("characters")
-      .select("id")
-      .where("user_id", user.id)
-      .limit(1);
+    const [character] = await db("characters").select("id").where("user_id", user.id).limit(1);
     return { accessToken, characterId: character!.id };
   }
 
   /** Create the wallet (500 seed) and top it up so purchases are affordable. */
-  async function topUpWallet(accessToken: string, characterId: string, amount = 200_000): Promise<void> {
+  async function topUpWallet(
+    accessToken: string,
+    characterId: string,
+    amount = 200_000,
+  ): Promise<void> {
     await fetch(`${base()}/api/economy/balance`, { headers: authHeader(accessToken) });
     await db("character_wallets")
       .where("character_id", characterId)
@@ -122,10 +125,7 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
 
   /** DB id of a seeded consumable, by slug. */
   async function consumableId(slug: string): Promise<string> {
-    const [row] = await db("consumables")
-      .select("id")
-      .where("slug", slug)
-      .limit(1);
+    const [row] = await db("consumables").select("id").where("slug", slug).limit(1);
     return row!.id;
   }
 
@@ -160,9 +160,24 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
 
       expect(body.items).toHaveLength(3);
       const bySlug = Object.fromEntries(body.items.map((i) => [i.slug, i]));
-      expect(bySlug.estabilizador).toMatchObject({ tier: 1, restoreAmount: 5, cooldownHours: 0, ownedQuantity: 0 });
-      expect(bySlug.freio).toMatchObject({ tier: 2, restoreAmount: 10, cooldownHours: 12, ownedQuantity: 0 });
-      expect(bySlug.choque).toMatchObject({ tier: 3, restoreAmount: 15, cooldownHours: 24, ownedQuantity: 0 });
+      expect(bySlug.estabilizador).toMatchObject({
+        tier: 1,
+        restoreAmount: 5,
+        cooldownHours: 0,
+        ownedQuantity: 0,
+      });
+      expect(bySlug.freio).toMatchObject({
+        tier: 2,
+        restoreAmount: 10,
+        cooldownHours: 0,
+        ownedQuantity: 0,
+      }); // #187: no per-item cooldown
+      expect(bySlug.choque).toMatchObject({
+        tier: 3,
+        restoreAmount: 15,
+        cooldownHours: 0,
+        ownedQuantity: 0,
+      }); // #187: no per-item cooldown
       for (const item of body.items) {
         expect(item.nextAvailableAt).toBeNull();
       }
@@ -194,15 +209,26 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
       await db("characters").where("id", characterId).update({ humanity: 50 });
 
       // 1st use: 100% of 5 = 5 → 55.
-      const first = await json<ConsumableUseResponse>(await useItem(accessToken, await consumableId("estabilizador")));
-      expect(first).toMatchObject({ humanityBefore: 50, humanityAfter: 55, restored: 5, costEddies: 0 });
+      const first = await json<ConsumableUseResponse>(
+        await useItem(accessToken, await consumableId("estabilizador")),
+      );
+      expect(first).toMatchObject({
+        humanityBefore: 50,
+        humanityAfter: 55,
+        restored: 5,
+        costEddies: 0,
+      });
 
       // 2nd use: 60% of 5 = 3 → 58.
-      const second = await json<ConsumableUseResponse>(await useItem(accessToken, await consumableId("estabilizador")));
+      const second = await json<ConsumableUseResponse>(
+        await useItem(accessToken, await consumableId("estabilizador")),
+      );
       expect(second).toMatchObject({ humanityBefore: 55, humanityAfter: 58, restored: 3 });
 
       // 3rd use: 30% of 5 = 1.5 → round 2 → 60.
-      const third = await json<ConsumableUseResponse>(await useItem(accessToken, await consumableId("estabilizador")));
+      const third = await json<ConsumableUseResponse>(
+        await useItem(accessToken, await consumableId("estabilizador")),
+      );
       expect(third).toMatchObject({ humanityBefore: 58, humanityAfter: 60, restored: 2 });
 
       // Each use consumed exactly one unit.
@@ -263,11 +289,14 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
       expect(body.error).toBe("NOT_OWNED");
     });
 
-    it("should return 429 COOLDOWN_ACTIVE for a T2 item used twice within its 12h cooldown", async () => {
+    it("should return 429 COOLDOWN_ACTIVE for a T2 item used twice within its cooldown", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       await topUpWallet(accessToken, characterId);
       await buyItem(accessToken, DOC_FIOS_ID, "freio", 2);
       await db("characters").where("id", characterId).update({ humanity: 50 });
+      // #187: seeds ship cooldown_hours = 0 — the MECHANISM still exists, so
+      // re-enable it explicitly for this row to exercise the gate.
+      await db("consumables").where("slug", "freio").update({ cooldown_hours: 12 });
 
       const first = await useItem(accessToken, await consumableId("freio"));
       expect(first.status).toBe(200);
@@ -284,11 +313,13 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
       expect(new Date(body.details!.nextAvailableAt!).getTime()).toBeGreaterThan(Date.now());
     });
 
-    it("should return 429 COOLDOWN_ACTIVE for a T3 item used twice within its 24h cooldown", async () => {
+    it("should return 429 COOLDOWN_ACTIVE for a T3 item used twice within its cooldown", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       await topUpWallet(accessToken, characterId);
       await buyItem(accessToken, MADAME_K_ID, "choque", 2);
       await db("characters").where("id", characterId).update({ humanity: 50 });
+      // #187: seeds ship cooldown_hours = 0 — re-enable for this row only.
+      await db("consumables").where("slug", "choque").update({ cooldown_hours: 24 });
 
       const first = await useItem(accessToken, await consumableId("choque"));
       expect(first.status).toBe(200);
@@ -337,7 +368,9 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
     });
 
     it("should return 401 without an access token", async () => {
-      const res = await server.post("/api/consumables/use", { itemId: "00000000-0000-0000-0000-000000000000" });
+      const res = await server.post("/api/consumables/use", {
+        itemId: "00000000-0000-0000-0000-000000000000",
+      });
       expect(res.status).toBe(401);
     });
 
@@ -359,9 +392,7 @@ describe("Issue #28 — Itens anti-insanidade API", () => {
         .sort((x, y) => y - x);
       expect(restored).toEqual([5, 3]); // 100% then 60% — never both 100%
 
-      const [char] = await db("characters")
-        .select("humanity")
-        .where("id", characterId);
+      const [char] = await db("characters").select("humanity").where("id", characterId);
       expect(char!.humanity).toBe(58); // 50 + 5 + 3, applied exactly once each
     });
   });

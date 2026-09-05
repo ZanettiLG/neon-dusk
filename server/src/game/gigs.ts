@@ -362,23 +362,23 @@ export function calculateStreetCred(tier: GigTier, rng: () => number = Math.rand
  * Check if enough time has passed since the last trampo of the same type.
  *
  * @param lastCompletedAt  - Timestamp of the last same-type trampo, or null if never done.
- * @param cooldownMinutes  - Cooldown period in minutes.
+ * @param cooldownSeconds  - Cooldown period in seconds (per-tier progression #187).
  * @param now              - Current time. Defaults to `new Date()`.
  * @returns `true` if the cooldown has expired (including when there's no prior trampo).
  *
  * @edgecases `lastCompletedAt` is null → returns true (no prior trampo).
- *            `cooldownMinutes ≤ 0` → always returns true.
+ *            `cooldownSeconds ≤ 0` → always returns true.
  *            `lastCompletedAt` in the future → returns false.
  */
 export function isCooldownExpired(
   lastCompletedAt: Date | null,
-  cooldownMinutes: number,
+  cooldownSeconds: number,
   now: Date = new Date(),
 ): boolean {
   if (lastCompletedAt === null) return true;
-  if (cooldownMinutes <= 0) return true;
+  if (cooldownSeconds <= 0) return true;
   const elapsedMs = now.getTime() - lastCompletedAt.getTime();
-  return elapsedMs >= cooldownMinutes * 60_000;
+  return elapsedMs >= cooldownSeconds * 1000;
 }
 
 /**

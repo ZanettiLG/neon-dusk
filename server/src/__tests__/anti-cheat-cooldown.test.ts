@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import Redis from "ioredis";
 import type { FastifyRequest } from "fastify";
 import { randomUUID } from "node:crypto";
-import { checkCooldown, cooldownConfig } from "../middleware/cooldown";
+import { checkCooldown, cooldownConfig, setCooldown } from "../middleware/cooldown";
 import { insertTestCharacter, resetDb } from "./helpers";
 
 // ND-053 — action cooldown gate (checkCooldown). Unit tests against a
@@ -22,6 +22,9 @@ function requestFor(userId: string, auditContext: Record<string, unknown> = {}) 
 
 describe("checkCooldown (anti-cheat cooldown gate)", () => {
   let redis: Redis;
+  // #187: chat anti-spam is 500ms — widen to 5s so the unit tests can set the
+  // key with a stable TTL (the real window is intentionally tiny).
+  const CHAT_WINDOW_S = 5;
 
   beforeAll(async () => {
     redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
@@ -51,7 +54,7 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
 
     // Route handler sets the key after a successful action (ADR-2), keyed by
     // the DB character id — the same id requireByUserId resolves.
-    await redis.setex(`cooldown:${characterId}:chat_message`, cooldownConfig.chat_message.durationMs / 1000, "1");
+    await redis.set(`cooldown:${characterId}:chat_message`, "1", "EX", CHAT_WINDOW_S);
 
     const auditContext = {};
     await expect(preHandler(requestFor(userId, auditContext))).rejects.toMatchObject({
@@ -76,6 +79,20 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
     await sleep(1_100); // key TTL is 1s — wait for natural expiry
 
     await expect(preHandler(requestFor(userId))).resolves.toBeUndefined();
+  });
+
+  it("should set the post-success cooldown via setCooldown (PX, 500ms)", async () => {
+    const { userId, characterId } = await insertTestCharacter();
+    const preHandler = checkCooldown(redis, "chat_message");
+
+    // Route handlers call setCooldown AFTER success (ADR-2).
+    await setCooldown(redis, characterId, "chat_message");
+
+    // The key is present and blocks the next request within the window.
+    await expect(preHandler(requestFor(userId))).rejects.toMatchObject({
+      statusCode: 429,
+      code: "COOLDOWN_ACTIVE",
+    });
   });
 
   it("should keep cooldowns independent across different actions", async () => {
@@ -119,7 +136,7 @@ describe("checkCooldown (anti-cheat cooldown gate)", () => {
   });
 });
 
-describe("cooldownConfig (ND-053 durations)", () => {
+describe("cooldownConfig (ND-053 durations, #187 tuning)", () => {
   it("should set gig_accept to 30s (30_000ms)", () => {
     expect(cooldownConfig.gig_accept.durationMs).toBe(30_000);
   });
@@ -128,8 +145,9 @@ describe("cooldownConfig (ND-053 durations)", () => {
     expect(cooldownConfig.chrome_install.durationMs).toBe(60_000);
   });
 
-  it("should keep the legacy durations unchanged", () => {
-    expect(cooldownConfig.chat_message.durationMs).toBe(5_000); // 5s
-    expect(cooldownConfig.crew_invite.durationMs).toBe(60_000); // 60s
+  it("should set the anti-spam actions to 500ms (#187)", () => {
+    expect(cooldownConfig.chat_message.durationMs).toBe(500);
+    expect(cooldownConfig.crew_invite.durationMs).toBe(500);
+    expect(cooldownConfig.pvp_attack.durationMs).toBe(500);
   });
 });

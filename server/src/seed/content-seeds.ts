@@ -14,19 +14,19 @@ import { CONSUMABLE_CATALOG } from "../content/consumables";
 // (The implementations live under src/ so tests can import them without
 // breaking the tsconfig rootDir; server/seeds/0X_*.ts re-export for the CLI.)
 
-/** Per-tier trampo cooldown, in minutes (balance pass #114). */
+/** Per-tier trampo cooldown, in seconds (#187 — the only real waits in the game). */
 function cooldownForTier(tier: string): number {
   switch (tier) {
     case "t1":
-      return 10;
+      return 5;
     case "t2":
-      return 15;
+      return 60;
     case "t3":
-      return 20;
+      return 900;
     case "t4":
-      return 25;
+      return 7200;
     default:
-      return 30;
+      return 86400;
   }
 }
 
@@ -103,7 +103,7 @@ export async function seedGigs(knex: Knex): Promise<number> {
         nil_cost: t.nilCost,
         heat_generated: t.heatGenerated,
         legwork_minutes: t.legworkMinutes,
-        cooldown_minutes: cooldownForTier(t.tier),
+        cooldown_seconds: cooldownForTier(t.tier),
       })
       .onConflict("name")
       .merge([
@@ -119,7 +119,7 @@ export async function seedGigs(knex: Knex): Promise<number> {
         "nil_cost",
         "heat_generated",
         "legwork_minutes",
-        "cooldown_minutes",
+        "cooldown_seconds",
       ]);
   }
   return GIG_TEMPLATES.length;
@@ -223,7 +223,10 @@ export async function seedRound(knex: Knex): Promise<void> {
 export const DEFAULT_PARAMS: Record<string, string> = {
   ROUND_DURATION_DAYS: "14",
   NIL_REGEN_MINUTES: "5",
-  GIG_COOLDOWN_MINUTES: "10",
+  // #187: global floor for trampo cooldowns, in MINUTES (admin knob to slow
+  // the grind). Default 0 — the per-tier progression (T1=5s … T5=24h) is
+  // authoritative; raising this re-imposes a minimum wait on every trampo.
+  GIG_COOLDOWN_MINUTES: "0",
   // ND-052: aligned with 03-mecanicas-core.md §3 ("Atacante gasta 20 NIL")
   // and the pre-ND-052 code constant — the seed previously diverged at 10.
   PVP_NIL_COST: "20",

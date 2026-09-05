@@ -82,7 +82,9 @@ describe("errorHandler", () => {
 
   it("should set Retry-After header and top-level retryAfter for RATE_LIMITED", () => {
     const reply = mockReply();
-    const err = new AppError(429, "RATE_LIMITED", "Muitas requisições. Aguarde.", { retryAfter: 60 });
+    const err = new AppError(429, "RATE_LIMITED", "Muitas requisições. Aguarde.", {
+      retryAfter: 60,
+    });
 
     errorHandler(err, mockRequest, reply);
 
@@ -98,7 +100,9 @@ describe("errorHandler", () => {
 
   it("should set Retry-After header for COOLDOWN_ACTIVE", () => {
     const reply = mockReply();
-    const err = new AppError(429, "COOLDOWN_ACTIVE", "Ação em cooldown. Aguarde.", { retryAfter: 5 });
+    const err = new AppError(429, "COOLDOWN_ACTIVE", "Ação em cooldown. Aguarde.", {
+      retryAfter: 5,
+    });
 
     errorHandler(err, mockRequest, reply);
 
@@ -114,7 +118,7 @@ describe("errorHandler", () => {
 
   it("should propagate details.nextAvailableAt on a 429 COOLDOWN_ACTIVE", () => {
     const reply = mockReply();
-    const err = new AppError(429, "COOLDOWN_ACTIVE", "Você já fez terapia nas últimas 24h.", {
+    const err = new AppError(429, "COOLDOWN_ACTIVE", "Você já fez terapia agora há pouco.", {
       nextAvailableAt: "2026-08-30T12:00:00.000Z",
     });
 
@@ -124,7 +128,7 @@ describe("errorHandler", () => {
     expect(reply.header).not.toHaveBeenCalled(); // no retryAfter → no header
     expect(reply.send).toHaveBeenCalledWith({
       error: "COOLDOWN_ACTIVE",
-      message: "Você já fez terapia nas últimas 24h.",
+      message: "Você já fez terapia agora há pouco.",
       retryAfter: undefined,
       details: { nextAvailableAt: "2026-08-30T12:00:00.000Z" },
     });

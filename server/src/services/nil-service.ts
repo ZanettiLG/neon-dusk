@@ -1,12 +1,6 @@
-import type Redis from "ioredis";
 import { z } from "zod";
 import type { NilConsumeResponse, NilStatus, NilStimResponse } from "@neon-dusk/shared";
-import {
-  NIL_REGEN_INTERVAL_MS,
-  NIL_REGEN_RATE,
-  NIL_SYN_CAFE_AMOUNT,
-  NIL_SYN_CAFE_COOLDOWN_S,
-} from "@neon-dusk/shared";
+import { NIL_REGEN_INTERVAL_MS, NIL_REGEN_RATE, NIL_SYN_CAFE_AMOUNT } from "@neon-dusk/shared";
 import { AppError } from "../middleware/error-handler";
 import { characterRepository as characters } from "../repositories/character-repository";
 import type { CharacterRow } from "../repositories/character-repository";
@@ -88,7 +82,11 @@ export async function consumeNil(userId: string, amount: number): Promise<NilCon
   const { newNil: current } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
 
   if (amount > current) {
-    throw new AppError(400, "INSUFFICIENT_NIL", `NIL insuficiente (tem ${current}, precisa de ${amount})`);
+    throw new AppError(
+      400,
+      "INSUFFICIENT_NIL",
+      `NIL insuficiente (tem ${current}, precisa de ${amount})`,
+    );
   }
 
   // Atomic spend: persist regen AND deduct in one UPDATE. `regened` is
@@ -113,27 +111,15 @@ export async function consumeNil(userId: string, amount: number): Promise<NilCon
 }
 
 /**
- * Pingado: instantly restores +20 NIL (capped at max), gated by a 1h Redis
- * cooldown key per character. Returns the amount actually restored.
+ * Pingado: instantly restores +20 NIL (capped at max). No cooldown (#187) —
+ * the route's rate limit is the anti-abuse guard; the cap is the natural
+ * ceiling. Returns the amount actually restored.
  */
-export async function useStim(redis: Redis, userId: string): Promise<NilStimResponse> {
+export async function useStim(userId: string): Promise<NilStimResponse> {
   const row = await findCharacter(userId);
   const { newNil: current } = calculateRegen(row.nil, row.max_nil, row.nil_updated_at);
 
-  // Atomic cooldown gate — SET NX succeeds only when the key is absent, so two
-  // concurrent ampolas can't both pass the guard (the loser gets COOLDOWN).
-  const key = `nil:stim:${row.id}`;
-  const acquired = await redis.set(key, "1", "EX", NIL_SYN_CAFE_COOLDOWN_S, "NX");
-  if (acquired !== "OK") {
-    const ttl = await redis.ttl(key);
-    throw new AppError(400, "NIL_STIM_COOLDOWN", "Pingado ainda está em cooldown", {
-      retryAfterSeconds: ttl > 0 ? ttl : NIL_SYN_CAFE_COOLDOWN_S,
-    });
-  }
-
   if (current >= row.max_nil) {
-    // Don't burn the cooldown for a zero-gain stim.
-    await redis.del(key);
     throw new AppError(400, "NIL_FULL", "NIL já está cheio");
   }
 
@@ -148,9 +134,12 @@ export async function useStim(redis: Redis, userId: string): Promise<NilStimResp
   const updated = await characters.updateNilSetGuarded(row.id, newNil, rawNil);
 
   if (!updated) {
-    // Don't waste the cooldown on a failed write — let the player retry.
-    await redis.del(key);
-    throw new AppError(409, "NIL_CONCURRENT_MODIFICATION", "NIL foi modificado por outra ação, tente novamente");
+    // Let the player retry — the write lost the optimistic-lock race.
+    throw new AppError(
+      409,
+      "NIL_CONCURRENT_MODIFICATION",
+      "NIL foi modificado por outra ação, tente novamente",
+    );
   }
 
   return { added: newNil - current, status: toNilStatus(updated) };

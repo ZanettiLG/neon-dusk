@@ -74,8 +74,14 @@ describe("Issue #28 — Humanidade API", () => {
   });
 
   /** Register a fresh user + character via HTTP; returns token + character id. */
-  async function registerAndCreateCharacter(): Promise<{ accessToken: string; characterId: string }> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+  async function registerAndCreateCharacter(): Promise<{
+    accessToken: string;
+    characterId: string;
+  }> {
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken, user } = await json<AuthResponse>(res);
 
@@ -91,10 +97,7 @@ describe("Issue #28 — Humanidade API", () => {
     });
     expect(created.status).toBe(201);
 
-    const [character] = await db("characters")
-      .select("id")
-      .where("user_id", user.id)
-      .limit(1);
+    const [character] = await db("characters").select("id").where("user_id", user.id).limit(1);
     return { accessToken, characterId: character!.id };
   }
 
@@ -260,7 +263,8 @@ describe("Issue #28 — Humanidade API", () => {
 
     it("should expose the therapy cooldown after a session", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
-      // Seed a therapy session 1h ago — the shared 24h cooldown is running.
+      // Seed a therapy session just now — the 500ms anti-spam window (#187)
+      // is deterministically still running.
       await db("therapy_sessions").insert({
         character_id: characterId,
         therapy_type: "clinic",
@@ -268,7 +272,7 @@ describe("Issue #28 — Humanidade API", () => {
         restored: 10,
         humanity_before: 50,
         humanity_after: 60,
-        completed_at: new Date(Date.now() - 60 * 60 * 1000),
+        completed_at: new Date(),
       });
 
       const body = await getHumanity(accessToken);
@@ -276,7 +280,7 @@ describe("Issue #28 — Humanidade API", () => {
       expect(body.therapy.lastCompletedAt).not.toBeNull();
       expect(body.therapy.nextAvailableAt).not.toBeNull();
       expect(body.therapy.cooldownRemainingMs).toBeGreaterThan(0);
-      expect(body.therapy.cooldownRemainingMs).toBeLessThanOrEqual(24 * 60 * 60 * 1000);
+      expect(body.therapy.cooldownRemainingMs).toBeLessThanOrEqual(500);
     });
 
     it("should return 401 without an access token", async () => {

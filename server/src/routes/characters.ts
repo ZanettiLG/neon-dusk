@@ -95,7 +95,7 @@ export async function characterRoutes(app: FastifyInstance, opts: CharacterRoute
       ],
     },
     async (request) => {
-      return useStim(redis, request.user.sub) as Promise<NilStimResponse>;
+      return useStim(request.user.sub) as Promise<NilStimResponse>;
     },
   );
 

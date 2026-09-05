@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { useAuthStore } from "@/stores/auth";
-import type {
-  AuthResponse,
-  Character,
-  NilStatus,
-  User,
-} from "@neon-dusk/shared";
+import type { AuthResponse, Character, NilStatus, User } from "@neon-dusk/shared";
 
 // Mock the api client module (frontier) so store actions never touch fetch.
 const mocks = vi.hoisted(() => {
@@ -216,9 +211,7 @@ describe("useAuthStore", () => {
 
   describe("refresh", () => {
     it("should rotate tokens and return true on success", async () => {
-      mocks.api.post.mockResolvedValue(
-        authResponse({ accessToken: "at2", refreshToken: "rt2" }),
-      );
+      mocks.api.post.mockResolvedValue(authResponse({ accessToken: "at2", refreshToken: "rt2" }));
       useAuthStore.setState({ refreshToken: "rt" });
 
       const ok = await useAuthStore.getState().refresh();
@@ -382,12 +375,12 @@ describe("useAuthStore", () => {
       expect(mocks.api.post).toHaveBeenCalledWith("/api/characters/me/nil/use-stim", {});
     });
 
-    it("should set nilError and rethrow on cooldown/failure", async () => {
-      mocks.api.post.mockRejectedValue(new mocks.ApiError(429, "COOLDOWN", "Em cooldown"));
+    it("should set nilError and rethrow on failure (#187 — no cooldown branch)", async () => {
+      mocks.api.post.mockRejectedValue(new mocks.ApiError(400, "NIL_FULL", "NIL já está cheio."));
 
-      await expect(useAuthStore.getState().useStim()).rejects.toThrow("Em cooldown");
+      await expect(useAuthStore.getState().useStim()).rejects.toThrow("NIL já está cheio.");
 
-      expect(useAuthStore.getState().nilError).toBe("Em cooldown");
+      expect(useAuthStore.getState().nilError).toBe("NIL já está cheio.");
       expect(useAuthStore.getState().nilLoading).toBe(false);
     });
   });
