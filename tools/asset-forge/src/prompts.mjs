@@ -10,13 +10,18 @@ import { RegistryError } from "./errors.mjs";
  *
  * @param {{id: string, regime: "flat" | "atmospheric", prompt: {subject: string}}} type validated registry type entry
  * @param {{style: {flat: {suffix: string, negative: string}, atmospheric: {suffix: string, negative: string}}}} registry loaded registry
- * @returns {{positive: string, negative: string}}
+ * @param {{subject?: string, district?: {prompt: string, accent: string}}} [opts] per-asset overrides: a specific subject and/or a
+ *   district entry (registry.districts[]). Omit for the plain type prompt (backward compatible).
+ * @returns {{positive: string, negative: string}} composition order: base subject → district fragment → specific subject → regime suffix
  */
-export function buildPrompt(type, registry) {
+export function buildPrompt(type, registry, opts = {}) {
   const regime = registry.style[type.regime];
   if (!regime) throw new RegistryError(`tipo ${type.id} sem regime válido (${type.regime})`);
-  return {
-    positive: `${type.prompt.subject}, ${regime.suffix}`,
-    negative: regime.negative,
-  };
+  const districtFragment = opts.district
+    ? `${opts.district.prompt}, acento funcional ${opts.district.accent}`
+    : null;
+  const positive = [type.prompt.subject, districtFragment, opts.subject, regime.suffix]
+    .filter(Boolean)
+    .join(", ");
+  return { positive, negative: regime.negative };
 }

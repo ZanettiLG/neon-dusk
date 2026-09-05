@@ -68,4 +68,15 @@ describe("workflow", () => {
       "nd-icon",
     );
   });
+
+  it("should accept a label override for the filename prefix (family member)", () => {
+    assert.equal(
+      buildWorkflow(TYPE, PROMPTS, 1, undefined, "cromo-03")["9"].inputs.filename_prefix,
+      "nd-cromo-03",
+    );
+  });
+
+  it("should default the label to the type id", () => {
+    assert.equal(buildWorkflow(TYPE, PROMPTS, 1)["9"].inputs.filename_prefix, "nd-body-map");
+  });
 });

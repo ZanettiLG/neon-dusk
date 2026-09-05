@@ -14,9 +14,10 @@ export const CHECKPOINT = "dreamshaper_8.safetensors";
  * @param {{positive: string, negative: string}} prompts from buildPrompt
  * @param {number} seed sampler seed (fixed or random, chosen by the CLI)
  * @param {string} [checkpoint] checkpoint filename override (CLI --checkpoint)
+ * @param {string} [label] filename prefix label (defaults to the type id; family mode passes the member id)
  * @returns {object} workflow graph (POST to /prompt)
  */
-export function buildWorkflow(type, prompts, seed, checkpoint = CHECKPOINT) {
+export function buildWorkflow(type, prompts, seed, checkpoint = CHECKPOINT, label = type.id) {
   const { width, height } = type.size;
   return {
     3: {
@@ -41,7 +42,7 @@ export function buildWorkflow(type, prompts, seed, checkpoint = CHECKPOINT) {
     8: { class_type: "VAEDecode", inputs: { samples: ["3", 0], vae: ["4", 2] } },
     9: {
       class_type: "SaveImage",
-      inputs: { filename_prefix: `nd-${type.id}`, images: ["8", 0] },
+      inputs: { filename_prefix: `nd-${label}`, images: ["8", 0] },
     },
   };
 }
