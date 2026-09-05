@@ -81,7 +81,7 @@ XP é **faucet de atividade**: só entra por ações no jogo — Créditos (₵)
 | Hacking — camada de trava | 15 | Por camada superada (subnet 1-5 camadas) |
 | Hacking — subnet corporativa completa | +10 | Bônus de conclusão |
 | Missão diária | 50 | Fase 2 (05-roadmap), valor definido agora |
-| Rolê — boca | 30 | Por boca invadida (03 §9) |
+| Rolê — boca | 30 | Por boca invadida (rolê de gangue — issue #96) |
 | Rolê — cabeça | 80 | Por cabeça derrubada |
 | **Teto diário de XP** | **800 XP/dia** | Anti-grind: NIL já limita, mas o teto protege contra boosters de NIL premium (₵) acelerarem XP |
 
@@ -119,13 +119,13 @@ Curva levemente crescente (50→290, ~5,8× de crescimento): níveis iniciais r�
 |---|---|
 | **Nível → tier de equipamento** | T1=1, T2=5, T3=15, T4=30, T5=50 (espelha a tabela de cromo e a Universidade). Detalhe em §6.1 |
 | **Nível → cromo** | Já existe (§3: T1=1, T2=5, T3=15, T4=30, T5=50) |
-| **Nível → Universidade** | Já existe (§8: 5/15/30) |
+| **Nível → Universidade** | Já existe (issue #95: 5/15/30) |
 | **Nível → conteúdo** | **NÃO**. Conteúdo (trampos, despachantes, distritos, bondes) é gateado por **Moral** (§5) — Moral é o score social da rodada; nível é poder individual. Separar os dois evita duplo gate e mantém o jogador social e o jogador de poder em trilhas distintas |
 
 #### Reset de Nível
 
 - **Reset (§7)**: nível zera para 1, XP zera, pontos não gastos somem, atributos voltam para **3×5 = 15**.
-- **Universidade T3 (§8)**: o **+1 atributo base permanente sobrevive** — é prestígio, aplicado por cima da base 3. Rodada nova começa com `3 + bônus_permanente`. O bônus da rodada (T1+T2+T3 = +3 na área) **não** sobrevive.
+- **Universidade T3 (issue #95)**: o **+1 atributo base permanente sobrevive** — é prestígio, aplicado por cima da base 3. Rodada nova começa com `3 + bônus_permanente`. O bônus da rodada (T1+T2+T3 = +3 na área) **não** sobrevive.
 - **Hall de Lendas (§7)**: o **+1 ponto de atributo livre permanente** (Completionist) também sobrevive e soma ao orçamento de criação da próxima rodada. Máximo combinado: +6 de Universidade (uma por rodada) + 1 do Completionist.
 
 ---
@@ -189,9 +189,9 @@ Aplicam como multiplicador na rolagem final. Ordem de aplicação: contexto → 
 | Modificador | Escopo | Valor | Quando |
 |---|---|---|---|
 | **Perigo do distrito** | Trampo execute/escape, rolê | Babilônia 1,00 · A Quebrada 1,00 · O Fervo 0,95 · O Fluxo 0,95 · A Paraíso 0,90 · As Mortas 0,85 · O Ponto 0,75 | Sempre, pelo distrito da ação |
-| **Heat por gangue** | Rolê e trampos no território da gangue | heat 0-49: 1,00 · heat 50-99: 0,85 · heat 100+: 0,70 | Heat acumulada (03 §9) |
+| **Heat por gangue** | Rolê e trampos no território da gangue | heat 0-49: 1,00 · heat 50-99: 0,85 · heat 100+: 0,70 | Heat acumulada (rolê de gangue — issue #96) |
 | **Reputação de facção** | Trampos/vendors no distrito da facção | Amiga +10% (1,10) · Hostil −10% (0,90) | Sistema #88 (Fase 3) — hooks stub no v1 |
-| **Dia da rodada** | Rolê de gangue | 1,0× → 2,2× (tabela 03 §9, reutilizada) | Aplica **só** a conteúdo de gangue — trampos de despachante não escalam com o dia |
+| **Dia da rodada** | Rolê de gangue | 1,0× → 2,2× (tabela de rolê de gangue reutilizada — issue #96) | Aplica **só** a conteúdo de gangue — trampos de despachante não escalam com o dia |
 
 Faixa total: **−30%** (O Ponto + heat 100) a **+10%** (rep amiga + dia).
 
@@ -616,6 +616,10 @@ Tiers de item espelham os gates de nível (§1: T1=1, T2=5, T3=15, T4=30, T5=50)
 
 - **Descrição curta (obrigatória, todo item)**: apenas informação mecânica clara — stats, efeitos, requisitos, classe de munição, tier/nível. Zero lore. Ex: `Dano 8 · PRE +2 · Munição Pistola · Nível 1`
 - **Descrição longa**: lore/marca própria + o conteúdo da curta expandido. Ex: Pistola Marvada — fabricada na Quebrada, arma de entrada dos corredores… (lore) + Dano 8, PRE +2, Munição Pistola, Nível 1
+- **Mais exemplos do catálogo**:
+  - **Traje de Vulto** — curta: `FUR +4 · Nível 15` · longa: alfaiate do Cinturão que veste quem não quer ser visto (lore) + FUR +4, Nível 15
+  - **Granada de Prego** — curta: `Dano 25 em área · Ignora DEF · Uso único antes da rolagem · Nível 5` · longa: lata de conserva recheada de pregos da obra do Viaduto (lore) + Dano 25 em área, ignora DEF, uso único antes da rolagem, Nível 5
+  - **Munição Perfurante** — curta: `Ignora 2 de DEF · Stack 10 · Tier 3` · longa: ponta de tungstênio usinada na Zona Leste, fura colete como papel (lore) + ignora 2 de DEF, stack 10, Tier 3
 - **Aplica a TODO item em TODA superfície**: lojas, inventário, Saque, crafting, equipamento, cromo (§3), consumíveis (03 §5), munição, granadas, componentes, blueprints — inclusive itens já existentes ganham os dois campos
 - **UI**: a curta é o padrão visível (cards, listas, tooltips); a longa aparece em detalhe/expandir (modal, tooltip longo, página de item)
 - **Schema**: cada definição de item ganha `description_short` + `description_long` (definições de cromo e consumíveis idem)

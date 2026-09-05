@@ -32,7 +32,7 @@ Toda ação significativa em São Paulo exige interface neural — seus implante
 | **Custo de trampo T1** | 10-15 NIL | Permite 6-10 trampos por ciclo |
 | **Custo de trampo T3** | 25-40 NIL | Permite 2-4 trampos por ciclo |
 | **Custo de PvP** | 20 NIL | Limita grinding de PvP |
-| **Regen com consumível** | Pingado: +20 NIL (sem cooldown; limitador = estoque) | Sem custo colateral |
+| **Regen com consumível** | Pingado: +20 NIL (1h cooldown) | Sem custo colateral |
 | **Regen com cromo** | Implante Neural Accelerator: +50% regen passiva | Custa 15 Humanidade |
 
 ### Por que NIL, não "Stamina"?
@@ -106,7 +106,7 @@ Trampos são missões oferecidas por despachantes. Cada trampo tem: tier, tipo, 
 ### Combate PvE (Trampos)
 
 - **Fórmula de sucesso**: `chance = clamp((stat_derivado × 5 + bônus_cromo) / (dificuldade × 2), 0,05, 0,95)` — **STAT_SCALING_DERIVADO = 2,5** (equivalente a ×5/×2 inteiro; `bônus_cromo` no numerador). O stat derivado é definido pela abordagem (#89): Stealth = Furtividade (execute) / Esquiva (escape), Assault = Ataque Físico (execute) / Esquiva (escape), Netrun = Poder de Hack (execute) / Esquiva (escape) — 04 §1.1
-- **Modificadores**: Legwork (+20%), Abordagem (Stealth/Assault/Netrun), Consumíveis (+10-30%), contexto (distrito, heat, facção, dia — 04 §1.1)
+- **Modificadores**: Legwork (+20%), Abordagem (Stealth/Assault/Netrun), Consumíveis (+10-30%), contexto (distrito, heat, facção, dia — só conteúdo de gangue; 04 §1.1)
 - **Transparência**: perfil de stats + dificuldade visíveis no card da ação (04 §1.1 Transparência Métrica)
 - **Consequência de falha**: dano ao corpo, perda de NIL extra, heat com a facção local
 
