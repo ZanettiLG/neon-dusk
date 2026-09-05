@@ -43,8 +43,6 @@ export function checkCooldown(
   redis: Redis,
   actionType: CooldownActionType,
 ): (request: FastifyRequest) => Promise<void> {
-  const entry = cooldownConfig[actionType];
-
   return async (request) => {
     // Memoized on `request` (M6) — shares one character query with the rest of
     // the preHandler chain and the handler.
@@ -54,8 +52,11 @@ export function checkCooldown(
     try {
       const exists = await redis.exists(key);
       if (exists) {
-        const ttl = await redis.ttl(key);
-        const retryAfter = ttl > 0 ? ttl : Math.ceil(entry.durationMs / 1000);
+        // pttl (ms) instead of ttl (s): ttl rounds a 500ms PX window down to
+        // 0, losing the retryAfter. ceil(500/1000) = 1 — the floor keeps it
+        // positive for any residual sub-millisecond TTL.
+        const pttl = await redis.pttl(key);
+        const retryAfter = pttl > 0 ? Math.max(1, Math.ceil(pttl / 1000)) : 1;
 
         // Tag audit context before throwing so the audit log records the
         // correct result instead of falling back to "blocked".

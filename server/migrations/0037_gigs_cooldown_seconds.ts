@@ -35,6 +35,10 @@ export async function down(knex: Knex): Promise<void> {
        ELSE 30
      END`,
   );
+  // Restore the pre-#187 DEFAULT (10 minutes) before renaming back — up() set
+  // 86400 (seconds); a rollback without this would leave DEFAULT 86400 on
+  // cooldown_minutes (= 60 days in minutes).
+  await knex.raw(`ALTER TABLE "gigs" ALTER COLUMN "cooldown_seconds" SET DEFAULT 10`);
   await knex.schema.alterTable("gigs", (table) => {
     table.renameColumn("cooldown_seconds", "cooldown_minutes");
   });
