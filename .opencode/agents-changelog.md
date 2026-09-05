@@ -15,6 +15,19 @@ Acompanhar nas próximas features (alvo: zero divergências doc↔código)
 
 ---
 
+## 2026-09-05 — N1: self-review do developer ganha grep de docs canônicos e termos stale
+
+### Trigger
+Feature cooldown-tuning (#187): 4 ciclos de review estagnados por comentários/docs stale (score 3.8→4.0→4.5). Docs canônicos de produto ficaram para trás da implementação; greps com padrões literais ("24h", "1h cooldown") não pegaram termos variantes ("cooldown 12h", "T2 (cooldown 12h)").
+
+### Change
+Adicionados 2 itens ao self-review do developer: (1) grep obrigatório em docs/definicoes-de-produto quando mecânica muda; (2) grep de termos stale no working tree inteiro com padrão genérico (cooldown\s*\d+(h|min|s), T\d[^\n]*cooldown).
+
+### Impact
+Esperado: menos ciclos de review por docs/comentários stale; docs canônicos sincronizados com o código na mesma PR.
+
+---
+
 ## 2026-09-05 — N1: preservação de área de clique em hit-areas derivadas de bounding boxes (issue #94)
 
 ### Trigger

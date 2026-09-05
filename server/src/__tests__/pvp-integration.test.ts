@@ -3,11 +3,19 @@ import Redis from "ioredis";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../app";
 import { envSchema } from "../env";
-import { startTestServer, json, authHeader, resetDb, registerTestUser, type TestServer } from "./helpers";
+import {
+  startTestServer,
+  json,
+  authHeader,
+  resetDb,
+  registerTestUser,
+  type TestServer,
+} from "./helpers";
 import { db } from "../db";
 import { walletRepository as wallets } from "../repositories/wallet-repository";
 import { invalidateGameParamCache } from "../repositories/game-param-repository";
 import { rateLimitConfig } from "../lib/rate-limit";
+import { cooldownConfig } from "../middleware/cooldown";
 import { LEADERBOARD_CACHE_KEY } from "../lib/leaderboard-cache";
 import type {
   LeaderboardResponse,
@@ -85,12 +93,17 @@ describe("ND-014 — PvP combat API", () => {
     await redis.connect();
     await redis.flushdb();
 
+    // #187: PvP anti-spam is 500ms — widen the window so back-to-back attack
+    // tests stay deterministic (the real window is intentionally tiny).
+    cooldownConfig.pvp_attack.durationMs = 5_000;
+
     app = await buildApp({ env: envSchema.parse({ ...process.env, REDIS_URL: REDIS_TEST_DB }) });
     server = await startTestServer(app);
   });
 
   afterAll(async () => {
     await app.close();
+    cooldownConfig.pvp_attack.durationMs = 500;
     redis.disconnect();
   });
 
@@ -106,21 +119,27 @@ describe("ND-014 — PvP combat API", () => {
     return `rate:${userId}:pvp_attack`;
   }
 
-  /** Redis key backing the per-character attack cooldown (pvp-service, single namespace — M3). */
-  function serviceCooldownKey(characterId: string): string {
-    return `pvp:cooldown:${characterId}`;
+  /** Redis key backing the 500ms anti-spam cooldown (middleware, #187). */
+  function middlewareCooldownKey(characterId: string): string {
+    return `cooldown:${characterId}:pvp_attack`;
   }
 
   /** Reset cooldown + per-character rate counter so a character can attack again. */
   async function clearAttackLimits(player: PvpPlayer): Promise<void> {
     await redis.del(attackRateKey(player.userId));
-    await redis.del(serviceCooldownKey(player.characterId));
+    await redis.del(middlewareCooldownKey(player.characterId));
   }
 
   /** Register a user over HTTP, then insert their character directly (full attribute control). */
   async function createPvpPlayer(opts: PlayerOpts = {}): Promise<PvpPlayer> {
     const auth = await registerTestUser(server, uniqueEmail(), PASSWORD);
-    const attributes = opts.attributes ?? { body: 5, reflexes: 4, intelligence: 4, technical: 4, cool: 5 };
+    const attributes = opts.attributes ?? {
+      body: 5,
+      reflexes: 4,
+      intelligence: 4,
+      technical: 4,
+      cool: 5,
+    };
 
     const [character] = await db("characters")
       .insert({
@@ -150,16 +169,18 @@ describe("ND-014 — PvP combat API", () => {
     await db.transaction(async (trx) => {
       await wallets.ensure(characterId, trx);
     });
-    await db("character_wallets")
-      .where("character_id", characterId)
-      .update({ balance });
+    await db("character_wallets").where("character_id", characterId).update({ balance });
   }
 
   async function attack(
     attacker: PvpPlayer,
     targetId: string,
   ): Promise<{ status: number; body: PvpCombatResult | ErrorBody }> {
-    const res = await server.post("/api/pvp/attack", { targetId }, authHeader(attacker.accessToken));
+    const res = await server.post(
+      "/api/pvp/attack",
+      { targetId },
+      authHeader(attacker.accessToken),
+    );
     return { status: res.status, body: await json<PvpCombatResult | ErrorBody>(res) };
   }
 
@@ -169,9 +190,7 @@ describe("ND-014 — PvP combat API", () => {
   }
 
   async function getWalletRow(characterId: string) {
-    const [row] = await db("character_wallets")
-      .select("*")
-      .where("character_id", characterId);
+    const [row] = await db("character_wallets").select("*").where("character_id", characterId);
     return row!;
   }
 
@@ -202,7 +221,6 @@ describe("ND-014 — PvP combat API", () => {
       expect(res.status).toBe(200);
       const body = await json<PvpAttackableResponse>(res);
       expect(body.nilCost).toBe(20); // PVP_NIL_COST fallback
-      expect(body.cooldownSeconds).toBe(3600); // PVP_COOLDOWN_S (ND-053: 1h)
       const ids = body.targets.map((t) => t.characterId);
       expect(ids).toContain(inHigh.characterId);
       expect(ids).toContain(inLow.characterId);
@@ -253,22 +271,6 @@ describe("ND-014 — PvP combat API", () => {
       expect(seasonedTarget?.noobShield).toBe(false);
     });
 
-    it("should return an empty target list while the attacker is on cooldown", async () => {
-      const attacker = await createPvpPlayer();
-      await redis.set(serviceCooldownKey(attacker.characterId), "1", "EX", 3600);
-
-      const res = await fetch(`${base()}/api/pvp/attackable`, {
-        headers: authHeader(attacker.accessToken),
-      });
-
-      expect(res.status).toBe(200);
-      const body = await json<PvpAttackableResponse>(res);
-      expect(body.targets).toEqual([]);
-      expect(body.nilCost).toBe(20);
-      // The cooldown branch still quotes the cooldown for the confirm modal.
-      expect(body.cooldownSeconds).toBe(3600); // PVP_COOLDOWN_S (ND-053: 1h)
-    });
-
     it("should flag griefRisk on targets already hit 3+ times this week", async () => {
       const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
       const defender = await createPvpPlayer({
@@ -292,9 +294,7 @@ describe("ND-014 — PvP combat API", () => {
 
       expect(res.status).toBe(200);
       const body = await json<PvpAttackableResponse>(res);
-      const target = body.targets.find(
-        (t) => t.characterId === defender.characterId,
-      );
+      const target = body.targets.find((t) => t.characterId === defender.characterId);
       expect(target?.weeklyAttacksReceived).toBe(3);
       expect(target?.griefRisk).toBe(true);
       expect(body.nilCost).toBe(20);
@@ -360,9 +360,7 @@ describe("ND-014 — PvP combat API", () => {
       expect(attackerWallet.balance).toBe(1050);
       expect(defenderWallet.balance).toBe(450);
 
-      const [combat] = await db("pvp_combats")
-        .select("*")
-        .where("id", body.combatId);
+      const [combat] = await db("pvp_combats").select("*").where("id", body.combatId);
       expect(combat).toMatchObject({
         attacker_id: attacker.characterId,
         defender_id: defender.characterId,
@@ -513,7 +511,7 @@ describe("ND-014 — PvP combat API", () => {
       expect(res.status).toBe(401);
     });
 
-    it("should enforce a 1-hour cooldown after a successful attack (429 COOLDOWN_ACTIVE)", async () => {
+    it("should enforce a 500ms anti-spam cooldown after a successful attack (429 COOLDOWN_ACTIVE)", async () => {
       const attacker = await createPvpPlayer({ attributes: STRONG_ATTRS });
       const defender = await createPvpPlayer({ attributes: WEAK_ATTRS, createdAtDaysAgo: 10 });
 
@@ -524,9 +522,9 @@ describe("ND-014 — PvP combat API", () => {
       );
       expect(first.status).toBe(200);
 
-      // M3: the 1h cooldown lives in a single namespace owned by the service
-      // (`pvp:cooldown:{charId}`). The second attack within 1h trips the
-      // service's PVP_COOLDOWN check before the fight starts.
+      // #187: the 500ms anti-spam cooldown lives in the middleware
+      // (`cooldown:{charId}:pvp_attack`, widened to 5s for test stability).
+      // A second attack inside the window trips checkCooldown before the fight.
       const second = await server.post(
         "/api/pvp/attack",
         { targetId: defender.characterId },
@@ -534,7 +532,7 @@ describe("ND-014 — PvP combat API", () => {
       );
       expect(second.status).toBe(429);
       const body = await json<ErrorBody>(second);
-      expect(body.error).toBe("PVP_COOLDOWN");
+      expect(body.error).toBe("COOLDOWN_ACTIVE");
       expect(second.headers.get("retry-after")).toBeTruthy();
     });
 
@@ -548,7 +546,7 @@ describe("ND-014 — PvP combat API", () => {
         authHeader(attacker.accessToken),
       );
       expect(failed.status).toBe(400); // INSUFFICIENT_NIL — transaction rolled back
-      expect(await redis.get(serviceCooldownKey(attacker.characterId))).toBeNull();
+      expect(await redis.get(middlewareCooldownKey(attacker.characterId))).toBeNull();
 
       // Top up NIL — the same character may retry immediately (no cooldown burned).
       await db("characters").where("id", attacker.characterId).update({ nil: 100 });
@@ -623,9 +621,7 @@ describe("ND-014 — PvP combat API", () => {
       expect(attackerRow.street_cred).toBe(29);
       expect(attackerRow.nil).toBe(80); // NIL is still spent on a lost attack
 
-      const [combat] = await db("pvp_combats")
-        .select("*")
-        .where("id", body.combatId);
+      const [combat] = await db("pvp_combats").select("*").where("id", body.combatId);
       expect(combat!.winner_id).toBe(defender.characterId);
 
       const defenderWallet = await getWalletRow(defender.characterId);
@@ -742,8 +738,8 @@ describe("ND-014 — PvP combat API", () => {
 
       // Real attacks within the per-character hourly limit are allowed.
       for (let i = 0; i < 3; i++) {
-        // Clear only the cooldowns - the per-character rate counter must accumulate.
-        await redis.del(serviceCooldownKey(attacker.characterId));
+        // Clear only the cooldown - the per-character rate counter must accumulate.
+        await redis.del(middlewareCooldownKey(attacker.characterId));
         const { status } = await attack(attacker, defender.characterId);
         expect(status).toBe(200);
       }
@@ -751,7 +747,7 @@ describe("ND-014 — PvP combat API", () => {
       // Exhaust the counter at the configured max (300/h per rateLimitConfig,
       // was 3/h before the 100x pass #121). The next attack trips the limiter.
       await redis.set(attackRateKey(attacker.userId), rateLimitConfig.pvp_attack.max);
-      await redis.del(serviceCooldownKey(attacker.characterId));
+      await redis.del(middlewareCooldownKey(attacker.characterId));
       const fourth = await server.post(
         "/api/pvp/attack",
         { targetId: defender.characterId },
@@ -777,9 +773,7 @@ describe("ND-014 — PvP combat API", () => {
       const body = await json<PvpCombatResult>(res);
       expect(body.lootAmount).toBe(50);
 
-      const logs = await db("transaction_log")
-        .select("*")
-        .where("reference_id", body.combatId);
+      const logs = await db("transaction_log").select("*").where("reference_id", body.combatId);
       const reward = logs.find((l) => l.type === "PVP_REWARD");
       const loss = logs.find((l) => l.type === "PVP_LOSS");
       expect(reward).toBeDefined();

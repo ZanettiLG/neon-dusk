@@ -7,7 +7,7 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
-import { checkCooldown } from "../middleware/cooldown";
+import { checkCooldown, cooldownConfig, setCooldown } from "../middleware/cooldown";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { validate } from "../middleware/validate";
 import { checkActionRateLimit, circuitBreakerConfig } from "../lib/rate-limit";
@@ -67,6 +67,10 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
   beforeAll(async () => {
     // Lower threshold so circuit-break still fires after 3 strikes.
     circuitBreakerConfig.strikeThreshold = 3;
+    // #187: chat anti-spam is 500ms — widen to 5s so the cooldown key still
+    // exists when the tests assert it (same mutation pattern as the
+    // circuitBreakerConfig above).
+    cooldownConfig.chat_message.durationMs = 5_000;
 
     await resetDb();
 
@@ -96,7 +100,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
         // ADR-2: cooldown is keyed by the DB character id — the same id
         // checkCooldown resolves via characters.requireByUserId (NOT the JWT sub).
         const characterId = (await characters.requireByUserId(request.user.sub)).id;
-        await redis.setex(`cooldown:${characterId}:chat_message`, 5, "1");
+        await setCooldown(redis, characterId, "chat_message");
         return reply.status(201).send({ ok: true });
       },
     );
@@ -122,6 +126,7 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
 
   afterAll(async () => {
     circuitBreakerConfig.strikeThreshold = 3; // ND-053 default (was 1000)
+    cooldownConfig.chat_message.durationMs = 500; // #187 default
     await app.close();
     redis.disconnect();
   });
@@ -138,7 +143,10 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
     userId: string; // JWT sub — keys the rate/cooldown/circuit-break counters
     characterId: string; // the game character — keyed in audit_log rows
   }> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken } = await json<AuthResponse>(res);
 
@@ -160,7 +168,6 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
   async function postAction(token: string, body: unknown, headers?: Record<string, string>) {
     return server.post("/api/test/anti-cheat-action", body, { ...authHeader(token), ...headers });
   }
-
 
   /** Poll audit_log until the expected rows for a character+action exist. */
   async function waitForAudit(
@@ -188,7 +195,11 @@ describe("ND-053 — anti-cheat middleware chain (integration)", () => {
   it("should pass a valid request through the full chain and audit it as allowed", async () => {
     const { accessToken, characterId } = await registerApiUser();
 
-    const res = await postAction(accessToken, { message: "oi" }, { "User-Agent": "anti-cheat-test/1.0" });
+    const res = await postAction(
+      accessToken,
+      { message: "oi" },
+      { "User-Agent": "anti-cheat-test/1.0" },
+    );
     expect(res.status).toBe(201);
 
     const [row] = await waitForAudit(characterId, "saideira_chat", 1);

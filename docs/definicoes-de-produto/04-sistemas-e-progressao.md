@@ -332,7 +332,7 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 | **Custo de implante T1** | 2-5 Humanidade |
 | **Custo de implante T3** | 10-15 Humanidade |
 | **Custo de implante T5** | 20-30 Humanidade |
-| **Humanidade recuperável via terapia** | 10-20 por sessão (custa G$ 5.000-20.000, 24h de duração) |
+| **Humanidade recuperável via terapia** | 10-20 por sessão (custa G$ 5.000-20.000; cooldown anti-spam de 500ms — o custo em Grana é o limitador) |
 
 ### Limiares de Cyberpsychosis
 
@@ -346,7 +346,7 @@ O slot de OS define seu estilo de jogo. **Escolha permanente por rodada** (pode 
 
 ### Terapia
 
-- Sessões em clínicas (caras, demoradas, restauram Humanidade)
+- Sessões em clínicas (caras, restauram Humanidade — o custo é o limitador)
 - Terapia de Sintonia (mais barata, menos eficaz)
 - Neural Scrubber (implante que remove Humanidade passivamente, mas ocupa slot)
 

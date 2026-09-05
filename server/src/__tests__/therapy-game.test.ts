@@ -8,8 +8,8 @@ import {
 
 // Issue #28 — unit tests for the Terapia game logic (pure functions, no DB).
 // Follows 04-sistemas-e-progressao.md §4: clínicas restore 10-20 for
-// G$ 5k-20k; sintonia restores 5-10 for G$ 2.5k-10k. Both share a single 24h
-// cooldown derived from the last session's completed_at.
+// G$ 5k-20k; sintonia restores 5-10 for G$ 2.5k-10k. Both share a single
+// 500ms anti-spam window (#187) derived from the last session's completed_at.
 
 // ─── THERAPY_OPTIONS ────────────────────────────────────────────────────────
 
@@ -52,8 +52,8 @@ describe("canUndergoTherapy", () => {
     });
   });
 
-  it("should block therapy while the 24h cooldown is running", () => {
-    const last = new Date(now.getTime() - 60 * 60 * 1000); // 1h ago
+  it("should block therapy while the 500ms anti-spam window is running", () => {
+    const last = new Date(now.getTime() - 100); // 100ms ago — inside the window
     const result = canUndergoTherapy(last, THERAPY_COOLDOWN_MS, now);
     expect(result.canUndergo).toBe(false);
     expect(result.nextAvailableAt!.getTime()).toBe(last.getTime() + THERAPY_COOLDOWN_MS);
@@ -93,7 +93,10 @@ describe("computeTherapyOutcome", () => {
   });
 
   it("should roll the attunement maximum when rng returns ~1", () => {
-    expect(computeTherapyOutcome("attunement", () => 0.9999999)).toEqual({ cost: 10000, restored: 10 });
+    expect(computeTherapyOutcome("attunement", () => 0.9999999)).toEqual({
+      cost: 10000,
+      restored: 10,
+    });
   });
 
   it("should stay within the modality ranges for any rng value", () => {

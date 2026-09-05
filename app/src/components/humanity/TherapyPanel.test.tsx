@@ -19,8 +19,20 @@ function info(overrides: Partial<HumanityInfo> = {}): HumanityInfo {
       lastCompletedAt: null,
       nextAvailableAt: null,
       cooldownRemainingMs: 0,
-      clinic: { therapyType: "clinic", costMin: 5000, costMax: 20000, restoreMin: 10, restoreMax: 20 },
-      attunement: { therapyType: "attunement", costMin: 2500, costMax: 10000, restoreMin: 5, restoreMax: 10 },
+      clinic: {
+        therapyType: "clinic",
+        costMin: 5000,
+        costMax: 20000,
+        restoreMin: 10,
+        restoreMax: 20,
+      },
+      attunement: {
+        therapyType: "attunement",
+        costMin: 2500,
+        costMax: 10000,
+        restoreMin: 5,
+        restoreMax: 10,
+      },
     },
     ...overrides,
   };
@@ -34,7 +46,9 @@ describe("TherapyPanel", () => {
   });
 
   it("should render the error state", () => {
-    render(<TherapyPanel info={null} loading={false} error="Falha na terapia" onTherapy={vi.fn()} />);
+    render(
+      <TherapyPanel info={null} loading={false} error="Falha na terapia" onTherapy={vi.fn()} />,
+    );
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.getByText("Falha na terapia")).toBeInTheDocument();
@@ -60,7 +74,7 @@ describe("TherapyPanel", () => {
     expect(screen.getByRole("button", { name: "Sessão (Sintonia)" })).toBeInTheDocument();
   });
 
-  it("should show the cooldown label and disable both buttons while the 24h cooldown runs", () => {
+  it("should show the cooldown label and disable both buttons while the anti-spam window runs", () => {
     render(
       <TherapyPanel
         info={info({
@@ -84,7 +98,12 @@ describe("TherapyPanel", () => {
 
   it("should disable both buttons for a flatlined character", () => {
     render(
-      <TherapyPanel info={info({ flatlined: true })} loading={false} error={null} onTherapy={vi.fn()} />,
+      <TherapyPanel
+        info={info({ flatlined: true })}
+        loading={false}
+        error={null}
+        onTherapy={vi.fn()}
+      />,
     );
 
     expect(screen.getByText(/Personagem apagado — terapia indisponível/)).toBeInTheDocument();

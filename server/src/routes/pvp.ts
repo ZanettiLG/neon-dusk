@@ -4,20 +4,18 @@ import { z } from "zod";
 import type { PvpAttackableResponse, PvpCombatResult, PvpHistoryResponse } from "@neon-dusk/shared";
 import { authenticate } from "../middleware/auth";
 import { checkCircuitBreaker } from "../middleware/circuit-breaker";
+import { checkCooldown, setCooldown } from "../middleware/cooldown";
 import { validate } from "../middleware/validate";
 import { setAuditContext } from "../middleware/audit-middleware";
 import { checkActionRateLimit } from "../lib/rate-limit";
-import {
-  executeAttack,
-  getAttackableTargets,
-  getCombatHistory,
-} from "../services/pvp-service";
+import { resolveCharacter } from "../lib/request-character";
+import { executeAttack, getAttackableTargets, getCombatHistory } from "../services/pvp-service";
 
 // Neon Dusk — PvP routes (ND-014, ND-053)
 // ============================================================================
-// Three endpoints: attackable target list, the attack itself (rate-limited:
-// 3 attacks/hour per character + 1h cooldown), and the combat history. All
-// resolve the caller's character from their JWT sub claim.
+// Three endpoints: attackable target list, the attack itself (per-action rate
+// limit + 500ms anti-spam cooldown), and the combat history. All resolve the
+// caller's character from their JWT sub claim.
 
 export interface PvpRoutesOptions {
   redis: Redis;
@@ -44,11 +42,12 @@ export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
     { preHandler: [authenticate] },
     async (request): Promise<PvpAttackableResponse> => {
       const query = listQuery.parse(request.query);
-      return getAttackableTargets(redis, request.user.sub, query.limit, query.cursor);
+      return getAttackableTargets(request.user.sub, query.limit, query.cursor);
     },
   );
 
-  // POST /api/pvp/attack — the combat itself (3/hour per character, 1h cooldown).
+  // POST /api/pvp/attack — the combat itself (3/hour per character via rate
+  // limit, 500ms anti-spam cooldown).
   app.post(
     "/pvp/attack",
     {
@@ -56,6 +55,7 @@ export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
         authenticate,
         setAuditContext("pvp_attack"),
         checkCircuitBreaker(redis),
+        checkCooldown(redis, "pvp_attack"),
         validate(attackSchema),
         checkActionRateLimit(redis, "pvp_attack"),
       ],
@@ -65,10 +65,12 @@ export async function pvpRoutes(app: FastifyInstance, opts: PvpRoutesOptions) {
 
       request.audit_context!.payload = { targetId };
 
-      // The 1h attack cooldown is owned by the service (executeAttack checks it
-      // before the fight and sets it after the transaction commits — ADR-2), so
-      // it is NOT duplicated here (M3).
-      return executeAttack(redis, request.user.sub, targetId);
+      const characterId = (await resolveCharacter(request, { require: true }))!.id;
+      const result = await executeAttack(redis, request.user.sub, targetId);
+      // 500ms anti-spam cooldown, set AFTER success (ADR-2) — a failed
+      // attack (e.g. FLATLINED) never burns it.
+      await setCooldown(redis, characterId, "pvp_attack");
+      return result;
     },
   );
 

@@ -5,6 +5,7 @@ import { buildApp } from "../app";
 import { envSchema } from "../env";
 import { startTestServer, json, authHeader, resetDb, type TestServer } from "./helpers";
 import { db } from "../db";
+import { cooldownConfig } from "../middleware/cooldown";
 import type {
   AuthResponse,
   SaideiraHubInfo,
@@ -54,6 +55,11 @@ describe("ND-015 — Saideira Hub API", () => {
   beforeAll(async () => {
     await resetDb();
 
+    // #187: chat anti-spam is 500ms — widen to 5s so back-to-back chat tests
+    // deterministically trip the gate (same mutation pattern as the
+    // circuitBreakerConfig overrides in anti-cheat-integration).
+    cooldownConfig.chat_message.durationMs = 5_000;
+
     redis = new Redis(REDIS_TEST_DB, { lazyConnect: true });
     await redis.connect();
     await redis.flushdb();
@@ -72,6 +78,7 @@ describe("ND-015 — Saideira Hub API", () => {
   });
 
   afterAll(async () => {
+    cooldownConfig.chat_message.durationMs = 500; // #187 default
     await app.close();
     redis.disconnect();
   });
@@ -85,7 +92,10 @@ describe("ND-015 — Saideira Hub API", () => {
 
   /** Register a user over HTTP but do NOT create a character. */
   async function registerUserOnly(): Promise<string> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken } = await json<AuthResponse>(res);
     return accessToken;
@@ -171,7 +181,11 @@ describe("ND-015 — Saideira Hub API", () => {
     for (const m of members) {
       await db("characters")
         .where("id", m.characterId)
-        .update({ street_cred: m.streetCred, max_street_cred_achieved: m.streetCred, crew_id: crew.id });
+        .update({
+          street_cred: m.streetCred,
+          max_street_cred_achieved: m.streetCred,
+          crew_id: crew.id,
+        });
     }
   }
 
@@ -283,7 +297,10 @@ describe("ND-015 — Saideira Hub API", () => {
     it("should reject with 400 SC_TOO_LOW when street_cred < 10 (ND-053 server-side gate)", async () => {
       // Register over HTTP + insert the character directly with SC < 10
       // (bypasses POST /characters — this test targets the SC gate).
-      const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+      const res = await server.post("/api/auth/register", {
+        email: uniqueEmail(),
+        password: PASSWORD,
+      });
       expect(res.status).toBe(201);
       const { accessToken, user } = await json<AuthResponse>(res);
       await db("characters").insert({
@@ -307,13 +324,14 @@ describe("ND-015 — Saideira Hub API", () => {
       expect(err.message).toMatch(/10 de Moral/);
     });
 
-    it("should reject the second message within 5s with 429 COOLDOWN_ACTIVE", async () => {
+    it("should reject the second message within the anti-spam window with 429 COOLDOWN_ACTIVE", async () => {
       const { accessToken } = await registerApiUser();
 
       const first = await postChat(accessToken, "primeira");
       expect(first.status).toBe(201);
 
-      // ND-053: the 5s chat cooldown gate fires before the rate limiter.
+      // ND-053: the chat anti-spam gate fires before the rate limiter (#187:
+      // 500ms window, widened to 5s in this suite for stability).
       const second = await postChat(accessToken, "segunda");
       expect(second.status).toBe(429);
       expect((second.body as ErrorBody).error).toBe("COOLDOWN_ACTIVE");
@@ -365,7 +383,9 @@ describe("ND-015 — Saideira Hub API", () => {
       const { accessToken } = await registerApiUser();
       // A crew exists — but this character is NOT a member.
       const other = await registerApiUser();
-      await seedCrew("Filhos do Fluxo", "FLX", [{ characterId: other.characterId, streetCred: 30 }]);
+      await seedCrew("Filhos do Fluxo", "FLX", [
+        { characterId: other.characterId, streetCred: 30 },
+      ]);
 
       const { status, body } = await postChat(accessToken, "sou um coringa");
 

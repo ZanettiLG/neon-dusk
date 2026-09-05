@@ -93,7 +93,6 @@ function renderModal(props: Partial<Parameters<typeof AttackConfirmModal>[0]> = 
     <AttackConfirmModal
       target={target}
       nilCost={20}
-      cooldownSeconds={15}
       open
       onClose={onClose}
       onConfirm={onConfirm}
@@ -137,7 +136,7 @@ describe("AttackConfirmModal", () => {
     // cuts the target's Moral loss; the badge on the card covers it).
     expect(screen.getByText("Custo: 20 NIL")).toBeInTheDocument();
     expect(
-      screen.getByText(/Risco: -10% do saldo \(~G\$ 100\) · -5% Moral \(mín\. 1\) · cooldown 15s/),
+      screen.getByText(/Risco: -10% do saldo \(~G\$ 100\) · -5% Moral \(mín\. 1\)/),
     ).toBeInTheDocument();
   });
 

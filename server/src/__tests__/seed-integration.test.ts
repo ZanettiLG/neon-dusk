@@ -101,9 +101,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
 
     it("should restore drifted content on re-run (upsert by slug)", async () => {
       // Simulate a manual price edit; the seed should push it back.
-      await db("chrome_definitions")
-        .where("slug", "neural-booster")
-        .update({ base_price: 9999 });
+      await db("chrome_definitions").where("slug", "neural-booster").update({ base_price: 9999 });
 
       await seedAll();
 
@@ -185,21 +183,20 @@ describe("ND-054 — seed executor (db/seed)", () => {
       expect(kiroshi.price).toBe(1800);
     });
 
-    it("should derive the trampo cooldown from tier (10/15/20/25/30 min)", async () => {
-      // seed.ts derives cooldown per tier (balance pass #114: T1=10, T2=15,
-      // T3=20, T4=25, T5=30 — "cap all gameplay wait timers at 30s" scaled
-      // back to the doc progression anchors).
+    it("should derive the trampo cooldown from tier (5s/60s/900s/7200s/86400s)", async () => {
+      // #187: per-tier progression in seconds — the only real waits in the
+      // game (T1=5s, T2=1min, T3=15min, T4=2h, T5=24h lenda).
       const byTier = {
-        t1: { count: 6, cooldown: 10 },
-        t2: { count: 4, cooldown: 15 },
-        t3: { count: 3, cooldown: 20 },
-        t4: { count: 3, cooldown: 25 },
-        t5: { count: 3, cooldown: 30 },
+        t1: { count: 6, cooldown: 5 },
+        t2: { count: 4, cooldown: 60 },
+        t3: { count: 3, cooldown: 900 },
+        t4: { count: 3, cooldown: 7200 },
+        t5: { count: 3, cooldown: 86400 },
       } as const;
       for (const [tier, expected] of Object.entries(byTier)) {
-        const rows = await db("gigs").select("cooldown_minutes").where("tier", tier);
+        const rows = await db("gigs").select("cooldown_seconds").where("tier", tier);
         expect(rows).toHaveLength(expected.count);
-        expect(rows.every((g) => g.cooldown_minutes === expected.cooldown)).toBe(true);
+        expect(rows.every((g) => g.cooldown_seconds === expected.cooldown)).toBe(true);
       }
     });
 
@@ -226,9 +223,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
         .select("balance")
         .where("character_id", characterId);
       expect(wallet!.balance).toBe(500); // seed capital untouched
-      const logs = await db("transaction_log")
-        .select("id")
-        .where("character_id", characterId);
+      const logs = await db("transaction_log").select("id").where("character_id", characterId);
       expect(logs).toHaveLength(1); // only the ADMIN_ADJUSTMENT entry
     });
   });
@@ -259,7 +254,10 @@ describe("ND-054 — seed executor (db/seed)", () => {
         heat_accumulated: 5,
         district: gig.district,
       });
-      await db("installed_chrome").insert({ character_id: characterId, chrome_definition_id: def.id });
+      await db("installed_chrome").insert({
+        character_id: characterId,
+        chrome_definition_id: def.id,
+      });
       await db("heat").insert({ character_id: characterId, district: "babilonia", amount: 10 });
       const [crew] = await db("crews")
         .insert({ name: `Banda-${Date.now()}`, tag: "BND", leader_id: characterId })
@@ -309,10 +307,13 @@ describe("ND-054 — seed executor (db/seed)", () => {
 
       // wallets.ensure returns the internal camelCase WalletState (public API
       // contract); the raw DB row is snake_case (asserted below).
-      expect(wallet).toMatchObject({ balance: 500, escrow: 0, lifetimeEarned: 500, lifetimeSpent: 0 });
-      const [log] = await db("transaction_log")
-        .select("*")
-        .where("character_id", characterId);
+      expect(wallet).toMatchObject({
+        balance: 500,
+        escrow: 0,
+        lifetimeEarned: 500,
+        lifetimeSpent: 0,
+      });
+      const [log] = await db("transaction_log").select("*").where("character_id", characterId);
       expect(log).toMatchObject({
         type: "ADMIN_ADJUSTMENT",
         amount: 500,
@@ -325,9 +326,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
     it("should not reset an existing wallet when the seed runs", async () => {
       const { characterId } = await insertTestCharacter();
       await db.transaction(async (trx) => wallets.ensure(characterId, trx));
-      await db("character_wallets")
-        .where("character_id", characterId)
-        .update({ balance: 1234 });
+      await db("character_wallets").where("character_id", characterId).update({ balance: 1234 });
 
       await seedAll();
 
@@ -335,9 +334,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
         .select("balance")
         .where("character_id", characterId);
       expect(wallet!.balance).toBe(1234);
-      const logs = await db("transaction_log")
-        .select("id")
-        .where("character_id", characterId);
+      const logs = await db("transaction_log").select("id").where("character_id", characterId);
       expect(logs).toHaveLength(1);
     });
 
@@ -356,9 +353,7 @@ describe("ND-054 — seed executor (db/seed)", () => {
         const wallet = await db.transaction(async (trx) => wallets.ensure(characterId, trx));
 
         expect(wallet).toMatchObject({ balance: 750, lifetimeEarned: 750 });
-        const [log] = await db("transaction_log")
-          .select("*")
-          .where("character_id", characterId);
+        const [log] = await db("transaction_log").select("*").where("character_id", characterId);
         expect(log).toMatchObject({ type: "ADMIN_ADJUSTMENT", amount: 750 });
       } finally {
         await db("game_params").where("key", "INITIAL_BALANCE").del();

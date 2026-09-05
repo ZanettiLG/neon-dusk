@@ -134,20 +134,17 @@ describe("dashboard widgets", () => {
       expect(screen.getByRole("button", { name: "PINGADO" })).toBeInTheDocument();
     });
 
-    it("starts the Pingado cooldown from the NIL_STIM_COOLDOWN error details", async () => {
+    it("surfaces the NIL_FULL error when the Pingado is rejected (#187 — no cooldown)", async () => {
       mocks.api.get.mockResolvedValue(nilStatus);
-      mocks.api.post.mockRejectedValue(
-        new mocks.ApiError(400, "NIL_STIM_COOLDOWN", "Pingado em cooldown. Aguarde.", {
-          retryAfterSeconds: 3600,
-        }),
-      );
+      mocks.api.post.mockRejectedValue(new mocks.ApiError(400, "NIL_FULL", "NIL já está cheio."));
       useAuthStore.setState({ user, character, nilStatus, nilLoading: false, nilError: null });
       renderWidget(<NilWidget />);
 
       const pingado = await screen.findByRole("button", { name: "PINGADO" });
       pingado.click();
 
-      expect(await screen.findByRole("button", { name: /Pingado em/ })).toBeDisabled();
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+      expect(screen.getByText(/NIL já está cheio/)).toBeInTheDocument();
     });
 
     it("renders the loading state while NIL is being fetched", () => {
@@ -160,7 +157,13 @@ describe("dashboard widgets", () => {
 
     it("renders the error state with retry when the NIL fetch fails", async () => {
       mocks.api.get.mockRejectedValue(new Error("network down"));
-      useAuthStore.setState({ user, character, nilStatus: null, nilLoading: false, nilError: null });
+      useAuthStore.setState({
+        user,
+        character,
+        nilStatus: null,
+        nilLoading: false,
+        nilError: null,
+      });
       renderWidget(<NilWidget />);
 
       expect(await screen.findByRole("alert")).toBeInTheDocument();
@@ -174,84 +177,6 @@ describe("dashboard widgets", () => {
         "80",
       );
       expect(mocks.api.get).toHaveBeenCalledWith("/api/characters/me/nil");
-    });
-
-    it("falls back to the default cooldown when retryAfterSeconds is missing", async () => {
-      mocks.api.get.mockResolvedValue(nilStatus);
-      mocks.api.post.mockRejectedValue(
-        new mocks.ApiError(400, "NIL_STIM_COOLDOWN", "Pingado em cooldown. Aguarde."),
-      );
-      useAuthStore.setState({ user, character, nilStatus, nilLoading: false, nilError: null });
-      renderWidget(<NilWidget />);
-
-      const pingado = await screen.findByRole("button", { name: "PINGADO" });
-      pingado.click();
-
-      expect(await screen.findByRole("button", { name: /Pingado em 60:00/ })).toBeDisabled();
-    });
-
-    it("ticks the Pingado cooldown down and re-enables the button", async () => {
-      vi.useFakeTimers();
-      try {
-        mocks.api.get.mockResolvedValue(nilStatus);
-        mocks.api.post.mockRejectedValue(
-          new mocks.ApiError(400, "NIL_STIM_COOLDOWN", "Pingado em cooldown. Aguarde.", {
-            retryAfterSeconds: 2,
-          }),
-        );
-        useAuthStore.setState({ user, character, nilStatus, nilLoading: false, nilError: null });
-        renderWidget(<NilWidget />);
-
-        await act(async () => {}); // flush the mount fetch
-        const pingado = screen.getByRole("button", { name: "PINGADO" });
-        pingado.click();
-        await act(async () => {}); // flush the rejected useStim
-
-        expect(screen.getByRole("button", { name: "Pingado em 0:02" })).toBeDisabled();
-
-        await act(async () => {
-          vi.advanceTimersByTime(1000);
-        });
-        expect(screen.getByRole("button", { name: "Pingado em 0:01" })).toBeDisabled();
-
-        await act(async () => {
-          vi.advanceTimersByTime(1000);
-        });
-        expect(screen.getByRole("button", { name: "PINGADO" })).toBeEnabled();
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it("clears the cooldown error when the Pingado cooldown expires (cooldown is not a failure)", async () => {
-      vi.useFakeTimers();
-      try {
-        mocks.api.get.mockResolvedValue(nilStatus);
-        mocks.api.post.mockRejectedValue(
-          new mocks.ApiError(400, "NIL_STIM_COOLDOWN", "Pingado em cooldown. Aguarde.", {
-            retryAfterSeconds: 2,
-          }),
-        );
-        useAuthStore.setState({ user, character, nilStatus, nilLoading: false, nilError: null });
-        renderWidget(<NilWidget />);
-
-        await act(async () => {}); // flush the mount render
-        screen.getByRole("button", { name: "PINGADO" }).click();
-        await act(async () => {}); // flush the rejected useStim
-
-        // During cooldown: countdown button, no error alert anywhere.
-        expect(screen.getByRole("button", { name: "Pingado em 0:02" })).toBeDisabled();
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-        expect(useAuthStore.getState().nilError).toBeNull();
-
-        await act(async () => {
-          vi.advanceTimersByTime(2000);
-        });
-        expect(screen.getByRole("button", { name: "PINGADO" })).toBeEnabled();
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-      } finally {
-        vi.useRealTimers();
-      }
     });
 
     it("refetches once when the regen countdown hits zero (no fetch loop)", async () => {

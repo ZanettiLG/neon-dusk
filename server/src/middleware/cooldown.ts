@@ -3,26 +3,32 @@ import type Redis from "ioredis";
 import { resolveCharacter } from "../lib/request-character";
 import { AppError } from "./error-handler";
 
-// Neon Dusk — Redis-backed action cooldown preHandler (ND-053)
+// Neon Dusk — Redis-backed action cooldown preHandler (ND-053, #187)
 // ============================================================================
-// Cooldowns prevent spamming the same action. The cooldown is CHECKED in the
-// preHandler but SET in the route handler AFTER success (ADR-2). This means a
-// failed action (e.g., insufficient Grana) does NOT trigger a cooldown.
+// Anti-spam split into two families: 500ms for chat/crew-invite/PvP
+// (imperceptible, anti-DDoS only) and per-action anti-spam for fast/sensitive
+// actions — gig_accept 30s, chrome_install 60s (both still in cooldownConfig).
+// The cooldown is CHECKED in the preHandler but SET in the route handler AFTER
+// success (ADR-2). A failed action (e.g., insufficient Grana) does NOT trigger
+// a cooldown. Real gameplay waits (trampo tiers, abilities) live elsewhere —
+// the DB — not in these keys.
 
 export type CooldownActionType =
-  | "chat_message"     // 5s
-  | "crew_invite"      // 60s
-  | "gig_accept"       // 30s
-  | "chrome_install";  // 60s
+  | "chat_message" // 500ms anti-spam
+  | "crew_invite" // 500ms anti-spam
+  | "pvp_attack" // 500ms anti-spam
+  | "gig_accept" // 30s
+  | "chrome_install"; // 60s
 
 export interface CooldownEntry {
   durationMs: number;
 }
 
 export const cooldownConfig: Record<CooldownActionType, CooldownEntry> = {
-  chat_message:   { durationMs: 5_000 },
-  crew_invite:    { durationMs: 60_000 },
-  gig_accept:     { durationMs: 30_000 },
+  chat_message: { durationMs: 500 },
+  crew_invite: { durationMs: 500 },
+  pvp_attack: { durationMs: 500 },
+  gig_accept: { durationMs: 30_000 },
   chrome_install: { durationMs: 60_000 },
 } as const;
 
@@ -37,8 +43,6 @@ export function checkCooldown(
   redis: Redis,
   actionType: CooldownActionType,
 ): (request: FastifyRequest) => Promise<void> {
-  const entry = cooldownConfig[actionType];
-
   return async (request) => {
     // Memoized on `request` (M6) — shares one character query with the rest of
     // the preHandler chain and the handler.
@@ -48,8 +52,11 @@ export function checkCooldown(
     try {
       const exists = await redis.exists(key);
       if (exists) {
-        const ttl = await redis.ttl(key);
-        const retryAfter = ttl > 0 ? ttl : Math.ceil(entry.durationMs / 1000);
+        // pttl (ms) instead of ttl (s): ttl rounds a 500ms PX window down to
+        // 0, losing the retryAfter. ceil(500/1000) = 1 — the floor keeps it
+        // positive for any residual sub-millisecond TTL.
+        const pttl = await redis.pttl(key);
+        const retryAfter = pttl > 0 ? Math.max(1, Math.ceil(pttl / 1000)) : 1;
 
         // Tag audit context before throwing so the audit log records the
         // correct result instead of falling back to "blocked".
@@ -57,12 +64,7 @@ export function checkCooldown(
           request.audit_context.result = "cooldown_active";
         }
 
-        throw new AppError(
-          429,
-          "COOLDOWN_ACTIVE",
-          "Ação em cooldown. Aguarde.",
-          { retryAfter },
-        );
+        throw new AppError(429, "COOLDOWN_ACTIVE", "Ação em cooldown. Aguarde.", { retryAfter });
       }
     } catch (error) {
       if (error instanceof AppError) throw error;
@@ -70,4 +72,22 @@ export function checkCooldown(
       console.warn("[cooldown] Redis unavailable, allowing request");
     }
   };
+}
+
+/**
+ * Set the post-success cooldown flag for `characterId` (ADR-2 — called by the
+ * route handler only after the operation succeeded). Uses PX because the
+ * 500ms anti-spam windows do not fit `setex`'s whole-second granularity.
+ */
+export async function setCooldown(
+  redis: Redis,
+  characterId: string,
+  actionType: CooldownActionType,
+): Promise<void> {
+  await redis.set(
+    `cooldown:${characterId}:${actionType}`,
+    "1",
+    "PX",
+    cooldownConfig[actionType].durationMs,
+  );
 }

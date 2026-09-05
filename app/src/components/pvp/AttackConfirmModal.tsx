@@ -11,8 +11,6 @@ export interface AttackConfirmModalProps {
   target: PvpTarget;
   /** NIL charged per attack (game param PVP_NIL_COST from the attackable list). */
   nilCost: number;
-  /** Attack cooldown in seconds (from GET /api/pvp/attackable). */
-  cooldownSeconds: number;
   open: boolean;
   onClose: () => void;
   /** Performs the POST /api/pvp/attack — the parent owns the request. */
@@ -30,7 +28,6 @@ export interface AttackConfirmModalProps {
 export default function AttackConfirmModal({
   target,
   nilCost,
-  cooldownSeconds,
   open,
   onClose,
   onConfirm,
@@ -52,11 +49,12 @@ export default function AttackConfirmModal({
 
   // Loss risks: 10% of the balance (1% loot when the caller is already
   // griefing the target — noobShield only cuts the target's Moral loss) +
-  // 5% Moral (min 1) + the cooldown.
+  // 5% Moral (min 1). No cooldown line anymore (#187 — 500ms anti-spam is
+  // imperceptible, so it does not belong in the risk readout).
   const saque = target.griefRisk
     ? "saque 1% (grief)"
     : `-10% do saldo (~${formatEds(Math.floor((balance ?? 0) * 0.1))})`;
-  const risk = `Risco: ${saque} · -5% Moral (mín. 1) · cooldown ${cooldownSeconds}s`;
+  const risk = `Risco: ${saque} · -5% Moral (mín. 1)`;
 
   return (
     <Modal

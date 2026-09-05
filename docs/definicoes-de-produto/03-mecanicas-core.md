@@ -32,7 +32,7 @@ Toda ação significativa em São Paulo exige interface neural — seus implante
 | **Custo de trampo T1** | 10-15 NIL | Permite 6-10 trampos por ciclo |
 | **Custo de trampo T3** | 25-40 NIL | Permite 2-4 trampos por ciclo |
 | **Custo de PvP** | 20 NIL | Limita grinding de PvP |
-| **Regen com consumível** | Pingado: +20 NIL (1h cooldown) | Sem custo colateral |
+| **Regen com consumível** | Pingado: +20 NIL (sem cooldown; limitador = estoque/custo) | Sem custo colateral |
 | **Regen com cromo** | Implante Neural Accelerator: +50% regen passiva | Custa 15 Humanidade |
 
 ### Por que NIL, não "Stamina"?

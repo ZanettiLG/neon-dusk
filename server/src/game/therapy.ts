@@ -4,13 +4,14 @@ import type { TherapyType } from "@neon-dusk/shared";
 // ============================================================================
 // Humanidade recovery (04-sistemas-e-progressao.md §4): clínicas restore
 // 10-20 for G$ 5k-20k; sintonia restores 5-10 for G$ 2.5k-10k. Both share a
-// single 24h cooldown derived from the last session's `completed_at` (no
-// denormalized column — the cooldown is computed from therapy_sessions).
+// single 500ms anti-spam window derived from the last session's `completed_at`
+// (no denormalized column — the window is computed from therapy_sessions).
+// The real limiter is the cost, not time (#187).
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-/** Shared cooldown between both modalities, in milliseconds (24h). */
-export const THERAPY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+/** Shared anti-spam window between both modalities, in milliseconds (500ms). */
+export const THERAPY_COOLDOWN_MS = 500;
 
 /** Cost/restore ranges per modality (04-sistemas-e-progressao.md §4). */
 export const THERAPY_OPTIONS: Record<
@@ -24,10 +25,10 @@ export const THERAPY_OPTIONS: Record<
 // ─── Functions ──────────────────────────────────────────────────────────────
 
 /**
- * Check whether the character can undergo therapy (shared 24h cooldown).
+ * Check whether the character can undergo therapy (shared 500ms window).
  *
  * @param lastCompletedAt - Timestamp of the last session (null when never).
- * @param cooldownMs      - Cooldown window (defaults to THERAPY_COOLDOWN_MS).
+ * @param cooldownMs      - Anti-spam window (defaults to THERAPY_COOLDOWN_MS).
  * @param now             - Reference time (injectable for tests).
  * @returns Whether therapy is available and when it becomes available.
  *
@@ -70,8 +71,7 @@ export function computeTherapyOutcome(
 ): { cost: number; restored: number } {
   const opt = THERAPY_OPTIONS[type] ?? THERAPY_OPTIONS.clinic;
 
-  const rollRange = (min: number, max: number): number =>
-    Math.floor(rng() * (max - min + 1)) + min;
+  const rollRange = (min: number, max: number): number => Math.floor(rng() * (max - min + 1)) + min;
 
   return {
     cost: rollRange(opt.costMin, opt.costMax),

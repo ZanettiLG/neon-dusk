@@ -392,37 +392,46 @@ describe("calculateStreetCred", () => {
 
 describe("isCooldownExpired", () => {
   const now = new Date("2026-08-07T12:00:00.000Z");
-  const MIN = 60_000;
+  const S = 1000;
 
   it("should return true when there is no prior completion", () => {
     expect(isCooldownExpired(null, 10, now)).toBe(true);
   });
 
   it("should return true when the cooldown has fully elapsed", () => {
-    const last = new Date(now.getTime() - 11 * MIN);
+    const last = new Date(now.getTime() - 11 * S);
     expect(isCooldownExpired(last, 10, now)).toBe(true);
   });
 
   it("should return false while the cooldown is still running", () => {
-    const last = new Date(now.getTime() - 5 * MIN);
+    const last = new Date(now.getTime() - 5 * S);
     expect(isCooldownExpired(last, 10, now)).toBe(false);
   });
 
   it("should return true exactly at the cooldown boundary (elapsed >= cooldown)", () => {
-    const last = new Date(now.getTime() - 10 * MIN);
+    const last = new Date(now.getTime() - 10 * S);
     expect(isCooldownExpired(last, 10, now)).toBe(true);
   });
 
   it("should return true for a zero cooldown", () => {
-    expect(isCooldownExpired(new Date(now.getTime() - MIN), 0, now)).toBe(true);
+    expect(isCooldownExpired(new Date(now.getTime() - S), 0, now)).toBe(true);
   });
 
   it("should return true for a negative cooldown", () => {
-    expect(isCooldownExpired(new Date(now.getTime() - MIN), -5, now)).toBe(true);
+    expect(isCooldownExpired(new Date(now.getTime() - S), -5, now)).toBe(true);
   });
 
   it("should return false when the last completion is in the future", () => {
-    expect(isCooldownExpired(new Date(now.getTime() + 30 * MIN), 10, now)).toBe(false);
+    expect(isCooldownExpired(new Date(now.getTime() + 30 * S), 10, now)).toBe(false);
+  });
+
+  it("should use the per-tier second progression (#187: T1=5s … T5=24h)", () => {
+    // T1 = 5s: expired after 5s, still running at 4s.
+    expect(isCooldownExpired(new Date(now.getTime() - 5 * S), 5, now)).toBe(true);
+    expect(isCooldownExpired(new Date(now.getTime() - 4 * S), 5, now)).toBe(false);
+    // T5 = 24h.
+    expect(isCooldownExpired(new Date(now.getTime() - 86_400 * S), 86_400, now)).toBe(true);
+    expect(isCooldownExpired(new Date(now.getTime() - 86_399 * S), 86_400, now)).toBe(false);
   });
 });
 

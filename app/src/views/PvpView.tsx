@@ -28,7 +28,6 @@ export default function PvpView() {
   // Targets
   const [targets, setTargets] = useState<PvpTarget[]>([]);
   const [nilCost, setNilCost] = useState(0);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [targetsLoading, setTargetsLoading] = useState(true);
   const [targetsError, setTargetsError] = useState<string | null>(null);
 
@@ -42,9 +41,7 @@ export default function PvpView() {
   const [confirmTarget, setConfirmTarget] = useState<PvpTarget | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [combatResult, setCombatResult] = useState<PvpCombatResult | null>(
-    null,
-  );
+  const [combatResult, setCombatResult] = useState<PvpCombatResult | null>(null);
 
   async function fetchTargets() {
     setTargetsLoading(true);
@@ -54,7 +51,6 @@ export default function PvpView() {
       if (!mountedRef.current) return;
       setTargets(res.targets);
       setNilCost(res.nilCost);
-      setCooldownSeconds(res.cooldownSeconds);
     } catch (e) {
       if (!mountedRef.current) return;
       setTargetsError(e instanceof Error ? e.message : "Falha ao carregar alvos");
@@ -83,7 +79,9 @@ export default function PvpView() {
     mountedRef.current = true;
     fetchTargets();
     fetchHistory();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   function openConfirm(target: PvpTarget) {
@@ -130,7 +128,9 @@ export default function PvpView() {
       {tab === "targets" && (
         <div>
           {targetsLoading ? (
-            <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>
+            <span className="text-nd-text-secondary animate-pulse-neon font-data">
+              ▌ loading...
+            </span>
           ) : targetsError ? (
             <p className="text-nd-magenta text-sm font-data">{targetsError}</p>
           ) : targets.length === 0 ? (
@@ -147,12 +147,8 @@ export default function PvpView() {
                     <p className="text-nd-text-secondary">
                       Poder: <span className="text-nd-text">{t.power}</span>
                     </p>
-                    {t.noobShield && (
-                      <p className="text-nd-magenta">Escudo de iniciante ativo</p>
-                    )}
-                    {t.griefRisk && (
-                      <p className="text-nd-gold">Risco de grief</p>
-                    )}
+                    {t.noobShield && <p className="text-nd-magenta">Escudo de iniciante ativo</p>}
+                    {t.griefRisk && <p className="text-nd-gold">Risco de grief</p>}
                   </div>
                   <button
                     className="btn-neon text-xs px-3 py-1 mt-3"
@@ -171,7 +167,9 @@ export default function PvpView() {
       {tab === "history" && (
         <div>
           {historyLoading ? (
-            <span className="text-nd-text-secondary animate-pulse-neon font-data">▌ loading...</span>
+            <span className="text-nd-text-secondary animate-pulse-neon font-data">
+              ▌ loading...
+            </span>
           ) : historyError ? (
             <p className="text-nd-magenta text-sm font-data">{historyError}</p>
           ) : combats.length === 0 ? (
@@ -179,7 +177,10 @@ export default function PvpView() {
           ) : (
             <div className="space-y-3">
               {combats.map((c) => (
-                <div key={c.id} className="card border-nd-cyan/20 flex items-center justify-between gap-3">
+                <div
+                  key={c.id}
+                  className="card border-nd-cyan/20 flex items-center justify-between gap-3"
+                >
                   <div className="text-xs font-data">
                     <span className="text-nd-text">{c.attackerName}</span>
                     <span className="text-nd-text-secondary"> vs </span>
@@ -189,9 +190,7 @@ export default function PvpView() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-xs font-data">
-                    {c.grieferPenalty && (
-                      <span className="text-nd-magenta">GRIEFER</span>
-                    )}
+                    {c.grieferPenalty && <span className="text-nd-magenta">GRIEFER</span>}
                     <span className={c.won ? "text-nd-green" : "text-nd-magenta"}>
                       {c.won ? "VITÓRIA" : "DERROTA"}
                     </span>
@@ -200,7 +199,9 @@ export default function PvpView() {
                 </div>
               ))}
               {nextCursor && (
-                <p className="text-nd-text-secondary text-xs font-data text-center">Mais resultados...</p>
+                <p className="text-nd-text-secondary text-xs font-data text-center">
+                  Mais resultados...
+                </p>
               )}
             </div>
           )}
@@ -211,7 +212,6 @@ export default function PvpView() {
         <AttackConfirmModal
           target={confirmTarget}
           nilCost={nilCost}
-          cooldownSeconds={cooldownSeconds}
           open
           onClose={() => setConfirmTarget(null)}
           onConfirm={() => void confirmAttack()}
@@ -221,11 +221,7 @@ export default function PvpView() {
       )}
 
       {combatResult && (
-        <CombatResultModal
-          result={combatResult}
-          open
-          onClose={() => setCombatResult(null)}
-        />
+        <CombatResultModal result={combatResult} open onClose={() => setCombatResult(null)} />
       )}
     </div>
   );

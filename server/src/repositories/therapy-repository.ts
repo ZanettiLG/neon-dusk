@@ -2,8 +2,8 @@ import { db, type Queryable } from "../db";
 
 // Neon Dusk — Therapy repository (#158 DB repository layer)
 // ============================================================================
-// `therapy_sessions` access: the 24h cooldown is derived from the last
-// session's `completed_at` (no denormalized column — ADR 28-D pattern).
+// `therapy_sessions` access: the 500ms anti-spam window (#187) is derived
+// from the last session's `completed_at` (no denormalized column).
 
 /** Raw row shape for `therapy_sessions`. */
 export interface TherapySessionRow {

@@ -38,17 +38,13 @@ import { getGameParam } from "../repositories/game-param-repository";
 // whole fight (validation, SC/NIL changes, loot transfer, combat record) runs
 // in ONE atomic transaction; the attacker and defender character rows are
 // locked FOR UPDATE so concurrent attacks on the same characters serialize.
-// The Redis cooldown is only set AFTER the transaction commits — a rollback
-// must never burn the attacker's cooldown.
+// The 500ms anti-spam cooldown lives in the route middleware (checkCooldown +
+// setCooldown post-success), not here.
 
 /** NIL cost per attack — fallback when the game_params key is missing. */
 const PVP_NIL_COST_FALLBACK = "20";
 /** Max allowed |attacker power − defender power| (matching game/pvp ±10). */
 const POWER_RANGE = 10;
-/** Redis cooldown key prefix (per attacking character). */
-const PVP_COOLDOWN_KEY = "pvp:cooldown:";
-/** Attack cooldown, in seconds. */
-const PVP_COOLDOWN_S = 3600;
 /** Account immunity window (must match game/pvp IMMUNITY_DAYS). */
 const IMMUNITY_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -82,11 +78,9 @@ async function countWeeklyAttacks(
 /**
  * GET /api/pvp/attackable — candidates within ±10 effective power of the
  * caller, newest accounts excluded (7-day immunity). Rough base-power filter
- * in SQL, cromo-aware filter in JS. Returns an empty list while the caller
- * is on cooldown so the client can show "no targets" instead of an error.
+ * in SQL, cromo-aware filter in JS.
  */
 export async function getAttackableTargets(
-  redis: Redis,
   userId: string,
   limit: number,
   cursor?: string,
@@ -97,15 +91,6 @@ export async function getAttackableTargets(
 
   const attacker = await characters.findByUserId(userId);
   if (!attacker) throw new AppError(404, "NO_CHARACTER", "Crie um personagem primeiro");
-
-  if (await redis.get(`${PVP_COOLDOWN_KEY}${attacker.id}`)) {
-    // Keep quoting the cost even with no targets so the client stays honest.
-    return {
-      targets: [],
-      nilCost: Number(await getGameParam("PVP_NIL_COST", PVP_NIL_COST_FALLBACK)),
-      cooldownSeconds: PVP_COOLDOWN_S,
-    };
-  }
 
   const attackerChrome = await loadChromePower(attacker.id);
   const minPower = attacker.body + attacker.reflexes + attackerChrome - POWER_RANGE;
@@ -143,7 +128,7 @@ export async function getAttackableTargets(
     });
   }
 
-  return { targets, nilCost, cooldownSeconds: PVP_COOLDOWN_S };
+  return { targets, nilCost };
 }
 
 /**
@@ -170,13 +155,6 @@ export async function executeAttack(
 
   if (targetId === attackerId) {
     throw new AppError(400, "CANNOT_ATTACK_SELF", "Você não pode atacar a si mesmo");
-  }
-
-  if (await redis.get(`${PVP_COOLDOWN_KEY}${attackerId}`)) {
-    const ttl = await redis.ttl(`${PVP_COOLDOWN_KEY}${attackerId}`);
-    throw new AppError(429, "PVP_COOLDOWN", "Você ainda está em cooldown de ataque", {
-      retryAfter: ttl > 0 ? ttl : PVP_COOLDOWN_S,
-    });
   }
 
   // ND-052: the NIL cost is a tunable game param (docs §3: 20 NIL per
@@ -418,11 +396,10 @@ export async function executeAttack(
     };
   });
 
-  // Post-commit side effects: cooldown + telemetry + leaderboard invalidation.
-  // Never set the cooldown when the transaction rolled back — the attacker
-  // must be able to retry. Leaderboard cache is dropped unconditionally
-  // because any fight can move SC for both winner and loser (#74).
-  await redis.set(`${PVP_COOLDOWN_KEY}${attackerId}`, "1", "EX", PVP_COOLDOWN_S);
+  // Post-commit side effects: telemetry + leaderboard invalidation. The
+  // 500ms anti-spam cooldown is set by the route middleware after success.
+  // Leaderboard cache is dropped unconditionally because any fight can move
+  // SC for both winner and loser (#74).
   await invalidateLeaderboardCache(redis);
   instrument({
     eventType: "PVP_ATTACK",

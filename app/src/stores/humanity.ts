@@ -15,7 +15,7 @@ interface HumanityState {
 /**
  * Humanity store (Zustand singleton) — cyberpsychosis readout + therapy
  * (issue #28). The therapy action refreshes the readout on success so the
- * shared 24h cooldown stays in sync with the server.
+ * 500ms anti-spam window stays in sync with the server (#187).
  */
 export const useHumanityStore = create<HumanityState>((set) => ({
   info: null,

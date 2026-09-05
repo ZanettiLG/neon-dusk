@@ -40,7 +40,7 @@ import type {
 // Character template used throughout (insertTestCharacter defaults):
 //   body 5, reflexes 4, intelligence 4, technical 4, cool 5 — SC 0, NIL 100.
 // "Corre da Farmácia" (T1, delivery): {cool:3}, SC 0, NIL 10, reward 500,
-// heat 5, legwork 5 min, cooldown 10 min, district Babilônia — the trampo every
+// heat 5, legwork 5 min, cooldown 5s (T1, #187), district Babilônia — the trampo every
 // fresh character can take.
 
 const REDIS_TEST_DB = "redis://localhost:56379/10";
@@ -97,6 +97,16 @@ describe("ND-011 — trampos service & API", () => {
   /** The trampo every fresh test character qualifies for. */
   async function farmaGig() {
     return gigByName("Corre da Farmácia");
+  }
+
+  /**
+   * Widen a template's cooldown window (T1 5s → 60s) so slow CI can never
+   * outrun it between the gig_history insert and the assertion (#187 review:
+   * the 5s window is a real-timing flake risk). No restore needed — every
+   * later test backdates ≥ 11 min or leans on the global floor.
+   */
+  async function widenTemplateCooldown(gigId: string): Promise<void> {
+    await db("gigs").where("id", gigId).update({ cooldown_seconds: 60 });
   }
 
   /** Force the active trampo into the escape phase with a deterministic outcome. */
@@ -210,6 +220,7 @@ describe("ND-011 — trampos service & API", () => {
     it("should report a running cooldown after a recent completion", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
+      await widenTemplateCooldown(farma.id); // 5s → 60s: CI-safe window
       await db("gig_history").insert({
         character_id: characterId,
         gig_id: farma.id,
@@ -224,10 +235,10 @@ describe("ND-011 — trampos service & API", () => {
       const board = await listAvailableGigs(characterId);
       const entry = board.gigs.find((g) => g.id === farma.id)!;
       expect(entry.cooldownRemaining).toBeGreaterThan(0);
-      // Tolerance 601, not 600: `completed_at` is stamped by the Postgres
-      // clock while the service computes the remainder on the JS clock; a
-      // ~1s DB-ahead skew survives Math.ceil (600 001 ms → 601 s).
-      expect(entry.cooldownRemaining).toBeLessThanOrEqual(601); // 10-min cooldown
+      // Tolerance 61, not 60: `completed_at` is stamped by the Postgres clock
+      // while the service computes the remainder on the JS clock; a ~1s
+      // DB-ahead skew survives Math.ceil (60 001 ms → 61 s).
+      expect(entry.cooldownRemaining).toBeLessThanOrEqual(61); // 60s + ~1s clock skew
     });
 
     it("should report 0 cooldown once the cooldown window has elapsed", async () => {
@@ -252,7 +263,7 @@ describe("ND-011 — trampos service & API", () => {
 
     it("should apply the game_params GIG_COOLDOWN_MINUTES floor on top of template cooldowns (ND-052)", async () => {
       // The global cooldown floor is admin-tunable — raise it to 60 min and
-      // verify the board reports the raised cooldown (not the 10-min template).
+      // verify the board reports the raised cooldown (not the template cooldown).
       await db("game_params")
         .insert({ key: "GIG_COOLDOWN_MINUTES", value: "60" })
         .onConflict("key")
@@ -261,7 +272,7 @@ describe("ND-011 — trampos service & API", () => {
 
       try {
         const { characterId } = await insertTestCharacter();
-        const farma = await farmaGig(); // template cooldown 10 min
+        const farma = await farmaGig(); // T1 template already widened 5s → 60s for CI
         await db("gig_history").insert({
           character_id: characterId,
           gig_id: farma.id,
@@ -275,7 +286,7 @@ describe("ND-011 — trampos service & API", () => {
 
         const board = await listAvailableGigs(characterId);
         const entry = board.gigs.find((g) => g.id === farma.id)!;
-        // 60-min floor → ~3600s remaining; the 10-min template would be ≤ 601s.
+        // 60-min floor → ~3600s remaining; the widened 60s template would be ≤ 61s.
         expect(entry.cooldownRemaining).toBeGreaterThan(3000);
         expect(entry.cooldownRemaining).toBeLessThanOrEqual(3601);
       } finally {
@@ -483,6 +494,7 @@ describe("ND-011 — trampos service & API", () => {
     it("should throw 400 GIG_COOLDOWN when the same trampo was completed recently", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
+      await widenTemplateCooldown(farma.id); // 5s → 60s: CI-safe window
       await db("gig_history").insert({
         character_id: characterId,
         gig_id: farma.id,
@@ -492,7 +504,7 @@ describe("ND-011 — trampos service & API", () => {
         street_cred_gained: 2,
         heat_accumulated: 5,
         district: farma.district,
-        completed_at: new Date(), // just now — 10-min cooldown still running
+        completed_at: new Date(), // just now — the widened 60s cooldown is running
       });
 
       await expect(acceptGig(characterId, farma.id)).rejects.toMatchObject({
@@ -1055,6 +1067,7 @@ describe("ND-011 — trampos service & API", () => {
     it("should keep the cooldown after a failure (anti-farm regression)", async () => {
       const { characterId } = await insertTestCharacter();
       const farma = await farmaGig();
+      await widenTemplateCooldown(farma.id); // 5s → 60s: CI-safe window
       await db("gig_history").insert({
         character_id: characterId,
         gig_id: farma.id,
@@ -1064,7 +1077,7 @@ describe("ND-011 — trampos service & API", () => {
         street_cred_gained: 0,
         heat_accumulated: 10,
         district: farma.district,
-        completed_at: new Date(), // just now — the 10-min cooldown is running
+        completed_at: new Date(), // just now — the widened 60s cooldown is running
       });
 
       const board = await listAvailableGigs(characterId);

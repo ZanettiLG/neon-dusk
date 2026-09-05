@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { GigListItem, GigType } from "@neon-dusk/shared";
 import { useAuthStore } from "@/stores/auth";
 import { ATTRIBUTE_LABELS, GIG_TYPE_LABELS } from "@/lib/labels";
-import { formatCountdown } from "@/lib/format";
+import { formatCooldown } from "@/lib/format";
 import { bandFor } from "@/lib/tokens";
 
 interface GigCardProps {
@@ -14,7 +14,10 @@ interface GigCardProps {
 
 /** Tailwind classes per trampo type (badge + accent). */
 const TYPE_STYLES: Record<GigType, { badge: string; bar: string }> = {
-  extraction: { badge: "text-nd-magenta border-nd-magenta/40 bg-nd-magenta/10", bar: "bg-nd-magenta" },
+  extraction: {
+    badge: "text-nd-magenta border-nd-magenta/40 bg-nd-magenta/10",
+    bar: "bg-nd-magenta",
+  },
   delivery: { badge: "text-nd-cyan border-nd-cyan/40 bg-nd-cyan/10", bar: "bg-nd-cyan" },
   sabotage: { badge: "text-nd-gold border-nd-gold/40 bg-nd-gold/10", bar: "bg-nd-gold" },
 };
@@ -115,7 +118,10 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
         <span className="text-nd-text-secondary">Recompensa</span>
         <span className="text-nd-gold">
           G$ {trampo.baseReward.toLocaleString("pt-BR")}
-          <span className="text-nd-text-secondary text-nd-micro"> · ×1.32 máx (legwork + sucesso)</span>
+          <span className="text-nd-text-secondary text-nd-micro">
+            {" "}
+            · ×1.32 máx (legwork + sucesso)
+          </span>
         </span>
       </div>
 
@@ -129,13 +135,11 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
               <span
                 key={key}
                 className={`font-data text-nd-micro uppercase tracking-wider border rounded-terminal px-1.5 py-0.5 ${
-                  met
-                    ? "text-nd-green border-nd-green/30"
-                    : "text-nd-magenta border-nd-magenta/30"
+                  met ? "text-nd-green border-nd-green/30" : "text-nd-magenta border-nd-magenta/30"
                 }`}
               >
-                {met ? "✓" : "✗"}{" "}
-                {ATTRIBUTE_LABELS[key as keyof typeof ATTRIBUTE_LABELS] ?? key} {required}
+                {met ? "✓" : "✗"} {ATTRIBUTE_LABELS[key as keyof typeof ATTRIBUTE_LABELS] ?? key}{" "}
+                {required}
               </span>
             );
           })}
@@ -146,7 +150,7 @@ export default function GigCard({ trampo, disabled, onAccept }: GigCardProps) {
       <div className="mt-auto flex items-center justify-between gap-2">
         {onCooldown ? (
           <span className="font-data text-nd-label text-nd-text-secondary">
-            cooldown {formatCountdown(remaining)}
+            cooldown {formatCooldown(remaining)}
           </span>
         ) : !trampo.meetsRequirements ? (
           <span className="font-data text-nd-label text-nd-magenta">requisitos não atendidos</span>

@@ -12,8 +12,8 @@ import { undergoTherapy } from "../services/therapy-service";
 
 // Neon Dusk — Therapy routes (issue #28)
 // ============================================================================
-// POST /api/therapy — undergo a session (clínica or sintonia). Shared 24h
-// cooldown; wallet debit + humanity restore in one transaction.
+// POST /api/therapy — undergo a session (clínica or sintonia). Shared 500ms
+// anti-spam window (#187); wallet debit + humanity restore in one transaction.
 
 const therapySchema = z.object({
   therapyType: z.enum(THERAPY_TYPES),

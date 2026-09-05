@@ -55,8 +55,14 @@ describe("Issue #28 — Terapia API", () => {
   });
 
   /** Register a fresh user + character via HTTP; returns token + character id. */
-  async function registerAndCreateCharacter(): Promise<{ accessToken: string; characterId: string }> {
-    const res = await server.post("/api/auth/register", { email: uniqueEmail(), password: PASSWORD });
+  async function registerAndCreateCharacter(): Promise<{
+    accessToken: string;
+    characterId: string;
+  }> {
+    const res = await server.post("/api/auth/register", {
+      email: uniqueEmail(),
+      password: PASSWORD,
+    });
     expect(res.status).toBe(201);
     const { accessToken, user } = await json<AuthResponse>(res);
 
@@ -72,15 +78,16 @@ describe("Issue #28 — Terapia API", () => {
     });
     expect(created.status).toBe(201);
 
-    const [character] = await db("characters")
-      .select("id")
-      .where("user_id", user.id)
-      .limit(1);
+    const [character] = await db("characters").select("id").where("user_id", user.id).limit(1);
     return { accessToken, characterId: character!.id };
   }
 
   /** Create the wallet (500 seed) and top it up so a session is affordable. */
-  async function topUpWallet(accessToken: string, characterId: string, amount = 100_000): Promise<void> {
+  async function topUpWallet(
+    accessToken: string,
+    characterId: string,
+    amount = 100_000,
+  ): Promise<void> {
     await fetch(`${base()}/api/economy/balance`, { headers: authHeader(accessToken) });
     await db("character_wallets")
       .where("character_id", characterId)
@@ -117,9 +124,7 @@ describe("Issue #28 — Terapia API", () => {
       expect(wallet!.balance).toBe(100_000 - body.cost);
 
       // Session row recorded.
-      const [session] = await db("therapy_sessions")
-        .select("*")
-        .where("character_id", characterId);
+      const [session] = await db("therapy_sessions").select("*").where("character_id", characterId);
       expect(session).toMatchObject({
         therapy_type: "clinic",
         cost: body.cost,
@@ -178,7 +183,7 @@ describe("Issue #28 — Terapia API", () => {
       expect(body.restored).toBe(5); // 95 → 100
     });
 
-    it("should reject a second session within the shared 24h cooldown (429 COOLDOWN_ACTIVE)", async () => {
+    it("should reject a second session within the anti-spam window (429 COOLDOWN_ACTIVE)", async () => {
       const { accessToken, characterId } = await registerAndCreateCharacter();
       await topUpWallet(accessToken, characterId);
       await db("characters").where("id", characterId).update({ humanity: 50 });
@@ -190,6 +195,13 @@ describe("Issue #28 — Terapia API", () => {
       );
       expect(first.status).toBe(200);
 
+      // #187: the shared window is 500ms — back-to-back HTTP would usually
+      // land inside it, but that is timing-dependent. Backdate a fresh
+      // session to "now" so the window is deterministically open.
+      await db("therapy_sessions")
+        .where("character_id", characterId)
+        .update({ completed_at: new Date() });
+
       const res = await server.post(
         "/api/therapy",
         { therapyType: "attunement" },
@@ -199,7 +211,11 @@ describe("Issue #28 — Terapia API", () => {
       // ND-053: therapy uses the COOLDOWN_ACTIVE/429 convention (issue #28
       // review, cycle 2) with the unlock time in details.nextAvailableAt.
       expect(res.status).toBe(429);
-      const body = await json<{ error: string; message: string; details?: { nextAvailableAt?: string | null } }>(res);
+      const body = await json<{
+        error: string;
+        message: string;
+        details?: { nextAvailableAt?: string | null };
+      }>(res);
       expect(body.error).toBe("COOLDOWN_ACTIVE");
       expect(body.details?.nextAvailableAt).toBeTruthy();
     });

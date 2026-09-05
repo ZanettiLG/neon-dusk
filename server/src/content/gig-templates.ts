@@ -15,15 +15,15 @@
 //   T5 payout 100.000+, NIL 50-60, difficulty 90-100, SC 50
 //   requiredStats achievable by optimized starting chars (max 8 T1, max 10 T2)
 //
-// cooldownMinutes is NOT included — the seed script derives it
-// (T1=10, T2=15, T3=20, T4=25, T5=30, per balance pass #114).
+// cooldownSeconds is NOT included — the seed script derives it per tier
+// (T1=5, T2=60, T3=900, T4=7200, T5=86400, per #187 progression).
 
 /** Static seed data for a trampo template. */
 export interface GigTemplateSeed {
   name: string;
   description: string;
-  tier: 't1' | 't2' | 't3' | 't4' | 't5';
-  type: 'extraction' | 'delivery' | 'sabotage';
+  tier: "t1" | "t2" | "t3" | "t4" | "t5";
+  type: "extraction" | "delivery" | "sabotage";
   district: string;
   difficulty: number;
   escapeDifficulty: number;
